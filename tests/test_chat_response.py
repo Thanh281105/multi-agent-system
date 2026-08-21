@@ -1,0 +1,38 @@
+import pytest
+from fastapi.testclient import TestClient
+
+from app.agent.runner import AgentRunResult
+from app.main import app
+from app.schemas.chat import ToolCallInfo
+
+
+@pytest.mark.asyncio
+async def test_chat_exposes_runner_tool_calls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_run_agent(**_: object) -> AgentRunResult:
+        return AgentRunResult(
+            answer="Em tìm thấy dữ liệu phù hợp.",
+            tool_calls=[
+                ToolCallInfo(
+                    name="search_products",
+                    arguments={"category": "Tai nghe", "max_price": 1_000_000},
+                    result_summary={"count": 2},
+                )
+            ],
+        )
+
+    import app.api.chat as chat_api
+
+    monkeypatch.setattr(chat_api, "run_agent", fake_run_agent)
+    response = TestClient(app).post(
+        "/chat",
+        json={"message": "Tìm tai nghe dưới 1 triệu"},
+    )
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["answer"] == "Em tìm thấy dữ liệu phù hợp."
+    assert body["tool_calls"][0]["name"] == "search_products"
+    assert body["tool_calls"][0]["arguments"]["max_price"] == 1_000_000
+    assert body["session_id"].startswith("sess_")
