@@ -1,4 +1,4 @@
-"""Plain Python database tools exposed to the Google ADK agent."""
+"""Plain Python database tools exposed to the OpenAI agent."""
 
 import logging
 from typing import Any
@@ -44,7 +44,7 @@ def search_products(
         "platform": platform,
         "limit": limit,
     }
-    logger.info("ADK TOOL CALL tool=search_products arguments=%s", arguments)
+    logger.info("TOOL CALL tool=search_products arguments=%s", arguments)
     with session_scope() as session:
         products = EcommerceRepository(session).search_products(
             query=query,
@@ -71,7 +71,7 @@ def get_product_reviews(product_id: int, limit: int = 20) -> dict[str, Any]:
     _validate_positive_id(product_id, "product_id")
     _validate_limit(limit, maximum=50)
     logger.info(
-        "ADK TOOL CALL tool=get_product_reviews arguments=%s",
+        "TOOL CALL tool=get_product_reviews arguments=%s",
         {"product_id": product_id, "limit": limit},
     )
     with session_scope() as session:
@@ -132,7 +132,7 @@ def compare_products(product_ids: list[int]) -> dict[str, Any]:
         _validate_positive_id(product_id, "product_id")
 
     logger.info(
-        "ADK TOOL CALL tool=compare_products arguments=%s",
+        "TOOL CALL tool=compare_products arguments=%s",
         {"product_ids": product_ids},
     )
     with session_scope() as session:

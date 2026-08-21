@@ -1,1 +1,1 @@
-"""Google ADK agent and runtime integration."""
+"""OpenAI agent definition and runtime integration."""

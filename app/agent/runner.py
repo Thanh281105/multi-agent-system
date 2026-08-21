@@ -1,15 +1,15 @@
-"""Minimal Google ADK Runner wrapper used by the FastAPI layer."""
+"""OpenAI Responses API runner with an explicit database-tool loop."""
 
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any
 
-from google.adk.runners import InMemoryRunner
-from google.genai import types
+from openai import AsyncOpenAI
 
 from app.agent.agent import root_agent
 from app.core.config import settings
@@ -17,21 +17,22 @@ from app.schemas.chat import ToolCallInfo
 
 logger = logging.getLogger(__name__)
 
+MAX_TOOL_ROUNDS = 8
+openai_client: AsyncOpenAI | None = None
+session_response_ids: dict[str, str] = {}
+runner_lock = asyncio.Lock()
+
 
 class AgentRunError(RuntimeError):
-    """Raised when ADK cannot complete an agent invocation."""
+    """Raised when OpenAI or the agent tool loop cannot complete a turn."""
 
 
 @dataclass(frozen=True)
 class AgentRunResult:
-    """API-neutral result produced after consuming the ADK event stream."""
+    """API-neutral result produced after collecting safe tool-call metadata."""
 
     answer: str
     tool_calls: list[ToolCallInfo]
-
-
-runner = InMemoryRunner(agent=root_agent, app_name=settings.adk_app_name)
-runner_lock = asyncio.Lock()
 
 
 async def run_agent(
@@ -41,83 +42,114 @@ async def run_agent(
     request_id: str,
     user_id: str = "api-user",
 ) -> AgentRunResult:
-    """Run one user turn and collect only safe response/tool-call metadata."""
+    """Run one user turn and execute any model-requested database tools."""
 
+    del user_id
     started_at = perf_counter()
     logger.info(
         "AGENT START request_id=%s session_id=%s model=%s",
         request_id,
         session_id,
-        settings.adk_model,
+        settings.openai_model,
     )
 
     async with runner_lock:
         try:
-            await _ensure_session(user_id=user_id, session_id=session_id)
-            content = types.Content(
-                role="user",
-                parts=[types.Part.from_text(text=message)],
+            client = _get_client()
+            previous_response_id = session_response_ids.get(session_id)
+            response = await _create_response(
+                client=client,
+                input_items=message,
+                previous_response_id=previous_response_id,
             )
             tool_calls: list[dict[str, Any]] = []
-            answer = ""
 
-            async for event in runner.run_async(
-                user_id=user_id,
-                session_id=session_id,
-                new_message=content,
-            ):
-                for function_call in event.get_function_calls():
-                    call_info = {
-                        "name": function_call.name or "unknown_tool",
-                        "arguments": dict(function_call.args or {}),
+            for _ in range(MAX_TOOL_ROUNDS):
+                function_calls = _get_function_calls(response)
+                if not function_calls:
+                    answer = str(getattr(response, "output_text", "") or "").strip()
+                    if not answer:
+                        raise AgentRunError("OpenAI returned no final text response")
+                    response_id = _get_response_id(response)
+                    session_response_ids[session_id] = response_id
+                    result = AgentRunResult(
+                        answer=answer,
+                        tool_calls=[
+                            ToolCallInfo.model_validate(call) for call in tool_calls
+                        ],
+                    )
+                    logger.info(
+                        "AGENT COMPLETE request_id=%s session_id=%s "
+                        "tool_calls=%d latency_ms=%d",
+                        request_id,
+                        session_id,
+                        len(result.tool_calls),
+                        int((perf_counter() - started_at) * 1000),
+                    )
+                    return result
+
+                tool_outputs: list[dict[str, Any]] = []
+                for function_call in function_calls:
+                    name = str(getattr(function_call, "name", "unknown_tool"))
+                    call_info: dict[str, Any] = {
+                        "name": name,
+                        "arguments": {},
                         "result_summary": None,
                     }
                     tool_calls.append(call_info)
                     logger.info(
-                        "ADK TOOL CALL request_id=%s session_id=%s "
-                        "tool=%s arguments=%s",
+                        "OPENAI TOOL CALL request_id=%s session_id=%s tool=%s",
                         request_id,
                         session_id,
-                        call_info["name"],
-                        call_info["arguments"],
+                        name,
                     )
 
-                for function_response in event.get_function_responses():
-                    summary = _summarize_tool_result(function_response.response)
-                    _attach_result_summary(
-                        tool_calls,
-                        function_response.name or "unknown_tool",
-                        summary,
+                    try:
+                        arguments = _parse_arguments(
+                            getattr(function_call, "arguments", "{}")
+                        )
+                        call_info["arguments"] = arguments
+                        tool_result = await _execute_tool(
+                            name=name,
+                            arguments=arguments,
+                            request_id=request_id,
+                            session_id=session_id,
+                        )
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        logger.exception(
+                            "OPENAI TOOL ARGUMENT ERROR request_id=%s "
+                            "session_id=%s tool=%s",
+                            request_id,
+                            session_id,
+                            name,
+                        )
+                        tool_result = {"error": "Tool arguments không hợp lệ."}
+
+                    call_info["result_summary"] = _summarize_tool_result(tool_result)
+                    call_id = getattr(function_call, "call_id", None)
+                    if not call_id:
+                        raise AgentRunError(
+                            "OpenAI returned a tool call without call_id"
+                        )
+                    tool_outputs.append(
+                        {
+                            "type": "function_call_output",
+                            "call_id": call_id,
+                            "output": json.dumps(
+                                tool_result,
+                                ensure_ascii=False,
+                                default=str,
+                            ),
+                        }
                     )
-                    logger.info(
-                        "TOOL RESULT request_id=%s session_id=%s tool=%s summary=%s",
-                        request_id,
-                        session_id,
-                        function_response.name or "unknown_tool",
-                        summary,
-                    )
 
-                if event.is_final_response():
-                    event_text = _extract_text(event.content)
-                    if event_text:
-                        answer = event_text
+                response = await _create_response(
+                    client=client,
+                    input_items=tool_outputs,
+                    previous_response_id=_get_response_id(response),
+                )
 
-            if not answer:
-                raise AgentRunError("ADK returned no final text response")
-
-            result = AgentRunResult(
-                answer=answer,
-                tool_calls=[ToolCallInfo.model_validate(call) for call in tool_calls],
-            )
-            logger.info(
-                "AGENT COMPLETE request_id=%s session_id=%s "
-                "tool_calls=%d latency_ms=%d",
-                request_id,
-                session_id,
-                len(result.tool_calls),
-                int((perf_counter() - started_at) * 1000),
-            )
-            return result
+            raise AgentRunError("OpenAI exceeded the maximum tool-call rounds")
         except AgentRunError:
             logger.exception(
                 "AGENT ERROR request_id=%s session_id=%s latency_ms=%d",
@@ -133,28 +165,97 @@ async def run_agent(
                 session_id,
                 int((perf_counter() - started_at) * 1000),
             )
-            raise AgentRunError("ADK runtime failed") from exc
+            raise AgentRunError("OpenAI runtime failed") from exc
 
 
-async def _ensure_session(*, user_id: str, session_id: str) -> None:
-    existing = await runner.session_service.get_session(
-        app_name=settings.adk_app_name,
-        user_id=user_id,
-        session_id=session_id,
-    )
-    if existing is None:
-        await runner.session_service.create_session(
-            app_name=settings.adk_app_name,
-            user_id=user_id,
-            session_id=session_id,
+def _get_client() -> AsyncOpenAI:
+    if openai_client is not None:
+        return openai_client
+    if not settings.openai_api_key:
+        raise AgentRunError("OPENAI_API_KEY is not configured")
+    return _create_client()
+
+
+def _create_client() -> AsyncOpenAI:
+    global openai_client
+    openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
+    return openai_client
+
+
+async def _create_response(
+    *,
+    client: AsyncOpenAI,
+    input_items: Any,
+    previous_response_id: str | None,
+) -> Any:
+    request: dict[str, Any] = {
+        "model": settings.openai_model,
+        "instructions": root_agent.instructions,
+        "input": input_items,
+        "tools": list(root_agent.tools),
+        "store": True,
+    }
+    if previous_response_id:
+        request["previous_response_id"] = previous_response_id
+    return await client.responses.create(**request)
+
+
+def _get_function_calls(response: Any) -> list[Any]:
+    return [
+        item
+        for item in (getattr(response, "output", None) or [])
+        if getattr(item, "type", None) == "function_call"
+    ]
+
+
+def _get_response_id(response: Any) -> str:
+    response_id = getattr(response, "id", None)
+    if not response_id:
+        raise AgentRunError("OpenAI returned a response without an id")
+    return str(response_id)
+
+
+def _parse_arguments(raw_arguments: Any) -> dict[str, Any]:
+    if isinstance(raw_arguments, dict):
+        return raw_arguments
+    if not isinstance(raw_arguments, str):
+        raise TypeError("tool arguments must be a JSON object")
+    parsed = json.loads(raw_arguments)
+    if not isinstance(parsed, dict):
+        raise ValueError("tool arguments must be a JSON object")
+    return parsed
+
+
+async def _execute_tool(
+    *,
+    name: str,
+    arguments: dict[str, Any],
+    request_id: str,
+    session_id: str,
+) -> dict[str, Any]:
+    tool = root_agent.functions.get(name)
+    if tool is None:
+        return {"error": f"Unknown tool: {name}"}
+    try:
+        result = await asyncio.to_thread(tool, **arguments)
+        if not isinstance(result, dict):
+            raise TypeError("tool result must be a dictionary")
+        logger.info(
+            "TOOL RESULT request_id=%s session_id=%s tool=%s summary=%s",
+            request_id,
+            session_id,
+            name,
+            _summarize_tool_result(result),
         )
-
-
-def _extract_text(content: types.Content | None) -> str:
-    if content is None:
-        return ""
-    text_parts = [part.text for part in content.parts or [] if part.text]
-    return "".join(text_parts).strip()
+        return result
+    except Exception:
+        logger.exception(
+            "TOOL ERROR request_id=%s session_id=%s tool=%s",
+            request_id,
+            session_id,
+            name,
+        )
+        return {"error": "Không thể truy xuất dữ liệu từ tool."}
 
 
 def _summarize_tool_result(response: Any) -> dict[str, Any] | None:
@@ -162,6 +263,8 @@ def _summarize_tool_result(response: Any) -> dict[str, Any] | None:
         return None
 
     summary: dict[str, Any] = {}
+    if "error" in response:
+        summary["error"] = True
     for key in ("found", "count"):
         if key in response and isinstance(response[key], (bool, int, float, str)):
             summary[key] = response[key]
@@ -170,14 +273,3 @@ def _summarize_tool_result(response: Any) -> dict[str, Any] | None:
         if isinstance(value, list):
             summary[f"{key}_count"] = len(value)
     return summary or None
-
-
-def _attach_result_summary(
-    tool_calls: list[dict[str, Any]],
-    tool_name: str,
-    summary: dict[str, Any] | None,
-) -> None:
-    for call in reversed(tool_calls):
-        if call["name"] == tool_name and call["result_summary"] is None:
-            call["result_summary"] = summary
-            return

@@ -6,11 +6,11 @@ from app.main import app
 
 
 @pytest.mark.asyncio
-async def test_chat_returns_stable_error_when_adk_fails(
+async def test_chat_returns_stable_error_when_openai_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def fail_run_agent(**_: object) -> None:
-        raise AgentRunError("simulated ADK failure")
+        raise AgentRunError("simulated OpenAI failure")
 
     import app.api.chat as chat_api
 

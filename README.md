@@ -1,9 +1,9 @@
 # Vietnamese E-commerce Agent — Phase 1
 
-Proof of concept cho một **single agent** bằng Google Agent Development Kit
-(ADK). Người dùng hỏi bằng tiếng Việt; agent chọn một trong ba Python tools,
-tool đọc PostgreSQL qua SQLAlchemy, rồi agent tạo grounded answer từ dữ liệu
-đã trả về.
+Proof of concept cho một **single agent** bằng OpenAI Responses API với model
+`gpt-5.4-mini`. Người dùng hỏi bằng tiếng Việt; agent chọn một trong ba Python
+tools, tool đọc PostgreSQL qua SQLAlchemy, rồi agent tạo grounded answer từ dữ
+liệu đã trả về.
 
 Phase này cố ý chưa có multi-agent, orchestrator, A2A, MCP, RAG, vector
 database, Redis, frontend, SSE hay authentication.
@@ -15,9 +15,9 @@ Client
   ↓ HTTP
 FastAPI (/chat)
   ↓ validated ChatRequest
-Google ADK InMemoryRunner
+OpenAI Responses API runner
   ↓
-EcommerceAgent (LlmAgent)
+EcommerceAgent (instructions + function tools)
   ↓ chooses a tool
 Plain Python tool
   ↓
@@ -25,19 +25,19 @@ EcommerceRepository
   ↓ SQLAlchemy session
 PostgreSQL
   ↓ structured facts
-ADK agent
+OpenAI GPT-5.4 mini
   ↓ Vietnamese grounded answer
 ChatResponse { answer, tool_calls, session_id }
 ```
 
-Business logic không biết Google ADK tồn tại:
+Business logic không biết OpenAI SDK tồn tại:
 
 - `app/repositories/ecommerce.py` chỉ biết SQLAlchemy models.
 - `app/tools/ecommerce.py` là các Python function bình thường, mở session ngắn
   hạn và trả dictionary JSON-friendly.
 - `app/agent/agent.py` chỉ đăng ký tools và định nghĩa instruction.
-- `app/agent/runner.py` là boundary duy nhất đọc ADK events và thu thập tool
-  call metadata.
+- `app/agent/runner.py` là boundary duy nhất gọi Responses API, dispatch
+  function tools và thu thập tool-call metadata.
 
 ## Project tree
 
@@ -70,8 +70,8 @@ Business logic không biết Google ADK tồn tại:
 
 ## Setup bằng Docker Compose
 
-1. Copy `.env.example` thành `.env` và đặt `GOOGLE_API_KEY` nếu muốn gọi
-   Gemini thật.
+1. Copy `.env.example` thành `.env` và đặt `OPENAI_API_KEY` nếu muốn gọi
+   GPT-5.4 mini thật. Repo đã có sẵn `.env` placeholder cho local setup.
 2. Chạy:
 
    ```bash
@@ -161,8 +161,8 @@ Response shape:
 ```
 
 `tool_calls` chỉ có tên tool, arguments và summary. Không có chain-of-thought.
-Nếu client truyền `session_id`, ADK in-memory session được dùng lại cho
-follow-up; nếu không, API sinh ID mới.
+Nếu client truyền `session_id`, runner giữ response ID trong memory để dùng
+lại context cho follow-up; nếu không, API sinh ID mới.
 
 ## Tests
 
@@ -176,9 +176,9 @@ ruff check app tests
 mypy app
 ```
 
-The default suite also contains a deterministic fake-model ADK smoke test. It
-exercises the real `InMemoryRunner` event loop and tool dispatch without an
-external API call; only `test_agent_integration.py` requires a Gemini key.
+The default suite also contains deterministic fake-Responses smoke tests. They
+exercise the tool loop and dispatch without an external API call; only
+`test_agent_integration.py` requires an OpenAI key.
 
 Integration test có thể chạy có chủ đích khi đã đặt API key:
 
@@ -221,40 +221,39 @@ pytest -m integration
 POST /chat
   → app/schemas/chat.py validates ChatRequest
   → app/api/chat.py creates request_id/session_id
-  → app/agent/runner.py gets an in-memory ADK session
+  → app/agent/runner.py gets the session's previous OpenAI response ID
   → app/agent/agent.py supplies EcommerceAgent + instructions + tool schemas
-  → Gemini returns a function call for search_products
-  → ADK dispatches the Python function (the LLM does not execute Python)
+  → GPT-5.4 mini returns a function call for search_products
+  → runner dispatches the Python function (the LLM does not execute Python)
   → app/tools/ecommerce.py validates arguments and opens one DB session
   → app/repositories/ecommerce.py builds a SQLAlchemy SELECT
   → PostgreSQL filters products and returns rows
   → repository serializes rows into dictionaries
-  → ADK sends the function response back to Gemini
-  → Gemini writes a Vietnamese answer grounded in those facts
-  → runner collects final event and tool-call metadata
+  → runner sends function_call_output back to OpenAI
+  → GPT-5.4 mini writes a Vietnamese answer grounded in those facts
+  → runner collects final response text and tool-call metadata
   → ChatResponse is returned as JSON
 ```
 
-### Google ADK tool calling, without framework magic
+### OpenAI function calling, without framework magic
 
-The Python function is registered in `LlmAgent(tools=[...])`. ADK derives a
-function schema from its signature and docstring. The actual protocol is:
+The Python function is registered as an OpenAI function tool with an explicit
+JSON schema. The actual protocol is:
 
 ```text
 Python function signature
-  → ADK function/tool schema
+  → OpenAI function/tool schema
   → model receives user message, instructions, and schema
   → model emits tool name + JSON arguments
-  → ADK validates and dispatches the Python function
+  → runner validates and dispatches the Python function
   → function returns a structured dictionary
-  → ADK emits a function-response event and sends it to the model
+  → runner emits function_call_output and sends it to the model
   → model emits the final answer
 ```
 
-`app/agent/runner.py` uses `event.get_function_calls()` to expose only the
-requested tool and arguments, `event.get_function_responses()` to build a
-small result summary, and `event.is_final_response()` to select final text.
-It never exposes hidden model reasoning.
+`app/agent/runner.py` reads function-call output items, executes only the
+registered tools, builds a small result summary, and selects `output_text` as
+the final answer. It never exposes hidden model reasoning.
 
 ## Layer responsibilities
 
@@ -262,9 +261,9 @@ It never exposes hidden model reasoning.
 | --- | --- | --- | --- |
 | FastAPI route | HTTP status, request IDs, error boundary | Client → runner | `test_health.py`, validation tests |
 | Pydantic schema | Validate/serialize API contract | FastAPI | `test_chat_validation.py` |
-| ADK agent | Instructions, model, tool registration | Runner → model | optional integration test |
-| ADK runner | Session, event loop, tool-call visibility | API → agent | optional integration test |
-| Tool | Validate arguments, open/close DB session, JSON facts | ADK → repository | `test_*` tool tests |
+| OpenAI agent | Instructions, model, tool registration | Runner → model | optional integration test |
+| OpenAI runner | Session, function-call loop, tool-call visibility | API → agent | optional integration test |
+| Tool | Validate arguments, open/close DB session, JSON facts | Runner → repository | `test_*` tool tests |
 | Repository | SQLAlchemy queries, ORM-to-dict mapping | Tool → models | exercised with SQLite fixture |
 | SQLAlchemy model | Tables, keys, constraints, relationships | Repository → DB | seed + schema smoke |
 | DB session | Short-lived connection/session lifecycle | Tool → PostgreSQL | SQLite session fixture |
@@ -280,10 +279,10 @@ runner không nên chứa SQL.
 - Synthetic deterministic dataset, không phải dữ liệu marketplace thật.
 - Session chỉ in-memory và mất khi process restart.
 - Không có RAG, MCP, vector database, Redis, SSE, frontend hoặc production auth.
-- Google API key/network là dependency cho `/chat` thật; lỗi runtime trả 503,
+- OpenAI API key/network là dependency cho `/chat` thật; lỗi runtime trả 503,
   không fallback sang dữ liệu bịa.
-- `InMemoryRunner` phù hợp development/demo, chưa phải session service cho
-  production multi-instance.
+- Session response IDs chỉ nằm trong process memory, chưa phải session service
+  cho production multi-instance.
 - `create_all` chưa phải migration framework.
 
 ## Future architecture (chưa implement)

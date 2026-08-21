@@ -1,1 +1,1 @@
-"""Plain Python tools exposed to the ADK agent."""
+"""Plain Python tools exposed to the OpenAI agent."""

@@ -1,8 +1,9 @@
-"""The single Google ADK e-commerce agent for Phase 1."""
+"""OpenAI Responses API agent definition for the Phase 1 proof of concept."""
 
-from google.adk.agents import LlmAgent
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
+from typing import Any
 
-from app.core.config import settings
 from app.tools.ecommerce import (
     compare_products,
     get_product_reviews,
@@ -36,15 +37,93 @@ Quy tắc bắt buộc:
    chain-of-thought nội bộ; chỉ nêu kết luận và lý do dựa trên dữ liệu.
 """.strip()
 
+ToolFunction = Callable[..., dict[str, Any]]
 
-ecommerce_agent = LlmAgent(
-    name="ecommerce_agent",
-    model=settings.adk_model,
-    description="Trợ lý tìm kiếm, đọc review và so sánh sản phẩm e-commerce Việt Nam.",
-    instruction=AGENT_INSTRUCTION,
-    tools=[search_products, get_product_reviews, compare_products],
+OPENAI_TOOLS: tuple[dict[str, Any], ...] = (
+    {
+        "type": "function",
+        "name": "search_products",
+        "description": (
+            "Search products using Vietnamese e-commerce database facts and "
+            "structured filters."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "category": {"type": "string"},
+                "max_price": {"type": "integer", "minimum": 0},
+                "min_price": {"type": "integer", "minimum": 0},
+                "min_rating": {"type": "number", "minimum": 0, "maximum": 5},
+                "platform": {"type": "string"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+            },
+            "additionalProperties": False,
+        },
+        "strict": False,
+    },
+    {
+        "type": "function",
+        "name": "get_product_reviews",
+        "description": "Get factual customer reviews for one product ID.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "product_id": {"type": "integer", "minimum": 1},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+            },
+            "required": ["product_id"],
+            "additionalProperties": False,
+        },
+        "strict": False,
+    },
+    {
+        "type": "function",
+        "name": "compare_products",
+        "description": (
+            "Return comparable database facts for up to five product IDs; "
+            "the agent makes the explanation and recommendation."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "product_ids": {
+                    "type": "array",
+                    "items": {"type": "integer", "minimum": 1},
+                    "minItems": 1,
+                    "maxItems": 5,
+                }
+            },
+            "required": ["product_ids"],
+            "additionalProperties": False,
+        },
+        "strict": False,
+    },
 )
 
-# The conventional ADK entry-point name makes the agent easy to import from
-# the CLI or a future deployment wrapper. It is the same single agent object.
+TOOL_FUNCTIONS: Mapping[str, ToolFunction] = {
+    "search_products": search_products,
+    "get_product_reviews": get_product_reviews,
+    "compare_products": compare_products,
+}
+
+
+@dataclass(frozen=True)
+class AgentDefinition:
+    """Provider-neutral metadata used by the OpenAI runner boundary."""
+
+    name: str
+    instructions: str
+    tools: tuple[dict[str, Any], ...]
+    functions: Mapping[str, ToolFunction]
+
+
+ecommerce_agent = AgentDefinition(
+    name="ecommerce_agent",
+    instructions=AGENT_INSTRUCTION,
+    tools=OPENAI_TOOLS,
+    functions=TOOL_FUNCTIONS,
+)
+
+# Keep the conventional root-agent name for future CLI/deployment wrappers.
 root_agent = ecommerce_agent

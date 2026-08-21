@@ -28,7 +28,7 @@ async def chat(
     request: Request,
     response: Response,
 ) -> ChatResponse:
-    """Run a Vietnamese user message through the single ADK agent."""
+    """Run a Vietnamese user message through the single OpenAI agent."""
 
     request_id = request.headers.get("X-Request-ID") or f"req_{uuid4().hex[:12]}"
     session_id = payload.session_id or f"sess_{uuid4().hex}"

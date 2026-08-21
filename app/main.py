@@ -19,7 +19,7 @@ def create_app() -> FastAPI:
     application = FastAPI(
         title="Vietnamese E-commerce Agent",
         version="0.1.0",
-        description="Single-agent Google ADK proof of concept.",
+        description="Single-agent OpenAI Responses API proof of concept.",
     )
     application.include_router(chat_router)
     return application

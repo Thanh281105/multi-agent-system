@@ -1,134 +1,80 @@
-"""Deterministic ADK runtime smoke test without a network model call."""
+"""Deterministic OpenAI runner smoke tests without network model calls."""
 
-from collections.abc import AsyncGenerator
+import json
+from types import SimpleNamespace
+from typing import Any
 
 import pytest
-from google.adk.agents import LlmAgent
-from google.adk.models.base_llm import BaseLlm, LlmCapabilities
-from google.adk.models.llm_request import LlmRequest
-from google.adk.models.llm_response import LlmResponse
-from google.adk.runners import InMemoryRunner
-from google.genai import types
 
 from app.agent import runner as runner_module
 from app.core.config import settings
 
 
-class DeterministicToolCallingModel(BaseLlm):
-    """Emit one tool call, then a final answer, without external I/O."""
+class FakeResponses:
+    def __init__(self, responses: list[Any]) -> None:
+        self._responses = responses
+        self.requests: list[dict[str, Any]] = []
 
-    calls: int = 0
-
-    @property
-    def capabilities(self) -> LlmCapabilities:
-        return LlmCapabilities(output_schema_and_tools=True)
-
-    async def generate_content_async(
-        self,
-        llm_request: LlmRequest,
-        stream: bool = False,
-    ) -> AsyncGenerator[LlmResponse, None]:
-        del llm_request, stream
-        self.calls += 1
-        if self.calls == 1:
-            yield LlmResponse(
-                content=types.Content(
-                    role="model",
-                    parts=[
-                        types.Part.from_function_call(
-                            name="search_products",
-                            args={
-                                "category": "Tai nghe",
-                                "max_price": 1_000_000,
-                                "min_rating": 4.5,
-                            },
-                        )
-                    ],
-                ),
-                partial=False,
-            )
-            return
-
-        yield LlmResponse(
-            content=types.Content(
-                role="model",
-                parts=[
-                    types.Part.from_text(
-                        text="Có 2 sản phẩm phù hợp từ dữ liệu database."
-                    )
-                ],
-            ),
-            partial=False,
-        )
+    async def create(self, **request: Any) -> Any:
+        self.requests.append(request)
+        return self._responses.pop(0)
 
 
-class DeterministicMultiToolModel(BaseLlm):
-    """Emit a search call, a review call, and then a final answer."""
+class FakeOpenAIClient:
+    def __init__(self, responses: list[Any]) -> None:
+        self.responses = FakeResponses(responses)
 
-    calls: int = 0
 
-    @property
-    def capabilities(self) -> LlmCapabilities:
-        return LlmCapabilities(output_schema_and_tools=True)
+def function_call(*, name: str, arguments: dict[str, Any], call_id: str) -> Any:
+    return SimpleNamespace(
+        type="function_call",
+        name=name,
+        arguments=json.dumps(arguments),
+        call_id=call_id,
+    )
 
-    async def generate_content_async(
-        self,
-        llm_request: LlmRequest,
-        stream: bool = False,
-    ) -> AsyncGenerator[LlmResponse, None]:
-        del llm_request, stream
-        self.calls += 1
-        if self.calls == 1:
-            part = types.Part.from_function_call(
-                name="search_products",
-                args={"query": "Nova Air S2"},
-            )
-        elif self.calls == 2:
-            part = types.Part.from_function_call(
-                name="get_product_reviews",
-                args={"product_id": 1},
-            )
-        else:
-            yield LlmResponse(
-                content=types.Content(
-                    role="model",
-                    parts=[
-                        types.Part.from_text(
-                            text="Nova Air S2 có review tích cực nhưng có nhược điểm."
-                        )
-                    ],
-                ),
-                partial=False,
-            )
-            return
 
-        yield LlmResponse(
-            content=types.Content(role="model", parts=[part]),
-            partial=False,
-        )
+def response(*, response_id: str, output: list[Any], output_text: str = "") -> Any:
+    return SimpleNamespace(
+        id=response_id,
+        output=output,
+        output_text=output_text,
+    )
 
 
 @pytest.mark.asyncio
-async def test_adk_runner_dispatches_tool_and_collects_metadata(
+async def test_openai_runner_dispatches_tool_and_collects_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    model = DeterministicToolCallingModel(model="fake-tool-model")
-    fake_agent = LlmAgent(
-        name="test_ecommerce_agent",
-        model=model,
-        instruction="Use the registered search tool and answer from its facts.",
-        tools=[runner_module.root_agent.tools[0]],
+    client = FakeOpenAIClient(
+        [
+            response(
+                response_id="resp-search-tool",
+                output=[
+                    function_call(
+                        name="search_products",
+                        arguments={
+                            "category": "Tai nghe",
+                            "max_price": 1_000_000,
+                            "min_rating": 4.5,
+                        },
+                        call_id="call-search",
+                    )
+                ],
+            ),
+            response(
+                response_id="resp-search-final",
+                output=[],
+                output_text="Có 2 sản phẩm phù hợp từ dữ liệu database.",
+            ),
+        ]
     )
-    fake_runner = InMemoryRunner(
-        agent=fake_agent,
-        app_name=settings.adk_app_name,
-    )
-    monkeypatch.setattr(runner_module, "runner", fake_runner)
+    monkeypatch.setattr(runner_module, "openai_client", client)
 
     result = await runner_module.run_agent(
         message="Tìm tai nghe dưới 1 triệu rating ít nhất 4.5",
-        session_id="deterministic-runner-test",
-        request_id="deterministic-runner-test",
+        session_id="openai-deterministic-search",
+        request_id="openai-deterministic-search",
     )
 
     assert result.answer == "Có 2 sản phẩm phù hợp từ dữ liệu database."
@@ -139,29 +85,45 @@ async def test_adk_runner_dispatches_tool_and_collects_metadata(
         "count": 2,
         "products_count": 2,
     }
+    assert client.responses.requests[0]["model"] == settings.openai_model
+    assert client.responses.requests[1]["previous_response_id"] == "resp-search-tool"
+    assert client.responses.requests[1]["input"][0]["call_id"] == "call-search"
 
 
 @pytest.mark.asyncio
-async def test_adk_runner_exposes_multiple_tool_calls(
+async def test_openai_runner_exposes_multiple_tool_calls(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    model = DeterministicMultiToolModel(model="fake-multi-tool-model")
-    fake_agent = LlmAgent(
-        name="test_multi_tool_agent",
-        model=model,
-        instruction="Use tools in sequence and answer from their facts.",
-        tools=list(runner_module.root_agent.tools[:2]),
+    client = FakeOpenAIClient(
+        [
+            response(
+                response_id="resp-multi-tool",
+                output=[
+                    function_call(
+                        name="search_products",
+                        arguments={"query": "Nova Air S2"},
+                        call_id="call-product",
+                    ),
+                    function_call(
+                        name="get_product_reviews",
+                        arguments={"product_id": 1},
+                        call_id="call-reviews",
+                    ),
+                ],
+            ),
+            response(
+                response_id="resp-multi-final",
+                output=[],
+                output_text="Nova Air S2 có review tích cực nhưng có nhược điểm.",
+            ),
+        ]
     )
-    fake_runner = InMemoryRunner(
-        agent=fake_agent,
-        app_name=settings.adk_app_name,
-    )
-    monkeypatch.setattr(runner_module, "runner", fake_runner)
+    monkeypatch.setattr(runner_module, "openai_client", client)
 
     result = await runner_module.run_agent(
         message="Đọc review của Nova Air S2",
-        session_id="deterministic-multi-tool-test",
-        request_id="deterministic-multi-tool-test",
+        session_id="openai-deterministic-multi",
+        request_id="openai-deterministic-multi",
     )
 
     assert result.answer == "Nova Air S2 có review tích cực nhưng có nhược điểm."
@@ -175,3 +137,22 @@ async def test_adk_runner_exposes_multiple_tool_calls(
         "count": 5,
         "reviews_count": 5,
     }
+    assert [item["call_id"] for item in client.responses.requests[1]["input"]] == [
+        "call-product",
+        "call-reviews",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_openai_runner_requires_api_key_without_injected_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(runner_module, "openai_client", None)
+    monkeypatch.setattr(runner_module.settings, "openai_api_key", None)
+
+    with pytest.raises(runner_module.AgentRunError, match="OPENAI_API_KEY"):
+        await runner_module.run_agent(
+            message="Xin chào",
+            session_id="openai-missing-key",
+            request_id="openai-missing-key",
+        )

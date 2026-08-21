@@ -19,9 +19,8 @@ services:
     build: .
     environment:
       DATABASE_URL: postgresql+psycopg://ecommerce:ecommerce@postgres:5432/ecommerce
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
-      GOOGLE_GENAI_USE_VERTEXAI: ${GOOGLE_GENAI_USE_VERTEXAI:-false}
-      ADK_MODEL: ${ADK_MODEL:-gemini-2.5-flash}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       postgres:

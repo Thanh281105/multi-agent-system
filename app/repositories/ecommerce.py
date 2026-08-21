@@ -11,7 +11,7 @@ from app.models.shop import Shop
 
 
 class EcommerceRepository:
-    """Database access object with no knowledge of ADK or LLMs."""
+    """Database access object with no knowledge of an LLM provider."""
 
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -41,7 +41,7 @@ class EcommerceRepository:
                 )
             )
         if category:
-            filters.append(Product.category == category.strip())
+            filters.append(Product.category.ilike(category.strip()))
         if max_price is not None:
             filters.append(Product.price <= max_price)
         if min_price is not None:
@@ -49,7 +49,7 @@ class EcommerceRepository:
         if min_rating is not None:
             filters.append(Product.rating >= min_rating)
         if platform:
-            filters.append(Product.platform == platform.strip())
+            filters.append(Product.platform.ilike(platform.strip()))
 
         statement = (
             select(Product)
