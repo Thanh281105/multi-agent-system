@@ -43,6 +43,14 @@ async def ready(request: Request) -> JSONResponse:
         except Exception:
             checks["redis"] = "failed"
 
+    if runtime.knowledge_store is not None:
+        try:
+            async with asyncio.timeout(2):
+                await asyncio.to_thread(runtime.knowledge_store.ready)
+            checks["qdrant"] = "ok"
+        except Exception:
+            checks["qdrant"] = "failed"
+
     if "failed" in checks.values():
         return JSONResponse(
             status_code=503,

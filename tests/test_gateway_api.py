@@ -360,6 +360,8 @@ def test_settings_reject_insecure_production_gateway() -> None:
         gateway_api_keys="production:strong-production-key",
         legacy_chat_enabled=False,
         shared_state_backend="redis",
+        knowledge_backend="qdrant",
+        qdrant_api_key="strong-qdrant-key",
     )
     assert production.app_env == "production"
     production_app = create_app(production)

@@ -17,6 +17,7 @@ from app.gateway.turns import (
     SessionTurnCoordinator,
     TurnCoordinator,
 )
+from app.knowledge import QdrantKnowledgeStore
 from app.mcp.catalog import build_default_mcp_router
 from app.orchestrator import MultiAgentOrchestrator
 from app.shared import (
@@ -43,6 +44,7 @@ class GatewayRuntime:
     config: Settings
     turns: TurnCoordinator
     redis_client: Any | None = None
+    knowledge_store: QdrantKnowledgeStore | None = None
 
 
 def build_gateway_runtime(config: Settings) -> GatewayRuntime:
@@ -55,6 +57,7 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
     )
     memory: MemoryStore = InMemoryMemoryStore()
     turns: TurnCoordinator = SessionTurnCoordinator()
+    knowledge_store: QdrantKnowledgeStore | None = None
     if config.shared_state_backend == "redis":
         redis_client = Redis.from_url(
             config.redis_url.get_secret_value(),
@@ -77,7 +80,20 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
             key_prefix=config.redis_key_prefix,
             lease_seconds=config.orchestration_timeout_seconds + 10,
         )
-    agent_gateway = AgentGateway(router=build_default_mcp_router())
+    if config.knowledge_backend == "qdrant":
+        knowledge_store = QdrantKnowledgeStore(
+            config.qdrant_url,
+            collection=config.qdrant_collection,
+            api_key=config.qdrant_api_key.get_secret_value(),
+            timeout_seconds=config.qdrant_timeout_seconds,
+        )
+    agent_gateway = AgentGateway(
+        router=build_default_mcp_router(
+            knowledge_search=(
+                knowledge_store.search if knowledge_store is not None else None
+            )
+        )
+    )
     orchestrator = MultiAgentOrchestrator(
         dispatcher=build_default_dispatcher(agent_gateway),
         sessions=sessions,
@@ -100,4 +116,5 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
         config=config,
         turns=turns,
         redis_client=redis_client,
+        knowledge_store=knowledge_store,
     )

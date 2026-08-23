@@ -4,7 +4,7 @@ from app.agents.market.skills import analyze_market, search_market_knowledge
 from app.agents.product.skills import rank_products
 from app.agents.review.skills import analyze_review_sentiment, extract_review_aspects
 from app.agents.trust.skills import analyze_review_trust, detect_complaints
-from app.mcp.router import MCPRouter, MCPToolSpec
+from app.mcp.router import MCPRouter, MCPToolSpec, ToolHandler
 from app.tools.ecommerce import (
     compare_products,
     get_product_reviews,
@@ -13,7 +13,10 @@ from app.tools.ecommerce import (
 )
 
 
-def build_default_mcp_router() -> MCPRouter:
+def build_default_mcp_router(
+    *,
+    knowledge_search: ToolHandler | None = None,
+) -> MCPRouter:
     """Build a fresh tool router so tests and workers do not share mutable state."""
 
     router = MCPRouter()
@@ -104,7 +107,7 @@ def build_default_mcp_router() -> MCPRouter:
             "search_market_knowledge",
             "knowledge.read",
             "Retrieve clearly labeled sample market notes.",
-            search_market_knowledge,
+            knowledge_search or search_market_knowledge,
         ),
     )
     for spec in specs:

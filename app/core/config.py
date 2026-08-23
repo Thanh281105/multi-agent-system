@@ -72,6 +72,29 @@ class Settings(BaseSettings):
         le=30,
         validation_alias="REDIS_SOCKET_TIMEOUT_SECONDS",
     )
+    knowledge_backend: Literal["static", "qdrant"] = Field(
+        default="static",
+        validation_alias="KNOWLEDGE_BACKEND",
+    )
+    qdrant_url: str = Field(
+        default="http://localhost:6333",
+        validation_alias="QDRANT_URL",
+    )
+    qdrant_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias="QDRANT_API_KEY",
+    )
+    qdrant_collection: str = Field(
+        default="sample_market_knowledge",
+        pattern=r"^[a-zA-Z0-9_-]{1,128}$",
+        validation_alias="QDRANT_COLLECTION",
+    )
+    qdrant_timeout_seconds: float = Field(
+        default=3.0,
+        ge=0.1,
+        le=30,
+        validation_alias="QDRANT_TIMEOUT_SECONDS",
+    )
     orchestration_timeout_seconds: float = Field(
         default=30.0,
         ge=1,
@@ -103,6 +126,13 @@ class Settings(BaseSettings):
             raise ValueError("production requires LEGACY_CHAT_ENABLED=false")
         if self.app_env == "production" and self.shared_state_backend != "redis":
             raise ValueError("production requires SHARED_STATE_BACKEND=redis")
+        if self.app_env == "production" and self.knowledge_backend != "qdrant":
+            raise ValueError("production requires KNOWLEDGE_BACKEND=qdrant")
+        if (
+            self.app_env == "production"
+            and not self.qdrant_api_key.get_secret_value().strip()
+        ):
+            raise ValueError("production requires a non-empty QDRANT_API_KEY")
         return self
 
 
@@ -129,5 +159,6 @@ def public_settings(config: Settings = settings) -> dict[str, Any]:
         "gateway_rate_limit_window_seconds": (config.gateway_rate_limit_window_seconds),
         "gateway_auth_attempt_requests": config.gateway_auth_attempt_requests,
         "shared_state_backend": config.shared_state_backend,
+        "knowledge_backend": config.knowledge_backend,
         "legacy_chat_enabled": config.legacy_chat_enabled,
     }
