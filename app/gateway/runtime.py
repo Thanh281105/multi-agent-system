@@ -3,21 +3,36 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
+
+from redis import Redis
 
 from app.agent_gateway import AgentGateway
 from app.agents import build_default_dispatcher
 from app.core.config import Settings
 from app.gateway.rate_limit import InboundRateLimiter
 from app.gateway.security import APIKeyAuthenticator
-from app.gateway.turns import SessionTurnCoordinator
+from app.gateway.turns import (
+    RedisSessionTurnCoordinator,
+    SessionTurnCoordinator,
+    TurnCoordinator,
+)
 from app.mcp.catalog import build_default_mcp_router
 from app.orchestrator import MultiAgentOrchestrator
-from app.shared import InMemorySessionStore, Telemetry
+from app.shared import (
+    InMemoryMemoryStore,
+    InMemorySessionStore,
+    MemoryStore,
+    RedisMemoryStore,
+    RedisSessionStore,
+    SessionStore,
+    Telemetry,
+)
 
 
 @dataclass(frozen=True, slots=True)
 class GatewayRuntime:
-    """Long-lived, process-local adapters shared across HTTP requests."""
+    """Long-lived adapters shared across HTTP requests."""
 
     orchestrator: MultiAgentOrchestrator
     agent_gateway: AgentGateway
@@ -26,17 +41,47 @@ class GatewayRuntime:
     rate_limiter: InboundRateLimiter
     telemetry: Telemetry
     config: Settings
-    turns: SessionTurnCoordinator
+    turns: TurnCoordinator
+    redis_client: Any | None = None
 
 
 def build_gateway_runtime(config: Settings) -> GatewayRuntime:
     """Build one coherent runtime without module-global mutable agent state."""
 
     telemetry = Telemetry()
+    redis_client: Any | None = None
+    sessions: SessionStore = InMemorySessionStore(
+        ttl_seconds=config.session_ttl_seconds
+    )
+    memory: MemoryStore = InMemoryMemoryStore()
+    turns: TurnCoordinator = SessionTurnCoordinator()
+    if config.shared_state_backend == "redis":
+        redis_client = Redis.from_url(
+            config.redis_url.get_secret_value(),
+            decode_responses=True,
+            socket_connect_timeout=config.redis_socket_timeout_seconds,
+            socket_timeout=config.redis_socket_timeout_seconds,
+        )
+        sessions = RedisSessionStore(
+            redis_client,
+            ttl_seconds=config.session_ttl_seconds,
+            key_prefix=config.redis_key_prefix,
+        )
+        memory = RedisMemoryStore(
+            redis_client,
+            ttl_seconds=config.session_ttl_seconds,
+            key_prefix=config.redis_key_prefix,
+        )
+        turns = RedisSessionTurnCoordinator(
+            redis_client,
+            key_prefix=config.redis_key_prefix,
+            lease_seconds=config.orchestration_timeout_seconds + 10,
+        )
     agent_gateway = AgentGateway(router=build_default_mcp_router())
     orchestrator = MultiAgentOrchestrator(
         dispatcher=build_default_dispatcher(agent_gateway),
-        sessions=InMemorySessionStore(ttl_seconds=config.session_ttl_seconds),
+        sessions=sessions,
+        memory=memory,
         telemetry=telemetry,
     )
     return GatewayRuntime(
@@ -53,5 +98,6 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
         ),
         telemetry=telemetry,
         config=config,
-        turns=SessionTurnCoordinator(),
+        turns=turns,
+        redis_client=redis_client,
     )

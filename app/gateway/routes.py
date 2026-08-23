@@ -28,12 +28,14 @@ from app.gateway.schemas import (
     build_chat_response,
 )
 from app.gateway.sse import encode_sse, heartbeat
+from app.gateway.turns import SessionTurnBusyError
 from app.orchestrator import OrchestrationResult
 from app.orchestrator.progress import OrchestrationProgress, ProgressCallback
 from app.shared import (
     SessionExpiredError,
     SessionNotFoundError,
     SessionOwnershipError,
+    SharedStateUnavailableError,
 )
 
 logger = logging.getLogger(__name__)
@@ -114,8 +116,22 @@ async def _execute_turn(
             message="Tác vụ vượt quá thời gian xử lý cho phép.",
             retryable=True,
         ) from None
+    except SessionTurnBusyError:
+        raise GatewayAPIError(
+            status_code=409,
+            code="gateway.session_busy",
+            message="Session đang xử lý một yêu cầu khác.",
+            retryable=True,
+        ) from None
     except (SessionNotFoundError, SessionExpiredError, SessionOwnershipError):
         raise _session_not_found() from None
+    except SharedStateUnavailableError:
+        raise GatewayAPIError(
+            status_code=503,
+            code="gateway.shared_state_unavailable",
+            message="Dịch vụ session tạm thời không khả dụng.",
+            retryable=True,
+        ) from None
 
     if result.status == TaskStatus.FAILED:
         raise GatewayAPIError(
@@ -253,6 +269,13 @@ def _validate_existing_session(
         )
     except (SessionNotFoundError, SessionExpiredError, SessionOwnershipError):
         raise _session_not_found() from None
+    except SharedStateUnavailableError:
+        raise GatewayAPIError(
+            status_code=503,
+            code="gateway.shared_state_unavailable",
+            message="Dịch vụ session tạm thời không khả dụng.",
+            retryable=True,
+        ) from None
 
 
 def _session_not_found() -> GatewayAPIError:

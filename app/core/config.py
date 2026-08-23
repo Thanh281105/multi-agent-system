@@ -53,6 +53,25 @@ class Settings(BaseSettings):
         le=2_592_000,
         validation_alias="SESSION_TTL_SECONDS",
     )
+    shared_state_backend: Literal["memory", "redis"] = Field(
+        default="memory",
+        validation_alias="SHARED_STATE_BACKEND",
+    )
+    redis_url: SecretStr = Field(
+        default=SecretStr("redis://localhost:6379/0"),
+        validation_alias="REDIS_URL",
+    )
+    redis_key_prefix: str = Field(
+        default="ecommerce_agents",
+        pattern=r"^[a-zA-Z0-9:_-]{1,64}$",
+        validation_alias="REDIS_KEY_PREFIX",
+    )
+    redis_socket_timeout_seconds: float = Field(
+        default=2.0,
+        ge=0.1,
+        le=30,
+        validation_alias="REDIS_SOCKET_TIMEOUT_SECONDS",
+    )
     orchestration_timeout_seconds: float = Field(
         default=30.0,
         ge=1,
@@ -82,6 +101,8 @@ class Settings(BaseSettings):
             raise ValueError("production requires non-default GATEWAY_API_KEYS")
         if self.app_env == "production" and self.legacy_chat_enabled:
             raise ValueError("production requires LEGACY_CHAT_ENABLED=false")
+        if self.app_env == "production" and self.shared_state_backend != "redis":
+            raise ValueError("production requires SHARED_STATE_BACKEND=redis")
         return self
 
 
@@ -107,5 +128,6 @@ def public_settings(config: Settings = settings) -> dict[str, Any]:
         "gateway_rate_limit_requests": config.gateway_rate_limit_requests,
         "gateway_rate_limit_window_seconds": (config.gateway_rate_limit_window_seconds),
         "gateway_auth_attempt_requests": config.gateway_auth_attempt_requests,
+        "shared_state_backend": config.shared_state_backend,
         "legacy_chat_enabled": config.legacy_chat_enabled,
     }

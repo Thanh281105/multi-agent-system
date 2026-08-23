@@ -26,22 +26,35 @@ async def live() -> dict[str, str]:
 async def ready(request: Request) -> JSONResponse:
     """Readiness verifies runtime composition and a bounded database round-trip."""
 
-    get_runtime(request)
+    runtime = get_runtime(request)
+    checks = {"runtime": "ok"}
     try:
         async with asyncio.timeout(2):
             await asyncio.to_thread(_database_ping)
+        checks["database"] = "ok"
     except Exception:
+        checks["database"] = "failed"
+
+    if runtime.redis_client is not None:
+        try:
+            async with asyncio.timeout(2):
+                await asyncio.to_thread(runtime.redis_client.ping)
+            checks["redis"] = "ok"
+        except Exception:
+            checks["redis"] = "failed"
+
+    if "failed" in checks.values():
         return JSONResponse(
             status_code=503,
             content={
                 "status": "not_ready",
-                "checks": {"runtime": "ok", "database": "failed"},
+                "checks": checks,
             },
         )
     return JSONResponse(
         content={
             "status": "ready",
-            "checks": {"runtime": "ok", "database": "ok"},
+            "checks": checks,
         }
     )
 

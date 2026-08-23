@@ -77,6 +77,7 @@ def test_production_disables_interactive_docs_and_enables_hsts() -> None:
         app_env="production",
         gateway_api_keys="production:strong-production-key",
         legacy_chat_enabled=False,
+        shared_state_backend="redis",
     )
     client = TestClient(create_app(production))
 

@@ -359,6 +359,7 @@ def test_settings_reject_insecure_production_gateway() -> None:
         app_env="production",
         gateway_api_keys="production:strong-production-key",
         legacy_chat_enabled=False,
+        shared_state_backend="redis",
     )
     assert production.app_env == "production"
     production_app = create_app(production)
