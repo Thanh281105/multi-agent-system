@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from app.api.chat import router as chat_router
 from app.core.config import Settings, settings
 from app.gateway import build_gateway_runtime
+from app.gateway.frontend import install_frontend
 from app.gateway.middleware import install_gateway_middleware
 from app.gateway.operations import router as operations_router
 from app.gateway.routes import router as gateway_router
@@ -27,6 +28,9 @@ def create_app(config: Settings = settings) -> FastAPI:
             "Authenticated, observable multi-agent recommendation platform "
             "using explicitly labeled sample data."
         ),
+        docs_url=None if config.app_env == "production" else "/docs",
+        redoc_url=None if config.app_env == "production" else "/redoc",
+        openapi_url=None if config.app_env == "production" else "/openapi.json",
     )
     application.state.gateway_runtime = build_gateway_runtime(config)
     install_gateway_middleware(application)
@@ -34,6 +38,7 @@ def create_app(config: Settings = settings) -> FastAPI:
     application.include_router(gateway_router)
     if config.legacy_chat_enabled:
         application.include_router(chat_router)
+    install_frontend(application)
     return application
 
 

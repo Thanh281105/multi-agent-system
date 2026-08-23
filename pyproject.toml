@@ -31,6 +31,9 @@ dev = [
 where = ["."]
 include = ["app*"]
 
+[tool.setuptools.package-data]
+"app.frontend" = ["index.html", "assets/*.css", "assets/*.js"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [

@@ -89,6 +89,7 @@ def install_gateway_middleware(application: FastAPI) -> None:
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Trace-ID"] = trace_id
         _set_rate_limit_headers(request, response)
+        _set_security_headers(request, response)
         _record_http_metric(request, response.status_code, duration_ms)
         logger.info(
             "HTTP_REQUEST method=%s path=%s status=%d request_id=%s "
@@ -203,6 +204,42 @@ def _set_rate_limit_headers(request: Request, response: Response) -> None:
     response.headers["X-RateLimit-Remaining"] = str(decision.remaining)
     if decision.retry_after_seconds:
         response.headers["Retry-After"] = str(decision.retry_after_seconds)
+
+
+def _set_security_headers(request: Request, response: Response) -> None:
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), payment=()"
+    )
+    script_sources = "'self'"
+    style_sources = "'self'"
+    if request.url.path in {"/docs", "/redoc"}:
+        script_sources += " 'unsafe-inline' https://cdn.jsdelivr.net"
+        style_sources += " 'unsafe-inline' https://cdn.jsdelivr.net"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        f"script-src {script_sources}; "
+        f"style-src {style_sources}; "
+        "img-src 'self' data:; connect-src 'self'; font-src 'self'; "
+        "object-src 'none'; base-uri 'none'; frame-ancestors 'none'; "
+        "form-action 'self'"
+    )
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    elif request.url.path == "/":
+        response.headers["Cache-Control"] = "no-cache"
+    elif request.url.path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
+
+    runtime = getattr(request.app.state, "gateway_runtime", None)
+    if isinstance(runtime, GatewayRuntime) and runtime.config.app_env == "production":
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
 
 
 def _record_http_metric(
