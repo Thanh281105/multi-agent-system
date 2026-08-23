@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.product import Product
@@ -111,6 +111,61 @@ class EcommerceRepository:
         )
         by_id = {product.id: product for product in self.session.scalars(statement)}
         return [by_id[product_id] for product_id in product_ids if product_id in by_id]
+
+    def get_product_statistics(
+        self,
+        *,
+        category: str | None = None,
+    ) -> dict[str, object]:
+        """Return aggregate facts used by product and market intelligence."""
+
+        filters = []
+        if category:
+            filters.append(Product.category.ilike(category.strip()))
+
+        totals = self.session.execute(
+            select(
+                func.count(Product.id),
+                func.min(Product.price),
+                func.max(Product.price),
+                func.avg(Product.price),
+                func.avg(Product.rating),
+                func.sum(Product.sold_count),
+            ).where(*filters)
+        ).one()
+        platform_rows = self.session.execute(
+            select(Product.platform, func.count(Product.id))
+            .where(*filters)
+            .group_by(Product.platform)
+            .order_by(Product.platform)
+        ).all()
+        category_rows = self.session.execute(
+            select(Product.category, func.count(Product.id))
+            .where(*filters)
+            .group_by(Product.category)
+            .order_by(Product.category)
+        ).all()
+
+        return {
+            "category": category.strip() if category else None,
+            "product_count": int(totals[0] or 0),
+            "min_price": int(totals[1]) if totals[1] is not None else None,
+            "max_price": int(totals[2]) if totals[2] is not None else None,
+            "average_price": (
+                round(float(totals[3]), 2) if totals[3] is not None else None
+            ),
+            "average_rating": (
+                round(float(totals[4]), 3) if totals[4] is not None else None
+            ),
+            "total_sold": int(totals[5] or 0),
+            "platform_distribution": {
+                str(platform): int(count) for platform, count in platform_rows
+            },
+            "category_distribution": {
+                str(category_name): int(count)
+                for category_name, count in category_rows
+            },
+        }
 
 
 def _product_summary(product: Product) -> dict[str, object]:

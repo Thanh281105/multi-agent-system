@@ -151,6 +151,31 @@ def compare_products(product_ids: list[int]) -> dict[str, Any]:
     return result
 
 
+def get_product_statistics(category: str | None = None) -> dict[str, Any]:
+    """Return aggregate facts for one category or the complete sample catalog."""
+
+    if category is not None:
+        category = category.strip()
+        if not category:
+            raise ValueError("category must not be blank")
+        if len(category) > 80:
+            raise ValueError("category must contain at most 80 characters")
+
+    logger.info(
+        "TOOL CALL tool=get_product_statistics category_present=%s",
+        category is not None,
+    )
+    with session_scope() as session:
+        result = EcommerceRepository(session).get_product_statistics(
+            category=category,
+        )
+    logger.info(
+        "TOOL RESULT tool=get_product_statistics products=%d",
+        result["product_count"],
+    )
+    return result
+
+
 def _validate_limit(limit: int, *, maximum: int = 50) -> None:
     if (
         not isinstance(limit, int)

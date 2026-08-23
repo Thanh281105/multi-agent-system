@@ -89,6 +89,7 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
             skills=(
                 "search_products",
                 "compare_products",
+                "rank_products",
                 "get_product_statistics",
             ),
             permissions=frozenset({"product.read", "analytics.read"}),
@@ -112,7 +113,11 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
             version="1.0.0",
             description="Phát hiện complaint, spam và đánh giá độ tin cậy.",
             capabilities=("review.trust", "review.complaint", "review.anomaly"),
-            skills=("analyze_review_trust", "detect_complaints"),
+            skills=(
+                "get_product_reviews",
+                "analyze_review_trust",
+                "detect_complaints",
+            ),
             permissions=frozenset({"review.read", "trust.analyze"}),
             mcp_servers=frozenset({"review_db", "analytics"}),
         ),
