@@ -230,9 +230,12 @@ async def run_evaluation(
         if baseline.status == "baseline_unavailable"
         else "scripted_regression_only"
     )
+    sut_source_sha256, sut_source_files = _sut_source_manifest()
     return EvaluationReport(
         generated_at=generated_at or datetime.now(UTC),
         application_version=__version__,
+        sut_source_sha256=sut_source_sha256,
+        sut_source_files=sut_source_files,
         dataset_id=corpus.dataset_id,
         dataset_sha256=dataset_sha256,
         sample_seed_sha256=_seed_sha256(),
@@ -357,6 +360,10 @@ def render_markdown_report(report: EvaluationReport) -> str:
     lines = [
         "# Báo cáo benchmark offline multi-agent",
         "",
+        (
+            f"- SUT source manifest SHA-256: `{report.sut_source_sha256}` "
+            f"({len(report.sut_source_files)} files)"
+        ),
         f"- Dataset: `{report.dataset_id}` (`{report.dataset_sha256}`)",
         f"- Seed source SHA-256: `{report.sample_seed_sha256}`",
         f"- Số case: {len(report.case_scores)}; số lần lặp: {report.repeats}",
@@ -494,6 +501,28 @@ def _sha256(path: Path) -> str:
 
 def _seed_sha256() -> str:
     return _sha256(Path(__file__).resolve().parents[1] / "db" / "seed.py")
+
+
+def _sut_source_manifest() -> tuple[str, tuple[str, ...]]:
+    """Hash ordered app Python paths and contents to bind a report to its SUT."""
+
+    project_root = _default_project_root()
+    source_root = project_root / "app"
+    source_paths = sorted(
+        source_root.rglob("*.py"),
+        key=lambda path: path.relative_to(project_root).as_posix(),
+    )
+    if not source_paths:
+        raise RuntimeError("SUT source files are unavailable")
+
+    manifest_digest = hashlib.sha256()
+    relative_paths: list[str] = []
+    for source_path in source_paths:
+        relative_path = source_path.relative_to(project_root).as_posix()
+        content_digest = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        manifest_digest.update(f"{relative_path}\0{content_digest}\n".encode("utf-8"))
+        relative_paths.append(relative_path)
+    return manifest_digest.hexdigest(), tuple(relative_paths)
 
 
 def _default_project_root() -> Path:

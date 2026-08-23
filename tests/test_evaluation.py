@@ -23,6 +23,7 @@ from app.evaluation.models import (
     ExpectedAction,
 )
 from app.evaluation.runner import (
+    _sut_source_manifest,
     load_baseline_manifest,
     load_corpus,
     run_evaluation,
@@ -184,12 +185,23 @@ async def test_complete_offline_benchmark_passes_frozen_gold_and_writes_reports(
     )
     assert report.python_version
     assert report.runtime_platform
+    expected_sut_hash, expected_sut_files = _sut_source_manifest()
+    assert report.schema_version == "1.1"
+    assert report.sut_source_sha256 == expected_sut_hash
+    assert report.sut_source_files == expected_sut_files
+    assert all(
+        path.startswith("app/") and path.endswith(".py") for path in expected_sut_files
+    )
+    assert tuple(sorted(expected_sut_files)) == expected_sut_files
 
     report_json = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
     observations_csv = (tmp_path / "observations.csv").read_text(encoding="utf-8")
     report_markdown = (tmp_path / "report.md").read_text(encoding="utf-8")
     assert report_json["dataset_sha256"] == dataset_hash
+    assert report_json["sut_source_sha256"] == expected_sut_hash
+    assert report_json["sut_source_files"] == list(expected_sut_files)
     assert observations_csv.count("\n") == 29
+    assert "SUT source manifest SHA-256" in report_markdown
     assert "baseline_unavailable" in report_markdown
     assert "không đại diện thị trường thật" in report_markdown
 

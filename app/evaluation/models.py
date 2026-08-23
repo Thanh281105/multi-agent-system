@@ -213,10 +213,12 @@ class MetricSummary(BaseModel):
 class EvaluationReport(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: Literal["1.1"] = "1.1"
     generated_at: datetime
     system_id: Literal["multi_agent_offline"] = "multi_agent_offline"
     application_version: str
+    sut_source_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    sut_source_files: tuple[str, ...] = Field(min_length=1)
     dataset_id: str
     dataset_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     sample_seed_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")

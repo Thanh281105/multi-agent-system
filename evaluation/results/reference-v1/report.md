@@ -1,5 +1,6 @@
 # Báo cáo benchmark offline multi-agent
 
+- SUT source manifest SHA-256: `1f021aa274c494952c9fac0a99ce093dd12a09b5ea95cf7e1e414c7748e86a5a` (88 files)
 - Dataset: `sample_ecommerce_vi_28_v1` (`a34473eff4a6f7e87034b46c239833c852b12542ea4c0faea4b651ddb801671d`)
 - Seed source SHA-256: `8dde4cd540226eb54b457cbb2271bb8b235711d9bdc8864ed840174c346a15d6`
 - Số case: 28; số lần lặp: 3
@@ -26,8 +27,8 @@
 | agent_failure_rate | 0.1739 | 28 | 8/46 ratio |
 | partial_recovery_rate | 1.0000 | 2 | 2/2 ratio |
 | provenance_case_coverage | 1.0000 | 23 | 23/23 ratio |
-| offline_latency_p50_ms | 1.5178 | 84 | ms |
-| offline_latency_p95_ms | 14.7354 | 84 | ms |
+| offline_latency_p50_ms | 1.4564 | 84 | ms |
+| offline_latency_p95_ms | 14.8051 | 84 | ms |
 | token_usage | N/A | 84 | offline deterministic runtime made zero observed model calls; production token usage was not measured |
 | llm_cost_usd | N/A | 84 | offline deterministic runtime made zero observed model calls; production provider cost was not measured |
 
