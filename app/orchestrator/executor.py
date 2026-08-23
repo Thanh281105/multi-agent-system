@@ -15,6 +15,11 @@ from app.contracts import (
     ExecutionStep,
     TaskStatus,
 )
+from app.orchestrator.progress import (
+    OrchestrationProgress,
+    ProgressCallback,
+    emit_progress,
+)
 from app.shared import ExecutionContext, Telemetry
 
 
@@ -29,6 +34,7 @@ class PlanExecutor:
         self,
         plan: ExecutionPlan,
         context: ExecutionContext,
+        progress: ProgressCallback | None = None,
     ) -> tuple[AgentResult, ...]:
         pending = {step.step_id: step for step in plan.steps}
         results: dict[str, AgentResult] = {}
@@ -43,7 +49,10 @@ class PlanExecutor:
                     "execution plan contains an unresolved dependency cycle"
                 )
             completed = await asyncio.gather(
-                *(self._execute_step(step, results, context) for step in ready)
+                *(
+                    self._execute_step(step, results, context, progress)
+                    for step in ready
+                )
             )
             for step, result in zip(ready, completed, strict=True):
                 results[step.step_id] = result
@@ -55,7 +64,18 @@ class PlanExecutor:
         step: ExecutionStep,
         completed: dict[str, AgentResult],
         context: ExecutionContext,
+        progress: ProgressCallback | None,
     ) -> AgentResult:
+        await emit_progress(
+            progress,
+            OrchestrationProgress(
+                phase="agent.started",
+                message=f"{step.agent_id} đang xử lý tác vụ.",
+                step_id=step.step_id,
+                agent_id=step.agent_id,
+                status=TaskStatus.RUNNING,
+            ),
+        )
         step_context = context.child(agent_id=step.agent_id)
         payload, binding_error = self._resolve_bindings(step, completed)
         if binding_error:
@@ -73,6 +93,7 @@ class PlanExecutor:
                 duration_ms=0,
                 attributes={"target_agent": step.agent_id},
             )
+            await self._emit_completion(progress, step, result)
             return result
 
         message = AgentMessage.model_validate(
@@ -111,7 +132,27 @@ class PlanExecutor:
             outcome=result.status.value,
             duration_ms=(perf_counter() - started_at) * 1_000,
         )
+        await self._emit_completion(progress, step, result)
         return result
+
+    @staticmethod
+    async def _emit_completion(
+        progress: ProgressCallback | None,
+        step: ExecutionStep,
+        result: AgentResult,
+    ) -> None:
+        await emit_progress(
+            progress,
+            OrchestrationProgress(
+                phase="agent.completed",
+                message=(
+                    f"{step.agent_id} đã hoàn tất với trạng thái {result.status.value}."
+                ),
+                step_id=step.step_id,
+                agent_id=step.agent_id,
+                status=result.status,
+            ),
+        )
 
     def _resolve_bindings(
         self,

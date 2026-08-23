@@ -35,16 +35,22 @@ def search_products(
     if max_price is not None and min_price is not None and min_price > max_price:
         raise ValueError("min_price cannot exceed max_price")
 
-    arguments = {
-        "query": query,
-        "category": category,
-        "max_price": max_price,
-        "min_price": min_price,
-        "min_rating": min_rating,
-        "platform": platform,
-        "limit": limit,
-    }
-    logger.info("TOOL CALL tool=search_products arguments=%s", arguments)
+    active_filters = sum(
+        value is not None
+        for value in (
+            query,
+            category,
+            max_price,
+            min_price,
+            min_rating,
+            platform,
+        )
+    )
+    logger.info(
+        "TOOL_CALL tool=search_products active_filters=%d limit=%d",
+        active_filters,
+        limit,
+    )
     with session_scope() as session:
         products = EcommerceRepository(session).search_products(
             query=query,
@@ -71,8 +77,8 @@ def get_product_reviews(product_id: int, limit: int = 20) -> dict[str, Any]:
     _validate_positive_id(product_id, "product_id")
     _validate_limit(limit, maximum=50)
     logger.info(
-        "TOOL CALL tool=get_product_reviews arguments=%s",
-        {"product_id": product_id, "limit": limit},
+        "TOOL_CALL tool=get_product_reviews limit=%d",
+        limit,
     )
     with session_scope() as session:
         product, reviews = EcommerceRepository(session).get_product_reviews(
@@ -132,8 +138,8 @@ def compare_products(product_ids: list[int]) -> dict[str, Any]:
         _validate_positive_id(product_id, "product_id")
 
     logger.info(
-        "TOOL CALL tool=compare_products arguments=%s",
-        {"product_ids": product_ids},
+        "TOOL_CALL tool=compare_products product_count=%d",
+        len(product_ids),
     )
     with session_scope() as session:
         products = EcommerceRepository(session).get_products_by_ids(product_ids)
@@ -162,7 +168,7 @@ def get_product_statistics(category: str | None = None) -> dict[str, Any]:
             raise ValueError("category must contain at most 80 characters")
 
     logger.info(
-        "TOOL CALL tool=get_product_statistics category_present=%s",
+        "TOOL_CALL tool=get_product_statistics category_present=%s",
         category is not None,
     )
     with session_scope() as session:

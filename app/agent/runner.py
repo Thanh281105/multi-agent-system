@@ -47,9 +47,8 @@ async def run_agent(
     del user_id
     started_at = perf_counter()
     logger.info(
-        "AGENT START request_id=%s session_id=%s model=%s",
+        "AGENT_START request_id=%s model=%s",
         request_id,
-        session_id,
         settings.openai_model,
     )
 
@@ -79,10 +78,8 @@ async def run_agent(
                         ],
                     )
                     logger.info(
-                        "AGENT COMPLETE request_id=%s session_id=%s "
-                        "tool_calls=%d latency_ms=%d",
+                        "AGENT_COMPLETE request_id=%s tool_calls=%d latency_ms=%d",
                         request_id,
-                        session_id,
                         len(result.tool_calls),
                         int((perf_counter() - started_at) * 1000),
                     )
@@ -98,9 +95,8 @@ async def run_agent(
                     }
                     tool_calls.append(call_info)
                     logger.info(
-                        "OPENAI TOOL CALL request_id=%s session_id=%s tool=%s",
+                        "OPENAI_TOOL_CALL request_id=%s tool=%s",
                         request_id,
-                        session_id,
                         name,
                     )
 
@@ -116,11 +112,9 @@ async def run_agent(
                             session_id=session_id,
                         )
                     except (TypeError, ValueError, json.JSONDecodeError):
-                        logger.exception(
-                            "OPENAI TOOL ARGUMENT ERROR request_id=%s "
-                            "session_id=%s tool=%s",
+                        logger.error(
+                            "OPENAI_TOOL_ARGUMENT_ERROR request_id=%s tool=%s",
                             request_id,
-                            session_id,
                             name,
                         )
                         tool_result = {"error": "Tool arguments không hợp lệ."}
@@ -151,18 +145,16 @@ async def run_agent(
 
             raise AgentRunError("OpenAI exceeded the maximum tool-call rounds")
         except AgentRunError:
-            logger.exception(
-                "AGENT ERROR request_id=%s session_id=%s latency_ms=%d",
+            logger.error(
+                "AGENT_ERROR request_id=%s latency_ms=%d",
                 request_id,
-                session_id,
                 int((perf_counter() - started_at) * 1000),
             )
             raise
         except Exception as exc:
-            logger.exception(
-                "AGENT ERROR request_id=%s session_id=%s latency_ms=%d",
+            logger.error(
+                "AGENT_ERROR request_id=%s latency_ms=%d",
                 request_id,
-                session_id,
                 int((perf_counter() - started_at) * 1000),
             )
             raise AgentRunError("OpenAI runtime failed") from exc
@@ -241,18 +233,16 @@ async def _execute_tool(
         if not isinstance(result, dict):
             raise TypeError("tool result must be a dictionary")
         logger.info(
-            "TOOL RESULT request_id=%s session_id=%s tool=%s summary=%s",
+            "TOOL_RESULT request_id=%s tool=%s summary=%s",
             request_id,
-            session_id,
             name,
             _summarize_tool_result(result),
         )
         return result
     except Exception:
-        logger.exception(
-            "TOOL ERROR request_id=%s session_id=%s tool=%s",
+        logger.error(
+            "TOOL_ERROR request_id=%s tool=%s",
             request_id,
-            session_id,
             name,
         )
         return {"error": "Không thể truy xuất dữ liệu từ tool."}

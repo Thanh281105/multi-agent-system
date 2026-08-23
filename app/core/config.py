@@ -1,13 +1,15 @@
-"""Environment-backed application settings."""
+"""Environment-backed application settings with production guardrails."""
 
-from typing import Any
+from __future__ import annotations
 
-from pydantic import AliasChoices, Field
+from typing import Any, Literal
+
+from pydantic import AliasChoices, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Small configuration surface for the Phase 1 proof of concept."""
+    """Validated runtime configuration; secret values stay redacted in reprs."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -19,6 +21,48 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://ecommerce:ecommerce@localhost:5432/ecommerce"
     )
+    app_env: Literal["development", "test", "production"] = Field(
+        default="development",
+        validation_alias="APP_ENV",
+    )
+    gateway_api_keys: SecretStr = Field(
+        default=SecretStr("demo:demo-local-key"),
+        validation_alias="GATEWAY_API_KEYS",
+    )
+    gateway_rate_limit_requests: int = Field(
+        default=30,
+        ge=1,
+        le=100_000,
+        validation_alias="GATEWAY_RATE_LIMIT_REQUESTS",
+    )
+    gateway_rate_limit_window_seconds: int = Field(
+        default=60,
+        ge=1,
+        le=86_400,
+        validation_alias="GATEWAY_RATE_LIMIT_WINDOW_SECONDS",
+    )
+    gateway_auth_attempt_requests: int = Field(
+        default=120,
+        ge=1,
+        le=100_000,
+        validation_alias="GATEWAY_AUTH_ATTEMPT_REQUESTS",
+    )
+    session_ttl_seconds: int = Field(
+        default=3_600,
+        ge=60,
+        le=2_592_000,
+        validation_alias="SESSION_TTL_SECONDS",
+    )
+    orchestration_timeout_seconds: float = Field(
+        default=30.0,
+        ge=1,
+        le=300,
+        validation_alias="ORCHESTRATION_TIMEOUT_SECONDS",
+    )
+    legacy_chat_enabled: bool = Field(
+        default=True,
+        validation_alias="LEGACY_CHAT_ENABLED",
+    )
     openai_api_key: str | None = Field(
         default=None,
         validation_alias="OPENAI_API_KEY",
@@ -28,6 +72,17 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("OPENAI_MODEL", "MODEL"),
     )
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self) -> Settings:
+        configured_keys = self.gateway_api_keys.get_secret_value().strip()
+        if self.app_env == "production" and (
+            not configured_keys or "demo-local-key" in configured_keys
+        ):
+            raise ValueError("production requires non-default GATEWAY_API_KEYS")
+        if self.app_env == "production" and self.legacy_chat_enabled:
+            raise ValueError("production requires LEGACY_CHAT_ENABLED=false")
+        return self
 
 
 settings = Settings()
@@ -41,4 +96,16 @@ def public_settings(config: Settings = settings) -> dict[str, Any]:
         "llm_provider": "openai",
         "openai_model": config.openai_model,
         "openai_configured": bool(config.openai_api_key),
+        "app_env": config.app_env,
+        "gateway_api_key_count": len(
+            [
+                entry
+                for entry in config.gateway_api_keys.get_secret_value().split(",")
+                if entry.strip()
+            ]
+        ),
+        "gateway_rate_limit_requests": config.gateway_rate_limit_requests,
+        "gateway_rate_limit_window_seconds": (config.gateway_rate_limit_window_seconds),
+        "gateway_auth_attempt_requests": config.gateway_auth_attempt_requests,
+        "legacy_chat_enabled": config.legacy_chat_enabled,
     }

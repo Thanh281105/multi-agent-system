@@ -9,6 +9,11 @@ from app.contracts import AgentResult
 from app.orchestrator.aggregator import ResultAggregator
 from app.orchestrator.executor import PlanExecutor
 from app.orchestrator.planner import ExecutionPlanner
+from app.orchestrator.progress import (
+    OrchestrationProgress,
+    ProgressCallback,
+    emit_progress,
+)
 from app.orchestrator.router import IntentRouter
 from app.orchestrator.schemas import OrchestrationResult
 from app.shared import (
@@ -54,6 +59,7 @@ class MultiAgentOrchestrator:
         session_id: str | None = None,
         request_id: str | None = None,
         trace_id: str | None = None,
+        progress: ProgressCallback | None = None,
     ) -> OrchestrationResult:
         started_at = perf_counter()
         session = self.sessions.create(owner_id=principal_id, session_id=session_id)
@@ -65,11 +71,37 @@ class MultiAgentOrchestrator:
         )
         with bind_execution_context(context):
             routed = self.router.route(message, session)
+            await emit_progress(
+                progress,
+                OrchestrationProgress(
+                    phase="routing.completed",
+                    message="Đã phân tích yêu cầu và xác định miền xử lý.",
+                ),
+            )
             plan = self.planner.build(routed)
-            agent_results = await self.executor.execute(plan, context)
+            await emit_progress(
+                progress,
+                OrchestrationProgress(
+                    phase="planning.completed",
+                    message=f"Đã tạo kế hoạch gồm {len(plan.steps)} bước.",
+                ),
+            )
+            agent_results = await self.executor.execute(
+                plan,
+                context,
+                progress,
+            )
             aggregation = self.aggregator.aggregate(
                 intent=routed.intent,
                 results=agent_results,
+            )
+            await emit_progress(
+                progress,
+                OrchestrationProgress(
+                    phase="aggregation.completed",
+                    message="Đã tổng hợp câu trả lời có nguồn.",
+                    status=aggregation.status,
+                ),
             )
 
         active_agent = self._active_agent(routed.intent, session.active_agent)
