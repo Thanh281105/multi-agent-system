@@ -42,11 +42,11 @@ class SessionState(BaseModel):
 class SessionStore(Protocol):
     """Port implemented by local and future Redis session adapters."""
 
-    def create(self, *, owner_id: str, session_id: str | None = None) -> SessionState:
-        ...
+    def create(
+        self, *, owner_id: str, session_id: str | None = None
+    ) -> SessionState: ...
 
-    def get(self, *, owner_id: str, session_id: str) -> SessionState:
-        ...
+    def get(self, *, owner_id: str, session_id: str) -> SessionState: ...
 
     def update(
         self,
@@ -56,8 +56,7 @@ class SessionStore(Protocol):
         active_agent: str | None = None,
         last_intent: str | None = None,
         state_patch: dict[str, Any] | None = None,
-    ) -> SessionState:
-        ...
+    ) -> SessionState: ...
 
 
 class InMemorySessionStore:

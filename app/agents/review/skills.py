@@ -130,9 +130,7 @@ def extract_review_aspects(reviews: list[dict[str, Any]]) -> dict[str, Any]:
             for aspect in ordered
         ],
         "negative_aspects": [
-            aspect
-            for aspect in ordered
-            if negative_mentions[aspect] > 0
+            aspect for aspect in ordered if negative_mentions[aspect] > 0
         ],
         "method": "keyword_aspects_vi_v1",
     }

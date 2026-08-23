@@ -15,11 +15,7 @@ def _normalize(content: str) -> str:
 
 def _validated_rating(review: dict[str, Any]) -> int:
     rating = review["rating"]
-    if (
-        isinstance(rating, bool)
-        or not isinstance(rating, int)
-        or not 1 <= rating <= 5
-    ):
+    if isinstance(rating, bool) or not isinstance(rating, int) or not 1 <= rating <= 5:
         raise ValueError("review rating must be an integer between 1 and 5")
     return rating
 
@@ -66,9 +62,7 @@ def analyze_review_trust(reviews: list[dict[str, Any]]) -> dict[str, Any]:
         )
 
     average_trust = (
-        sum(float(item["trust_score"]) for item in items) / len(items)
-        if items
-        else 0.0
+        sum(float(item["trust_score"]) for item in items) / len(items) if items else 0.0
     )
     return {
         "count": len(items),

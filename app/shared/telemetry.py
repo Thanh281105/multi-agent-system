@@ -94,8 +94,7 @@ class MetricRegistry:
         if not labels:
             return ""
         encoded = ",".join(
-            f'{key}="{MetricRegistry._escape_label(value)}"'
-            for key, value in labels
+            f'{key}="{MetricRegistry._escape_label(value)}"' for key, value in labels
         )
         return "{" + encoded + "}"
 

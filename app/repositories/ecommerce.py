@@ -162,8 +162,7 @@ class EcommerceRepository:
                 str(platform): int(count) for platform, count in platform_rows
             },
             "category_distribution": {
-                str(category_name): int(count)
-                for category_name, count in category_rows
+                str(category_name): int(count) for category_name, count in category_rows
             },
         }
 

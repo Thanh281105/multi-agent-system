@@ -46,9 +46,7 @@ class AgentRegistry:
             if bundle.agent_id in indexed:
                 raise ValueError(f"duplicate agent ID: {bundle.agent_id}")
             if len(bundle.capabilities) != len(set(bundle.capabilities)):
-                raise ValueError(
-                    f"duplicate capability in bundle: {bundle.agent_id}"
-                )
+                raise ValueError(f"duplicate capability in bundle: {bundle.agent_id}")
             if len(bundle.skills) != len(set(bundle.skills)):
                 raise ValueError(f"duplicate skill in bundle: {bundle.agent_id}")
             indexed[bundle.agent_id] = bundle

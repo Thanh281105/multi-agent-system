@@ -29,11 +29,11 @@ class MemoryEntry(BaseModel):
 
 
 class MemoryStore(Protocol):
-    def append(self, *, session_id: str, entry: MemoryEntry) -> None:
-        ...
+    def append(self, *, session_id: str, entry: MemoryEntry) -> None: ...
 
-    def recent(self, *, session_id: str, limit: int = 10) -> tuple[MemoryEntry, ...]:
-        ...
+    def recent(
+        self, *, session_id: str, limit: int = 10
+    ) -> tuple[MemoryEntry, ...]: ...
 
 
 class InMemoryMemoryStore:

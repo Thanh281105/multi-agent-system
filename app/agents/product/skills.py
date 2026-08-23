@@ -37,9 +37,7 @@ def rank_products(products: list[dict[str, Any]]) -> dict[str, Any]:
         popularity_score = log1p(int(product["sold_count"])) / sales_denominator
         affordability_score = 1 - (int(product["price"]) / maximum_price)
         total_score = (
-            rating_score * 0.45
-            + popularity_score * 0.35
-            + affordability_score * 0.20
+            rating_score * 0.45 + popularity_score * 0.35 + affordability_score * 0.20
         )
         ranked.append(
             {

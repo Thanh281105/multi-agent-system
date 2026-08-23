@@ -80,16 +80,13 @@ async def test_orchestrator_executes_grounded_multi_agent_recommendation() -> No
     assert "điểm đa agent" in result.answer
     assert result.active_agent == "product_agent"
     ranked_ids = [
-        product["id"]
-        for product in result.agent_results[0].data["ranking"]["products"]
+        product["id"] for product in result.agent_results[0].data["ranking"]["products"]
     ]
     review_ids = [
-        item["product_id"]
-        for item in result.agent_results[1].data["analyses"]
+        item["product_id"] for item in result.agent_results[1].data["analyses"]
     ]
     trust_ids = [
-        item["product_id"]
-        for item in result.agent_results[2].data["analyses"]
+        item["product_id"] for item in result.agent_results[2].data["analyses"]
     ]
     assert review_ids == ranked_ids
     assert trust_ids == ranked_ids

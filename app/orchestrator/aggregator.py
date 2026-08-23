@@ -28,11 +28,7 @@ class ResultAggregator:
         results: tuple[AgentResult, ...],
     ) -> Aggregation:
         status = self._status(results)
-        warnings = tuple(
-            error.message
-            for result in results
-            for error in result.errors
-        )
+        warnings = tuple(error.message for result in results for error in result.errors)
         provenance = self._provenance(results)
         selected_product_id: int | None = None
 

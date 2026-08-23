@@ -50,9 +50,7 @@ def score_recommendation_candidates(
                 components["complaint_safety"] = 1 - complaint_rate
         trust_score = trust.get("trust")
         if isinstance(trust_score, dict):
-            average_trust = _unit_interval(
-                trust_score.get("average_trust_score")
-            )
+            average_trust = _unit_interval(trust_score.get("average_trust_score"))
             if average_trust is not None:
                 components["review_trust"] = average_trust
 
@@ -87,23 +85,23 @@ def score_recommendation_candidates(
         for name in RECOMMENDATION_WEIGHTS
         if unscored and all(name in components for _, components in unscored)
     )
-    available_weight = sum(
-        RECOMMENDATION_WEIGHTS[name] for name in enabled_signals
-    )
+    available_weight = sum(RECOMMENDATION_WEIGHTS[name] for name in enabled_signals)
     candidates: list[dict[str, Any]] = []
     if available_weight:
         for candidate, components in unscored:
-            weighted_score = sum(
-                components[name] * RECOMMENDATION_WEIGHTS[name]
-                for name in enabled_signals
-            ) / available_weight
+            weighted_score = (
+                sum(
+                    components[name] * RECOMMENDATION_WEIGHTS[name]
+                    for name in enabled_signals
+                )
+                / available_weight
+            )
             candidate.update(
                 {
                     "multi_agent_score": round(weighted_score, 4),
                     "signal_coverage": round(available_weight, 4),
                     "multi_agent_breakdown": {
-                        name: round(components[name], 4)
-                        for name in enabled_signals
+                        name: round(components[name], 4) for name in enabled_signals
                     },
                 }
             )
