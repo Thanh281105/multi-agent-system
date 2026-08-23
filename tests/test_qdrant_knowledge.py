@@ -193,6 +193,7 @@ def test_production_requires_authenticated_qdrant() -> None:
         "gateway_api_keys": "production:strong-production-key",
         "legacy_chat_enabled": False,
         "shared_state_backend": "redis",
+        "operations_api_key": "strong-operations-key",
     }
     with pytest.raises(ValueError, match="KNOWLEDGE_BACKEND=qdrant"):
         Settings(**base)

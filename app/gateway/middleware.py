@@ -228,7 +228,7 @@ def _set_security_headers(request: Request, response: Response) -> None:
         "object-src 'none'; base-uri 'none'; frame-ancestors 'none'; "
         "form-action 'self'"
     )
-    if request.url.path.startswith("/api/"):
+    if request.url.path.startswith("/api/") or request.url.path == "/metrics":
         response.headers.setdefault("Cache-Control", "no-store")
     elif request.url.path == "/":
         response.headers["Cache-Control"] = "no-cache"

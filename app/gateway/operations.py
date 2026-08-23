@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import text
 
 from app.db import session as db_session
 from app.gateway.dependencies import get_runtime
+from app.gateway.errors import GatewayAPIError
 
 router = APIRouter(tags=["operations"])
 
@@ -72,12 +74,76 @@ async def metrics(request: Request) -> PlainTextResponse:
     """Expose dependency-light Prometheus text without request or user content."""
 
     runtime = get_runtime(request)
+    _authorize_operations(request)
     return PlainTextResponse(
         runtime.telemetry.metrics.render_prometheus(),
         media_type="text/plain; version=0.0.4",
     )
 
 
+@router.get("/api/v1/operations/traces/{trace_id}")
+async def trace_details(trace_id: str, request: Request) -> dict[str, object]:
+    """Return bounded, redacted trace events for an authorized operator."""
+
+    runtime = get_runtime(request)
+    _authorize_operations(request)
+    events = runtime.telemetry.events(trace_id=trace_id)
+    if not events:
+        raise GatewayAPIError(
+            status_code=404,
+            code="gateway.trace_not_found",
+            message="Không tìm thấy trace trong cửa sổ lưu trữ hiện tại.",
+        )
+    return {
+        "trace_id": trace_id,
+        "count": len(events),
+        "events": [event.model_dump(mode="json") for event in events],
+    }
+
+
+@router.get("/api/v1/operations/audit")
+async def gateway_audit(
+    request: Request,
+    limit: int = Query(default=50, ge=1, le=200),
+) -> dict[str, object]:
+    """Expose only the Agent Gateway's redacted audit metadata."""
+
+    runtime = get_runtime(request)
+    _authorize_operations(request)
+    records = runtime.agent_gateway.audit_records()[-limit:]
+    return {
+        "count": len(records),
+        "records": [record.model_dump(mode="json") for record in records],
+    }
+
+
+@router.get("/api/v1/operations/agents")
+async def agent_inventory(request: Request) -> dict[str, object]:
+    """Expose the validated registry inventory without credentials."""
+
+    runtime = get_runtime(request)
+    _authorize_operations(request)
+    bundles = runtime.agent_gateway.registry.list()
+    return {
+        "count": len(bundles),
+        "agents": [bundle.model_dump(mode="json") for bundle in bundles],
+    }
+
+
 def _database_ping() -> None:
     with db_session.SessionLocal() as session:
         session.execute(text("SELECT 1"))
+
+
+def _authorize_operations(request: Request) -> None:
+    runtime = get_runtime(request)
+    expected = runtime.config.operations_api_key.get_secret_value()
+    if not expected and runtime.config.app_env != "production":
+        return
+    provided = request.headers.get("X-Operations-Key", "")
+    if not provided or not hmac.compare_digest(provided, expected):
+        raise GatewayAPIError(
+            status_code=401,
+            code="gateway.operations_authentication_failed",
+            message="Không thể xác thực quyền vận hành.",
+        )

@@ -91,6 +91,7 @@ def test_production_requires_redis_shared_state() -> None:
             _env_file=None,
             app_env="production",
             gateway_api_keys="production:strong-production-key",
+            operations_api_key="strong-operations-key",
             legacy_chat_enabled=False,
             shared_state_backend="memory",
         )

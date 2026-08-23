@@ -29,6 +29,10 @@ class Settings(BaseSettings):
         default=SecretStr("demo:demo-local-key"),
         validation_alias="GATEWAY_API_KEYS",
     )
+    operations_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias="OPERATIONS_API_KEY",
+    )
     gateway_rate_limit_requests: int = Field(
         default=30,
         ge=1,
@@ -124,6 +128,11 @@ class Settings(BaseSettings):
             raise ValueError("production requires non-default GATEWAY_API_KEYS")
         if self.app_env == "production" and self.legacy_chat_enabled:
             raise ValueError("production requires LEGACY_CHAT_ENABLED=false")
+        if (
+            self.app_env == "production"
+            and len(self.operations_api_key.get_secret_value()) < 16
+        ):
+            raise ValueError("production requires a strong OPERATIONS_API_KEY")
         if self.app_env == "production" and self.shared_state_backend != "redis":
             raise ValueError("production requires SHARED_STATE_BACKEND=redis")
         if self.app_env == "production" and self.knowledge_backend != "qdrant":
@@ -154,6 +163,9 @@ def public_settings(config: Settings = settings) -> dict[str, Any]:
                 for entry in config.gateway_api_keys.get_secret_value().split(",")
                 if entry.strip()
             ]
+        ),
+        "operations_auth_configured": bool(
+            config.operations_api_key.get_secret_value()
         ),
         "gateway_rate_limit_requests": config.gateway_rate_limit_requests,
         "gateway_rate_limit_window_seconds": (config.gateway_rate_limit_window_seconds),
