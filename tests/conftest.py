@@ -30,8 +30,9 @@ def seeded_test_database(
         expire_on_commit=False,
         class_=Session,
     )
+    Base.metadata.create_all(test_engine)
     monkeypatch.setattr(db_session, "SessionLocal", test_session_factory)
-    seed_database(db_engine=test_engine, session_factory=test_session_factory)
+    seed_database(session_factory=test_session_factory)
     yield
     Base.metadata.drop_all(test_engine)
     test_engine.dispose()

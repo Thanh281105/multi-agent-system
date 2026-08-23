@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
+import argparse
 import random
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import delete, func, select
-from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.db.base import Base
-from app.db.session import SessionLocal, engine
+from app.core.config import settings
+from app.db.session import SessionLocal
 from app.models.product import Product
 from app.models.review import Review
 from app.models.shop import Shop
@@ -472,23 +472,34 @@ GENERIC_REVIEW_TEMPLATES: dict[str, list[str]] = {
 }
 
 
+class SeedConflictError(RuntimeError):
+    """Raised when sample seeding would overwrite or mix with existing data."""
+
+
 def seed_database(
     *,
-    db_engine: Engine | None = None,
     session_factory: sessionmaker[Session] | None = None,
+    reset: bool = False,
 ) -> dict[str, int]:
-    """Create tables and replace seed rows with a deterministic dataset."""
+    """Insert the sample dataset once without overwriting existing data."""
 
-    target_engine = db_engine or engine
     target_factory = session_factory or SessionLocal
-    Base.metadata.create_all(target_engine)
 
     random.seed(42)
     base_time = datetime(2026, 1, 1, tzinfo=UTC)
+    reviews = _build_reviews(base_time)
     with target_factory.begin() as session:
-        session.execute(delete(Review))
-        session.execute(delete(Product))
-        session.execute(delete(Shop))
+        existing_counts = _row_counts(session)
+        if reset:
+            session.execute(delete(Review))
+            session.execute(delete(Product))
+            session.execute(delete(Shop))
+        elif any(existing_counts.values()):
+            if _is_exact_sample_dataset(session, existing_counts, reviews):
+                return existing_counts
+            raise SeedConflictError(
+                "database is not empty; sample seed refused to preserve existing data"
+            )
 
         session.add_all(
             [Shop(**shop_data, created_at=base_time) for shop_data in SHOPS]
@@ -504,15 +515,50 @@ def seed_database(
             ]
         )
         session.flush()
-        session.add_all(_build_reviews(base_time))
+        session.add_all(reviews)
 
     with target_factory() as session:
-        counts = {
-            "shops": session.scalar(select(func.count()).select_from(Shop)) or 0,
-            "products": session.scalar(select(func.count()).select_from(Product)) or 0,
-            "reviews": session.scalar(select(func.count()).select_from(Review)) or 0,
-        }
+        counts = _row_counts(session)
     return counts
+
+
+def _row_counts(session: Session) -> dict[str, int]:
+    return {
+        "shops": session.scalar(select(func.count()).select_from(Shop)) or 0,
+        "products": session.scalar(select(func.count()).select_from(Product)) or 0,
+        "reviews": session.scalar(select(func.count()).select_from(Review)) or 0,
+    }
+
+
+def _is_exact_sample_dataset(
+    session: Session,
+    counts: dict[str, int],
+    expected_reviews: list[Review],
+) -> bool:
+    if counts != {
+        "shops": len(SHOPS),
+        "products": len(PRODUCTS),
+        "reviews": len(expected_reviews),
+    }:
+        return False
+    actual_shops: dict[int, str] = {
+        shop_id: shop_name
+        for shop_id, shop_name in session.execute(select(Shop.id, Shop.name)).tuples()
+    }
+    actual_products: dict[int, str] = {
+        product_id: product_name
+        for product_id, product_name in session.execute(
+            select(Product.id, Product.name)
+        ).tuples()
+    }
+    expected_shops = {int(item["id"]): str(item["name"]) for item in SHOPS}
+    expected_products = {int(item["id"]): str(item["name"]) for item in PRODUCTS}
+    first_review = session.scalar(select(Review.content).where(Review.id == 1))
+    return (
+        actual_shops == expected_shops
+        and actual_products == expected_products
+        and first_review == expected_reviews[0].content
+    )
 
 
 def _build_reviews(base_time: datetime) -> list[Review]:
@@ -553,8 +599,28 @@ def _review_rating(product_rating: float) -> int:
 
 
 def main() -> None:
-    counts = seed_database()
-    print("Seed complete")
+    parser = argparse.ArgumentParser(
+        description="Install the deterministic sample dataset without data loss.",
+    )
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="replace existing rows; blocked in production and requires confirmation",
+    )
+    parser.add_argument(
+        "--confirm-reset",
+        action="store_true",
+        help="confirm that the target is a disposable sample environment",
+    )
+    arguments = parser.parse_args()
+    if arguments.reset and (
+        not arguments.confirm_reset or settings.app_env == "production"
+    ):
+        parser.error(
+            "--reset requires --confirm-reset and is never allowed in production"
+        )
+    counts = seed_database(reset=arguments.reset)
+    print("Sample seed verified")
     print(f"Shops: {counts['shops']}")
     print(f"Products: {counts['products']}")
     print(f"Reviews: {counts['reviews']}")

@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Phase 1 single-agent Vietnamese e-commerce intelligence proof of concept"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.18,<2",
     "fastapi>=0.115,<1",
     "openai>=1.66,<3",
     "pydantic>=2.10,<3",
