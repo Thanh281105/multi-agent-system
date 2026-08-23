@@ -11,6 +11,7 @@ from app.mcp.catalog import build_default_mcp_router
 from app.orchestrator import MultiAgentOrchestrator
 from app.orchestrator.planner import ExecutionPlanner
 from app.orchestrator.router import IntentRouter
+from app.orchestrator.scoring import score_recommendation_candidates
 from app.shared import InMemorySessionStore, SessionOwnershipError
 
 
@@ -41,6 +42,9 @@ def test_router_and_planner_build_multi_agent_dependency_graph() -> None:
     ]
     assert plan.steps[1].depends_on == ("step_product",)
     assert plan.steps[2].depends_on == ("step_product",)
+    assert plan.steps[1].action == "review.compare"
+    assert plan.steps[2].action == "trust.compare"
+    assert plan.steps[1].input == {"product_ids_all_from": "step_product"}
 
     formatted_price = IntentRouter().route(
         "Tìm tai nghe dưới 1.000.000, rating ít nhất 4.5",
@@ -72,8 +76,30 @@ async def test_orchestrator_executes_grounded_multi_agent_recommendation() -> No
     ]
     assert "dữ liệu mẫu" in result.answer
     assert "complaint" in result.answer
+    assert "Đã so sánh 4 ứng viên" in result.answer
+    assert "điểm đa agent" in result.answer
     assert result.active_agent == "product_agent"
-    assert len(gateway.audit_records()) == 8
+    ranked_ids = [
+        product["id"]
+        for product in result.agent_results[0].data["ranking"]["products"]
+    ]
+    review_ids = [
+        item["product_id"]
+        for item in result.agent_results[1].data["analyses"]
+    ]
+    trust_ids = [
+        item["product_id"]
+        for item in result.agent_results[2].data["analyses"]
+    ]
+    assert review_ids == ranked_ids
+    assert trust_ids == ranked_ids
+    assert result.selected_product_id in ranked_ids
+    stored = orchestrator.sessions.get(
+        owner_id="user-a",
+        session_id=result.session_id,
+    )
+    assert stored.state["last_product_id"] == result.selected_product_id
+    assert len(gateway.audit_records()) == 2 + len(ranked_ids) * 6
     assert all(item.sample_data for item in result.provenance)
 
 
@@ -224,7 +250,55 @@ async def test_one_domain_failure_returns_grounded_partial_success(
     )
 
     assert result.status == TaskStatus.PARTIAL_SUCCESS
-    top_product = result.agent_results[0].data["ranking"]["products"][0]
-    assert top_product["name"] in result.answer
+    assert result.selected_product_id is not None
+    assert "điểm đa agent" in result.answer
     assert "phần dữ liệu" in result.answer
     assert result.warnings == ("Trust Agent tạm thời không khả dụng.",)
+
+
+def test_multi_agent_scoring_is_transparent_stable_and_renormalizes_gaps() -> None:
+    products = [
+        {"id": 1, "name": "A", "price": 100, "ranking_score": 0.8},
+        {"id": 2, "name": "B", "price": 90, "ranking_score": 0.8},
+    ]
+    reviews = [
+        {
+            "product_id": 1,
+            "sentiment": {"distribution": {"positive": 0.5}},
+        },
+        {
+            "product_id": 2,
+            "sentiment": {"distribution": {"positive": 0.9}},
+        },
+    ]
+    trusts = [
+        {
+            "product_id": 1,
+            "complaints": {"complaint_rate": 0.1},
+            "trust": {"average_trust_score": 0.9},
+        }
+    ]
+
+    scored = score_recommendation_candidates(products, reviews, trusts)
+
+    assert scored["method"] == "weighted_product_review_trust_v1"
+    assert scored["weights"] == {
+        "product_fit": 0.55,
+        "positive_sentiment": 0.15,
+        "complaint_safety": 0.20,
+        "review_trust": 0.10,
+    }
+    assert scored["candidates"][0]["id"] == 2
+    assert scored["candidates"][0]["signal_coverage"] == 0.7
+    assert scored["candidates"][1]["signal_coverage"] == 0.7
+    assert scored["omitted_signals"] == ("complaint_safety", "review_trust")
+
+    tied = score_recommendation_candidates(
+        [
+            {"id": 2, "name": "B", "price": 90, "ranking_score": 0.8},
+            {"id": 1, "name": "A", "price": 100, "ranking_score": 0.8},
+        ],
+        [],
+        [],
+    )
+    assert [item["id"] for item in tied["candidates"]] == [2, 1]

@@ -30,6 +30,7 @@ class OrchestrationResult(BaseModel):
     session_id: str
     intent: str
     active_agent: str | None = None
+    selected_product_id: int | None = Field(default=None, ge=1)
     plan: ExecutionPlan
     agent_results: tuple[AgentResult, ...] = ()
     provenance: tuple[DataProvenance, ...] = ()

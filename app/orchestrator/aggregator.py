@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.contracts import AgentResult, DataProvenance, TaskStatus
+from app.orchestrator.scoring import score_recommendation_candidates
 
 
 @dataclass(frozen=True, slots=True)
@@ -14,6 +15,7 @@ class Aggregation:
     answer: str
     warnings: tuple[str, ...]
     provenance: tuple[DataProvenance, ...]
+    selected_product_id: int | None = None
 
 
 class ResultAggregator:
@@ -32,6 +34,7 @@ class ResultAggregator:
             for error in result.errors
         )
         provenance = self._provenance(results)
+        selected_product_id: int | None = None
 
         if intent == "general.help":
             answer = (
@@ -45,7 +48,7 @@ class ResultAggregator:
                 "tạo thông tin không có nguồn."
             )
         elif intent == "multi.recommendation":
-            answer = self._multi_recommendation(results)
+            answer, selected_product_id = self._multi_recommendation(results)
         elif intent.startswith("product"):
             answer = self._product_answer(results)
         elif intent.startswith("review"):
@@ -64,7 +67,13 @@ class ResultAggregator:
             )
         elif status == TaskStatus.FAILED and warnings:
             answer = "Không thể hoàn tất yêu cầu từ các nguồn dữ liệu hiện có."
-        return Aggregation(status, answer, warnings, provenance)
+        return Aggregation(
+            status,
+            answer,
+            warnings,
+            provenance,
+            selected_product_id,
+        )
 
     @staticmethod
     def _status(results: tuple[AgentResult, ...]) -> TaskStatus:
@@ -148,25 +157,55 @@ class ResultAggregator:
             )
         return "Không tìm thấy ghi chú thị trường phù hợp trong dữ liệu mẫu."
 
-    def _multi_recommendation(self, results: tuple[AgentResult, ...]) -> str:
+    def _multi_recommendation(
+        self,
+        results: tuple[AgentResult, ...],
+    ) -> tuple[str, int | None]:
         ranked = self._first_nested(results, "ranking", "products")
         if not ranked:
-            return "Không tìm thấy sản phẩm phù hợp để tạo recommendation có căn cứ."
-        product = ranked[0]
-        answer = (
-            "Đề xuất đứng đầu theo dữ liệu mẫu là "
-            + self._product_line(product)
-            + "."
+            return (
+                "Không tìm thấy sản phẩm phù hợp để tạo recommendation có căn cứ.",
+                None,
+            )
+        scoring = score_recommendation_candidates(
+            ranked,
+            self._agent_analyses(results, "review_agent"),
+            self._agent_analyses(results, "trust_agent"),
         )
-        trust = self._agent_data(results, "trust_agent")
-        if trust and isinstance(trust.get("complaints"), dict):
-            complaints = trust["complaints"]
-            rate = round(float(complaints.get("complaint_rate", 0)) * 100)
+        candidates = scoring["candidates"]
+        if not candidates:
+            return "Không đủ tín hiệu có căn cứ để chấm điểm recommendation.", None
+        product = candidates[0]
+        score = round(float(product["multi_agent_score"]) * 100)
+        coverage = round(float(product["signal_coverage"]) * 100)
+        answer = (
+            f"Đã so sánh {len(candidates)} ứng viên. Đề xuất đứng đầu theo dữ liệu "
+            "mẫu là "
+            + self._product_line(product)
+            + f", với điểm đa agent {score}% và độ phủ tín hiệu {coverage}%. "
+            "Công thức: Product 55%, cảm xúc review 15%, ít complaint 20%, "
+            "độ tin cậy review 10%; tín hiệu thiếu ở bất kỳ ứng viên nào sẽ "
+            "được bỏ cho cả nhóm rồi chuẩn hóa lại trọng số."
+        )
+        complaint_rate = product.get("complaint_rate")
+        if isinstance(complaint_rate, (int, float)) and not isinstance(
+            complaint_rate, bool
+        ):
+            rate = round(float(complaint_rate) * 100)
             answer += f" Tỷ lệ review có tín hiệu complaint là {rate}%."
-        review = self._agent_data(results, "review_agent")
-        if review and isinstance(review.get("summary"), str):
-            answer += " " + str(review["summary"])
-        return answer
+        sentiment = product.get("positive_sentiment")
+        if isinstance(sentiment, (int, float)) and not isinstance(sentiment, bool):
+            answer += (
+                f" Tỷ lệ review được phân loại tích cực là "
+                f"{round(float(sentiment) * 100)}%."
+            )
+        product_id = product.get("id")
+        selected_product_id = (
+            int(product_id)
+            if isinstance(product_id, int) and not isinstance(product_id, bool)
+            else None
+        )
+        return answer, selected_product_id
 
     @staticmethod
     def _product_line(product: dict[str, Any]) -> str:
@@ -201,6 +240,20 @@ class ResultAggregator:
             if result.agent_id == agent_id and result.status != TaskStatus.FAILED:
                 return result.data
         return None
+
+    @classmethod
+    def _agent_analyses(
+        cls,
+        results: tuple[AgentResult, ...],
+        agent_id: str,
+    ) -> list[dict[str, Any]]:
+        data = cls._agent_data(results, agent_id)
+        if not data:
+            return []
+        analyses = data.get("analyses")
+        if not isinstance(analyses, list):
+            return []
+        return [item for item in analyses if isinstance(item, dict)]
 
     @staticmethod
     def _first_data(

@@ -100,8 +100,8 @@ class ExecutionPlanner:
                 self._step(
                     "step_review",
                     "review_agent",
-                    "review.summarize",
-                    {"product_id_from": "step_product"},
+                    "review.compare",
+                    {"product_ids_all_from": "step_product"},
                     depends_on=("step_product",),
                 )
             )
@@ -109,8 +109,8 @@ class ExecutionPlanner:
                 self._step(
                     "step_trust",
                     "trust_agent",
-                    "trust.analyze",
-                    {"product_id_from": "step_product"},
+                    "trust.compare",
+                    {"product_ids_all_from": "step_product"},
                     depends_on=("step_product",),
                 )
             )

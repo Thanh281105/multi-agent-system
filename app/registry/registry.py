@@ -99,7 +99,12 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
             agent_id="review_agent",
             version="1.0.0",
             description="Phân tích cảm xúc, khía cạnh và tóm tắt review.",
-            capabilities=("review.retrieve", "review.sentiment", "review.summarize"),
+            capabilities=(
+                "review.retrieve",
+                "review.sentiment",
+                "review.summarize",
+                "review.compare",
+            ),
             skills=(
                 "get_product_reviews",
                 "analyze_review_sentiment",
@@ -112,7 +117,12 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
             agent_id="trust_agent",
             version="1.0.0",
             description="Phát hiện complaint, spam và đánh giá độ tin cậy.",
-            capabilities=("review.trust", "review.complaint", "review.anomaly"),
+            capabilities=(
+                "review.trust",
+                "review.complaint",
+                "review.anomaly",
+                "trust.compare",
+            ),
             skills=(
                 "get_product_reviews",
                 "analyze_review_trust",

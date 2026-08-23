@@ -139,6 +139,16 @@ class PlanExecutor:
                     return payload, self._binding_error(str(source))
                 collected_product_ids.append(ids[0])
             payload["product_ids"] = collected_product_ids
+
+        all_products_source = payload.pop("product_ids_all_from", None)
+        if isinstance(all_products_source, str):
+            source_result = completed.get(all_products_source)
+            bound_product_ids = (
+                self._product_ids(source_result) if source_result else []
+            )
+            if not bound_product_ids:
+                return payload, self._binding_error(all_products_source)
+            payload["product_ids"] = bound_product_ids[:5]
         return payload, None
 
     @staticmethod

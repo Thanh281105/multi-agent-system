@@ -74,7 +74,9 @@ class MultiAgentOrchestrator:
 
         active_agent = self._active_agent(routed.intent, session.active_agent)
         state_patch: dict[str, object] = {}
-        product_id = self._last_product_id(agent_results)
+        product_id = aggregation.selected_product_id or self._last_product_id(
+            agent_results
+        )
         if product_id is not None:
             state_patch["last_product_id"] = product_id
         self.sessions.update(
@@ -116,6 +118,7 @@ class MultiAgentOrchestrator:
             session_id=context.session_id,
             intent=routed.intent,
             active_agent=active_agent,
+            selected_product_id=aggregation.selected_product_id,
             plan=plan,
             agent_results=agent_results,
             provenance=aggregation.provenance,

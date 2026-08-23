@@ -105,6 +105,37 @@ async def test_trust_agent_detects_complaints_without_claiming_model_accuracy(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("target", "action", "method"),
+    [
+        ("review_agent", "review.compare", "sentiment_aspects"),
+        ("trust_agent", "trust.compare", "trust_complaints"),
+    ],
+)
+async def test_review_intelligence_agents_compare_all_candidate_products(
+    runtime: tuple[AgentDispatcher, AgentGateway],
+    target: str,
+    action: str,
+    method: str,
+) -> None:
+    dispatcher, _ = runtime
+
+    result = await dispatcher.dispatch(
+        message(
+            target=target,
+            action=action,
+            payload={"product_ids": [1, 2, 4]},
+        )
+    )
+
+    assert result.status == TaskStatus.SUCCESS
+    assert result.data["requested_product_ids"] == [1, 2, 4]
+    assert [item["product_id"] for item in result.data["analyses"]] == [1, 2, 4]
+    assert method in result.data["method"]
+    assert all(item["retrieval"]["found"] for item in result.data["analyses"])
+
+
+@pytest.mark.asyncio
 async def test_market_agent_labels_all_evidence_as_sample_data(
     runtime: tuple[AgentDispatcher, AgentGateway],
 ) -> None:
