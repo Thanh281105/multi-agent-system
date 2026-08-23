@@ -148,6 +148,60 @@ def test_existing_collection_dimension_mismatch_fails_closed() -> None:
         store.ensure_collection()
 
 
+def test_qdrant_readiness_requires_compatible_seeded_collection() -> None:
+    compatible_collection = {
+        "status": "ok",
+        "result": {
+            "config": {"params": {"vectors": {"size": 64, "distance": "Cosine"}}},
+            "points_count": 3,
+        },
+    }
+    transport = ScriptedTransport(
+        [(200, "healthz check passed"), (200, compatible_collection)]
+    )
+    store = QdrantKnowledgeStore(
+        "http://qdrant:6333",
+        collection="sample_market_knowledge",
+        embedder=HashingTextEmbedder(dimensions=64),
+        transport=transport,
+        request_retries=0,
+    )
+
+    assert store.ready() is True
+    assert [(method, path) for method, path, _ in transport.calls] == [
+        ("GET", "/readyz"),
+        ("GET", "/collections/sample_market_knowledge"),
+    ]
+
+
+def test_qdrant_readiness_rejects_empty_collection() -> None:
+    transport = ScriptedTransport(
+        [
+            (200, "healthz check passed"),
+            (
+                200,
+                {
+                    "status": "ok",
+                    "result": {
+                        "config": {
+                            "params": {"vectors": {"size": 128, "distance": "Cosine"}}
+                        },
+                        "points_count": 0,
+                    },
+                },
+            ),
+        ]
+    )
+    store = QdrantKnowledgeStore(
+        "http://qdrant:6333",
+        transport=transport,
+        request_retries=0,
+    )
+
+    with pytest.raises(KnowledgeStoreContractError, match="seeded knowledge"):
+        store.ready()
+
+
 def test_qdrant_transient_failure_is_bounded_and_readiness_reports_it() -> None:
     transport = ScriptedTransport([(503, {}), (503, {})])
     unavailable = QdrantKnowledgeStore(

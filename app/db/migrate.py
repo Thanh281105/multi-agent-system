@@ -10,6 +10,8 @@ from alembic.config import Config
 from app.core.config import settings
 from app.db.session import create_database_engine
 
+EXPECTED_DATABASE_REVISION = "20260824_0001"
+
 
 def _migration_root() -> Path:
     candidates = (Path.cwd(), Path(__file__).resolve().parents[2])

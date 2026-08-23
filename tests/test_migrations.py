@@ -4,7 +4,11 @@ from pathlib import Path
 
 from sqlalchemy import create_engine, inspect, text
 
-from app.db.migrate import check_database_schema, upgrade_database
+from app.db.migrate import (
+    EXPECTED_DATABASE_REVISION,
+    check_database_schema,
+    upgrade_database,
+)
 
 
 def test_initial_migration_reaches_head_and_is_idempotent(tmp_path: Path) -> None:
@@ -26,6 +30,6 @@ def test_initial_migration_reaches_head_and_is_idempotent(tmp_path: Path) -> Non
             revision = connection.scalar(
                 text("SELECT version_num FROM alembic_version")
             )
-        assert revision == "20260824_0001"
+        assert revision == EXPECTED_DATABASE_REVISION
     finally:
         migration_engine.dispose()

@@ -1,8 +1,16 @@
-"""Protected metrics, traces, registry, and audit API contracts."""
+"""Protected health, metrics, traces, registry, and audit API contracts."""
 
+from dataclasses import replace
+
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import text
 
 from app.core.config import Settings
+from app.db import session as db_session
+from app.db.migrate import EXPECTED_DATABASE_REVISION
+from app.gateway import operations
+from app.gateway.operations import _database_ping
 from app.main import create_app
 
 
@@ -70,6 +78,55 @@ def test_unknown_trace_has_stable_not_found_envelope() -> None:
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "gateway.trace_not_found"
+
+
+def test_database_readiness_rejects_stale_production_revision() -> None:
+    with db_session.SessionLocal.begin() as session:
+        session.execute(
+            text("CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL)")
+        )
+        session.execute(
+            text("INSERT INTO alembic_version (version_num) VALUES ('stale')")
+        )
+
+    with pytest.raises(RuntimeError, match="expected revision"):
+        _database_ping(require_current_revision=True)
+
+    with db_session.SessionLocal.begin() as session:
+        session.execute(
+            text("UPDATE alembic_version SET version_num = :revision"),
+            {"revision": EXPECTED_DATABASE_REVISION},
+        )
+
+    _database_ping(require_current_revision=True)
+
+
+def test_production_readiness_enables_revision_check(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    application = create_app(
+        Settings(
+            _env_file=None,
+            app_env="test",
+            gateway_api_keys="test:test-secret-key",
+        )
+    )
+    runtime = application.state.gateway_runtime
+    application.state.gateway_runtime = replace(
+        runtime,
+        config=runtime.config.model_copy(update={"app_env": "production"}),
+    )
+    revision_requirements: list[bool] = []
+
+    def record_database_check(*, require_current_revision: bool = False) -> None:
+        revision_requirements.append(require_current_revision)
+
+    monkeypatch.setattr(operations, "_database_ping", record_database_check)
+
+    response = TestClient(application).get("/readyz")
+
+    assert response.status_code == 200
+    assert revision_requirements == [True]
 
 
 def operations_client() -> TestClient:

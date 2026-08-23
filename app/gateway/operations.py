@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import text
 
 from app.db import session as db_session
+from app.db.migrate import EXPECTED_DATABASE_REVISION
 from app.gateway.dependencies import get_runtime
 from app.gateway.errors import GatewayAPIError
 
@@ -32,7 +33,10 @@ async def ready(request: Request) -> JSONResponse:
     checks = {"runtime": "ok"}
     try:
         async with asyncio.timeout(2):
-            await asyncio.to_thread(_database_ping)
+            await asyncio.to_thread(
+                _database_ping,
+                require_current_revision=runtime.config.app_env == "production",
+            )
         checks["database"] = "ok"
     except Exception:
         checks["database"] = "failed"
@@ -130,9 +134,14 @@ async def agent_inventory(request: Request) -> dict[str, object]:
     }
 
 
-def _database_ping() -> None:
+def _database_ping(*, require_current_revision: bool = False) -> None:
     with db_session.SessionLocal() as session:
         session.execute(text("SELECT 1"))
+        if not require_current_revision:
+            return
+        revision = session.scalar(text("SELECT version_num FROM alembic_version"))
+        if revision != EXPECTED_DATABASE_REVISION:
+            raise RuntimeError("database schema is not at the expected revision")
 
 
 def _authorize_operations(request: Request) -> None:

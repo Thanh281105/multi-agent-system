@@ -64,7 +64,12 @@ class QdrantKnowledgeStore:
         self._request_retries = request_retries
 
     def ready(self) -> bool:
+        """Verify service health and the usable seeded collection contract."""
+
         self._call("GET", "/readyz", accepted_statuses=(200,))
+        path = f"/collections/{quote(self.collection, safe='')}"
+        _, body = self._call("GET", path, accepted_statuses=(200,))
+        self._validate_collection(body, require_points=True)
         return True
 
     def ensure_collection(self) -> None:
@@ -186,7 +191,7 @@ class QdrantKnowledgeStore:
             "method": f"qdrant_{self.embedder.method}",
         }
 
-    def _validate_collection(self, body: Any) -> None:
+    def _validate_collection(self, body: Any, *, require_points: bool = False) -> None:
         self._require_ok(body)
         try:
             vectors = body["result"]["config"]["params"]["vectors"]
@@ -200,6 +205,21 @@ class QdrantKnowledgeStore:
             raise KnowledgeStoreContractError(
                 "qdrant collection vector configuration does not match runtime"
             )
+        if require_points:
+            try:
+                points_count = body["result"]["points_count"]
+            except (KeyError, TypeError) as exc:
+                raise KnowledgeStoreContractError(
+                    "qdrant collection point count is invalid"
+                ) from exc
+            if (
+                not isinstance(points_count, int)
+                or isinstance(points_count, bool)
+                or points_count < 1
+            ):
+                raise KnowledgeStoreContractError(
+                    "qdrant collection must contain seeded knowledge points"
+                )
 
     @staticmethod
     def _extract_points(body: Any) -> list[dict[str, Any]]:
