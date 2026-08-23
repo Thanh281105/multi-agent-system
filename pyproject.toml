@@ -24,6 +24,7 @@ dependencies = [
 ecommerce-migrate = "app.db.migrate:main"
 ecommerce-seed = "app.db.seed:main"
 ecommerce-seed-knowledge = "app.knowledge.seed:main"
+ecommerce-evaluate = "app.evaluation.runner:main"
 
 [project.optional-dependencies]
 dev = [

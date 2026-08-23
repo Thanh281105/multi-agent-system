@@ -48,6 +48,7 @@ def test_package_exposes_operational_entry_points() -> None:
 
     assert metadata["project"]["version"] == "1.0.0"
     assert metadata["project"]["scripts"] == {
+        "ecommerce-evaluate": "app.evaluation.runner:main",
         "ecommerce-migrate": "app.db.migrate:main",
         "ecommerce-seed": "app.db.seed:main",
         "ecommerce-seed-knowledge": "app.knowledge.seed:main",

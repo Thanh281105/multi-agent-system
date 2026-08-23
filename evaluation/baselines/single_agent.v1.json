@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0",
+  "baseline_id": "phase1_single_agent_v1",
+  "status": "baseline_unavailable",
+  "reason": "Phase 1 chỉ có hai trace scripted dùng fake provider và một integration test tùy chọn; chưa có đủ 28 quan sát mô hình thật kèm model, prompt hash, tool-schema hash, token và cost. Artifact này cố ý chặn mọi tuyên bố Multi-Agent tốt hơn Single Agent cho đến khi baseline thật được thu thập và đóng băng.",
+  "captured_case_count": 0,
+  "model": null,
+  "prompt_sha256": null,
+  "tool_schema_sha256": null
+}
