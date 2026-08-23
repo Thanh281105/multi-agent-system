@@ -1,304 +1,254 @@
-# Vietnamese E-commerce Agent — Phase 1
+# Thương Trí — Vietnamese E-commerce Multi-Agent Platform
 
-Proof of concept cho một **single agent** bằng OpenAI Responses API với model
-`gpt-5.4-mini`. Người dùng hỏi bằng tiếng Việt; agent chọn một trong ba Python
-tools, tool đọc PostgreSQL qua SQLAlchemy, rồi agent tạo grounded answer từ dữ
-liệu đã trả về.
+Thương Trí là hệ thống hỗ trợ quyết định mua sắm tiếng Việt theo hướng
+**evidence-first multi-agent**. Phiên bản `1.0.0` hiện thực hóa MVP ứng dụng của
+kiến trúc trong [`workflow.md`](workflow.md) dưới dạng modular monolith có ranh
+giới sẵn sàng tách dịch vụ: API Gateway, Orchestrator,
+Product/Review/Trust/Market Agents, Agent Gateway, Registry, MCP-style tool
+catalog, shared state, vector knowledge, observability và evaluation.
 
-Phase này cố ý chưa có multi-agent, orchestrator, A2A, MCP, RAG, vector
-database, Redis, frontend, SSE hay authentication.
+> **Phạm vi dữ liệu:** toàn bộ 5 shop, 30 sản phẩm, 150 review và market notes
+> hiện tại là **dữ liệu mẫu tổng hợp, deterministic**. Mọi response/provenance và
+> giao diện đều gắn nhãn mẫu. Kết quả không đại diện cho Shopee, Tiki, Lazada hay
+> thị trường thương mại điện tử thật.
 
-## Architecture
+Đây là reference implementation production-oriented cho khóa luận ứng dụng,
+không phải tuyên bố đã được chứng nhận vận hành Internet công cộng. Triển khai
+thật vẫn cần TLS/reverse proxy, secret manager, backup policy, giám sát bên
+ngoài và kiểm thử tải theo SLO cụ thể.
+
+## Kiến trúc đã triển khai
+
+```mermaid
+flowchart LR
+    U[Web client / API consumer] -->|X-API-Key, JSON hoặc SSE| G[FastAPI Gateway]
+    G --> O[Orchestrator]
+    O --> P[Product Agent]
+    O --> R[Review Agent]
+    O --> T[Trust Agent]
+    O --> M[Market Agent]
+    P & R & T & M --> AG[Agent Gateway + Registry]
+    AG --> MCP[MCP-style allowlisted tools]
+    MCP --> PG[(PostgreSQL sample facts)]
+    MCP --> Q[(Qdrant sample notes)]
+    O <--> RS[(Redis sessions / memory / turn locks)]
+    G & O & AG --> OBS[Redacted traces + Prometheus metrics]
+```
+
+Luồng recommendation đa miền dùng một DAG ba nhánh: Product Agent xếp hạng tối
+đa 5 ứng viên, Review Agent và Trust Agent phân tích cùng tập ứng viên, sau đó
+Orchestrator tổng hợp bằng công thức có phiên bản. Nếu một tín hiệu thiếu ở bất
+kỳ ứng viên nào, tín hiệu đó bị bỏ cho cả nhóm và trọng số được chuẩn hóa lại để
+không vô tình thưởng cho ứng viên thiếu dữ liệu.
+
+| Khối | Trách nhiệm chính | Guardrail |
+| --- | --- | --- |
+| API Gateway | Auth, rate limit, correlation, timeout, JSON/SSE | Stable error envelope; owner-bound session |
+| Orchestrator | Route, plan DAG, execute, aggregate | Typed A2A contracts; partial-failure semantics |
+| Domain Agents | Product, review, trust, market analysis | Chỉ gọi skill được allowlist qua Agent Gateway |
+| Agent Gateway | Registry, permission, MCP routing, audit | Không log prompt hay raw tool arguments |
+| Shared Platform | Redis session/memory/turn lock, telemetry | TTL, optimistic update, bounded local traces |
+| Data Platform | PostgreSQL + Alembic, Qdrant sample knowledge | Idempotent seed; refuse mixed/non-sample DB |
+| Evaluation | 28 frozen cases × 7 workflow categories | Dataset/seed hashes; explicit N/A; honest baseline |
+
+Chi tiết: [kiến trúc](docs/architecture.md), [API](docs/api.md),
+[vận hành](docs/operations.md), [đánh giá](docs/evaluation.md).
+
+## Tính năng chính
+
+- Tìm kiếm, xếp hạng và so sánh sản phẩm bằng facts có nguồn.
+- Phân tích sentiment/aspect review và complaint/trust theo heuristic có phiên
+  bản, không trình bày như ML model đã huấn luyện.
+- Recommendation kết hợp Product + Review + Trust cho toàn bộ top-N ứng viên.
+- Market Agent dùng thống kê PostgreSQL và market notes mẫu qua Qdrant.
+- Session/follow-up có ownership theo principal, TTL và khóa lượt phân tán Redis.
+- Streaming SSE có progress thật, heartbeat, terminal `completed`/`error` duy
+  nhất và hỗ trợ client cancellation.
+- Web client responsive, CSP chặt, DOM rendering an toàn, API key chỉ giữ trong
+  memory của trang và evidence rail hiển thị executions/provenance.
+- `/livez`; production `/readyz` kiểm tra migration hiện hành, Redis và
+  collection Qdrant đúng vector contract, đã có dữ liệu; protected `/metrics`,
+  trace/audit/agent inventory.
+- Alembic migration, fail-safe sample seed, non-root read-only container,
+  private data network và CI lint/type/test/wheel/container gates.
+
+## Khởi động production-like bằng Docker Compose
+
+Yêu cầu Docker Compose v2. Stack chỉ publish backend tại
+`127.0.0.1:8000`; PostgreSQL, Redis và Qdrant không mở cổng ra host.
+
+```powershell
+Copy-Item .env.example .env
+# Mở .env và thay TẤT CẢ placeholder bằng secret URL-safe, duy nhất.
+docker compose --env-file .env config --quiet
+docker compose --env-file .env up --build -d
+docker compose --env-file .env ps
+```
+
+Các giá trị tối thiểu phải thay:
+
+- `POSTGRES_PASSWORD`, `REDIS_PASSWORD`: mật khẩu URL-safe vì nằm trong internal
+  connection URL.
+- `GATEWAY_API_KEYS`: `principal:secret[,principal:secret]`; client chỉ gửi phần
+  `secret` trong `X-API-Key`.
+- `OPERATIONS_API_KEY`: secret riêng cho metrics/traces/audit, tối thiểu 16 ký tự.
+- `QDRANT_API_KEY`: secret không phải placeholder, tối thiểu 16 ký tự.
+
+Ứng dụng production cố ý **không khởi động** khi dùng demo key, default DB
+credential, Redis không mật khẩu, placeholder Qdrant, memory state, static
+knowledge hoặc legacy `/chat`.
+
+Compose thực hiện theo thứ tự có điều kiện:
 
 ```text
-Client
-  ↓ HTTP
-FastAPI (/chat)
-  ↓ validated ChatRequest
-OpenAI Responses API runner
-  ↓
-EcommerceAgent (instructions + function tools)
-  ↓ chooses a tool
-Plain Python tool
-  ↓
-EcommerceRepository
-  ↓ SQLAlchemy session
-PostgreSQL
-  ↓ structured facts
-OpenAI GPT-5.4 mini
-  ↓ Vietnamese grounded answer
-ChatResponse { answer, tool_calls, session_id }
+PostgreSQL healthy → Alembic migrate → sample DB seed ┐
+Qdrant started → bounded sample knowledge seed        ├→ backend ready
+Redis healthy                                         ┘
 ```
 
-Business logic không biết OpenAI SDK tồn tại:
+Mở `http://127.0.0.1:8000`, nhập **secret** tương ứng principal vào dialog và
+thử:
 
-- `app/repositories/ecommerce.py` chỉ biết SQLAlchemy models.
-- `app/tools/ecommerce.py` là các Python function bình thường, mở session ngắn
-  hạn và trả dictionary JSON-friendly.
-- `app/agent/agent.py` chỉ đăng ký tools và định nghĩa instruction.
-- `app/agent/runner.py` là boundary duy nhất gọi Responses API, dispatch
-  function tools và thu thập tool-call metadata.
+1. `Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn.`
+2. `So sánh Nova Air S2 với Sonic G5.`
+3. `Khách hàng đánh giá thế nào về Tai nghe Bluetooth Nova Air S2?`
+4. `Khách hàng đánh giá thế nào về SuperDragon X999?`
 
-## Project tree
+Không đưa dịch vụ HTTP này trực tiếp lên Internet. Hãy đặt sau reverse proxy TLS
+và chỉ cấu hình HSTS khi HTTPS đã được đảm bảo end-to-end; xem
+[runbook vận hành](docs/operations.md).
 
-```text
-.
-├── app/
-│   ├── main.py
-│   ├── api/chat.py
-│   ├── agent/{agent.py,runner.py}
-│   ├── tools/ecommerce.py
-│   ├── db/{base.py,session.py,seed.py}
-│   ├── models/{shop.py,product.py,review.py}
-│   ├── repositories/ecommerce.py
-│   ├── schemas/chat.py
-│   └── core/config.py
-├── tests/
-│   ├── conftest.py
-│   ├── test_health.py
-│   ├── test_search_products.py
-│   ├── test_product_reviews.py
-│   ├── test_compare_products.py
-│   ├── test_chat_validation.py
-│   └── test_agent_integration.py
-├── Dockerfile
-├── compose.yaml
-├── pyproject.toml
-├── .env.example
-└── README.md
-```
+## Chạy local tối giản
 
-## Setup bằng Docker Compose
-
-1. Copy `.env.example` thành `.env` và đặt `OPENAI_API_KEY` nếu muốn gọi
-   GPT-5.4 mini thật. Repo đã có sẵn `.env` placeholder cho local setup.
-2. Chạy:
-
-   ```bash
-   docker compose up --build
-   ```
-
-Compose khởi động PostgreSQL, đợi healthcheck, chạy seed idempotent rồi chạy
-backend tại `http://localhost:8000`. Nếu không có API key, `/health`, seed và
-tool tests vẫn chạy; `/chat` sẽ trả lỗi 503 thay vì giả lập câu trả lời.
-
-Seed có thể chạy lại an toàn:
-
-```bash
-docker compose run --rm backend python -m app.db.seed
-```
-
-Output:
-
-```text
-Seed complete
-Shops: 5
-Products: 30
-Reviews: 150
-```
-
-Seed dùng `random.seed(42)` và explicit IDs. Các product quan trọng gồm:
-
-- ID 1 — `Tai nghe Bluetooth Nova Air S2`
-- ID 2 — `Tai nghe Gaming Sonic G5`
-- ID 3 — `Tai nghe không dây Echo Buds Pro`
-
-## Chạy local không dùng Docker
-
-Cần Python 3.12+ và PostgreSQL đang chạy.
+Python `3.12+` được hỗ trợ. Có thể dùng SQLite cho local demo/tests; production
+bắt buộc PostgreSQL theo validation runtime.
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
-Copy-Item .env.example .env
-python -m app.db.seed
+
+$env:APP_ENV = "development"
+$env:DATABASE_URL = "sqlite+pysqlite:///./local-sample.db"
+$env:GATEWAY_API_KEYS = "demo:demo-local-key"
+$env:SHARED_STATE_BACKEND = "memory"
+$env:KNOWLEDGE_BACKEND = "static"
+$env:LEGACY_CHAT_ENABLED = "true"
+
+ecommerce-migrate
+ecommerce-seed
 uvicorn app.main:app --reload
 ```
 
-`create_all` được dùng thay cho Alembic vì Phase 1 chỉ có schema nhỏ và chưa
-có migration lifecycle. Khi schema bắt đầu có dữ liệu production hoặc cần
-rollback/versioning, chuyển sang Alembic là bước phù hợp.
+OpenAI không phải dependency của đường `/api/v1` hiện tại: routing, agents và
+aggregation đều deterministic để benchmark tái lập. `OPENAI_API_KEY` chỉ phục
+vụ đường single-agent Phase 1 cũ khi chủ động bật legacy endpoint hoặc chạy
+integration test; production Compose tắt endpoint này.
 
-## API
+## API nhanh
 
-Health check:
-
-```bash
-curl http://localhost:8000/health
-```
-
-```json
-{"status":"ok"}
-```
-
-Chat request:
+JSON request:
 
 ```bash
-curl -X POST http://localhost:8000/chat \
+curl -X POST http://127.0.0.1:8000/api/v1/chat \
   -H "Content-Type: application/json" \
-  -d '{"message":"Tìm cho tôi tai nghe dưới 1 triệu, rating ít nhất 4.5"}'
+  -H "X-API-Key: YOUR_SECRET" \
+  -d '{"message":"Tìm tai nghe dưới 1 triệu"}'
 ```
 
-Response shape:
-
-```json
-{
-  "answer": "...",
-  "tool_calls": [
-    {
-      "name": "search_products",
-      "arguments": {
-        "category": "Tai nghe",
-        "max_price": 1000000,
-        "min_rating": 4.5
-      },
-      "result_summary": {"count": 2, "products_count": 2}
-    }
-  ],
-  "session_id": "sess_..."
-}
-```
-
-`tool_calls` chỉ có tên tool, arguments và summary. Không có chain-of-thought.
-Nếu client truyền `session_id`, runner giữ response ID trong memory để dùng
-lại context cho follow-up; nếu không, API sinh ID mới.
-
-## Tests
-
-Unit tests không gọi LLM thật và không cần PostgreSQL: `tests/conftest.py`
-đổi session factory sang SQLite in-memory, nhưng vẫn chạy cùng repository và
-tool functions.
+SSE request:
 
 ```bash
-pytest -m "not integration"
-ruff check app tests
+curl -N -X POST http://127.0.0.1:8000/api/v1/chat/stream \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -H "X-API-Key: YOUR_SECRET" \
+  -d '{"message":"Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn"}'
+```
+
+Client giữ `session_id` từ response để gửi follow-up. Session không tồn tại,
+hết hạn hoặc thuộc principal khác đều trả cùng lỗi `404
+gateway.session_not_found`, tránh rò rỉ ownership.
+
+## Database và dữ liệu mẫu
+
+- Alembic revision hiện tại: `20260824_0001`.
+- Seed cố định: `random.seed(42)`, explicit IDs, 5 shop, 30 sản phẩm, 150 review.
+- `ecommerce-seed` idempotent nếu database khớp chính xác snapshot mẫu.
+- Seed từ chối database rỗng một phần, database lẫn dữ liệu khác hoặc dữ liệu
+  thật; `--reset --confirm-reset` chỉ dùng local và bị chặn trong production.
+- Knowledge seed dùng deterministic hashing vector `hashed_token_cosine_v1`;
+  đây là retrieval baseline tái lập, không phải semantic embedding model.
+
+## Kiểm thử và quality gates
+
+```powershell
+ruff check app tests migrations
+ruff format --check app tests migrations
 mypy app
+pytest -m "not integration" -q
+python -m pip wheel --no-deps --wheel-dir dist .
 ```
 
-The default suite also contains deterministic fake-Responses smoke tests. They
-exercise the tool loop and dispatch without an external API call; only
-`test_agent_integration.py` requires an OpenAI key.
+CI chạy các bước trên, validate Compose và build Docker image. Test offline dùng
+SQLite tạm, fakeredis và Qdrant mock contract; chỉ test có marker `integration`
+cần OpenAI key/network thật.
 
-Integration test có thể chạy có chủ đích khi đã đặt API key:
+## Benchmark khóa luận
 
-```bash
-pytest -m integration
+```powershell
+ecommerce-evaluate --repeats 3 --output evaluation/results/latest
 ```
 
-## Four demo queries
+Corpus có đúng 28 case, bốn case cho mỗi nhóm: simple, complex, multi-domain,
+missing data, tool failure, ambiguous và irrelevant. Snapshot hiện tại nằm tại
+[`evaluation/results/reference-v1/report.md`](evaluation/results/reference-v1/report.md).
 
-1. **Search**
+Snapshot 28 case × 3 lần lặp đạt toàn bộ gold routing, plan, structured answer
+assertions, retrieval và hai ca recoverable failure. Đây là **regression result
+trên cùng hệ thống và dữ liệu mẫu**, không phải bằng chứng tổng quát hóa. Phase 1
+chưa có frozen real-model baseline đủ provenance, nên report ghi
+`baseline_unavailable`; token/cost production cũng ghi `N/A`, không thay bằng số
+0 gây hiểu sai. Report schema `1.1` còn ghi SHA-256 manifest của toàn bộ tệp
+Python trong `app/`, ràng buộc snapshot với đúng source SUT được chạy.
 
-   `Tìm cho tôi tai nghe dưới 1 triệu, rating ít nhất 4.5`
-
-   Agent nên gọi `search_products`; dữ liệu seed có Nova Air S2 và Sonic G5.
-
-2. **Reviews**
-
-   `Khách hàng đánh giá thế nào về Tai nghe Bluetooth Nova Air S2?`
-
-   Agent tìm ID 1 rồi gọi `get_product_reviews`, sau đó tóm tắt điểm mạnh
-   (âm thanh/giao hàng/pin) và nhược điểm (đeo lâu, pin khi mở lớn).
-
-3. **Compare**
-
-   `So sánh Nova Air S2 và Sonic G5. Nếu ưu tiên giá và rating thì nên chọn sản phẩm nào?`
-
-   Agent resolve ID 1 và 2 rồi gọi `compare_products`; tool chỉ trả facts, agent
-   mới suy luận recommendation.
-
-4. **Hallucination guard**
-
-   `Đánh giá giúp tôi Tai nghe SuperDragon X999.`
-
-   Search trả `count: 0`; agent phải nói không tìm thấy dữ liệu, không tự tạo
-   giá, rating, review hay thông số.
-
-## Request flow của Demo 1
+## Cấu trúc repository
 
 ```text
-POST /chat
-  → app/schemas/chat.py validates ChatRequest
-  → app/api/chat.py creates request_id/session_id
-  → app/agent/runner.py gets the session's previous OpenAI response ID
-  → app/agent/agent.py supplies EcommerceAgent + instructions + tool schemas
-  → GPT-5.4 mini returns a function call for search_products
-  → runner dispatches the Python function (the LLM does not execute Python)
-  → app/tools/ecommerce.py validates arguments and opens one DB session
-  → app/repositories/ecommerce.py builds a SQLAlchemy SELECT
-  → PostgreSQL filters products and returns rows
-  → repository serializes rows into dictionaries
-  → runner sends function_call_output back to OpenAI
-  → GPT-5.4 mini writes a Vietnamese answer grounded in those facts
-  → runner collects final response text and tool-call metadata
-  → ChatResponse is returned as JSON
+app/
+├── gateway/          # HTTP/SSE, auth, middleware, operations
+├── orchestrator/     # router, planner, DAG executor, aggregator, scoring
+├── agents/           # Product, Review, Trust, Market
+├── agent_gateway/    # permission/rate/audit boundary
+├── registry/         # immutable agent bundles
+├── mcp/              # allowlisted tool catalog/router
+├── shared/           # context, Redis/memory session, telemetry
+├── knowledge/        # Qdrant adapter, hashing embedder, sample notes
+├── evaluation/       # schemas, metrics, runner
+├── frontend/         # same-origin accessible web client
+├── db/, models/, repositories/, tools/
+└── agent/, api/      # legacy Phase 1 path; disabled in production
+migrations/           # Alembic lifecycle
+evaluation/           # frozen corpus, honest baseline manifest, reports
+tests/                # offline regression + optional integration
 ```
 
-### OpenAI function calling, without framework magic
+## Giới hạn có chủ đích
 
-The Python function is registered as an OpenAI function tool with an explicit
-JSON schema. The actual protocol is:
+- Dataset và knowledge base vẫn là mẫu tổng hợp theo yêu cầu hiện tại.
+- Router/analytics là deterministic rules; chưa phải fine-tuned LLM hoặc mô hình
+  sentiment/trust được hiệu chỉnh trên dữ liệu thật.
+- Rate limiter và telemetry aggregation nằm trong một process. Compose cố định
+  một Uvicorn worker; scale-out cần distributed limiter và external telemetry.
+- Trace ring buffer chỉ phục vụ chẩn đoán ngắn hạn và mất khi restart.
+- Redis lưu tối đa 40 user/assistant turn entries mỗi session theo TTL, nhưng
+  deterministic router v1 chỉ tiêu thụ structured state (`active_agent`,
+  `last_product_id`), chưa đưa free-text memory vào inference. Chưa có long-term
+  user preference, conversation summary hay historical-artifact memory.
+- Chưa có frozen single-agent real-model baseline, load/soak test hay disaster
+  recovery drill trên hạ tầng thật.
+- Qdrant live-container integration và Docker image build phải được CI/môi trường
+  có Docker daemon xác nhận; unit suite dùng contract mocks.
 
-```text
-Python function signature
-  → OpenAI function/tool schema
-  → model receives user message, instructions, and schema
-  → model emits tool name + JSON arguments
-  → runner validates and dispatches the Python function
-  → function returns a structured dictionary
-  → runner emits function_call_output and sends it to the model
-  → model emits the final answer
-```
-
-`app/agent/runner.py` reads function-call output items, executes only the
-registered tools, builds a small result summary, and selects `output_text` as
-the final answer. It never exposes hidden model reasoning.
-
-## Layer responsibilities
-
-| Layer | Responsibility | Called by / calls next | Isolated test |
-| --- | --- | --- | --- |
-| FastAPI route | HTTP status, request IDs, error boundary | Client → runner | `test_health.py`, validation tests |
-| Pydantic schema | Validate/serialize API contract | FastAPI | `test_chat_validation.py` |
-| OpenAI agent | Instructions, model, tool registration | Runner → model | optional integration test |
-| OpenAI runner | Session, function-call loop, tool-call visibility | API → agent | optional integration test |
-| Tool | Validate arguments, open/close DB session, JSON facts | Runner → repository | `test_*` tool tests |
-| Repository | SQLAlchemy queries, ORM-to-dict mapping | Tool → models | exercised with SQLite fixture |
-| SQLAlchemy model | Tables, keys, constraints, relationships | Repository → DB | seed + schema smoke |
-| DB session | Short-lived connection/session lifecycle | Tool → PostgreSQL | SQLite session fixture |
-| PostgreSQL | Durable structured source of truth | SQLAlchemy | Docker seed/smoke |
-
-Các layer không gộp vì mỗi boundary có failure/test contract riêng: HTTP
-validation không cần DB, tools không cần LLM, repository không cần prompt, và
-runner không nên chứa SQL.
-
-## Current limitations
-
-- Single agent only; không có Product/Review/Trust agents hay orchestrator.
-- Synthetic deterministic dataset, không phải dữ liệu marketplace thật.
-- Session chỉ in-memory và mất khi process restart.
-- Không có RAG, MCP, vector database, Redis, SSE, frontend hoặc production auth.
-- OpenAI API key/network là dependency cho `/chat` thật; lỗi runtime trả 503,
-  không fallback sang dữ liệu bịa.
-- Session response IDs chỉ nằm trong process memory, chưa phải session service
-  cho production multi-instance.
-- `create_all` chưa phải migration framework.
-
-## Future architecture (chưa implement)
-
-```text
-Single Ecommerce Agent
-        ↓
-Product / Review / Trust Agents
-        ↓
-Orchestrator
-        ↓
-Shared Platform
-        ↓
-MCP
-        ↓
-Agent Gateway / Registry
-```
-
-Phase 1 dừng ở đây để review architecture và code trước khi mở rộng Phase 2.
+Những giới hạn này được giữ công khai để kết quả khóa luận có thể kiểm chứng và
+không vượt quá bằng chứng hiện có.
