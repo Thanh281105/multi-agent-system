@@ -96,7 +96,8 @@ def test_production_disables_interactive_docs_and_enables_hsts() -> None:
 
 
 def test_frontend_assets_are_declared_as_python_package_data() -> None:
-    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+    project_root = Path(__file__).resolve().parents[1]
+    pyproject = (project_root / "pyproject.toml").read_text(encoding="utf-8")
 
     assert '"app.frontend" = ["index.html", "assets/*.css", "assets/*.js"]' in (
         pyproject

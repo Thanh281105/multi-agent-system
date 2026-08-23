@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vietnamese-ecommerce-agent"
-version = "0.1.0"
-description = "Phase 1 single-agent Vietnamese e-commerce intelligence proof of concept"
+version = "1.0.0"
+description = "Production-oriented Vietnamese e-commerce multi-agent decision platform"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.18,<2",
@@ -19,6 +19,11 @@ dependencies = [
     "sqlalchemy>=2.0,<3",
     "uvicorn[standard]>=0.34,<1",
 ]
+
+[project.scripts]
+ecommerce-migrate = "app.db.migrate:main"
+ecommerce-seed = "app.db.seed:main"
+ecommerce-seed-knowledge = "app.knowledge.seed:main"
 
 [project.optional-dependencies]
 dev = [

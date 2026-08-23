@@ -10,14 +10,23 @@ from alembic.config import Config
 from app.core.config import settings
 from app.db.session import create_database_engine
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+def _migration_root() -> Path:
+    candidates = (Path.cwd(), Path(__file__).resolve().parents[2])
+    for candidate in candidates:
+        if (candidate / "alembic.ini").is_file() and (
+            candidate / "migrations"
+        ).is_dir():
+            return candidate
+    raise RuntimeError("alembic.ini and migrations directory are unavailable")
 
 
 def _migration_config() -> Config:
-    migration_config = Config(str(_PROJECT_ROOT / "alembic.ini"))
+    project_root = _migration_root()
+    migration_config = Config(str(project_root / "alembic.ini"))
     migration_config.set_main_option(
         "script_location",
-        str(_PROJECT_ROOT / "migrations"),
+        str(project_root / "migrations"),
     )
     return migration_config
 
