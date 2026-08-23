@@ -190,9 +190,13 @@ def test_production_requires_authenticated_qdrant() -> None:
     base = {
         "_env_file": None,
         "app_env": "production",
+        "database_url": (
+            "postgresql+psycopg://ecommerce:strong-db-password@localhost/ecommerce"
+        ),
         "gateway_api_keys": "production:strong-production-key",
         "legacy_chat_enabled": False,
         "shared_state_backend": "redis",
+        "redis_url": "redis://:strong-redis-password@localhost:6379/0",
         "operations_api_key": "strong-operations-key",
     }
     with pytest.raises(ValueError, match="KNOWLEDGE_BACKEND=qdrant"):

@@ -357,9 +357,13 @@ def test_settings_reject_insecure_production_gateway() -> None:
     production = Settings(
         _env_file=None,
         app_env="production",
+        database_url=(
+            "postgresql+psycopg://ecommerce:strong-db-password@localhost/ecommerce"
+        ),
         gateway_api_keys="production:strong-production-key",
         legacy_chat_enabled=False,
         shared_state_backend="redis",
+        redis_url="redis://:strong-redis-password@localhost:6379/0",
         knowledge_backend="qdrant",
         qdrant_api_key="strong-qdrant-key",
         operations_api_key="strong-operations-key",
@@ -375,6 +379,43 @@ def test_settings_reject_insecure_production_gateway() -> None:
         .status_code
         == 404
     )
+
+
+@pytest.mark.parametrize(
+    ("override", "message"),
+    [
+        (
+            {"database_url": "postgresql+psycopg://ecommerce:ecommerce@db/app"},
+            "PostgreSQL DATABASE_URL",
+        ),
+        ({"redis_url": "redis://localhost:6379/0"}, "authenticated REDIS_URL"),
+        (
+            {"qdrant_api_key": "replace-with-qdrant-api-key"},
+            "non-placeholder QDRANT_API_KEY",
+        ),
+    ],
+)
+def test_settings_reject_default_or_placeholder_production_credentials(
+    override: dict[str, object],
+    message: str,
+) -> None:
+    values: dict[str, object] = {
+        "app_env": "production",
+        "database_url": (
+            "postgresql+psycopg://ecommerce:strong-db-password@localhost/ecommerce"
+        ),
+        "gateway_api_keys": "production:strong-production-key",
+        "legacy_chat_enabled": False,
+        "shared_state_backend": "redis",
+        "redis_url": "redis://:strong-redis-password@localhost:6379/0",
+        "knowledge_backend": "qdrant",
+        "qdrant_api_key": "strong-qdrant-key",
+        "operations_api_key": "strong-operations-key",
+    }
+    values.update(override)
+
+    with pytest.raises(ValueError, match=message):
+        Settings(_env_file=None, **values)
 
 
 def build_test_settings(**overrides: object) -> Settings:

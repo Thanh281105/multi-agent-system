@@ -75,9 +75,13 @@ def test_production_disables_interactive_docs_and_enables_hsts() -> None:
     production = Settings(
         _env_file=None,
         app_env="production",
+        database_url=(
+            "postgresql+psycopg://ecommerce:strong-db-password@localhost/ecommerce"
+        ),
         gateway_api_keys="production:strong-production-key",
         legacy_chat_enabled=False,
         shared_state_backend="redis",
+        redis_url="redis://:strong-redis-password@localhost:6379/0",
         knowledge_backend="qdrant",
         qdrant_api_key="strong-qdrant-key",
         operations_api_key="strong-operations-key",

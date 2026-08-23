@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Literal
+from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -135,13 +136,40 @@ class Settings(BaseSettings):
             raise ValueError("production requires a strong OPERATIONS_API_KEY")
         if self.app_env == "production" and self.shared_state_backend != "redis":
             raise ValueError("production requires SHARED_STATE_BACKEND=redis")
+        if self.app_env == "production":
+            database = urlsplit(self.database_url)
+            if (
+                not database.scheme.startswith("postgresql+")
+                or not database.hostname
+                or not database.username
+                or not database.password
+                or database.password == "ecommerce"
+                or "replace-with-" in database.password.casefold()
+            ):
+                raise ValueError(
+                    "production requires an authenticated PostgreSQL DATABASE_URL "
+                    "without default or placeholder credentials"
+                )
+            redis = urlsplit(self.redis_url.get_secret_value())
+            if (
+                redis.scheme not in {"redis", "rediss"}
+                or not redis.hostname
+                or not redis.password
+                or "replace-with-" in redis.password.casefold()
+            ):
+                raise ValueError(
+                    "production requires an authenticated REDIS_URL without "
+                    "placeholder credentials"
+                )
         if self.app_env == "production" and self.knowledge_backend != "qdrant":
             raise ValueError("production requires KNOWLEDGE_BACKEND=qdrant")
-        if (
-            self.app_env == "production"
-            and not self.qdrant_api_key.get_secret_value().strip()
+        qdrant_key = self.qdrant_api_key.get_secret_value().strip()
+        if self.app_env == "production" and (
+            len(qdrant_key) < 16 or "replace-with-" in qdrant_key.casefold()
         ):
-            raise ValueError("production requires a non-empty QDRANT_API_KEY")
+            raise ValueError(
+                "production requires a strong non-placeholder QDRANT_API_KEY"
+            )
         return self
 
 
