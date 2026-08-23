@@ -1,7 +1,7 @@
 """Shared runtime services used by every agent and gateway layer."""
 
 from app.shared.context import ExecutionContext, bind_execution_context
-from app.shared.memory import InMemoryMemoryStore, MemoryEntry, MemoryStore
+from app.shared.memory import InMemoryMemoryStore, MemoryEntry, MemoryRole, MemoryStore
 from app.shared.session import (
     InMemorySessionStore,
     SessionExpiredError,
@@ -17,6 +17,7 @@ __all__ = [
     "InMemoryMemoryStore",
     "InMemorySessionStore",
     "MemoryEntry",
+    "MemoryRole",
     "MemoryStore",
     "MetricRegistry",
     "SessionExpiredError",

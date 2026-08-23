@@ -121,7 +121,7 @@ class ExecutionPlan(BaseModel):
 
     plan_id: str = Field(pattern=IDENTIFIER_PATTERN)
     intent: str = Field(pattern=ACTION_PATTERN)
-    steps: tuple[ExecutionStep, ...] = Field(min_length=1)
+    steps: tuple[ExecutionStep, ...] = ()
 
     @model_validator(mode="after")
     def validate_dependencies(self) -> ExecutionPlan:
