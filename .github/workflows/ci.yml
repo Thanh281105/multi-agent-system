@@ -55,3 +55,42 @@ jobs:
 
       - name: Build hardened application image
         run: docker build --tag ecommerce-multi-agent:ci .
+
+  live-stack:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      POSTGRES_PASSWORD: ci-postgres-password
+      REDIS_PASSWORD: ci-redis-password
+      GATEWAY_API_KEYS: ci:ci-gateway-secret-123456
+      OPERATIONS_API_KEY: ci-operations-secret-123456
+      QDRANT_API_KEY: ci-qdrant-secret-123456
+      APP_IMAGE_TAG: ci
+      CI_BASE_URL: http://127.0.0.1:8000
+      CI_GATEWAY_KEY: ci-gateway-secret-123456
+      CI_OPERATIONS_KEY: ci-operations-secret-123456
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build production-like application image
+        run: docker build --tag ecommerce-multi-agent:ci .
+
+      - name: Start production-like Compose stack
+        run: docker compose -f compose.yaml up --detach
+
+      - name: Show Compose status
+        run: docker compose -f compose.yaml ps
+
+      - name: Smoke live JSON, SSE, readiness, auth, and metrics
+        run: python scripts/ci_live_smoke.py
+
+      - name: Dump service logs on failure
+        if: ${{ failure() }}
+        run: docker compose -f compose.yaml logs --no-color --tail=200 migrate seed-data seed-knowledge backend
+
+      - name: Tear down live stack
+        if: ${{ always() }}
+        run: docker compose -f compose.yaml down --volumes --remove-orphans
