@@ -187,6 +187,12 @@ Nguồn sự thật cho shops/products/reviews. Alembic quản lý schema. Sampl
 - từ chối DB lẫn hoặc có dữ liệu ngoài snapshot;
 - reset cần hai flags và bị chặn ở production.
 
+Schema `dataset_sources` lưu immutable dataset/version, license, source revision,
+raw/snapshot SHA-256, sampling seed và row counts. Product/review imported từ
+snapshot public giữ `source_id` + `external_id`; tool facts và AgentResult truyền
+provenance động. Dữ liệu synthetic cũ vẫn có fallback source IDs riêng để không
+trộn evidence giữa hai corpus.
+
 ### Redis
 
 Lưu owner-bound session, active agent, last product, short-term memory và

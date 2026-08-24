@@ -7,10 +7,11 @@ giới sẵn sàng tách dịch vụ: API Gateway, Orchestrator,
 Product/Review/Trust/Market Agents, Agent Gateway, Registry, MCP-style tool
 catalog, shared state, vector knowledge, observability và evaluation.
 
-> **Phạm vi dữ liệu:** toàn bộ 5 shop, 30 sản phẩm, 150 review và market notes
-> hiện tại là **dữ liệu mẫu tổng hợp, deterministic**. Mọi response/provenance và
-> giao diện đều gắn nhãn mẫu. Kết quả không đại diện cho Shopee, Tiki, Lazada hay
-> thị trường thương mại điện tử thật.
+> **Phạm vi dữ liệu:** Compose mặc định dùng 5 shop, 30 sản phẩm, 150 review và
+> market notes là **dữ liệu mẫu tổng hợp, deterministic** để regression. Repository đồng thời
+> giữ một snapshot Tiki Books public nhỏ (200 sản phẩm, 1.773 review, CC0) để
+> demo ingestion/provenance; snapshot này vẫn là dữ liệu mẫu, không đại diện cho
+> Shopee, Tiki, Lazada hay thị trường thương mại điện tử thật.
 
 Đây là reference implementation production-oriented cho khóa luận ứng dụng,
 không phải tuyên bố đã được chứng nhận vận hành Internet công cộng. Triển khai
@@ -172,9 +173,12 @@ gateway.session_not_found`, tránh rò rỉ ownership.
 
 ## Database và dữ liệu mẫu
 
-- Alembic revision hiện tại: `20260824_0001`.
+- Alembic revision hiện tại: `20260824_0002` (`dataset_sources` + external IDs).
 - Seed cố định: `random.seed(42)`, explicit IDs, 5 shop, 30 sản phẩm, 150 review.
 - `ecommerce-seed` idempotent nếu database khớp chính xác snapshot mẫu.
+- Snapshot Tiki Books được chuẩn hóa ở `data/snapshots/tiki-books-v4-sample`;
+  import bằng `ecommerce-data import --snapshot ...` kiểm tra manifest/checksum,
+  gắn version dataset vào từng product/review và có thể chạy lại an toàn.
 - Seed từ chối database rỗng một phần, database lẫn dữ liệu khác hoặc dữ liệu
   thật; `--reset --confirm-reset` chỉ dùng local và bị chặn trong production.
 - Knowledge seed dùng deterministic hashing vector `hashed_token_cosine_v1`;

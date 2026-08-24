@@ -22,6 +22,18 @@ source URL, license, source revision, raw archive hash, sampling policy, số d�
 bị loại và snapshot hash. `customer_id` không được đưa vào normalized output vì
 không cần cho nghiệp vụ.
 
+Snapshot đã chuẩn bị có thể import vào database sau khi chạy migration:
+
+```powershell
+ecommerce-data import `
+  --snapshot data/snapshots/tiki-books-v4-sample
+```
+
+Importer từ chối checksum/count không khớp, product/review ID trùng hoặc review
+mồ côi; cùng `dataset_id` + version có thể import lại idempotent nhưng không được
+thay bằng snapshot khác. Metadata nằm trong bảng `dataset_sources`, còn API/agent
+trả `source_id` dạng `tiki-books:kaggle-v4` để audit.
+
 Bộ synthetic 30 sản phẩm/150 review vẫn được giữ riêng cho regression test; nó
 không được trình bày là dữ liệu thị trường thật. Khi import snapshot công khai,
 UI/API phải hiển thị rõ dataset version và việc seller không có trong nguồn nếu
