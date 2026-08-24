@@ -8,3 +8,5 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 *.egg-info/
+data/raw/
+data/cache/
