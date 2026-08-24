@@ -46,16 +46,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_dataset_sources_dataset_id", "dataset_sources", ["dataset_id"])
 
-    with op.batch_alter_table("products", recreate="always") as batch:
-        batch.add_column(sa.Column("source_id", sa.Integer(), nullable=True))
-        batch.add_column(sa.Column("external_id", sa.String(length=128), nullable=True))
-        batch.create_foreign_key(
-            "fk_products_source_id_dataset_sources",
-            "dataset_sources",
-            ["source_id"],
-            ["id"],
-            ondelete="RESTRICT",
-        )
+    _add_source_columns("products", "fk_products_source_id_dataset_sources")
     op.create_index("ix_products_source_id", "products", ["source_id"])
     op.create_index(
         "ux_products_source_external_id",
@@ -64,16 +55,7 @@ def upgrade() -> None:
         unique=True,
     )
 
-    with op.batch_alter_table("reviews", recreate="always") as batch:
-        batch.add_column(sa.Column("source_id", sa.Integer(), nullable=True))
-        batch.add_column(sa.Column("external_id", sa.String(length=128), nullable=True))
-        batch.create_foreign_key(
-            "fk_reviews_source_id_dataset_sources",
-            "dataset_sources",
-            ["source_id"],
-            ["id"],
-            ondelete="RESTRICT",
-        )
+    _add_source_columns("reviews", "fk_reviews_source_id_dataset_sources")
     op.create_index("ix_reviews_source_id", "reviews", ["source_id"])
     op.create_index(
         "ux_reviews_source_external_id",
@@ -86,23 +68,59 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ux_reviews_source_external_id", table_name="reviews")
     op.drop_index("ix_reviews_source_id", table_name="reviews")
-    with op.batch_alter_table("reviews", recreate="always") as batch:
-        batch.drop_constraint(
-            "fk_reviews_source_id_dataset_sources",
-            type_="foreignkey",
-        )
-        batch.drop_column("external_id")
-        batch.drop_column("source_id")
+    _drop_source_columns("reviews", "fk_reviews_source_id_dataset_sources")
 
     op.drop_index("ux_products_source_external_id", table_name="products")
     op.drop_index("ix_products_source_id", table_name="products")
-    with op.batch_alter_table("products", recreate="always") as batch:
-        batch.drop_constraint(
-            "fk_products_source_id_dataset_sources",
-            type_="foreignkey",
-        )
-        batch.drop_column("external_id")
-        batch.drop_column("source_id")
+    _drop_source_columns("products", "fk_products_source_id_dataset_sources")
 
     op.drop_index("ix_dataset_sources_dataset_id", table_name="dataset_sources")
     op.drop_table("dataset_sources")
+
+
+def _add_source_columns(table_name: str, foreign_key_name: str) -> None:
+    """Use direct ALTER on PostgreSQL; SQLite needs Alembic's table copy."""
+
+    if op.get_bind().dialect.name == "sqlite":
+        with op.batch_alter_table(table_name, recreate="always") as batch:
+            batch.add_column(sa.Column("source_id", sa.Integer(), nullable=True))
+            batch.add_column(
+                sa.Column("external_id", sa.String(length=128), nullable=True)
+            )
+            batch.create_foreign_key(
+                foreign_key_name,
+                "dataset_sources",
+                ["source_id"],
+                ["id"],
+                ondelete="RESTRICT",
+            )
+        return
+
+    op.add_column(table_name, sa.Column("source_id", sa.Integer(), nullable=True))
+    op.add_column(
+        table_name,
+        sa.Column("external_id", sa.String(length=128), nullable=True),
+    )
+    op.create_foreign_key(
+        foreign_key_name,
+        table_name,
+        "dataset_sources",
+        ["source_id"],
+        ["id"],
+        ondelete="RESTRICT",
+    )
+
+
+def _drop_source_columns(table_name: str, foreign_key_name: str) -> None:
+    """Mirror the dialect-specific upgrade path for safe downgrade tests."""
+
+    if op.get_bind().dialect.name == "sqlite":
+        with op.batch_alter_table(table_name, recreate="always") as batch:
+            batch.drop_constraint(foreign_key_name, type_="foreignkey")
+            batch.drop_column("external_id")
+            batch.drop_column("source_id")
+        return
+
+    op.drop_constraint(foreign_key_name, table_name=table_name, type_="foreignkey")
+    op.drop_column(table_name, "external_id")
+    op.drop_column(table_name, "source_id")
