@@ -41,6 +41,14 @@ REAL_BASELINE_ARTIFACT = (
     / "baseline-single-agent-v1"
     / "observations.json"
 )
+REAL_MULTI_ARTIFACT = (
+    PROJECT_ROOT
+    / "evaluation"
+    / "results"
+    / "real-multi-agent-v1"
+    / "observations.json"
+)
+REAL_MULTI_REPORT = REAL_MULTI_ARTIFACT.with_name("report.json")
 
 
 def test_frozen_corpus_is_balanced_and_real_baseline_is_bound() -> None:
@@ -90,6 +98,38 @@ def test_real_baseline_artifact_covers_frozen_corpus() -> None:
         hashlib.sha256(REAL_BASELINE_ARTIFACT.read_bytes()).hexdigest()
         == baseline.artifact_sha256
     )
+
+
+def test_real_multi_agent_artifact_is_frozen_and_scoreable() -> None:
+    corpus = load_corpus(CASES_PATH)
+    artifact = json.loads(REAL_MULTI_ARTIFACT.read_text(encoding="utf-8"))
+    report = json.loads(REAL_MULTI_REPORT.read_text(encoding="utf-8"))
+
+    assert REAL_MULTI_ARTIFACT.is_file()
+    assert REAL_MULTI_REPORT.is_file()
+    assert artifact["system_id"] == "multi_agent_real"
+    assert artifact["case_count"] == len(corpus.cases) == 28
+    assert artifact["repeats"] == 1
+    assert artifact["case_ids"] == [case.case_id for case in corpus.cases]
+    assert len(artifact["results"]) == 28
+    assert (
+        len({(item["case_id"], item["repetition"]) for item in artifact["results"]})
+        == 28
+    )
+    assert all(
+        item["observation"]["system_id"] == "multi_agent_real"
+        for item in artifact["results"]
+    )
+    assert report["system_id"] == "multi_agent_real"
+    assert (
+        report["artifact_sha256"]
+        == hashlib.sha256(REAL_MULTI_ARTIFACT.read_bytes()).hexdigest()
+    )
+    assert report["metrics"]["task_success_rate"]["value"] == 1
+    assert report["metrics"]["answer_assertion_accuracy"]["value"] == 1
+    assert report["metrics"]["retrieval_f1"]["value"] == 1
+    assert report["comparison"]["rows"]
+    assert "OPENAI_API_KEY" not in REAL_MULTI_ARTIFACT.read_text(encoding="utf-8")
 
 
 def test_multiset_metrics_preserve_duplicates_and_empty_retrieval_semantics() -> None:

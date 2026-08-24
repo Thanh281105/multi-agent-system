@@ -30,10 +30,10 @@ jobs:
         run: python -m pip install --disable-pip-version-check -r requirements-dev.lock
 
       - name: Lint
-        run: ruff check app tests migrations
+        run: ruff check app tests migrations scripts
 
       - name: Check formatting
-        run: ruff format --check app tests migrations
+        run: ruff format --check app tests migrations scripts
 
       - name: Type-check
         run: mypy app
@@ -45,6 +45,11 @@ jobs:
         run: |
           python scripts/score_real_baseline.py
           git diff --exit-code -- evaluation/results/baseline-single-agent-v1
+
+      - name: Re-score captured real Multi-Agent artifact
+        run: |
+          python scripts/run_real_multi_agent_benchmark.py --score-only
+          git diff --exit-code -- evaluation/results/real-multi-agent-v1
 
       - name: Build Python wheel
         run: python -m pip wheel --no-deps --no-build-isolation --wheel-dir dist .

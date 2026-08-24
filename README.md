@@ -215,12 +215,41 @@ assertions, retrieval và hai ca recoverable failure. Đây là **regression res
 trên cùng hệ thống và dữ liệu mẫu**, không phải bằng chứng tổng quát hóa. Phase 1
 đã có frozen single-agent real-model baseline từ `main` tại revision `c7b17cf`:
 28/28 API turns thành công bằng `gpt-5.4-mini`, 58.878 token, p50 khoảng
-3,405 giây và p95 khoảng 8,475 giây. Artifact raw và report nằm tại
+3,405 ms và p95 khoảng 8,475 ms. Artifact raw và report nằm tại
 [`evaluation/results/baseline-single-agent-v1`](evaluation/results/baseline-single-agent-v1).
-Đây chưa phải paired win/tie/loss vì baseline gọi API thật còn reference
-multi-agent chạy deterministic offline; chi phí vẫn ghi `N/A` vì chưa capture
-pricing/provider billing. Report schema `1.1` còn ghi SHA-256 manifest của toàn
-bộ tệp Python trong `app/`, ràng buộc snapshot với đúng source SUT được chạy.
+Để đo Multi-Agent bằng model thật, chạy lệnh chủ động sau (không chạy trong CI
+và không tự động gọi API):
+
+```powershell
+python scripts/run_real_multi_agent_benchmark.py --repeats 1
+python scripts/run_real_multi_agent_benchmark.py --score-only
+```
+
+Runner dùng cùng 28 frozen case, seed dữ liệu mẫu và `gpt-5.4-mini`. Router,
+planner và domain skills vẫn deterministic; API thật đảm nhiệm lớp tổng hợp cuối
+trên một deterministic draft có provenance, nên model không được tự thay facts,
+warning hoặc refusal. Kết quả capture hiện tại là 28/28 task, 86/86 answer
+assertions, 31/31 retrieval, p50 1,168 ms, p95 2,042 ms và 61.778 token;
+report cùng bảng so sánh descriptive nằm tại
+[`evaluation/results/real-multi-agent-v1`](evaluation/results/real-multi-agent-v1).
+
+| Metric | Multi-Agent real | Single-Agent main real | Delta (multi − single) |
+| --- | ---: | ---: | ---: |
+| Answer assertions | 100.00% | 12.79% | +87.21 pp |
+| Exact plan | 100.00% | 50.00% | +50.00 pp |
+| Retrieval F1 | 100.00% | 83.08% | +16.92 pp |
+| Provenance coverage | 100.00% | 0.00% | +100.00 pp |
+| Task success (frozen rubric) | 100.00% | 0.00% | +100.00 pp |
+| Latency p50 | 1,168 ms | 3,405 ms | −2,238 ms |
+| Latency p95 | 2,042 ms | 8,475 ms | −6,433 ms |
+| Token usage | 61,778 | 58,878 | +2,900 |
+
+Đây là mô tả trên cùng model và corpus nhưng chưa phải paired win/tie/loss:
+prompt, runtime orchestration và số repetition chưa đồng nhất; chi phí ghi `N/A`
+vì chưa capture pricing/provider billing. Reference deterministic vẫn được giữ
+để regression không phụ thuộc network. Report schema `1.1` và real artifact ghi
+SHA-256 manifest của toàn bộ tệp Python trong `app/`, ràng buộc snapshot với
+đúng source SUT đã chạy.
 
 ## Cấu trúc repository
 
@@ -234,7 +263,7 @@ app/
 ├── mcp/              # allowlisted tool catalog/router
 ├── shared/           # context, Redis/memory session, telemetry
 ├── knowledge/        # Qdrant adapter, hashing embedder, sample notes
-├── evaluation/       # schemas, metrics, runner
+├── evaluation/       # schemas, metrics, deterministic + real benchmark artifacts
 ├── frontend/         # same-origin accessible web client
 ├── db/, models/, repositories/, tools/
 └── agent/, api/      # legacy Phase 1 path; disabled in production
@@ -255,8 +284,8 @@ tests/                # offline regression + optional integration
   deterministic router v1 chỉ tiêu thụ structured state (`active_agent`,
   `last_product_id`), chưa đưa free-text memory vào inference. Chưa có long-term
   user preference, conversation summary hay historical-artifact memory.
-- Chưa có paired single-vs-multi real-model run cùng provider/runtime, load/soak
-  test hay disaster recovery drill trên hạ tầng thật.
+- Đã có một real-model run single-vs-multi trên cùng model/corpus; paired nhiều
+  repetition, load/soak và semantic human rubric vẫn là follow-up.
 - Qdrant live-container integration và Docker image build phải được CI/môi trường
   có Docker daemon xác nhận; unit suite dùng contract mocks.
 

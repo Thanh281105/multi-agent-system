@@ -10,9 +10,9 @@ Evaluation trả lời ba câu hỏi có thể kiểm chứng:
 3. Kết quả có tái lập trên snapshot mẫu hiện tại không?
 
 Nó **không** chứng minh chất lượng trên dữ liệu marketplace thật hoặc semantic
-correctness tự do. Repository có thêm frozen single-agent real-model baseline
-để làm nhóm đối chứng, nhưng chưa báo paired hơn-kém vì hai runtime hiện chưa
-đồng nhất.
+correctness tự do. Repository có cả frozen single-agent real-model baseline và
+real-model Multi-Agent capture; bảng chênh lệch hiện là descriptive vì prompt,
+runtime orchestration và số repetition chưa đồng nhất.
 
 ## 2. Frozen artifacts
 
@@ -21,6 +21,8 @@ correctness tự do. Repository có thêm frozen single-agent real-model baselin
   [`evaluation/baselines/single_agent.v1.json`](../evaluation/baselines/single_agent.v1.json)
 - Single-agent real-model observations/report:
   [`evaluation/results/baseline-single-agent-v1`](../evaluation/results/baseline-single-agent-v1)
+- Multi-Agent real-model observations/report:
+  [`evaluation/results/real-multi-agent-v1`](../evaluation/results/real-multi-agent-v1)
 - Reference report:
   [`evaluation/results/reference-v1/report.md`](../evaluation/results/reference-v1/report.md)
 
@@ -62,6 +64,20 @@ có, exact failure injection.
 Library runner tạm bind DB session factory process-wide, vì vậy CLI được thiết
 kế chạy trong process evaluation cô lập; không nhúng concurrent benchmark vào
 process web production.
+
+Real-model Multi-Agent capture dùng script riêng và chỉ chạy khi được gọi rõ
+ràng:
+
+```powershell
+python scripts/run_real_multi_agent_benchmark.py --repeats 1
+```
+
+Script vẫn seed SQLite cô lập và chạy router/planner/domain agents deterministic
+như protocol trên, sau đó gọi OpenAI Responses API một lần cho lớp tổng hợp cuối
+mỗi case. Input gửi cho model gồm evidence có provenance và deterministic draft;
+model được phép chỉnh trình bày nhưng không được xoá facts, warning, refusal hay
+partial-success caveat. `--score-only` chỉ đọc artifact đã capture, không cần
+network hoặc `OPENAI_API_KEY`, nên mới được dùng trong CI.
 
 ## 5. Metric definitions
 
@@ -115,9 +131,12 @@ null` không tham gia retrieval metric. Gold/predicted đều rỗng được b�
 ### Latency, token và cost
 
 - p50/p95 dùng nearest-rank trên adapter-level local elapsed time;
-- latency không gồm inference/network production;
+- real-model p50/p95 dùng toàn bộ elapsed time (orchestration + API), đồng thời
+  report thêm `model_latency_p50_ms`/`model_latency_p95_ms` cho riêng API;
 - deterministic v1 runtime quan sát 0 model calls, nhưng token/cost production
   được ghi **N/A**, không ghi 0.
+- Real artifact ghi token usage từ Responses API; pricing/provider billing vẫn
+  `N/A` nếu không có dữ liệu chi phí đáng tin cậy.
 
 ## 6. Reference result v1
 
@@ -147,7 +166,34 @@ Kết quả 100% phù hợp cho **regression corpus đồng phát triển với 
 system**. Nó không phải external validity, không có confidence đủ cho thị
 trường thật và không được dùng làm claim “AI chính xác 100%”.
 
-## 7. Baseline honesty
+## 7. Real Multi-Agent result v1
+
+Capture tại revision `6124a0e` chạy 28 case × 1 repetition bằng
+`gpt-5.4-mini`, cùng dataset hash với baseline main:
+
+| Metric | Multi-Agent real | Single-Agent main real | Delta (multi − single) |
+| --- | ---: | ---: | ---: |
+| Answer assertions | 100.00% (86/86) | 12.79% (11/86) | +87.21 pp |
+| Tool precision | 100.00% (46/46) | 47.62% (20/42) | +52.38 pp |
+| Tool recall | 100.00% (46/46) | 43.48% (20/46) | +56.52 pp |
+| Exact plan | 100.00% (28/28) | 50.00% (14/28) | +50.00 pp |
+| Retrieval precision | 100.00% (31/31) | 79.41% (27/34) | +20.59 pp |
+| Retrieval recall | 100.00% (31/31) | 87.10% (27/31) | +12.90 pp |
+| Provenance coverage | 100.00% (23/23) | 0.00% (0/24) | +100.00 pp |
+| Task success (frozen rubric) | 100.00% (28/28) | 0.00% (0/28) | +100.00 pp |
+| Latency p50 | 1,168 ms | 3,405 ms | −2,238 ms |
+| Latency p95 | 2,042 ms | 8,475 ms | −6,433 ms |
+| Token usage | 61,778 | 58,878 | +2,900 |
+
+Các delta chỉ mang tính mô tả: Multi-Agent có planner/domain evidence
+deterministic và model dùng draft được khóa facts, còn baseline main để model tự
+chọn tools/answer; hai prompt/runtime không phải paired treatment. Kết quả này
+cho thấy pipeline Multi-Agent hiện giữ plan, provenance và answer assertions tốt
+hơn trong frozen rubric, không chứng minh chất lượng tổng quát hay superiority
+thống kê. Cần human semantic rubric, nhiều repetition và cùng protocol trước khi
+viết claim paired win/tie/loss.
+
+## 8. Baseline honesty
 
 Reference offline vẫn có hai fake-provider traces phục vụ tool-loop regression
 và không được dùng thay cho baseline. Baseline thật hiện đã có 28 captured
@@ -161,10 +207,10 @@ cho một paired claim gồm:
 
 Manifest ghi `real_model_captured`; report baseline giữ nguyên raw structured
 tool calls/results và **không** tự suy diễn routing intent ẩn từ tool call.
-`ecommerce-evaluate` vẫn là benchmark deterministic của multi-agent; paired
-delta chỉ được công bố sau khi hai phía chạy cùng protocol.
+`ecommerce-evaluate` vẫn là benchmark deterministic regression; real script là
+capture bổ sung và không được chạy tự động trong CI.
 
-## 8. Re-run
+## 9. Re-run
 
 ```powershell
 ecommerce-evaluate --repeats 3 --output evaluation/results/latest
@@ -183,6 +229,12 @@ Chấm lại artifact single-agent đã capture mà không gọi network:
 python scripts/score_real_baseline.py
 ```
 
+Chấm lại artifact Multi-Agent real đã capture mà không gọi network:
+
+```powershell
+python scripts/run_real_multi_agent_benchmark.py --score-only
+```
+
 Outputs:
 
 - `report.json`: metadata, global/category metrics, scores và observations;
@@ -191,13 +243,15 @@ Outputs:
 
 Baseline raw observations nằm trong `evaluation/results/baseline-single-agent-v1/`;
 scorer kiểm tra đủ 28 case, gắn artifact SHA-256 và tách rõ API turn success
-khỏi task success theo frozen assertions.
+khỏi task success theo frozen assertions. Real Multi-Agent raw observations nằm
+tại `evaluation/results/real-multi-agent-v1/`; scorer kiểm tra đủ từng
+`case_id/repetition`, ghi usage/latency và render bảng so sánh descriptive.
 
 Không overwrite `reference-v1` nếu chưa review diff, hash, all case scores và
 runtime environment. Report mới với dataset/seed hash khác là một benchmark
 version mới, không phải so sánh trực tiếp mặc định.
 
-## 9. Mở rộng với dữ liệu thật
+## 10. Mở rộng với dữ liệu thật
 
 1. Freeze seed/data manifest và provenance policy mới.
 2. Curator độc lập gắn gold facts/relevance; không dùng SUT sinh gold.

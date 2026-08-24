@@ -1,0 +1,2882 @@
+{
+  "application_version": "1.0.0",
+  "artifact_sha256": "de9510de854d04189bfe786576035eaf0e5768dcfabc97b2f86700691151c660",
+  "baseline_report": "evaluation/results/baseline-single-agent-v1/report.md",
+  "captured_at": "2026-08-24T05:08:33.682050+00:00",
+  "case_count": 28,
+  "case_scores": [
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 3,
+      "assertions_passed": 3,
+      "case_id": "simple_01_nova_search",
+      "category": "simple",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": false,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 1,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 1,
+      "retrieved_count": 1,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 3,
+      "assertions_passed": 3,
+      "case_id": "simple_02_voltpro_search",
+      "category": "simple",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": false,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 1,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 1,
+      "retrieved_count": 1,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 3,
+      "assertions_passed": 3,
+      "case_id": "simple_03_sunglow_search",
+      "category": "simple",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": false,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 1,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 1,
+      "retrieved_count": 1,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 3,
+      "assertions_passed": 3,
+      "case_id": "simple_04_review_by_id",
+      "category": "simple",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": false,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 1,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 1,
+      "retrieved_count": 1,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 3,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 4,
+      "assertions_passed": 4,
+      "case_id": "complex_01_compare_headphones",
+      "category": "complex",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 3,
+      "failure_injected": false,
+      "predicted_action_count": 3,
+      "recoverable_failure": false,
+      "relevant_count": 2,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 2,
+      "retrieved_count": 2,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 3,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 4,
+      "assertions_passed": 4,
+      "case_id": "complex_02_compare_laptops",
+      "category": "complex",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 3,
+      "failure_injected": false,
+      "predicted_action_count": 3,
+      "recoverable_failure": false,
+      "relevant_count": 2,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 2,
+      "retrieved_count": 2,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 4,
+      "assertions_passed": 4,
+      "case_id": "complex_03_rank_laptops",
+      "category": "complex",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": false,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 2,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 2,
+      "retrieved_count": 2,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 4,
+      "assertions_passed": 4,
+      "case_id": "complex_04_market_headphones",
+      "category": "complex",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": false,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": false,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 3,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 5,
+      "assertions_passed": 5,
+      "case_id": "multi_domain_01_headphones",
+      "category": "multi_domain",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 3,
+      "failure_injected": false,
+      "predicted_action_count": 3,
+      "recoverable_failure": false,
+      "relevant_count": 4,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 4,
+      "retrieved_count": 4,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 3,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 5,
+      "assertions_passed": 5,
+      "case_id": "multi_domain_02_phones",
+      "category": "multi_domain",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 3,
+      "failure_injected": false,
+      "predicted_action_count": 3,
+      "recoverable_failure": false,
+      "relevant_count": 2,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 2,
+      "retrieved_count": 2,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 3,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 5,
+      "assertions_passed": 5,
+      "case_id": "multi_domain_03_laptops",
+      "category": "multi_domain",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 3,
+      "failure_injected": false,
+      "predicted_action_count": 3,
+      "recoverable_failure": false,
+      "relevant_count": 3,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 3,
+      "retrieved_count": 3,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 3,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 5,
+      "assertions_passed": 5,
+      "case_id": "multi_domain_04_accessories",
+      "category": "multi_domain",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 3,
+      "failure_injected": false,
+      "predicted_action_count": 3,
+      "recoverable_failure": false,
+      "relevant_count": 4,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 4,
+      "retrieved_count": 4,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 2,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 3,
+      "assertions_passed": 3,
+      "case_id": "missing_data_01_review",
+      "category": "missing_data",
+      "empty_retrieval_correct": true,
+      "exact_plan": true,
+      "expected_action_count": 2,
+      "failure_injected": false,
+      "predicted_action_count": 2,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": true,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 2,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 3,
+      "assertions_passed": 3,
+      "case_id": "missing_data_02_complaint",
+      "category": "missing_data",
+      "empty_retrieval_correct": true,
+      "exact_plan": true,
+      "expected_action_count": 2,
+      "failure_injected": false,
+      "predicted_action_count": 2,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": true,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 3,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 4,
+      "assertions_passed": 4,
+      "case_id": "missing_data_03_compare",
+      "category": "missing_data",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 3,
+      "failure_injected": false,
+      "predicted_action_count": 3,
+      "recoverable_failure": false,
+      "relevant_count": 1,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 1,
+      "retrieved_count": 1,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 3,
+      "assertions_passed": 3,
+      "case_id": "missing_data_04_filter",
+      "category": "missing_data",
+      "empty_retrieval_correct": true,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": false,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": true,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 3,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 4,
+      "assertions_passed": 4,
+      "case_id": "tool_failure_01_trust",
+      "category": "tool_failure",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 3,
+      "failure_injected": true,
+      "predicted_action_count": 3,
+      "recoverable_failure": true,
+      "relevant_count": 4,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 4,
+      "retrieved_count": 4,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 3,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 4,
+      "assertions_passed": 4,
+      "case_id": "tool_failure_02_review",
+      "category": "tool_failure",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 3,
+      "failure_injected": true,
+      "predicted_action_count": 3,
+      "recoverable_failure": true,
+      "relevant_count": 2,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 2,
+      "retrieved_count": 2,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 2,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 2,
+      "assertions_passed": 2,
+      "case_id": "tool_failure_03_review_summary",
+      "category": "tool_failure",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 2,
+      "failure_injected": true,
+      "predicted_action_count": 2,
+      "recoverable_failure": false,
+      "relevant_count": 1,
+      "retrieval_evaluated": true,
+      "retrieval_f1": 1.0,
+      "retrieval_precision": 1.0,
+      "retrieval_recall": 1.0,
+      "retrieval_true_positives": 1,
+      "retrieved_count": 1,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 3,
+      "assertions_passed": 3,
+      "case_id": "tool_failure_04_product",
+      "category": "tool_failure",
+      "empty_retrieval_correct": true,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": true,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": true,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 2,
+      "assertions_passed": 2,
+      "case_id": "ambiguous_01_product",
+      "category": "ambiguous",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": false,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": false,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 2,
+      "assertions_passed": 2,
+      "case_id": "ambiguous_02_price",
+      "category": "ambiguous",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": false,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": false,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 1,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 2,
+      "assertions_passed": 2,
+      "case_id": "ambiguous_03_best",
+      "category": "ambiguous",
+      "empty_retrieval_correct": null,
+      "exact_plan": true,
+      "expected_action_count": 1,
+      "failure_injected": false,
+      "predicted_action_count": 1,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": false,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": 1.0,
+      "action_precision": 1.0,
+      "action_recall": 1.0,
+      "action_true_positives": 2,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 2,
+      "assertions_passed": 2,
+      "case_id": "ambiguous_04_complaint",
+      "category": "ambiguous",
+      "empty_retrieval_correct": true,
+      "exact_plan": true,
+      "expected_action_count": 2,
+      "failure_injected": false,
+      "predicted_action_count": 2,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": true,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": null,
+      "action_precision": null,
+      "action_recall": null,
+      "action_true_positives": 0,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 1,
+      "assertions_passed": 1,
+      "case_id": "irrelevant_01_poem",
+      "category": "irrelevant",
+      "empty_retrieval_correct": true,
+      "exact_plan": true,
+      "expected_action_count": 0,
+      "failure_injected": false,
+      "predicted_action_count": 0,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": true,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": null,
+      "action_precision": null,
+      "action_recall": null,
+      "action_true_positives": 0,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 1,
+      "assertions_passed": 1,
+      "case_id": "irrelevant_02_weather",
+      "category": "irrelevant",
+      "empty_retrieval_correct": true,
+      "exact_plan": true,
+      "expected_action_count": 0,
+      "failure_injected": false,
+      "predicted_action_count": 0,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": true,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": null,
+      "action_precision": null,
+      "action_recall": null,
+      "action_true_positives": 0,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 1,
+      "assertions_passed": 1,
+      "case_id": "irrelevant_03_algebra",
+      "category": "irrelevant",
+      "empty_retrieval_correct": true,
+      "exact_plan": true,
+      "expected_action_count": 0,
+      "failure_injected": false,
+      "predicted_action_count": 0,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": true,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    },
+    {
+      "action_f1": null,
+      "action_precision": null,
+      "action_recall": null,
+      "action_true_positives": 0,
+      "answer_assertion_accuracy": 1.0,
+      "assertion_count": 1,
+      "assertions_passed": 1,
+      "case_id": "irrelevant_04_translation",
+      "category": "irrelevant",
+      "empty_retrieval_correct": true,
+      "exact_plan": true,
+      "expected_action_count": 0,
+      "failure_injected": false,
+      "predicted_action_count": 0,
+      "recoverable_failure": false,
+      "relevant_count": 0,
+      "retrieval_evaluated": true,
+      "retrieval_f1": null,
+      "retrieval_precision": null,
+      "retrieval_recall": null,
+      "retrieval_true_positives": 0,
+      "retrieved_count": 0,
+      "routing_correct": true,
+      "task_success": true
+    }
+  ],
+  "comparison": {
+    "baseline_git_revision": "c7b17cf",
+    "baseline_model": "gpt-5.4-mini",
+    "baseline_report": "evaluation/results/baseline-single-agent-v1/report.json",
+    "notes": [
+      "Delta is descriptive only; prompts and orchestration runtimes are not paired.",
+      "Negative latency delta means the Multi-Agent real synthesis was faster.",
+      "Token and cost comparisons are incomplete when provider pricing is unavailable."
+    ],
+    "rows": [
+      {
+        "delta_multi_minus_single": 0.872093023255814,
+        "metric": "Answer assertions",
+        "multi_agent_real": 1.0,
+        "single_agent_real_main": 0.12790697674418605
+      },
+      {
+        "delta_multi_minus_single": 0.5238095238095238,
+        "metric": "Tool precision",
+        "multi_agent_real": 1.0,
+        "single_agent_real_main": 0.47619047619047616
+      },
+      {
+        "delta_multi_minus_single": 0.5652173913043479,
+        "metric": "Tool recall",
+        "multi_agent_real": 1.0,
+        "single_agent_real_main": 0.43478260869565216
+      },
+      {
+        "delta_multi_minus_single": 0.5,
+        "metric": "Exact plan",
+        "multi_agent_real": 1.0,
+        "single_agent_real_main": 0.5
+      },
+      {
+        "delta_multi_minus_single": 0.20588235294117652,
+        "metric": "Retrieval precision",
+        "multi_agent_real": 1.0,
+        "single_agent_real_main": 0.7941176470588235
+      },
+      {
+        "delta_multi_minus_single": 0.12903225806451613,
+        "metric": "Retrieval recall",
+        "multi_agent_real": 1.0,
+        "single_agent_real_main": 0.8709677419354839
+      },
+      {
+        "delta_multi_minus_single": 1.0,
+        "metric": "Provenance coverage",
+        "multi_agent_real": 1.0,
+        "single_agent_real_main": 0.0
+      },
+      {
+        "delta_multi_minus_single": 1.0,
+        "metric": "Task success (frozen rubric)",
+        "multi_agent_real": 1.0,
+        "single_agent_real_main": 0.0
+      },
+      {
+        "delta_multi_minus_single": -2237.5603,
+        "metric": "Latency p50 (ms)",
+        "multi_agent_real": 1167.5007,
+        "single_agent_real_main": 3405.061
+      },
+      {
+        "delta_multi_minus_single": -6432.522599999999,
+        "metric": "Latency p95 (ms)",
+        "multi_agent_real": 2042.1254,
+        "single_agent_real_main": 8474.648
+      },
+      {
+        "delta_multi_minus_single": 2900.0,
+        "metric": "Token usage",
+        "multi_agent_real": 61778.0,
+        "single_agent_real_main": 58878
+      }
+    ]
+  },
+  "dataset_id": "sample_ecommerce_vi_28_v1",
+  "dataset_sha256": "a34473eff4a6f7e87034b46c239833c852b12542ea4c0faea4b651ddb801671d",
+  "git_revision": "6124a0e5cc7d9047984cc7b455a74a230f03e2de",
+  "limitations": [
+    "Domain routing, planning và skills vẫn deterministic; real API chỉ tổng hợp câu trả lời cuối.",
+    "Một lần chạy real-model không thay cho human semantic evaluation.",
+    "Chi phí không ghi vì chưa capture pricing/provider billing.",
+    "CI chỉ score artifact, không gọi API và không chứa secret."
+  ],
+  "metrics": {
+    "agent_failure_rate": {
+      "denominator": 46.0,
+      "numerator": 8.0,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 0.17391304347826086
+    },
+    "answer_assertion_accuracy": {
+      "denominator": 86.0,
+      "numerator": 86.0,
+      "sample_size": 86,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "empty_retrieval_correctness": {
+      "denominator": 9.0,
+      "numerator": 9.0,
+      "sample_size": 9,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "exact_plan_rate": {
+      "denominator": 28.0,
+      "numerator": 28.0,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "llm_cost_usd": {
+      "denominator": null,
+      "numerator": null,
+      "sample_size": 28,
+      "unavailable_reason": "Provider pricing was not captured; no cost estimate is claimed.",
+      "unit": "USD",
+      "value": null
+    },
+    "model_latency_p50_ms": {
+      "denominator": null,
+      "numerator": null,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ms",
+      "value": 1153.365
+    },
+    "model_latency_p95_ms": {
+      "denominator": null,
+      "numerator": null,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ms",
+      "value": 2016.799
+    },
+    "no_tool_correctness": {
+      "denominator": 4.0,
+      "numerator": 4.0,
+      "sample_size": 4,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "partial_recovery_rate": {
+      "denominator": 2.0,
+      "numerator": 2.0,
+      "sample_size": 2,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "provenance_case_coverage": {
+      "denominator": 23.0,
+      "numerator": 23.0,
+      "sample_size": 23,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "real_latency_p50_ms": {
+      "denominator": null,
+      "numerator": null,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ms",
+      "value": 1167.5007
+    },
+    "real_latency_p95_ms": {
+      "denominator": null,
+      "numerator": null,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ms",
+      "value": 2042.1254
+    },
+    "retrieval_f1": {
+      "denominator": null,
+      "numerator": null,
+      "sample_size": 24,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "retrieval_precision": {
+      "denominator": 31.0,
+      "numerator": 31.0,
+      "sample_size": 24,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "retrieval_recall": {
+      "denominator": 31.0,
+      "numerator": 31.0,
+      "sample_size": 24,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "routing_accuracy": {
+      "denominator": 28.0,
+      "numerator": 28.0,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "task_success_rate": {
+      "denominator": 28.0,
+      "numerator": 28.0,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "token_usage": {
+      "denominator": null,
+      "numerator": null,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "tokens",
+      "value": 61778.0
+    },
+    "tool_selection_f1": {
+      "denominator": null,
+      "numerator": null,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "tool_selection_precision": {
+      "denominator": 46.0,
+      "numerator": 46.0,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    },
+    "tool_selection_recall": {
+      "denominator": 46.0,
+      "numerator": 46.0,
+      "sample_size": 28,
+      "unavailable_reason": null,
+      "unit": "ratio",
+      "value": 1.0
+    }
+  },
+  "metrics_by_category": {
+    "ambiguous": {
+      "agent_failure_rate": {
+        "denominator": 5.0,
+        "numerator": 1.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 0.2
+      },
+      "answer_assertion_accuracy": {
+        "denominator": 8.0,
+        "numerator": 8.0,
+        "sample_size": 8,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "empty_retrieval_correctness": {
+        "denominator": 1.0,
+        "numerator": 1.0,
+        "sample_size": 1,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "exact_plan_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "llm_cost_usd": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production provider cost was not measured",
+        "unit": "USD",
+        "value": null
+      },
+      "no_tool_correctness": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no no-tool cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "offline_latency_p50_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 1154.6229
+      },
+      "offline_latency_p95_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 1295.0219
+      },
+      "partial_recovery_rate": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no recoverable injected-failure cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "provenance_case_coverage": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 1,
+        "unavailable_reason": "retrieval precision or recall is undefined",
+        "unit": "ratio",
+        "value": null
+      },
+      "retrieval_precision": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 1,
+        "unavailable_reason": "no retrieved products in evaluated cases",
+        "unit": "ratio",
+        "value": null
+      },
+      "retrieval_recall": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 1,
+        "unavailable_reason": "no gold-relevant products in evaluated cases",
+        "unit": "ratio",
+        "value": null
+      },
+      "routing_accuracy": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "task_success_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "token_usage": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production token usage was not measured",
+        "unit": "tokens",
+        "value": null
+      },
+      "tool_selection_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_precision": {
+        "denominator": 5.0,
+        "numerator": 5.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_recall": {
+        "denominator": 5.0,
+        "numerator": 5.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      }
+    },
+    "complex": {
+      "agent_failure_rate": {
+        "denominator": 8.0,
+        "numerator": 0.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 0.0
+      },
+      "answer_assertion_accuracy": {
+        "denominator": 16.0,
+        "numerator": 16.0,
+        "sample_size": 16,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "empty_retrieval_correctness": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no explicitly empty retrieval cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "exact_plan_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "llm_cost_usd": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production provider cost was not measured",
+        "unit": "USD",
+        "value": null
+      },
+      "no_tool_correctness": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no no-tool cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "offline_latency_p50_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 902.3649
+      },
+      "offline_latency_p95_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 1102.5516
+      },
+      "partial_recovery_rate": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no recoverable injected-failure cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "provenance_case_coverage": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 3,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_precision": {
+        "denominator": 6.0,
+        "numerator": 6.0,
+        "sample_size": 3,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_recall": {
+        "denominator": 6.0,
+        "numerator": 6.0,
+        "sample_size": 3,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "routing_accuracy": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "task_success_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "token_usage": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production token usage was not measured",
+        "unit": "tokens",
+        "value": null
+      },
+      "tool_selection_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_precision": {
+        "denominator": 8.0,
+        "numerator": 8.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_recall": {
+        "denominator": 8.0,
+        "numerator": 8.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      }
+    },
+    "irrelevant": {
+      "agent_failure_rate": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "no agent steps attempted in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "answer_assertion_accuracy": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "empty_retrieval_correctness": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "exact_plan_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "llm_cost_usd": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production provider cost was not measured",
+        "unit": "USD",
+        "value": null
+      },
+      "no_tool_correctness": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "offline_latency_p50_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 796.0125
+      },
+      "offline_latency_p95_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 1282.5279
+      },
+      "partial_recovery_rate": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no recoverable injected-failure cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "provenance_case_coverage": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no agent-backed cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "retrieval_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "retrieval precision or recall is undefined",
+        "unit": "ratio",
+        "value": null
+      },
+      "retrieval_precision": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "no retrieved products in evaluated cases",
+        "unit": "ratio",
+        "value": null
+      },
+      "retrieval_recall": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "no gold-relevant products in evaluated cases",
+        "unit": "ratio",
+        "value": null
+      },
+      "routing_accuracy": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "task_success_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "token_usage": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production token usage was not measured",
+        "unit": "tokens",
+        "value": null
+      },
+      "tool_selection_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "precision or recall is undefined",
+        "unit": "ratio",
+        "value": null
+      },
+      "tool_selection_precision": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "no predicted actions in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "tool_selection_recall": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "no expected actions in this slice",
+        "unit": "ratio",
+        "value": null
+      }
+    },
+    "missing_data": {
+      "agent_failure_rate": {
+        "denominator": 8.0,
+        "numerator": 3.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 0.375
+      },
+      "answer_assertion_accuracy": {
+        "denominator": 13.0,
+        "numerator": 13.0,
+        "sample_size": 13,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "empty_retrieval_correctness": {
+        "denominator": 3.0,
+        "numerator": 3.0,
+        "sample_size": 3,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "exact_plan_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "llm_cost_usd": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production provider cost was not measured",
+        "unit": "USD",
+        "value": null
+      },
+      "no_tool_correctness": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no no-tool cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "offline_latency_p50_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 977.0791
+      },
+      "offline_latency_p95_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 1787.1388
+      },
+      "partial_recovery_rate": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no recoverable injected-failure cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "provenance_case_coverage": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_precision": {
+        "denominator": 1.0,
+        "numerator": 1.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_recall": {
+        "denominator": 1.0,
+        "numerator": 1.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "routing_accuracy": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "task_success_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "token_usage": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production token usage was not measured",
+        "unit": "tokens",
+        "value": null
+      },
+      "tool_selection_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_precision": {
+        "denominator": 8.0,
+        "numerator": 8.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_recall": {
+        "denominator": 8.0,
+        "numerator": 8.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      }
+    },
+    "multi_domain": {
+      "agent_failure_rate": {
+        "denominator": 12.0,
+        "numerator": 0.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 0.0
+      },
+      "answer_assertion_accuracy": {
+        "denominator": 20.0,
+        "numerator": 20.0,
+        "sample_size": 20,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "empty_retrieval_correctness": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no explicitly empty retrieval cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "exact_plan_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "llm_cost_usd": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production provider cost was not measured",
+        "unit": "USD",
+        "value": null
+      },
+      "no_tool_correctness": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no no-tool cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "offline_latency_p50_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 1249.7289
+      },
+      "offline_latency_p95_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 2042.1254
+      },
+      "partial_recovery_rate": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no recoverable injected-failure cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "provenance_case_coverage": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_precision": {
+        "denominator": 13.0,
+        "numerator": 13.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_recall": {
+        "denominator": 13.0,
+        "numerator": 13.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "routing_accuracy": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "task_success_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "token_usage": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production token usage was not measured",
+        "unit": "tokens",
+        "value": null
+      },
+      "tool_selection_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_precision": {
+        "denominator": 12.0,
+        "numerator": 12.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_recall": {
+        "denominator": 12.0,
+        "numerator": 12.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      }
+    },
+    "simple": {
+      "agent_failure_rate": {
+        "denominator": 4.0,
+        "numerator": 0.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 0.0
+      },
+      "answer_assertion_accuracy": {
+        "denominator": 12.0,
+        "numerator": 12.0,
+        "sample_size": 12,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "empty_retrieval_correctness": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no explicitly empty retrieval cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "exact_plan_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "llm_cost_usd": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production provider cost was not measured",
+        "unit": "USD",
+        "value": null
+      },
+      "no_tool_correctness": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no no-tool cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "offline_latency_p50_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 1166.0993
+      },
+      "offline_latency_p95_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 2510.2993
+      },
+      "partial_recovery_rate": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no recoverable injected-failure cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "provenance_case_coverage": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_precision": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_recall": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "routing_accuracy": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "task_success_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "token_usage": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production token usage was not measured",
+        "unit": "tokens",
+        "value": null
+      },
+      "tool_selection_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_precision": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_recall": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      }
+    },
+    "tool_failure": {
+      "agent_failure_rate": {
+        "denominator": 9.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 0.4444444444444444
+      },
+      "answer_assertion_accuracy": {
+        "denominator": 13.0,
+        "numerator": 13.0,
+        "sample_size": 13,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "empty_retrieval_correctness": {
+        "denominator": 1.0,
+        "numerator": 1.0,
+        "sample_size": 1,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "exact_plan_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "llm_cost_usd": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production provider cost was not measured",
+        "unit": "USD",
+        "value": null
+      },
+      "no_tool_correctness": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 0,
+        "unavailable_reason": "no no-tool cases in this slice",
+        "unit": "ratio",
+        "value": null
+      },
+      "offline_latency_p50_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 1201.6198
+      },
+      "offline_latency_p95_ms": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ms",
+        "value": 1434.9138
+      },
+      "partial_recovery_rate": {
+        "denominator": 2.0,
+        "numerator": 2.0,
+        "sample_size": 2,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "provenance_case_coverage": {
+        "denominator": 3.0,
+        "numerator": 3.0,
+        "sample_size": 3,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_precision": {
+        "denominator": 7.0,
+        "numerator": 7.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "retrieval_recall": {
+        "denominator": 7.0,
+        "numerator": 7.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "routing_accuracy": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "task_success_rate": {
+        "denominator": 4.0,
+        "numerator": 4.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "token_usage": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": "offline deterministic runtime made zero observed model calls; production token usage was not measured",
+        "unit": "tokens",
+        "value": null
+      },
+      "tool_selection_f1": {
+        "denominator": null,
+        "numerator": null,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_precision": {
+        "denominator": 9.0,
+        "numerator": 9.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      },
+      "tool_selection_recall": {
+        "denominator": 9.0,
+        "numerator": 9.0,
+        "sample_size": 4,
+        "unavailable_reason": null,
+        "unit": "ratio",
+        "value": 1.0
+      }
+    }
+  },
+  "model": "gpt-5.4-mini",
+  "observations": [
+    {
+      "actions": [
+        "product.search"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 0,
+      "answer": "Các sản phẩm phù hợp theo dữ liệu mẫu: Tai nghe Bluetooth Nova Air S2 — 799.000₫, rating 4.7, đã bán 2450.",
+      "case_id": "simple_01_nova_search",
+      "category": "simple",
+      "error_codes": [],
+      "latency_ms": 2510.2993,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.search",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        1
+      ],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 846
+    },
+    {
+      "actions": [
+        "product.search"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 0,
+      "answer": "Các sản phẩm phù hợp theo dữ liệu mẫu: Sạc nhanh VoltPro 65W — 449.000₫, rating 4.7, đã bán 5400.",
+      "case_id": "simple_02_voltpro_search",
+      "category": "simple",
+      "error_codes": [],
+      "latency_ms": 1422.0862,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.search",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        26
+      ],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 857
+    },
+    {
+      "actions": [
+        "product.search"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 0,
+      "answer": "Các sản phẩm phù hợp theo dữ liệu mẫu: Kem chống nắng SunGlow SPF50 — 189.000₫, rating 4.8, đã bán 8900.",
+      "case_id": "simple_03_sunglow_search",
+      "category": "simple",
+      "error_codes": [],
+      "latency_ms": 788.094,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.search",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        16
+      ],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 859
+    },
+    {
+      "actions": [
+        "review.summarize"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 0,
+      "answer": "Tai nghe Bluetooth Nova Air S2: 80% review được phân loại tích cực; các khía cạnh có tín hiệu chưa tốt gồm âm thanh, pin, thoải mái.",
+      "case_id": "simple_04_review_by_id",
+      "category": "simple",
+      "error_codes": [],
+      "latency_ms": 1166.0993,
+      "llm_cost_usd": null,
+      "predicted_intent": "review.summary",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        1
+      ],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 1407
+    },
+    {
+      "actions": [
+        "product.search",
+        "product.search",
+        "product.compare"
+      ],
+      "agent_attempts": 3,
+      "agent_failures": 0,
+      "answer": "So sánh theo dữ liệu mẫu: Tai nghe Bluetooth Nova Air S2 — 799.000₫, rating 4.7, đã bán 2450; Tai nghe Gaming Sonic G5 — 699.000₫, rating 4.5, đã bán 3100.\n\nNếu ưu tiên giá và rating thì: Sonic G5 rẻ hơn, còn Nova Air S2 có rating cao hơn. Dữ liệu này là dữ liệu mẫu.",
+      "case_id": "complex_01_compare_headphones",
+      "category": "complex",
+      "error_codes": [],
+      "latency_ms": 1102.5516,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.compare",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        1,
+        2
+      ],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 1864
+    },
+    {
+      "actions": [
+        "product.search",
+        "product.search",
+        "product.compare"
+      ],
+      "agent_attempts": 3,
+      "agent_failures": 0,
+      "answer": "So sánh theo dữ liệu mẫu: Laptop NovaBook Air 14 — 15.990.000₫, rating 4.8, đã bán 630; LazBook Student 13 — 11.990.000₫, rating 4.4, đã bán 350.",
+      "case_id": "complex_02_compare_laptops",
+      "category": "complex",
+      "error_codes": [],
+      "latency_ms": 850.8576,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.compare",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        11,
+        13
+      ],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 1820
+    },
+    {
+      "actions": [
+        "product.rank"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 0,
+      "answer": "Các sản phẩm phù hợp theo dữ liệu mẫu: Laptop NovaBook Air 14 — 15.990.000₫, rating 4.8, đã bán 630; LazBook Student 13 — 11.990.000₫, rating 4.4, đã bán 350.",
+      "case_id": "complex_03_rank_laptops",
+      "category": "complex",
+      "error_codes": [],
+      "latency_ms": 902.3649,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.rank",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        11,
+        13
+      ],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 1403
+    },
+    {
+      "actions": [
+        "market.analyze"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 0,
+      "answer": "Bộ dữ liệu mẫu có 5 sản phẩm trong phạm vi đã chọn, giá trung bình 837.200₫ và rating trung bình 4.48. Đây không phải thống kê đại diện thị trường thật.",
+      "case_id": "complex_04_market_headphones",
+      "category": "complex",
+      "error_codes": [],
+      "latency_ms": 1003.4712,
+      "llm_cost_usd": null,
+      "predicted_intent": "market.analyze",
+      "provenance_count": 2,
+      "repetition": 0,
+      "retrieved_product_ids": [],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 1302
+    },
+    {
+      "actions": [
+        "product.rank",
+        "review.compare",
+        "trust.compare"
+      ],
+      "agent_attempts": 3,
+      "agent_failures": 0,
+      "answer": "Đã so sánh 4 ứng viên. Đề xuất đứng đầu theo dữ liệu mẫu là Tai nghe Gaming Sonic G5 — 699.000₫, rating 4.5, đã bán 3100, với điểm đa agent 77% và độ phủ tín hiệu 100%. Công thức: Product 55%, cảm xúc review 15%, ít complaint 20%, độ tin cậy review 10%; tín hiệu thiếu ở bất kỳ ứng viên nào sẽ được bỏ cho cả nhóm rồi chuẩn hóa lại trọng số. Tỷ lệ review có tín hiệu complaint là 40%. Tỷ lệ review được phân loại tích cực là 80%.",
+      "case_id": "multi_domain_01_headphones",
+      "category": "multi_domain",
+      "error_codes": [],
+      "latency_ms": 1246.8005,
+      "llm_cost_usd": null,
+      "predicted_intent": "multi.recommendation",
+      "provenance_count": 2,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        5,
+        2,
+        1,
+        4
+      ],
+      "selected_product_id": 2,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 8091
+    },
+    {
+      "actions": [
+        "product.rank",
+        "review.compare",
+        "trust.compare"
+      ],
+      "agent_attempts": 3,
+      "agent_failures": 0,
+      "answer": "Đã so sánh 2 ứng viên. Đề xuất đứng đầu theo dữ liệu mẫu là Điện thoại Nova X5 5G — 6.990.000₫, rating 4.6, đã bán 1980, với điểm đa agent 60% và độ phủ tín hiệu 100%. Công thức: Product 55%, cảm xúc review 15%, ít complaint 20%, độ tin cậy review 10%; tín hiệu thiếu ở bất kỳ ứng viên nào sẽ được bỏ cho cả nhóm rồi chuẩn hóa lại trọng số. Tỷ lệ review có tín hiệu complaint là 60%. Tỷ lệ review được phân loại tích cực là 40%.",
+      "case_id": "multi_domain_02_phones",
+      "category": "multi_domain",
+      "error_codes": [],
+      "latency_ms": 2042.1254,
+      "llm_cost_usd": null,
+      "predicted_intent": "multi.recommendation",
+      "provenance_count": 2,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        7,
+        6
+      ],
+      "selected_product_id": 6,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 4952
+    },
+    {
+      "actions": [
+        "product.rank",
+        "review.compare",
+        "trust.compare"
+      ],
+      "agent_attempts": 3,
+      "agent_failures": 0,
+      "answer": "Đã so sánh 3 ứng viên. Đề xuất đứng đầu theo dữ liệu mẫu là LazBook Student 13 — 11.990.000₫, rating 4.4, đã bán 350, với điểm đa agent 70% và độ phủ tín hiệu 100%. Công thức: Product 55%, cảm xúc review 15%, ít complaint 20%, độ tin cậy review 10%; tín hiệu thiếu ở bất kỳ ứng viên nào sẽ được bỏ cho cả nhóm rồi chuẩn hóa lại trọng số. Tỷ lệ review có tín hiệu complaint là 40%. Tỷ lệ review được phân loại tích cực là 60%.",
+      "case_id": "multi_domain_03_laptops",
+      "category": "multi_domain",
+      "error_codes": [],
+      "latency_ms": 1520.0168,
+      "llm_cost_usd": null,
+      "predicted_intent": "multi.recommendation",
+      "provenance_count": 2,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        11,
+        13,
+        15
+      ],
+      "selected_product_id": 13,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 6162
+    },
+    {
+      "actions": [
+        "product.rank",
+        "review.compare",
+        "trust.compare"
+      ],
+      "agent_attempts": 3,
+      "agent_failures": 0,
+      "answer": "Đã so sánh 4 ứng viên. Đề xuất đứng đầu theo dữ liệu mẫu là Sạc nhanh VoltPro 65W — 449.000₫, rating 4.7, đã bán 5400, với điểm đa agent 88% và độ phủ tín hiệu 100%. Công thức: Product 55%, cảm xúc review 15%, ít complaint 20%, độ tin cậy review 10%; tín hiệu thiếu ở bất kỳ ứng viên nào sẽ được bỏ cho cả nhóm rồi chuẩn hóa lại trọng số. Tỷ lệ review có tín hiệu complaint là 0%. Tỷ lệ review được phân loại tích cực là 100%.",
+      "case_id": "multi_domain_04_accessories",
+      "category": "multi_domain",
+      "error_codes": [],
+      "latency_ms": 1249.7289,
+      "llm_cost_usd": null,
+      "predicted_intent": "multi.recommendation",
+      "provenance_count": 2,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        26,
+        28,
+        29,
+        30
+      ],
+      "selected_product_id": 26,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 7660
+    },
+    {
+      "actions": [
+        "product.search",
+        "review.summarize"
+      ],
+      "agent_attempts": 2,
+      "agent_failures": 1,
+      "answer": "Không tìm thấy sản phẩm để phân tích review trong dữ liệu mẫu. Một phần dữ liệu không truy xuất được; kết quả trên chỉ dùng phần còn lại.",
+      "case_id": "missing_data_01_review",
+      "category": "missing_data",
+      "error_codes": [
+        "orchestrator.missing_dependency_data"
+      ],
+      "latency_ms": 1787.1388,
+      "llm_cost_usd": null,
+      "predicted_intent": "review.summary",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [],
+      "selected_product_id": null,
+      "status": "partial_success",
+      "system_id": "multi_agent_real",
+      "token_usage": 851
+    },
+    {
+      "actions": [
+        "product.search",
+        "trust.complaints"
+      ],
+      "agent_attempts": 2,
+      "agent_failures": 1,
+      "answer": "Không tìm thấy sản phẩm để phân tích complaint trong dữ liệu mẫu. Một phần dữ liệu không truy xuất được; kết quả trên chỉ dùng phần còn lại.",
+      "case_id": "missing_data_02_complaint",
+      "category": "missing_data",
+      "error_codes": [
+        "orchestrator.missing_dependency_data"
+      ],
+      "latency_ms": 799.4898,
+      "llm_cost_usd": null,
+      "predicted_intent": "trust.complaints",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [],
+      "selected_product_id": null,
+      "status": "partial_success",
+      "system_id": "multi_agent_real",
+      "token_usage": 864
+    },
+    {
+      "actions": [
+        "product.search",
+        "product.search",
+        "product.compare"
+      ],
+      "agent_attempts": 3,
+      "agent_failures": 1,
+      "answer": "Không tìm thấy sản phẩm phù hợp trong dữ liệu mẫu. Một phần dữ liệu không truy xuất được; kết quả trên chỉ dùng phần còn lại.",
+      "case_id": "missing_data_03_compare",
+      "category": "missing_data",
+      "error_codes": [
+        "orchestrator.missing_dependency_data"
+      ],
+      "latency_ms": 977.0791,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.compare",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        1
+      ],
+      "selected_product_id": null,
+      "status": "partial_success",
+      "system_id": "multi_agent_real",
+      "token_usage": 1224
+    },
+    {
+      "actions": [
+        "product.search"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 0,
+      "answer": "Không tìm thấy sản phẩm phù hợp trong dữ liệu mẫu.",
+      "case_id": "missing_data_04_filter",
+      "category": "missing_data",
+      "error_codes": [],
+      "latency_ms": 1405.3002,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.search",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 663
+    },
+    {
+      "actions": [
+        "product.rank",
+        "review.compare",
+        "trust.compare"
+      ],
+      "agent_attempts": 3,
+      "agent_failures": 1,
+      "answer": "Đã so sánh 4 ứng viên. Đề xuất đứng đầu theo dữ liệu mẫu là Tai nghe Gaming Sonic G5 — 699.000₫, rating 4.5, đã bán 3100, với điểm đa agent 79% và độ phủ tín hiệu 70%. Công thức: Product 55%, cảm xúc review 15%, ít complaint 20%, độ tin cậy review 10%; tín hiệu thiếu ở bất kỳ ứng viên nào sẽ được bỏ cho cả nhóm rồi chuẩn hóa lại trọng số. Tỷ lệ review được phân loại tích cực là 80%. Một phần dữ liệu không truy xuất được; kết quả trên chỉ dùng phần còn lại.",
+      "case_id": "tool_failure_01_trust",
+      "category": "tool_failure",
+      "error_codes": [
+        "trust.eval_injected"
+      ],
+      "latency_ms": 1167.5007,
+      "llm_cost_usd": null,
+      "predicted_intent": "multi.recommendation",
+      "provenance_count": 2,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        5,
+        2,
+        1,
+        4
+      ],
+      "selected_product_id": 2,
+      "status": "partial_success",
+      "system_id": "multi_agent_real",
+      "token_usage": 5339
+    },
+    {
+      "actions": [
+        "product.rank",
+        "review.compare",
+        "trust.compare"
+      ],
+      "agent_attempts": 3,
+      "agent_failures": 1,
+      "answer": "Đã so sánh 2 ứng viên. Đề xuất đứng đầu theo dữ liệu mẫu là Điện thoại Nova X5 5G — 6.990.000₫, rating 4.6, đã bán 1980, với điểm đa agent 63% và độ phủ tín hiệu 85%. Công thức: Product 55%, cảm xúc review 15%, ít complaint 20%, độ tin cậy review 10%; tín hiệu thiếu ở bất kỳ ứng viên nào sẽ được bỏ cho cả nhóm rồi chuẩn hóa lại trọng số. Tỷ lệ review có tín hiệu complaint là 60%. Một phần dữ liệu không truy xuất được; kết quả trên chỉ dùng phần còn lại.",
+      "case_id": "tool_failure_02_review",
+      "category": "tool_failure",
+      "error_codes": [
+        "review.eval_injected"
+      ],
+      "latency_ms": 1201.6198,
+      "llm_cost_usd": null,
+      "predicted_intent": "multi.recommendation",
+      "provenance_count": 2,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        7,
+        6
+      ],
+      "selected_product_id": 6,
+      "status": "partial_success",
+      "system_id": "multi_agent_real",
+      "token_usage": 3540
+    },
+    {
+      "actions": [
+        "product.search",
+        "review.summarize"
+      ],
+      "agent_attempts": 2,
+      "agent_failures": 1,
+      "answer": "Không tìm thấy sản phẩm để phân tích review trong dữ liệu mẫu. Một phần dữ liệu không truy xuất được; kết quả trên chỉ dùng phần còn lại.",
+      "case_id": "tool_failure_03_review_summary",
+      "category": "tool_failure",
+      "error_codes": [
+        "review.eval_injected"
+      ],
+      "latency_ms": 1434.9138,
+      "llm_cost_usd": null,
+      "predicted_intent": "review.summary",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        1
+      ],
+      "selected_product_id": null,
+      "status": "partial_success",
+      "system_id": "multi_agent_real",
+      "token_usage": 1012
+    },
+    {
+      "actions": [
+        "product.search"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 1,
+      "answer": "Không thể hoàn tất yêu cầu từ các nguồn dữ liệu hiện có.",
+      "case_id": "tool_failure_04_product",
+      "category": "tool_failure",
+      "error_codes": [
+        "product.eval_injected"
+      ],
+      "latency_ms": 1263.4854,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.search",
+      "provenance_count": 0,
+      "repetition": 0,
+      "retrieved_product_ids": [],
+      "selected_product_id": null,
+      "status": "failed",
+      "system_id": "multi_agent_real",
+      "token_usage": 549
+    },
+    {
+      "actions": [
+        "product.search"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 0,
+      "answer": "Các sản phẩm phù hợp theo dữ liệu mẫu: Kem chống nắng SunGlow SPF50 — 189.000₫, rating 4.8, đã bán 8900; Laptop NovaBook Air 14 — 15.990.000₫, rating 4.8, đã bán 630; Sạc nhanh VoltPro 65W — 449.000₫, rating 4.7, đã bán 5400; Tai nghe Bluetooth Nova Air S2 — 799.000₫, rating 4.7, đã bán 2450; Nồi chiên HomeChef 6L — 1.590.000₫, rating 4.7, đã bán 1760.",
+      "case_id": "ambiguous_01_product",
+      "category": "ambiguous",
+      "error_codes": [],
+      "latency_ms": 1295.0219,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.search",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        16,
+        11,
+        26,
+        1,
+        21,
+        14,
+        17,
+        25,
+        6,
+        3
+      ],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 2079
+    },
+    {
+      "actions": [
+        "product.search"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 0,
+      "answer": "Các sản phẩm phù hợp theo dữ liệu mẫu: Kem chống nắng SunGlow SPF50 — 189.000₫, rating 4.8, đã bán 8900; Laptop NovaBook Air 14 — 15.990.000₫, rating 4.8, đã bán 630; Sạc nhanh VoltPro 65W — 449.000₫, rating 4.7, đã bán 5400; Tai nghe Bluetooth Nova Air S2 — 799.000₫, rating 4.7, đã bán 2450; Nồi chiên HomeChef 6L — 1.590.000₫, rating 4.7, đã bán 1760.",
+      "case_id": "ambiguous_02_price",
+      "category": "ambiguous",
+      "error_codes": [],
+      "latency_ms": 1282.6062,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.search",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        16,
+        11,
+        26,
+        1,
+        21,
+        14,
+        17,
+        25,
+        6,
+        3
+      ],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 2081
+    },
+    {
+      "actions": [
+        "product.rank"
+      ],
+      "agent_attempts": 1,
+      "agent_failures": 0,
+      "answer": "Các sản phẩm phù hợp theo dữ liệu mẫu: Kem chống nắng SunGlow SPF50 — 189.000₫, rating 4.8, đã bán 8900; Sạc nhanh VoltPro 65W — 449.000₫, rating 4.7, đã bán 5400; Serum cấp ẩm AquaLeaf — 329.000₫, rating 4.6, đã bán 6500; Tai nghe Bluetooth Nova Air S2 — 799.000₫, rating 4.7, đã bán 2450; Đèn bàn học BrightDesk — 279.000₫, rating 4.6, đã bán 2300.",
+      "case_id": "ambiguous_03_best",
+      "category": "ambiguous",
+      "error_codes": [],
+      "latency_ms": 1154.6229,
+      "llm_cost_usd": null,
+      "predicted_intent": "product.rank",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [
+        16,
+        26,
+        17,
+        1,
+        25,
+        21,
+        3,
+        6,
+        11,
+        14
+      ],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 3672
+    },
+    {
+      "actions": [
+        "product.search",
+        "trust.complaints"
+      ],
+      "agent_attempts": 2,
+      "agent_failures": 1,
+      "answer": "Không tìm thấy sản phẩm để phân tích complaint trong dữ liệu mẫu. Một phần dữ liệu không truy xuất được; kết quả trên chỉ dùng phần còn lại.",
+      "case_id": "ambiguous_04_complaint",
+      "category": "ambiguous",
+      "error_codes": [
+        "orchestrator.missing_dependency_data"
+      ],
+      "latency_ms": 805.1048,
+      "llm_cost_usd": null,
+      "predicted_intent": "trust.complaints",
+      "provenance_count": 1,
+      "repetition": 0,
+      "retrieved_product_ids": [],
+      "selected_product_id": null,
+      "status": "partial_success",
+      "system_id": "multi_agent_real",
+      "token_usage": 856
+    },
+    {
+      "actions": [],
+      "agent_attempts": 0,
+      "agent_failures": 0,
+      "answer": "Yêu cầu này nằm ngoài các miền sản phẩm, review, độ tin cậy và thị trường mà hệ thống hiện hỗ trợ; mình chưa gọi tool để tránh tạo thông tin không có nguồn.",
+      "case_id": "irrelevant_01_poem",
+      "category": "irrelevant",
+      "error_codes": [],
+      "latency_ms": 824.4522,
+      "llm_cost_usd": null,
+      "predicted_intent": "general.unsupported",
+      "provenance_count": 0,
+      "repetition": 0,
+      "retrieved_product_ids": [],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 458
+    },
+    {
+      "actions": [],
+      "agent_attempts": 0,
+      "agent_failures": 0,
+      "answer": "Yêu cầu này nằm ngoài các miền sản phẩm, review, độ tin cậy và thị trường mà hệ thống hiện hỗ trợ; mình chưa gọi tool để tránh tạo thông tin không có nguồn.",
+      "case_id": "irrelevant_02_weather",
+      "category": "irrelevant",
+      "error_codes": [],
+      "latency_ms": 1282.5279,
+      "llm_cost_usd": null,
+      "predicted_intent": "general.unsupported",
+      "provenance_count": 0,
+      "repetition": 0,
+      "retrieved_product_ids": [],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 452
+    },
+    {
+      "actions": [],
+      "agent_attempts": 0,
+      "agent_failures": 0,
+      "answer": "Yêu cầu này nằm ngoài các miền sản phẩm, review, độ tin cậy và thị trường mà hệ thống hiện hỗ trợ; mình chưa gọi tool để tránh tạo thông tin không có nguồn.",
+      "case_id": "irrelevant_03_algebra",
+      "category": "irrelevant",
+      "error_codes": [],
+      "latency_ms": 796.0125,
+      "llm_cost_usd": null,
+      "predicted_intent": "general.unsupported",
+      "provenance_count": 0,
+      "repetition": 0,
+      "retrieved_product_ids": [],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 460
+    },
+    {
+      "actions": [],
+      "agent_attempts": 0,
+      "agent_failures": 0,
+      "answer": "Yêu cầu này nằm ngoài các miền sản phẩm, review, độ tin cậy và thị trường mà hệ thống hiện hỗ trợ; mình chưa gọi tool để tránh tạo thông tin không có nguồn.",
+      "case_id": "irrelevant_04_translation",
+      "category": "irrelevant",
+      "error_codes": [],
+      "latency_ms": 768.3385,
+      "llm_cost_usd": null,
+      "predicted_intent": "general.unsupported",
+      "provenance_count": 0,
+      "repetition": 0,
+      "retrieved_product_ids": [],
+      "selected_product_id": null,
+      "status": "success",
+      "system_id": "multi_agent_real",
+      "token_usage": 455
+    }
+  ],
+  "prompt_sha256": "d21fd9eb59332a2427d5d5fe7f1db7a316f045af9a5cc63213eadaa2f6140fdc",
+  "protocol": "deterministic multi-agent evidence + real-model final synthesis",
+  "repeats": 1,
+  "sample_counts": {
+    "products": 30,
+    "reviews": 150,
+    "shops": 5
+  },
+  "sample_data": true,
+  "schema_version": "1.0",
+  "sut_source_files": [
+    "app/__init__.py",
+    "app/agent/__init__.py",
+    "app/agent/agent.py",
+    "app/agent/runner.py",
+    "app/agent_gateway/__init__.py",
+    "app/agent_gateway/gateway.py",
+    "app/agents/__init__.py",
+    "app/agents/base.py",
+    "app/agents/dispatcher.py",
+    "app/agents/market/__init__.py",
+    "app/agents/market/agent.py",
+    "app/agents/market/skills.py",
+    "app/agents/product/__init__.py",
+    "app/agents/product/agent.py",
+    "app/agents/product/skills.py",
+    "app/agents/review/__init__.py",
+    "app/agents/review/agent.py",
+    "app/agents/review/skills.py",
+    "app/agents/trust/__init__.py",
+    "app/agents/trust/agent.py",
+    "app/agents/trust/skills.py",
+    "app/api/__init__.py",
+    "app/api/chat.py",
+    "app/contracts/__init__.py",
+    "app/contracts/a2a.py",
+    "app/core/__init__.py",
+    "app/core/config.py",
+    "app/data/__init__.py",
+    "app/data/cli.py",
+    "app/data/contracts.py",
+    "app/data/tiki_books.py",
+    "app/db/__init__.py",
+    "app/db/base.py",
+    "app/db/migrate.py",
+    "app/db/public_import.py",
+    "app/db/seed.py",
+    "app/db/session.py",
+    "app/evaluation/__init__.py",
+    "app/evaluation/metrics.py",
+    "app/evaluation/models.py",
+    "app/evaluation/runner.py",
+    "app/frontend/__init__.py",
+    "app/gateway/__init__.py",
+    "app/gateway/dependencies.py",
+    "app/gateway/errors.py",
+    "app/gateway/frontend.py",
+    "app/gateway/middleware.py",
+    "app/gateway/operations.py",
+    "app/gateway/rate_limit.py",
+    "app/gateway/routes.py",
+    "app/gateway/runtime.py",
+    "app/gateway/schemas.py",
+    "app/gateway/security.py",
+    "app/gateway/sse.py",
+    "app/gateway/turns.py",
+    "app/knowledge/__init__.py",
+    "app/knowledge/embedding.py",
+    "app/knowledge/qdrant.py",
+    "app/knowledge/sample.py",
+    "app/knowledge/seed.py",
+    "app/main.py",
+    "app/mcp/__init__.py",
+    "app/mcp/catalog.py",
+    "app/mcp/router.py",
+    "app/models/__init__.py",
+    "app/models/dataset_source.py",
+    "app/models/product.py",
+    "app/models/review.py",
+    "app/models/shop.py",
+    "app/orchestrator/__init__.py",
+    "app/orchestrator/aggregator.py",
+    "app/orchestrator/executor.py",
+    "app/orchestrator/orchestrator.py",
+    "app/orchestrator/planner.py",
+    "app/orchestrator/progress.py",
+    "app/orchestrator/router.py",
+    "app/orchestrator/schemas.py",
+    "app/orchestrator/scoring.py",
+    "app/registry/__init__.py",
+    "app/registry/registry.py",
+    "app/repositories/__init__.py",
+    "app/repositories/ecommerce.py",
+    "app/schemas/__init__.py",
+    "app/schemas/chat.py",
+    "app/shared/__init__.py",
+    "app/shared/context.py",
+    "app/shared/memory/__init__.py",
+    "app/shared/memory/store.py",
+    "app/shared/redis_state.py",
+    "app/shared/session/__init__.py",
+    "app/shared/session/store.py",
+    "app/shared/telemetry.py",
+    "app/tools/__init__.py",
+    "app/tools/ecommerce.py"
+  ],
+  "sut_source_sha256": "1117cbcebb952e7b33b567374ed9eae57c405e75981956f65268871f649f05c2",
+  "system_id": "multi_agent_real"
+}

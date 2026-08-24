@@ -25,7 +25,8 @@ Không thuộc phạm vi hiện tại:
   historical artifacts;
 - microservice/service mesh/Kubernetes;
 - multi-region HA, distributed tracing backend, distributed rate limiter;
-- khẳng định chất lượng vượt single-agent khi chưa có frozen real-model baseline.
+- khẳng định superiority thống kê khi chưa có paired real-model protocol nhiều
+  repetition và semantic human rubric.
 
 ## 2. Deployment view
 
@@ -263,7 +264,7 @@ Prometheus collector + OpenTelemetry/log backend bên ngoài.
 
 | Workflow area | Trạng thái hiện tại |
 | --- | --- |
-| Single-agent baseline | Legacy code/tests còn giữ; real-model benchmark chưa đủ nên đánh dấu unavailable |
+| Single-agent baseline | Legacy path còn giữ; frozen real-model baseline từ `main` đã capture |
 | Domain agents | Product, Review, Trust, Market đã triển khai |
 | Orchestrator | Routing, planning, parallel DAG execution, aggregation, failure semantics |
 | Shared platform | Session, Redis short-term turn storage, correlation, tracing, metrics, evaluation; chưa có long-term user memory |
@@ -272,7 +273,7 @@ Prometheus collector + OpenTelemetry/log backend bên ngoài.
 | RAG/vector DB | Qdrant adapter + deterministic sample embedding |
 | API/UI | Authenticated v1 JSON/SSE + same-origin evidence-first client |
 | Deployment | Alembic, Redis/Qdrant/PostgreSQL Compose, hardened app image, CI |
-| Evaluation | Frozen 28-case offline corpus; no unearned baseline comparison |
+| Evaluation | Frozen 28-case offline corpus + real single/Multi-Agent artifacts; delta chỉ descriptive |
 
 Khi thay dữ liệu thật, thứ tự mở rộng an toàn là: data contract/quality gate →
 versioned real embedding/index → shadow evaluation → frozen single-agent
