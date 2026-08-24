@@ -22,6 +22,7 @@ def test_initial_migration_reaches_head_and_is_idempotent(tmp_path: Path) -> Non
     try:
         assert set(inspect(migration_engine).get_table_names()) == {
             "alembic_version",
+            "dataset_sources",
             "products",
             "reviews",
             "shops",

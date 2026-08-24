@@ -38,6 +38,12 @@ def main() -> None:
     prepare.add_argument("--source-url", default=DEFAULT_SOURCE_URL)
     prepare.add_argument("--force", action="store_true")
 
+    import_snapshot = commands.add_parser(
+        "import",
+        help="import a prepared snapshot into the configured database",
+    )
+    import_snapshot.add_argument("--snapshot", type=Path, required=True)
+
     arguments = parser.parse_args()
     try:
         if arguments.command == "download":
@@ -47,6 +53,16 @@ def main() -> None:
                 expected_sha256=arguments.expected_sha256,
             )
             print(f"Downloaded and verified: {path}")
+            return
+        if arguments.command == "import":
+            from app.db.public_import import import_public_snapshot
+
+            counts = import_public_snapshot(snapshot_dir=arguments.snapshot)
+            print(
+                "Imported snapshot: "
+                f"source_id={counts['source_id']} products={counts['products']} "
+                f"reviews={counts['reviews']}"
+            )
             return
         manifest = prepare_snapshot(
             archive_path=arguments.archive,
