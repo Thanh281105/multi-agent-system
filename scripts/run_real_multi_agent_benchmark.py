@@ -57,6 +57,24 @@ cảnh báo, điều kiện và câu từ chối trong draft; chỉ được ch�
 Nếu draft từ chối yêu cầu ngoài phạm vi, không được tự trả lời yêu cầu đó.
 """.strip()
 
+COMPARISON_ROWS = (
+    ("Answer assertions", "answer_assertion_accuracy", "answer_assertion_accuracy"),
+    ("Tool precision", "tool_selection_precision", "tool_selection_precision"),
+    ("Tool recall", "tool_selection_recall", "tool_selection_recall"),
+    ("Exact plan", "exact_plan_rate", "exact_plan_rate"),
+    ("Retrieval precision", "retrieval_precision", "retrieval_precision"),
+    ("Retrieval recall", "retrieval_recall", "retrieval_recall"),
+    ("Provenance coverage", "provenance_case_coverage", "provenance_case_coverage"),
+    (
+        "Task success (frozen rubric)",
+        "task_success_rate",
+        "task_success_rate_with_frozen_assertions",
+    ),
+    ("Latency p50 (ms)", "real_latency_p50_ms", "latency_p50_ms"),
+    ("Latency p95 (ms)", "real_latency_p95_ms", "latency_p95_ms"),
+    ("Token usage", "token_usage", "token_usage"),
+)
+
 
 def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
@@ -368,6 +386,56 @@ def _metric_payload(metrics: dict[str, MetricSummary]) -> dict[str, Any]:
     return {name: metric.model_dump(mode="json") for name, metric in metrics.items()}
 
 
+def _comparison_payload(
+    metrics: dict[str, MetricSummary],
+    *,
+    project_root: Path,
+) -> dict[str, Any]:
+    baseline_path = (
+        project_root
+        / "evaluation"
+        / "results"
+        / "baseline-single-agent-v1"
+        / "report.json"
+    )
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    baseline_metrics = baseline["metrics"]
+    rows: list[dict[str, Any]] = []
+    for label, multi_key, baseline_key in COMPARISON_ROWS:
+        multi_value = metrics[multi_key].value
+        baseline_value = baseline_metrics[baseline_key].get("value")
+        delta = (
+            multi_value - baseline_value
+            if multi_value is not None and baseline_value is not None
+            else None
+        )
+        rows.append(
+            {
+                "metric": label,
+                "multi_agent_real": multi_value,
+                "single_agent_real_main": baseline_value,
+                "delta_multi_minus_single": delta,
+            }
+        )
+    return {
+        "baseline_report": "evaluation/results/baseline-single-agent-v1/report.json",
+        "baseline_model": baseline["model"],
+        "baseline_git_revision": baseline["git_revision"],
+        "rows": rows,
+        "notes": [
+            (
+                "Delta is descriptive only; prompts and orchestration runtimes "
+                "are not paired."
+            ),
+            "Negative latency delta means the Multi-Agent real synthesis was faster.",
+            (
+                "Token and cost comparisons are incomplete when provider pricing "
+                "is unavailable."
+            ),
+        ],
+    }
+
+
 def score_artifact(
     *,
     corpus: EvaluationCorpus,
@@ -478,6 +546,7 @@ def score_artifact(
                 )
             )
     source_hash, source_files = _sut_source_manifest()
+    project_root = Path(__file__).resolve().parents[1]
     return {
         "schema_version": "1.0",
         "system_id": "multi_agent_real",
@@ -499,6 +568,7 @@ def score_artifact(
         "baseline_report": ("evaluation/results/baseline-single-agent-v1/report.md"),
         "metrics": _metric_payload(metrics),
         "metrics_by_category": metrics_by_category,
+        "comparison": _comparison_payload(metrics, project_root=project_root),
         "case_scores": [item.model_dump(mode="json") for item in scores],
         "observations": [item.model_dump(mode="json") for item in observations],
         "limitations": [
@@ -536,6 +606,31 @@ def _render_report(report: dict[str, Any]) -> str:
         else:
             note = str(metric.get("sample_size", ""))
         lines.append(f"| {name} | {rendered} | {note} |")
+    lines.extend(
+        [
+            "",
+            "## Descriptive comparison with single-agent main",
+            "",
+            (
+                "| Metric | Multi-Agent real | Single-Agent main real | "
+                "Delta (multi − single) |"
+            ),
+            "| --- | ---: | ---: | ---: |",
+        ]
+    )
+    for row in report["comparison"]["rows"]:
+        values = [
+            row["multi_agent_real"],
+            row["single_agent_real_main"],
+            row["delta_multi_minus_single"],
+        ]
+        rendered_values = [
+            "N/A" if value is None else f"{value:.4f}" for value in values
+        ]
+        lines.append(
+            f"| {row['metric']} | {rendered_values[0]} | "
+            f"{rendered_values[1]} | {rendered_values[2]} |"
+        )
     lines.extend(["", "## Limitations", ""])
     lines.extend(f"- {item}" for item in report["limitations"])
     return "\n".join(lines) + "\n"
