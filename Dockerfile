@@ -8,10 +8,11 @@ WORKDIR /build
 
 RUN python -m venv "$VIRTUAL_ENV"
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md requirements.lock ./
 COPY app ./app
 
-RUN pip install --no-cache-dir --no-compile . \
+RUN pip install --no-cache-dir --no-compile -r requirements.lock \
+    && pip install --no-cache-dir --no-compile --no-build-isolation --no-deps . \
     && python -c "import app, fastapi, sqlalchemy"
 
 

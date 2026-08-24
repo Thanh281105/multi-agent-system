@@ -127,7 +127,8 @@ bắt buộc PostgreSQL theo validation runtime.
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
+python -m pip install -r requirements-dev.lock
+python -m pip install --no-build-isolation --no-deps -e .
 
 $env:APP_ENV = "development"
 $env:DATABASE_URL = "sqlite+pysqlite:///./local-sample.db"
@@ -187,6 +188,7 @@ gateway.session_not_found`, tránh rò rỉ ownership.
 ## Kiểm thử và quality gates
 
 ```powershell
+python -m pip install -r requirements-dev.lock
 ruff check app tests migrations
 ruff format --check app tests migrations
 mypy app
