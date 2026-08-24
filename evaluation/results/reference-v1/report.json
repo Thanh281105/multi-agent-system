@@ -1,14 +1,19 @@
 {
   "application_version": "1.0.0",
   "baseline": {
+    "artifact_path": "evaluation/results/baseline-single-agent-v1/observations.json",
+    "artifact_sha256": "6fdf0f6ddb322c7778e1646bada25c17389144e411d9a5f38b98c18a986db328",
     "baseline_id": "phase1_single_agent_v1",
-    "captured_case_count": 0,
-    "model": null,
-    "prompt_sha256": null,
-    "reason": "Phase 1 chỉ có hai trace scripted dùng fake provider và một integration test tùy chọn; chưa có đủ 28 quan sát mô hình thật kèm model, prompt hash, tool-schema hash, token và cost. Artifact này cố ý chặn mọi tuyên bố Multi-Agent tốt hơn Single Agent cho đến khi baseline thật được thu thập và đóng băng.",
+    "captured_at": "2026-08-24T04:33:19.460204Z",
+    "captured_case_count": 28,
+    "dataset_sha256": "a34473eff4a6f7e87034b46c239833c852b12542ea4c0faea4b651ddb801671d",
+    "git_revision": "c7b17cf",
+    "model": "gpt-5.4-mini",
+    "prompt_sha256": "8a0a09b217bf2d1fbf8c0eff4a43bd857ea3aa6793ff47da5803d7593432ca2a",
+    "reason": "Đã chạy đủ 28 case trên main single-agent bằng OpenAI Responses API thật với model gpt-5.4-mini, cùng frozen corpus sample_ecommerce_vi_28_v1. Artifact ghi output, tool calls, token usage và latency; chưa claim paired hơn-kém vì multi-agent reference chạy deterministic offline khác runtime/provider.",
     "schema_version": "1.0",
-    "status": "baseline_unavailable",
-    "tool_schema_sha256": null
+    "status": "real_model_captured",
+    "tool_schema_sha256": "4ddd22bc0d8078c1b4e144fd7b71789a35e9cd596dac070702ffd2598f232735"
   },
   "case_scores": [
     {
@@ -740,15 +745,15 @@
       "task_success": true
     }
   ],
-  "comparison_status": "baseline_unavailable",
+  "comparison_status": "real_model_captured",
   "dataset_id": "sample_ecommerce_vi_28_v1",
   "dataset_sha256": "a34473eff4a6f7e87034b46c239833c852b12542ea4c0faea4b651ddb801671d",
-  "generated_at": "2026-08-23T18:21:56.588253Z",
+  "generated_at": "2026-08-24T04:44:02.475819Z",
   "limitations": [
     "Benchmark chỉ dùng 30 sản phẩm và 150 review tổng hợp có gắn nhãn mẫu.",
     "Answer Accuracy là độ chính xác assertion có cấu trúc, không phải đánh giá ngữ nghĩa tự do.",
     "Latency là thời gian chạy local/offline, không đại diện suy luận LLM hay hạ tầng production.",
-    "Chưa có frozen Phase-1 model baseline đủ provenance nên không thực hiện so sánh hơn-kém.",
+    "Baseline real-model được capture riêng; runner offline chưa thực hiện paired comparison vì không chạy cùng runtime/provider.",
     "Failure injection đo khả năng cô lập lỗi có chủ đích, không mô phỏng phân phối outage thực tế.",
     "Agent Failure Rate gồm cả lỗi dependency mong đợi ở case thiếu dữ liệu và lỗi được inject; đây không phải incident rate production."
   ],
@@ -807,7 +812,7 @@
       "sample_size": 84,
       "unavailable_reason": null,
       "unit": "ms",
-      "value": 1.4564
+      "value": 2.0422
     },
     "offline_latency_p95_ms": {
       "denominator": null,
@@ -815,7 +820,7 @@
       "sample_size": 84,
       "unavailable_reason": null,
       "unit": "ms",
-      "value": 14.8051
+      "value": 19.4387
     },
     "partial_recovery_rate": {
       "denominator": 2.0,
@@ -962,7 +967,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 1.2971
+        "value": 1.7634
       },
       "offline_latency_p95_ms": {
         "denominator": null,
@@ -970,7 +975,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 2.8172
+        "value": 4.8503
       },
       "partial_recovery_rate": {
         "denominator": null,
@@ -1116,7 +1121,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 2.7991
+        "value": 4.2358
       },
       "offline_latency_p95_ms": {
         "denominator": null,
@@ -1124,7 +1129,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 6.579
+        "value": 9.1086
       },
       "partial_recovery_rate": {
         "denominator": null,
@@ -1270,7 +1275,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 0.1423
+        "value": 0.1554
       },
       "offline_latency_p95_ms": {
         "denominator": null,
@@ -1278,7 +1283,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 0.1804
+        "value": 0.189
       },
       "partial_recovery_rate": {
         "denominator": null,
@@ -1424,7 +1429,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 1.3475
+        "value": 1.8469
       },
       "offline_latency_p95_ms": {
         "denominator": null,
@@ -1432,7 +1437,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 2.5119
+        "value": 4.2497
       },
       "partial_recovery_rate": {
         "denominator": null,
@@ -1578,7 +1583,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 11.3758
+        "value": 16.5116
       },
       "offline_latency_p95_ms": {
         "denominator": null,
@@ -1586,7 +1591,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 21.1454
+        "value": 26.1935
       },
       "partial_recovery_rate": {
         "denominator": null,
@@ -1732,7 +1737,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 1.4564
+        "value": 1.9437
       },
       "offline_latency_p95_ms": {
         "denominator": null,
@@ -1740,7 +1745,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 6.7289
+        "value": 9.7764
       },
       "partial_recovery_rate": {
         "denominator": null,
@@ -1886,7 +1891,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 1.7772
+        "value": 1.9473
       },
       "offline_latency_p95_ms": {
         "denominator": null,
@@ -1894,7 +1899,7 @@
         "sample_size": 12,
         "unavailable_reason": null,
         "unit": "ms",
-        "value": 8.4081
+        "value": 11.235
       },
       "partial_recovery_rate": {
         "denominator": 2.0,
@@ -1997,7 +2002,7 @@
       "case_id": "simple_01_nova_search",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 6.7289,
+      "latency_ms": 9.7764,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -2020,7 +2025,7 @@
       "case_id": "simple_01_nova_search",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 1.4997,
+      "latency_ms": 2.2158,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -2043,7 +2048,7 @@
       "case_id": "simple_01_nova_search",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 1.4564,
+      "latency_ms": 1.5791,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -2066,7 +2071,7 @@
       "case_id": "simple_02_voltpro_search",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 1.2884,
+      "latency_ms": 1.448,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -2089,7 +2094,7 @@
       "case_id": "simple_02_voltpro_search",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 1.2697,
+      "latency_ms": 1.426,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -2112,7 +2117,7 @@
       "case_id": "simple_02_voltpro_search",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 1.2491,
+      "latency_ms": 1.4112,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -2135,7 +2140,7 @@
       "case_id": "simple_03_sunglow_search",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 1.6455,
+      "latency_ms": 1.782,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -2158,7 +2163,7 @@
       "case_id": "simple_03_sunglow_search",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 1.2307,
+      "latency_ms": 2.0361,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -2181,7 +2186,7 @@
       "case_id": "simple_03_sunglow_search",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 1.2353,
+      "latency_ms": 1.9437,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -2204,7 +2209,7 @@
       "case_id": "simple_04_review_by_id",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 3.6633,
+      "latency_ms": 6.4239,
       "llm_cost_usd": null,
       "predicted_intent": "review.summary",
       "provenance_count": 1,
@@ -2227,7 +2232,7 @@
       "case_id": "simple_04_review_by_id",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 2.3606,
+      "latency_ms": 2.1189,
       "llm_cost_usd": null,
       "predicted_intent": "review.summary",
       "provenance_count": 1,
@@ -2250,7 +2255,7 @@
       "case_id": "simple_04_review_by_id",
       "category": "simple",
       "error_codes": [],
-      "latency_ms": 2.178,
+      "latency_ms": 2.1729,
       "llm_cost_usd": null,
       "predicted_intent": "review.summary",
       "provenance_count": 1,
@@ -2275,7 +2280,7 @@
       "case_id": "complex_01_compare_headphones",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 6.579,
+      "latency_ms": 9.1086,
       "llm_cost_usd": null,
       "predicted_intent": "product.compare",
       "provenance_count": 1,
@@ -2301,7 +2306,7 @@
       "case_id": "complex_01_compare_headphones",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 3.4746,
+      "latency_ms": 5.0254,
       "llm_cost_usd": null,
       "predicted_intent": "product.compare",
       "provenance_count": 1,
@@ -2327,7 +2332,7 @@
       "case_id": "complex_01_compare_headphones",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 3.029,
+      "latency_ms": 4.3837,
       "llm_cost_usd": null,
       "predicted_intent": "product.compare",
       "provenance_count": 1,
@@ -2353,7 +2358,7 @@
       "case_id": "complex_02_compare_laptops",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 2.7991,
+      "latency_ms": 4.3279,
       "llm_cost_usd": null,
       "predicted_intent": "product.compare",
       "provenance_count": 1,
@@ -2379,7 +2384,7 @@
       "case_id": "complex_02_compare_laptops",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 2.7373,
+      "latency_ms": 4.2358,
       "llm_cost_usd": null,
       "predicted_intent": "product.compare",
       "provenance_count": 1,
@@ -2405,7 +2410,7 @@
       "case_id": "complex_02_compare_laptops",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 3.2003,
+      "latency_ms": 3.629,
       "llm_cost_usd": null,
       "predicted_intent": "product.compare",
       "provenance_count": 1,
@@ -2429,7 +2434,7 @@
       "case_id": "complex_03_rank_laptops",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 2.9155,
+      "latency_ms": 5.0224,
       "llm_cost_usd": null,
       "predicted_intent": "product.rank",
       "provenance_count": 1,
@@ -2453,7 +2458,7 @@
       "case_id": "complex_03_rank_laptops",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 1.7176,
+      "latency_ms": 2.176,
       "llm_cost_usd": null,
       "predicted_intent": "product.rank",
       "provenance_count": 1,
@@ -2477,7 +2482,7 @@
       "case_id": "complex_03_rank_laptops",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 1.3671,
+      "latency_ms": 1.6328,
       "llm_cost_usd": null,
       "predicted_intent": "product.rank",
       "provenance_count": 1,
@@ -2501,7 +2506,7 @@
       "case_id": "complex_04_market_headphones",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 4.4246,
+      "latency_ms": 5.9554,
       "llm_cost_usd": null,
       "predicted_intent": "market.analyze",
       "provenance_count": 2,
@@ -2522,7 +2527,7 @@
       "case_id": "complex_04_market_headphones",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 2.2201,
+      "latency_ms": 2.9484,
       "llm_cost_usd": null,
       "predicted_intent": "market.analyze",
       "provenance_count": 2,
@@ -2543,7 +2548,7 @@
       "case_id": "complex_04_market_headphones",
       "category": "complex",
       "error_codes": [],
-      "latency_ms": 1.938,
+      "latency_ms": 2.2764,
       "llm_cost_usd": null,
       "predicted_intent": "market.analyze",
       "provenance_count": 2,
@@ -2566,7 +2571,7 @@
       "case_id": "multi_domain_01_headphones",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 21.1454,
+      "latency_ms": 26.1935,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2594,7 +2599,7 @@
       "case_id": "multi_domain_01_headphones",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 15.1366,
+      "latency_ms": 23.3186,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2622,7 +2627,7 @@
       "case_id": "multi_domain_01_headphones",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 17.0302,
+      "latency_ms": 19.2778,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2650,7 +2655,7 @@
       "case_id": "multi_domain_02_phones",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 9.8463,
+      "latency_ms": 14.959,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2676,7 +2681,7 @@
       "case_id": "multi_domain_02_phones",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 8.4123,
+      "latency_ms": 10.7766,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2702,7 +2707,7 @@
       "case_id": "multi_domain_02_phones",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 7.5645,
+      "latency_ms": 9.8565,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2728,7 +2733,7 @@
       "case_id": "multi_domain_03_laptops",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 10.8954,
+      "latency_ms": 16.5116,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2755,7 +2760,7 @@
       "case_id": "multi_domain_03_laptops",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 11.3758,
+      "latency_ms": 15.4205,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2782,7 +2787,7 @@
       "case_id": "multi_domain_03_laptops",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 11.1366,
+      "latency_ms": 15.3455,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2809,7 +2814,7 @@
       "case_id": "multi_domain_04_accessories",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 13.866,
+      "latency_ms": 20.5109,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2837,7 +2842,7 @@
       "case_id": "multi_domain_04_accessories",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 14.8585,
+      "latency_ms": 21.5435,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2865,7 +2870,7 @@
       "case_id": "multi_domain_04_accessories",
       "category": "multi_domain",
       "error_codes": [],
-      "latency_ms": 14.8051,
+      "latency_ms": 19.4387,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -2894,7 +2899,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 1.3971,
+      "latency_ms": 2.0422,
       "llm_cost_usd": null,
       "predicted_intent": "review.summary",
       "provenance_count": 1,
@@ -2918,7 +2923,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 1.4685,
+      "latency_ms": 2.2722,
       "llm_cost_usd": null,
       "predicted_intent": "review.summary",
       "provenance_count": 1,
@@ -2942,7 +2947,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 1.3628,
+      "latency_ms": 1.8469,
       "llm_cost_usd": null,
       "predicted_intent": "review.summary",
       "provenance_count": 1,
@@ -2966,7 +2971,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 1.3475,
+      "latency_ms": 1.9269,
       "llm_cost_usd": null,
       "predicted_intent": "trust.complaints",
       "provenance_count": 1,
@@ -2990,7 +2995,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 1.3368,
+      "latency_ms": 1.7677,
       "llm_cost_usd": null,
       "predicted_intent": "trust.complaints",
       "provenance_count": 1,
@@ -3014,7 +3019,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 1.2721,
+      "latency_ms": 1.6792,
       "llm_cost_usd": null,
       "predicted_intent": "trust.complaints",
       "provenance_count": 1,
@@ -3039,7 +3044,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 2.5119,
+      "latency_ms": 3.5154,
       "llm_cost_usd": null,
       "predicted_intent": "product.compare",
       "provenance_count": 1,
@@ -3066,7 +3071,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 2.0565,
+      "latency_ms": 4.2497,
       "llm_cost_usd": null,
       "predicted_intent": "product.compare",
       "provenance_count": 1,
@@ -3093,7 +3098,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 2.0864,
+      "latency_ms": 3.1747,
       "llm_cost_usd": null,
       "predicted_intent": "product.compare",
       "provenance_count": 1,
@@ -3116,7 +3121,7 @@
       "case_id": "missing_data_04_filter",
       "category": "missing_data",
       "error_codes": [],
-      "latency_ms": 1.1835,
+      "latency_ms": 1.5204,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -3137,7 +3142,7 @@
       "case_id": "missing_data_04_filter",
       "category": "missing_data",
       "error_codes": [],
-      "latency_ms": 1.2919,
+      "latency_ms": 1.3711,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -3158,7 +3163,7 @@
       "case_id": "missing_data_04_filter",
       "category": "missing_data",
       "error_codes": [],
-      "latency_ms": 1.1945,
+      "latency_ms": 1.4357,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -3183,7 +3188,7 @@
       "error_codes": [
         "trust.eval_injected"
       ],
-      "latency_ms": 8.4081,
+      "latency_ms": 11.235,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -3213,7 +3218,7 @@
       "error_codes": [
         "trust.eval_injected"
       ],
-      "latency_ms": 7.7702,
+      "latency_ms": 10.448,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -3243,7 +3248,7 @@
       "error_codes": [
         "trust.eval_injected"
       ],
-      "latency_ms": 7.8362,
+      "latency_ms": 9.2419,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -3273,7 +3278,7 @@
       "error_codes": [
         "review.eval_injected"
       ],
-      "latency_ms": 4.5556,
+      "latency_ms": 5.504,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -3301,7 +3306,7 @@
       "error_codes": [
         "review.eval_injected"
       ],
-      "latency_ms": 4.6079,
+      "latency_ms": 5.8249,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -3329,7 +3334,7 @@
       "error_codes": [
         "review.eval_injected"
       ],
-      "latency_ms": 4.7772,
+      "latency_ms": 5.6658,
       "llm_cost_usd": null,
       "predicted_intent": "multi.recommendation",
       "provenance_count": 2,
@@ -3356,7 +3361,7 @@
       "error_codes": [
         "review.eval_injected"
       ],
-      "latency_ms": 1.4332,
+      "latency_ms": 1.9473,
       "llm_cost_usd": null,
       "predicted_intent": "review.summary",
       "provenance_count": 1,
@@ -3382,7 +3387,7 @@
       "error_codes": [
         "review.eval_injected"
       ],
-      "latency_ms": 1.7772,
+      "latency_ms": 1.6762,
       "llm_cost_usd": null,
       "predicted_intent": "review.summary",
       "provenance_count": 1,
@@ -3408,7 +3413,7 @@
       "error_codes": [
         "review.eval_injected"
       ],
-      "latency_ms": 1.3825,
+      "latency_ms": 1.6513,
       "llm_cost_usd": null,
       "predicted_intent": "review.summary",
       "provenance_count": 1,
@@ -3433,7 +3438,7 @@
       "error_codes": [
         "product.eval_injected"
       ],
-      "latency_ms": 0.2745,
+      "latency_ms": 0.2942,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 0,
@@ -3456,7 +3461,7 @@
       "error_codes": [
         "product.eval_injected"
       ],
-      "latency_ms": 0.2596,
+      "latency_ms": 0.2823,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 0,
@@ -3479,7 +3484,7 @@
       "error_codes": [
         "product.eval_injected"
       ],
-      "latency_ms": 0.2525,
+      "latency_ms": 0.2759,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 0,
@@ -3500,7 +3505,7 @@
       "case_id": "ambiguous_01_product",
       "category": "ambiguous",
       "error_codes": [],
-      "latency_ms": 2.8172,
+      "latency_ms": 4.8503,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -3532,7 +3537,7 @@
       "case_id": "ambiguous_01_product",
       "category": "ambiguous",
       "error_codes": [],
-      "latency_ms": 1.2709,
+      "latency_ms": 1.7634,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -3564,7 +3569,7 @@
       "case_id": "ambiguous_01_product",
       "category": "ambiguous",
       "error_codes": [],
-      "latency_ms": 1.2945,
+      "latency_ms": 2.148,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -3596,7 +3601,7 @@
       "case_id": "ambiguous_02_price",
       "category": "ambiguous",
       "error_codes": [],
-      "latency_ms": 1.2597,
+      "latency_ms": 1.854,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -3628,7 +3633,7 @@
       "case_id": "ambiguous_02_price",
       "category": "ambiguous",
       "error_codes": [],
-      "latency_ms": 1.2562,
+      "latency_ms": 1.7414,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -3660,7 +3665,7 @@
       "case_id": "ambiguous_02_price",
       "category": "ambiguous",
       "error_codes": [],
-      "latency_ms": 1.2077,
+      "latency_ms": 1.613,
       "llm_cost_usd": null,
       "predicted_intent": "product.search",
       "provenance_count": 1,
@@ -3692,7 +3697,7 @@
       "case_id": "ambiguous_03_best",
       "category": "ambiguous",
       "error_codes": [],
-      "latency_ms": 1.4249,
+      "latency_ms": 1.9773,
       "llm_cost_usd": null,
       "predicted_intent": "product.rank",
       "provenance_count": 1,
@@ -3724,7 +3729,7 @@
       "case_id": "ambiguous_03_best",
       "category": "ambiguous",
       "error_codes": [],
-      "latency_ms": 1.8243,
+      "latency_ms": 2.0809,
       "llm_cost_usd": null,
       "predicted_intent": "product.rank",
       "provenance_count": 1,
@@ -3756,7 +3761,7 @@
       "case_id": "ambiguous_03_best",
       "category": "ambiguous",
       "error_codes": [],
-      "latency_ms": 1.423,
+      "latency_ms": 2.3046,
       "llm_cost_usd": null,
       "predicted_intent": "product.rank",
       "provenance_count": 1,
@@ -3791,7 +3796,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 1.3416,
+      "latency_ms": 1.6391,
       "llm_cost_usd": null,
       "predicted_intent": "trust.complaints",
       "provenance_count": 1,
@@ -3815,7 +3820,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 1.3099,
+      "latency_ms": 1.6746,
       "llm_cost_usd": null,
       "predicted_intent": "trust.complaints",
       "provenance_count": 1,
@@ -3839,7 +3844,7 @@
       "error_codes": [
         "orchestrator.missing_dependency_data"
       ],
-      "latency_ms": 1.2971,
+      "latency_ms": 1.6119,
       "llm_cost_usd": null,
       "predicted_intent": "trust.complaints",
       "provenance_count": 1,
@@ -3858,7 +3863,7 @@
       "case_id": "irrelevant_01_poem",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1569,
+      "latency_ms": 0.189,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -3877,7 +3882,7 @@
       "case_id": "irrelevant_01_poem",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1446,
+      "latency_ms": 0.1603,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -3896,7 +3901,7 @@
       "case_id": "irrelevant_01_poem",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1384,
+      "latency_ms": 0.1536,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -3915,7 +3920,7 @@
       "case_id": "irrelevant_02_weather",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1374,
+      "latency_ms": 0.1528,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -3934,7 +3939,7 @@
       "case_id": "irrelevant_02_weather",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1423,
+      "latency_ms": 0.1534,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -3953,7 +3958,7 @@
       "case_id": "irrelevant_02_weather",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1345,
+      "latency_ms": 0.1494,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -3972,7 +3977,7 @@
       "case_id": "irrelevant_03_algebra",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1476,
+      "latency_ms": 0.1547,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -3991,7 +3996,7 @@
       "case_id": "irrelevant_03_algebra",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1445,
+      "latency_ms": 0.1741,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -4010,7 +4015,7 @@
       "case_id": "irrelevant_03_algebra",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1804,
+      "latency_ms": 0.1731,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -4029,7 +4034,7 @@
       "case_id": "irrelevant_04_translation",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1427,
+      "latency_ms": 0.1558,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -4048,7 +4053,7 @@
       "case_id": "irrelevant_04_translation",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.141,
+      "latency_ms": 0.1624,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -4067,7 +4072,7 @@
       "case_id": "irrelevant_04_translation",
       "category": "irrelevant",
       "error_codes": [],
-      "latency_ms": 0.1366,
+      "latency_ms": 0.1554,
       "llm_cost_usd": null,
       "predicted_intent": "general.unsupported",
       "provenance_count": 0,
@@ -4119,9 +4124,14 @@
     "app/contracts/a2a.py",
     "app/core/__init__.py",
     "app/core/config.py",
+    "app/data/__init__.py",
+    "app/data/cli.py",
+    "app/data/contracts.py",
+    "app/data/tiki_books.py",
     "app/db/__init__.py",
     "app/db/base.py",
     "app/db/migrate.py",
+    "app/db/public_import.py",
     "app/db/seed.py",
     "app/db/session.py",
     "app/evaluation/__init__.py",
@@ -4152,6 +4162,7 @@
     "app/mcp/catalog.py",
     "app/mcp/router.py",
     "app/models/__init__.py",
+    "app/models/dataset_source.py",
     "app/models/product.py",
     "app/models/review.py",
     "app/models/shop.py",
@@ -4181,6 +4192,6 @@
     "app/tools/__init__.py",
     "app/tools/ecommerce.py"
   ],
-  "sut_source_sha256": "1f021aa274c494952c9fac0a99ce093dd12a09b5ea95cf7e1e414c7748e86a5a",
+  "sut_source_sha256": "7c396e1176eea4c899fb96e6fe41c4489123df97602eed261ef824dbc5f8f75c",
   "system_id": "multi_agent_offline"
 }

@@ -194,7 +194,11 @@ async def run_evaluation(
         raise ValueError("repeats must be between 1 and 20")
     if max_cases is not None and not 1 <= max_cases <= len(corpus.cases):
         raise ValueError("max_cases must select between 1 and the corpus size")
-    if baseline.status not in {"baseline_unavailable", "scripted_regression"}:
+    if baseline.status not in {
+        "baseline_unavailable",
+        "scripted_regression",
+        "real_model_captured",
+    }:
         raise ValueError("unsupported baseline manifest status")
     cases = corpus.cases[:max_cases] if max_cases is not None else corpus.cases
     if not cases:
@@ -225,10 +229,15 @@ async def run_evaluation(
     comparison_status: Literal[
         "baseline_unavailable",
         "scripted_regression_only",
+        "real_model_captured",
     ] = (
         "baseline_unavailable"
         if baseline.status == "baseline_unavailable"
-        else "scripted_regression_only"
+        else (
+            "scripted_regression_only"
+            if baseline.status == "scripted_regression"
+            else "real_model_captured"
+        )
     )
     sut_source_sha256, sut_source_files = _sut_source_manifest()
     return EvaluationReport(
@@ -260,8 +269,8 @@ async def run_evaluation(
                 "LLM hay hạ tầng production."
             ),
             (
-                "Chưa có frozen Phase-1 model baseline đủ provenance nên không "
-                "thực hiện so sánh hơn-kém."
+                "Baseline real-model được capture riêng; runner offline chưa thực "
+                "hiện paired comparison vì không chạy cùng runtime/provider."
             ),
             (
                 "Failure injection đo khả năng cô lập lỗi có chủ đích, không mô "

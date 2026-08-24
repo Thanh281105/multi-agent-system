@@ -41,6 +41,11 @@ jobs:
       - name: Run offline test suite
         run: pytest -m "not integration" -q
 
+      - name: Re-score captured real-model baseline
+        run: |
+          python scripts/score_real_baseline.py
+          git diff --exit-code -- evaluation/results/baseline-single-agent-v1
+
       - name: Build Python wheel
         run: python -m pip wheel --no-deps --no-build-isolation --wheel-dir dist .
 

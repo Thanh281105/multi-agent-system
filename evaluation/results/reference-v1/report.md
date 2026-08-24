@@ -1,12 +1,12 @@
 # Báo cáo benchmark offline multi-agent
 
-- SUT source manifest SHA-256: `1f021aa274c494952c9fac0a99ce093dd12a09b5ea95cf7e1e414c7748e86a5a` (88 files)
+- SUT source manifest SHA-256: `7c396e1176eea4c899fb96e6fe41c4489123df97602eed261ef824dbc5f8f75c` (94 files)
 - Dataset: `sample_ecommerce_vi_28_v1` (`a34473eff4a6f7e87034b46c239833c852b12542ea4c0faea4b651ddb801671d`)
 - Seed source SHA-256: `8dde4cd540226eb54b457cbb2271bb8b235711d9bdc8864ed840174c346a15d6`
 - Số case: 28; số lần lặp: 3
 - Runtime: Python 3.12.10 trên `Windows-11-10.0.26200-SP0`
 - Dữ liệu: **mẫu tổng hợp**, không đại diện thị trường thật
-- Trạng thái so sánh baseline: `baseline_unavailable`
+- Trạng thái so sánh baseline: `real_model_captured`
 
 ## Kết quả tổng hợp
 
@@ -27,14 +27,14 @@
 | agent_failure_rate | 0.1739 | 28 | 8/46 ratio |
 | partial_recovery_rate | 1.0000 | 2 | 2/2 ratio |
 | provenance_case_coverage | 1.0000 | 23 | 23/23 ratio |
-| offline_latency_p50_ms | 1.4564 | 84 | ms |
-| offline_latency_p95_ms | 14.8051 | 84 | ms |
+| offline_latency_p50_ms | 2.0422 | 84 | ms |
+| offline_latency_p95_ms | 19.4387 | 84 | ms |
 | token_usage | N/A | 84 | offline deterministic runtime made zero observed model calls; production token usage was not measured |
 | llm_cost_usd | N/A | 84 | offline deterministic runtime made zero observed model calls; production provider cost was not measured |
 
 ## Tính trung thực của baseline
 
-Phase 1 chỉ có hai trace scripted dùng fake provider và một integration test tùy chọn; chưa có đủ 28 quan sát mô hình thật kèm model, prompt hash, tool-schema hash, token và cost. Artifact này cố ý chặn mọi tuyên bố Multi-Agent tốt hơn Single Agent cho đến khi baseline thật được thu thập và đóng băng.
+Đã chạy đủ 28 case trên main single-agent bằng OpenAI Responses API thật với model gpt-5.4-mini, cùng frozen corpus sample_ecommerce_vi_28_v1. Artifact ghi output, tool calls, token usage và latency; chưa claim paired hơn-kém vì multi-agent reference chạy deterministic offline khác runtime/provider.
 
 Không dùng scripted oracle để thay thế kết quả của một mô hình single-agent thật.
 
@@ -43,7 +43,7 @@ Không dùng scripted oracle để thay thế kết quả của một mô hình 
 - Benchmark chỉ dùng 30 sản phẩm và 150 review tổng hợp có gắn nhãn mẫu.
 - Answer Accuracy là độ chính xác assertion có cấu trúc, không phải đánh giá ngữ nghĩa tự do.
 - Latency là thời gian chạy local/offline, không đại diện suy luận LLM hay hạ tầng production.
-- Chưa có frozen Phase-1 model baseline đủ provenance nên không thực hiện so sánh hơn-kém.
+- Baseline real-model được capture riêng; runner offline chưa thực hiện paired comparison vì không chạy cùng runtime/provider.
 - Failure injection đo khả năng cô lập lỗi có chủ đích, không mô phỏng phân phối outage thực tế.
 - Agent Failure Rate gồm cả lỗi dependency mong đợi ở case thiếu dữ liệu và lỗi được inject; đây không phải incident rate production.
 

@@ -116,7 +116,11 @@ class BaselineManifest(BaseModel):
 
     schema_version: Literal["1.0"] = "1.0"
     baseline_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,127}$")
-    status: Literal["baseline_unavailable", "scripted_regression"]
+    status: Literal[
+        "baseline_unavailable",
+        "scripted_regression",
+        "real_model_captured",
+    ]
     reason: str = Field(min_length=1, max_length=2_000)
     captured_case_count: int = Field(default=0, ge=0)
     model: str | None = None
@@ -125,6 +129,17 @@ class BaselineManifest(BaseModel):
         default=None,
         pattern=r"^[a-f0-9]{64}$",
     )
+    dataset_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[a-f0-9]{64}$",
+    )
+    artifact_path: str | None = Field(default=None, min_length=1)
+    artifact_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[a-f0-9]{64}$",
+    )
+    captured_at: datetime | None = None
+    git_revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{7,40}$")
 
     @model_validator(mode="after")
     def validate_evidence_state(self) -> BaselineManifest:
@@ -133,10 +148,28 @@ class BaselineManifest(BaseModel):
             or self.model is not None
             or self.prompt_sha256 is not None
             or self.tool_schema_sha256 is not None
+            or self.dataset_sha256 is not None
+            or self.artifact_path is not None
+            or self.artifact_sha256 is not None
+            or self.captured_at is not None
+            or self.git_revision is not None
         ):
             raise ValueError(
                 "an unavailable baseline cannot claim captured model evidence"
             )
+        if self.status == "real_model_captured":
+            if self.captured_case_count < 1:
+                raise ValueError("a captured baseline must include cases")
+            if not self.model:
+                raise ValueError("a captured baseline must include the model")
+            if not self.prompt_sha256 or not self.tool_schema_sha256:
+                raise ValueError("a captured baseline must hash prompt and tools")
+            if not self.dataset_sha256:
+                raise ValueError("a captured baseline must hash its dataset")
+            if not self.artifact_path or not self.artifact_sha256:
+                raise ValueError("a captured baseline must bind its artifact")
+            if self.captured_at is None or self.git_revision is None:
+                raise ValueError("a captured baseline must include capture metadata")
         return self
 
 
@@ -232,6 +265,7 @@ class EvaluationReport(BaseModel):
     comparison_status: Literal[
         "baseline_unavailable",
         "scripted_regression_only",
+        "real_model_captured",
     ]
     metrics: dict[str, MetricSummary]
     metrics_by_category: dict[str, dict[str, MetricSummary]]

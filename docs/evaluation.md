@@ -9,14 +9,18 @@ Evaluation trả lời ba câu hỏi có thể kiểm chứng:
    provenance khi có dữ liệu/agent lỗi không?
 3. Kết quả có tái lập trên snapshot mẫu hiện tại không?
 
-Nó **không** chứng minh chất lượng trên dữ liệu marketplace thật, không đo
-semantic correctness tự do và chưa so sánh chất lượng model với single-agent.
+Nó **không** chứng minh chất lượng trên dữ liệu marketplace thật hoặc semantic
+correctness tự do. Repository có thêm frozen single-agent real-model baseline
+để làm nhóm đối chứng, nhưng chưa báo paired hơn-kém vì hai runtime hiện chưa
+đồng nhất.
 
 ## 2. Frozen artifacts
 
 - Corpus: [`evaluation/cases.v1.json`](../evaluation/cases.v1.json)
 - Baseline manifest:
   [`evaluation/baselines/single_agent.v1.json`](../evaluation/baselines/single_agent.v1.json)
+- Single-agent real-model observations/report:
+  [`evaluation/results/baseline-single-agent-v1`](../evaluation/results/baseline-single-agent-v1)
 - Reference report:
   [`evaluation/results/reference-v1/report.md`](../evaluation/results/reference-v1/report.md)
 
@@ -145,20 +149,20 @@ trường thật và không được dùng làm claim “AI chính xác 100%”.
 
 ## 7. Baseline honesty
 
-Phase 1 hiện có hai fake-provider traces phục vụ tool-loop regression và một
-integration test tùy chọn. Chúng không tạo thành model baseline vì thiếu:
+Reference offline vẫn có hai fake-provider traces phục vụ tool-loop regression
+và không được dùng thay cho baseline. Baseline thật hiện đã có 28 captured
+observations, model/hash/artifact metadata và token/latency; các trường còn thiếu
+cho một paired claim gồm:
 
-- đủ 28 captured observations;
-- model/version và generation settings;
-- frozen prompt/tool-schema/data hashes;
-- raw structured tool calls/results;
-- provider token usage/cost;
-- capture timestamp/runtime provenance.
+- cùng provider/runtime cho cả hai hệ thống;
+- human/semantic rubric ngoài structured assertions;
+- provider pricing/billing để tính cost;
+- nhiều repetitions/seed để báo paired win-tie-loss và khoảng tin cậy.
 
-Vì vậy manifest ghi `baseline_unavailable`, report không tính paired delta và
-không thay baseline bằng scripted oracle. Khi thu thập đủ, phải lưu immutable
-artifact, phân biệt explicit intent với intent suy từ tool, rồi mới report
-single-vs-multi win/tie/loss.
+Manifest ghi `real_model_captured`; report baseline giữ nguyên raw structured
+tool calls/results và **không** tự suy diễn routing intent ẩn từ tool call.
+`ecommerce-evaluate` vẫn là benchmark deterministic của multi-agent; paired
+delta chỉ được công bố sau khi hai phía chạy cùng protocol.
 
 ## 8. Re-run
 
@@ -173,11 +177,21 @@ ecommerce-evaluate --repeats 1 --max-cases 4 `
   --output evaluation/results/smoke
 ```
 
+Chấm lại artifact single-agent đã capture mà không gọi network:
+
+```powershell
+python scripts/score_real_baseline.py
+```
+
 Outputs:
 
 - `report.json`: metadata, global/category metrics, scores và observations;
 - `observations.csv`: normalized per-run execution facts;
 - `report.md`: bảng/giới hạn đọc được cho khóa luận.
+
+Baseline raw observations nằm trong `evaluation/results/baseline-single-agent-v1/`;
+scorer kiểm tra đủ 28 case, gắn artifact SHA-256 và tách rõ API turn success
+khỏi task success theo frozen assertions.
 
 Không overwrite `reference-v1` nếu chưa review diff, hash, all case scores và
 runtime environment. Report mới với dataset/seed hash khác là một benchmark
@@ -188,7 +202,7 @@ version mới, không phải so sánh trực tiếp mặc định.
 1. Freeze seed/data manifest và provenance policy mới.
 2. Curator độc lập gắn gold facts/relevance; không dùng SUT sinh gold.
 3. Thêm semantic/human evaluation rubric và inter-annotator agreement.
-4. Thu frozen single-agent real-model baseline trên cùng corpus.
+4. Chạy lại single-agent và multi-agent bằng cùng provider/model/runtime.
 5. Chạy nhiều seed/model runs; tách correctness và latency repetitions.
 6. Báo Wilson interval/paired win-tie-loss; không claim significance với sample
    nhỏ.

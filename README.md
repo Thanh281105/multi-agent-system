@@ -213,10 +213,14 @@ missing data, tool failure, ambiguous và irrelevant. Snapshot hiện tại nằ
 Snapshot 28 case × 3 lần lặp đạt toàn bộ gold routing, plan, structured answer
 assertions, retrieval và hai ca recoverable failure. Đây là **regression result
 trên cùng hệ thống và dữ liệu mẫu**, không phải bằng chứng tổng quát hóa. Phase 1
-chưa có frozen real-model baseline đủ provenance, nên report ghi
-`baseline_unavailable`; token/cost production cũng ghi `N/A`, không thay bằng số
-0 gây hiểu sai. Report schema `1.1` còn ghi SHA-256 manifest của toàn bộ tệp
-Python trong `app/`, ràng buộc snapshot với đúng source SUT được chạy.
+đã có frozen single-agent real-model baseline từ `main` tại revision `c7b17cf`:
+28/28 API turns thành công bằng `gpt-5.4-mini`, 58.878 token, p50 khoảng
+3,405 giây và p95 khoảng 8,475 giây. Artifact raw và report nằm tại
+[`evaluation/results/baseline-single-agent-v1`](evaluation/results/baseline-single-agent-v1).
+Đây chưa phải paired win/tie/loss vì baseline gọi API thật còn reference
+multi-agent chạy deterministic offline; chi phí vẫn ghi `N/A` vì chưa capture
+pricing/provider billing. Report schema `1.1` còn ghi SHA-256 manifest của toàn
+bộ tệp Python trong `app/`, ràng buộc snapshot với đúng source SUT được chạy.
 
 ## Cấu trúc repository
 
@@ -251,8 +255,8 @@ tests/                # offline regression + optional integration
   deterministic router v1 chỉ tiêu thụ structured state (`active_agent`,
   `last_product_id`), chưa đưa free-text memory vào inference. Chưa có long-term
   user preference, conversation summary hay historical-artifact memory.
-- Chưa có frozen single-agent real-model baseline, load/soak test hay disaster
-  recovery drill trên hạ tầng thật.
+- Chưa có paired single-vs-multi real-model run cùng provider/runtime, load/soak
+  test hay disaster recovery drill trên hạ tầng thật.
 - Qdrant live-container integration và Docker image build phải được CI/môi trường
   có Docker daemon xác nhận; unit suite dùng contract mocks.
 

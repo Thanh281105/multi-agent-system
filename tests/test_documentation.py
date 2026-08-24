@@ -48,6 +48,6 @@ def test_thesis_claims_keep_sample_and_evaluation_limits_visible() -> None:
     assert "Chưa có long-term" in readme
     assert "chưa đưa vào routing hay aggregation" in architecture
     assert "chưa có long-term user memory" in architecture
-    assert "baseline_unavailable" in evaluation
+    assert "real_model_captured" in evaluation
     assert "source-manifest" in evaluation
     assert "không phải external validity" in evaluation

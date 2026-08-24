@@ -34,9 +34,16 @@ from app.evaluation.runner import (
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CASES_PATH = PROJECT_ROOT / "evaluation" / "cases.v1.json"
 BASELINE_PATH = PROJECT_ROOT / "evaluation" / "baselines" / "single_agent.v1.json"
+REAL_BASELINE_ARTIFACT = (
+    PROJECT_ROOT
+    / "evaluation"
+    / "results"
+    / "baseline-single-agent-v1"
+    / "observations.json"
+)
 
 
-def test_frozen_corpus_is_balanced_and_baseline_is_honest() -> None:
+def test_frozen_corpus_is_balanced_and_real_baseline_is_bound() -> None:
     corpus = load_corpus(CASES_PATH)
     baseline = load_baseline_manifest(BASELINE_PATH)
 
@@ -44,9 +51,18 @@ def test_frozen_corpus_is_balanced_and_baseline_is_honest() -> None:
     assert Counter(case.category for case in corpus.cases) == {
         category: 4 for category in EvaluationCategory
     }
-    assert baseline.status == "baseline_unavailable"
-    assert baseline.captured_case_count == 0
-    assert "chưa có đủ 28 quan sát mô hình thật" in baseline.reason
+    assert baseline.status == "real_model_captured"
+    assert baseline.captured_case_count == 28
+    assert baseline.model == "gpt-5.4-mini"
+    assert baseline.artifact_path == (
+        "evaluation/results/baseline-single-agent-v1/observations.json"
+    )
+    assert baseline.artifact_sha256
+    assert baseline.prompt_sha256
+    assert baseline.tool_schema_sha256
+    assert (
+        baseline.dataset_sha256 == hashlib.sha256(CASES_PATH.read_bytes()).hexdigest()
+    )
 
 
 def test_baseline_unavailable_cannot_claim_model_evidence() -> None:
@@ -58,6 +74,22 @@ def test_baseline_unavailable_cannot_claim_model_evidence() -> None:
             captured_case_count=1,
             model="provider-model",
         )
+
+
+def test_real_baseline_artifact_covers_frozen_corpus() -> None:
+    baseline = load_baseline_manifest(BASELINE_PATH)
+    artifact = json.loads(REAL_BASELINE_ARTIFACT.read_text(encoding="utf-8"))
+
+    assert REAL_BASELINE_ARTIFACT.is_file()
+    assert artifact["system_id"] == "single_agent_real_main"
+    assert artifact["case_count"] == baseline.captured_case_count == 28
+    assert len(artifact["results"]) == 28
+    assert len({item["case_id"] for item in artifact["results"]}) == 28
+    assert all(item["status"] == "success" for item in artifact["results"])
+    assert (
+        hashlib.sha256(REAL_BASELINE_ARTIFACT.read_bytes()).hexdigest()
+        == baseline.artifact_sha256
+    )
 
 
 def test_multiset_metrics_preserve_duplicates_and_empty_retrieval_semantics() -> None:
@@ -174,7 +206,7 @@ async def test_complete_offline_benchmark_passes_frozen_gold_and_writes_reports(
     assert report.metrics["answer_assertion_accuracy"].value == 1
     assert report.metrics["retrieval_f1"].value == 1
     assert report.metrics["partial_recovery_rate"].value == 1
-    assert report.comparison_status == "baseline_unavailable"
+    assert report.comparison_status == "real_model_captured"
     assert report.sample_counts == {"shops": 5, "products": 30, "reviews": 150}
     assert report.random_seed == 42
     assert (
@@ -202,7 +234,7 @@ async def test_complete_offline_benchmark_passes_frozen_gold_and_writes_reports(
     assert report_json["sut_source_files"] == list(expected_sut_files)
     assert observations_csv.count("\n") == 29
     assert "SUT source manifest SHA-256" in report_markdown
-    assert "baseline_unavailable" in report_markdown
+    assert "real_model_captured" in report_markdown
     assert "không đại diện thị trường thật" in report_markdown
 
 
