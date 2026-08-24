@@ -4,7 +4,7 @@
 - Protocol: `deterministic multi-agent evidence + real-model final synthesis`
 - Dataset: `sample_ecommerce_vi_28_v1` (`a34473eff4a6f7e87034b46c239833c852b12542ea4c0faea4b651ddb801671d`)
 - Cases: `28` × `1`
-- Artifact SHA-256: `de9510de854d04189bfe786576035eaf0e5768dcfabc97b2f86700691151c660`
+- Artifact SHA-256: `3ec1d43c6a37bf19d9786c52a89772fdcab2c67ca1d9e85e4cad0d9f6015955e`
 
 ## Metrics
 

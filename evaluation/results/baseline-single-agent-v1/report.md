@@ -5,7 +5,7 @@
 - Dataset: `sample_ecommerce_vi_28_v1`
 - Dataset SHA-256: `a34473eff4a6f7e87034b46c239833c852b12542ea4c0faea4b651ddb801671d`
 - Captured cases: `28`
-- Artifact SHA-256: `6fdf0f6ddb322c7778e1646bada25c17389144e411d9a5f38b98c18a986db328`
+- Artifact SHA-256: `1861359c2a3694cccb1d183d756fdd76d24acc299879b3ccec995b362c3d97de`
 
 Đây là baseline single-agent chạy bằng API thật trên cùng frozen corpus.
 Không dùng artifact này để claim hơn-kém nếu chưa có paired run cùng model,

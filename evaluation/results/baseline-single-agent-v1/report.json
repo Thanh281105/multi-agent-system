@@ -12,7 +12,7 @@
     "products": 30,
     "reviews": 150
   },
-  "artifact_sha256": "6fdf0f6ddb322c7778e1646bada25c17389144e411d9a5f38b98c18a986db328",
+  "artifact_sha256": "1861359c2a3694cccb1d183d756fdd76d24acc299879b3ccec995b362c3d97de",
   "case_count": 28,
   "metrics": {
     "api_turn_success_rate": {

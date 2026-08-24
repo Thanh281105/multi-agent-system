@@ -1,6 +1,6 @@
 {
   "application_version": "1.0.0",
-  "artifact_sha256": "de9510de854d04189bfe786576035eaf0e5768dcfabc97b2f86700691151c660",
+  "artifact_sha256": "3ec1d43c6a37bf19d9786c52a89772fdcab2c67ca1d9e85e4cad0d9f6015955e",
   "baseline_report": "evaluation/results/baseline-single-agent-v1/report.md",
   "captured_at": "2026-08-24T05:08:33.682050+00:00",
   "case_count": 28,

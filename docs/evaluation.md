@@ -30,7 +30,9 @@ Mỗi report ghi SHA-256 của corpus, `app/db/seed.py` và manifest có thứ t
 tệp Python trong `app/`, cùng Python/platform, app version, seed `42`, row counts
 và số lần lặp. Manifest hash từng nội dung tệp kèm relative path, nên thay đổi
 source SUT sẽ tạo identifier mới. Gold labels được curator đóng băng trong JSON;
-runner không truy vấn SUT để tự sinh expected values.
+runner không truy vấn SUT để tự sinh expected values. Artifact SHA-256 canonicalize
+CRLF về LF trước khi hash, nên cùng artifact giữ nguyên digest giữa Windows và
+Linux GitHub runner.
 
 ## 3. Corpus design
 

@@ -81,7 +81,9 @@ def _sha256_bytes(value: bytes) -> str:
 
 
 def _sha256(path: Path) -> str:
-    return _sha256_bytes(path.read_bytes())
+    """Hash text artifacts canonically so CRLF/LF checkouts agree."""
+
+    return _sha256_bytes(path.read_bytes().replace(b"\r\n", b"\n"))
 
 
 def _jsonable(value: Any) -> Any:

@@ -51,6 +51,22 @@ REAL_MULTI_ARTIFACT = (
 REAL_MULTI_REPORT = REAL_MULTI_ARTIFACT.with_name("report.json")
 
 
+def canonical_sha256(path: Path) -> str:
+    """Match artifact scorer hashes regardless of checkout line endings."""
+
+    payload = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def test_artifact_hash_is_line_ending_stable(tmp_path: Path) -> None:
+    lf = tmp_path / "lf.json"
+    crlf = tmp_path / "crlf.json"
+    lf.write_bytes(b'{"stable": true}\n')
+    crlf.write_bytes(b'{"stable": true}\r\n')
+
+    assert canonical_sha256(lf) == canonical_sha256(crlf)
+
+
 def test_frozen_corpus_is_balanced_and_real_baseline_is_bound() -> None:
     corpus = load_corpus(CASES_PATH)
     baseline = load_baseline_manifest(BASELINE_PATH)
@@ -94,10 +110,7 @@ def test_real_baseline_artifact_covers_frozen_corpus() -> None:
     assert len(artifact["results"]) == 28
     assert len({item["case_id"] for item in artifact["results"]}) == 28
     assert all(item["status"] == "success" for item in artifact["results"])
-    assert (
-        hashlib.sha256(REAL_BASELINE_ARTIFACT.read_bytes()).hexdigest()
-        == baseline.artifact_sha256
-    )
+    assert canonical_sha256(REAL_BASELINE_ARTIFACT) == baseline.artifact_sha256
 
 
 def test_real_multi_agent_artifact_is_frozen_and_scoreable() -> None:
@@ -121,10 +134,7 @@ def test_real_multi_agent_artifact_is_frozen_and_scoreable() -> None:
         for item in artifact["results"]
     )
     assert report["system_id"] == "multi_agent_real"
-    assert (
-        report["artifact_sha256"]
-        == hashlib.sha256(REAL_MULTI_ARTIFACT.read_bytes()).hexdigest()
-    )
+    assert report["artifact_sha256"] == canonical_sha256(REAL_MULTI_ARTIFACT)
     assert report["metrics"]["task_success_rate"]["value"] == 1
     assert report["metrics"]["answer_assertion_accuracy"]["value"] == 1
     assert report["metrics"]["retrieval_f1"]["value"] == 1

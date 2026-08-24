@@ -20,7 +20,10 @@ ACTION_MAP = {
 
 
 def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """Hash text artifacts canonically so CRLF/LF checkouts agree."""
+
+    payload = path.read_bytes().replace(b"\r\n", b"\n")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _normalize(value: object) -> str:

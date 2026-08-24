@@ -9,7 +9,7 @@
   "tool_schema_sha256": "4ddd22bc0d8078c1b4e144fd7b71789a35e9cd596dac070702ffd2598f232735",
   "dataset_sha256": "a34473eff4a6f7e87034b46c239833c852b12542ea4c0faea4b651ddb801671d",
   "artifact_path": "evaluation/results/baseline-single-agent-v1/observations.json",
-  "artifact_sha256": "6fdf0f6ddb322c7778e1646bada25c17389144e411d9a5f38b98c18a986db328",
+  "artifact_sha256": "1861359c2a3694cccb1d183d756fdd76d24acc299879b3ccec995b362c3d97de",
   "captured_at": "2026-08-24T04:33:19.460204+00:00",
   "git_revision": "c7b17cf"
 }
