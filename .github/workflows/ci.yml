@@ -87,6 +87,23 @@ jobs:
       - name: Smoke live JSON, SSE, readiness, auth, and metrics
         run: python scripts/ci_live_smoke.py
 
+      - name: Verify PostgreSQL backup and restore drill
+        run: |
+          set -euo pipefail
+          backup_path="$(mktemp)"
+          docker compose -f compose.yaml exec -T postgres \
+            pg_dump -U ecommerce -d ecommerce -Fc > "$backup_path"
+          test -s "$backup_path"
+          docker compose -f compose.yaml exec -T postgres \
+            createdb -U ecommerce ecommerce_restore_check
+          docker compose -f compose.yaml exec -T postgres \
+            pg_restore --exit-on-error -U ecommerce -d ecommerce_restore_check < "$backup_path"
+          products="$(docker compose -f compose.yaml exec -T postgres \
+            psql -U ecommerce -d ecommerce_restore_check -tAc \
+            'SELECT count(*) FROM products;')"
+          test "$(echo "$products" | tr -d '[:space:]')" = "30"
+          rm -f "$backup_path"
+
       - name: Dump service logs on failure
         if: ${{ failure() }}
         run: docker compose -f compose.yaml logs --no-color --tail=200 migrate seed-data seed-knowledge backend
