@@ -6,7 +6,7 @@ import json
 import os
 import time
 from dataclasses import dataclass
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 
@@ -50,7 +50,7 @@ def _wait_until_ready() -> None:
             ):
                 return
             last_error = f"status={result.status} body={payload}"
-        except (HTTPError, URLError, TimeoutError, ValueError) as exc:
+        except (HTTPError, OSError, TimeoutError, ValueError) as exc:
             last_error = f"{type(exc).__name__}: {exc}"
         time.sleep(5)
     raise SystemExit(f"stack did not become ready: {last_error}")
