@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.dataset_source import DatasetSource
 from app.models.product import Product
 from app.models.review import Review
 from app.models.shop import Shop
@@ -55,7 +56,10 @@ class EcommerceRepository:
             select(Product)
             .join(Product.shop)
             .where(*filters)
-            .options(joinedload(Product.shop))
+            .options(
+                joinedload(Product.shop),
+                joinedload(Product.dataset_source),
+            )
             .order_by(
                 Product.rating.desc(),
                 Product.sold_count.desc(),
@@ -73,7 +77,10 @@ class EcommerceRepository:
         statement = (
             select(Product)
             .where(Product.id == product_id)
-            .options(joinedload(Product.shop))
+            .options(
+                joinedload(Product.shop),
+                joinedload(Product.dataset_source),
+            )
         )
         return self.session.scalars(statement).first()
 
@@ -107,7 +114,10 @@ class EcommerceRepository:
         statement = (
             select(Product)
             .where(Product.id.in_(product_ids))
-            .options(joinedload(Product.shop))
+            .options(
+                joinedload(Product.shop),
+                joinedload(Product.dataset_source),
+            )
         )
         by_id = {product.id: product for product in self.session.scalars(statement)}
         return [by_id[product_id] for product_id in product_ids if product_id in by_id]
@@ -145,6 +155,17 @@ class EcommerceRepository:
             .group_by(Product.category)
             .order_by(Product.category)
         ).all()
+        source_rows = self.session.execute(
+            select(
+                Product.source_id,
+                DatasetSource.dataset_id,
+                DatasetSource.dataset_version,
+            )
+            .outerjoin(DatasetSource, Product.source_id == DatasetSource.id)
+            .where(*filters)
+            .distinct()
+            .order_by(Product.source_id)
+        ).all()
 
         return {
             "category": category.strip() if category else None,
@@ -164,6 +185,15 @@ class EcommerceRepository:
             "category_distribution": {
                 str(category_name): int(count) for category_name, count in category_rows
             },
+            "provenance": [
+                _source_provenance(
+                    source_id=source_id,
+                    dataset_id=dataset_id,
+                    dataset_version=dataset_version,
+                    fields=("price", "rating", "sold_count"),
+                )
+                for source_id, dataset_id, dataset_version in source_rows
+            ],
         }
 
 
@@ -179,6 +209,7 @@ def _product_summary(product: Product) -> dict[str, object]:
         "sold_count": product.sold_count,
         "shop": product.shop.name,
         "platform": product.platform,
+        "provenance": product_provenance(product),
     }
 
 
@@ -189,4 +220,45 @@ def product_comparison_fact(product: Product) -> dict[str, object]:
         **_product_summary(product),
         "original_price": product.original_price,
         "description": product.description,
+    }
+
+
+def product_provenance(
+    product: Product,
+    *,
+    fields: tuple[str, ...] = ("price", "rating", "sold_count", "shop", "platform"),
+    fallback_source_id: str = "postgresql:products",
+) -> dict[str, object]:
+    """Return safe provenance metadata for facts belonging to one product."""
+
+    source = product.dataset_source
+    return _source_provenance(
+        source_id=product.source_id,
+        dataset_id=source.dataset_id if source is not None else None,
+        dataset_version=source.dataset_version if source is not None else None,
+        fields=fields,
+        fallback_source_id=fallback_source_id,
+    )
+
+
+def _source_provenance(
+    *,
+    source_id: int | None,
+    dataset_id: str | None,
+    dataset_version: str | None,
+    fields: tuple[str, ...],
+    fallback_source_id: str = "postgresql:products",
+) -> dict[str, object]:
+    if source_id is not None and dataset_id and dataset_version:
+        return {
+            "source_type": "sample.public_dataset",
+            "source_id": f"{dataset_id}:{dataset_version}",
+            "fields": list(fields),
+            "sample_data": True,
+        }
+    return {
+        "source_type": "sample.database",
+        "source_id": fallback_source_id,
+        "fields": list(fields),
+        "sample_data": True,
     }

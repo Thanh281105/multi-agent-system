@@ -4,7 +4,11 @@ import logging
 from typing import Any
 
 from app.db.session import session_scope
-from app.repositories.ecommerce import EcommerceRepository, product_comparison_fact
+from app.repositories.ecommerce import (
+    EcommerceRepository,
+    product_comparison_fact,
+    product_provenance,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +66,9 @@ def search_products(
             limit=limit,
         )
 
-    result = {"count": len(products), "products": products}
+    result: dict[str, Any] = {"count": len(products), "products": products}
+    if products:
+        result["provenance"] = _collect_provenance(products)
     logger.info("TOOL RESULT tool=search_products products=%d", len(products))
     return result
 
@@ -95,13 +101,19 @@ def get_product_reviews(product_id: int, limit: int = 20) -> dict[str, Any]:
             "reviews": [],
         }
 
-    result = {
+    product_payload: dict[str, Any] = {
+        "id": product.id,
+        "name": product.name,
+        "rating": product.rating,
+        "provenance": product_provenance(
+            product,
+            fields=("rating", "content", "created_at"),
+            fallback_source_id="postgresql:reviews",
+        ),
+    }
+    result: dict[str, Any] = {
         "found": True,
-        "product": {
-            "id": product.id,
-            "name": product.name,
-            "rating": product.rating,
-        },
+        "product": product_payload,
         "count": len(reviews),
         "reviews": [
             {
@@ -113,6 +125,7 @@ def get_product_reviews(product_id: int, limit: int = 20) -> dict[str, Any]:
             for review in reviews
         ],
     }
+    result["provenance"] = [product_payload["provenance"]]
     logger.info(
         "TOOL RESULT tool=get_product_reviews products=1 reviews=%d",
         len(reviews),
@@ -145,14 +158,17 @@ def compare_products(product_ids: list[int]) -> dict[str, Any]:
         products = EcommerceRepository(session).get_products_by_ids(product_ids)
 
     found_ids = {product.id for product in products}
-    result = {
+    comparison_products = [product_comparison_fact(product) for product in products]
+    result: dict[str, Any] = {
         "count": len(products),
         "requested_product_ids": product_ids,
         "missing_product_ids": [
             product_id for product_id in product_ids if product_id not in found_ids
         ],
-        "products": [product_comparison_fact(product) for product in products],
+        "products": comparison_products,
     }
+    if products:
+        result["provenance"] = _collect_provenance(comparison_products)
     logger.info("TOOL RESULT tool=compare_products products=%d", len(products))
     return result
 
@@ -194,3 +210,25 @@ def _validate_limit(limit: int, *, maximum: int = 50) -> None:
 def _validate_positive_id(value: int, field_name: str) -> None:
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ValueError(f"{field_name} must be a positive integer")
+
+
+def _collect_provenance(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Collect unique provenance records from product fact rows."""
+
+    unique: dict[tuple[str, str, tuple[str, ...]], dict[str, Any]] = {}
+    for record in records:
+        provenance = record.get("provenance")
+        if not isinstance(provenance, dict):
+            continue
+        source_type = provenance.get("source_type")
+        source_id = provenance.get("source_id")
+        fields_value = provenance.get("fields", [])
+        if not isinstance(source_type, str) or not isinstance(source_id, str):
+            continue
+        if not isinstance(fields_value, list) or not all(
+            isinstance(field, str) for field in fields_value
+        ):
+            continue
+        key = (source_type, source_id, tuple(fields_value))
+        unique.setdefault(key, provenance)
+    return list(unique.values())

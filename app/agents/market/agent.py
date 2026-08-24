@@ -89,12 +89,15 @@ class MarketAgent(DomainAgent):
             status = TaskStatus.FAILED
         provenance: list[DataProvenance] = []
         if "market" in data:
-            provenance.append(
-                DataProvenance(
-                    source_type="sample.database",
-                    source_id="postgresql:products",
-                    fields=("price", "rating", "sold_count"),
-                    sample_data=True,
+            provenance.extend(
+                self.provenance_or_fallback(
+                    data["market"],
+                    DataProvenance(
+                        source_type="sample.database",
+                        source_id="postgresql:products",
+                        fields=("price", "rating", "sold_count"),
+                        sample_data=True,
+                    ),
                 )
             )
         if "knowledge" in data:

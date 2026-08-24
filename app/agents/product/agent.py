@@ -96,7 +96,10 @@ class ProductAgent(DomainAgent):
                 status=TaskStatus.PARTIAL_SUCCESS,
                 data={"search": search_response.data},
                 errors=(self.gateway_error(rank_response),),
-                provenance=(self._provenance(),),
+                provenance=self.provenance_or_fallback(
+                    search_response.data,
+                    self._provenance(),
+                ),
                 duration_ms=(perf_counter() - started_at) * 1_000,
             )
         return self._success(
@@ -131,7 +134,7 @@ class ProductAgent(DomainAgent):
             agent_id=self.agent_id,
             status=TaskStatus.SUCCESS,
             data=data,
-            provenance=(self._provenance(),),
+            provenance=self.provenance_or_fallback(data, self._provenance()),
             duration_ms=(perf_counter() - started_at) * 1_000,
         )
 

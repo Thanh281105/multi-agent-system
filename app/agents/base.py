@@ -7,7 +7,13 @@ from time import perf_counter
 from typing import Any
 
 from app.agent_gateway import AgentGateway, GatewayRequest, GatewayResponse
-from app.contracts import AgentError, AgentMessage, AgentResult, TaskStatus
+from app.contracts import (
+    AgentError,
+    AgentMessage,
+    AgentResult,
+    DataProvenance,
+    TaskStatus,
+)
 
 
 class DomainAgent(ABC):
@@ -87,3 +93,38 @@ class DomainAgent(ABC):
             "Agent Gateway không trả lỗi chuẩn hóa.",
             retryable=True,
         )
+
+    @staticmethod
+    def provenance_from_data(data: object) -> tuple[DataProvenance, ...]:
+        """Extract validated provenance records from nested tool facts."""
+
+        unique: dict[tuple[str, str, tuple[str, ...]], DataProvenance] = {}
+
+        def visit(value: object) -> None:
+            if isinstance(value, dict):
+                if {"source_type", "source_id"}.issubset(value):
+                    try:
+                        record = DataProvenance.model_validate(value)
+                    except ValueError:
+                        record = None
+                    if record is not None:
+                        key = (record.source_type, record.source_id, record.fields)
+                        unique.setdefault(key, record)
+                for nested in value.values():
+                    visit(nested)
+            elif isinstance(value, (list, tuple)):
+                for nested in value:
+                    visit(nested)
+
+        visit(data)
+        return tuple(unique.values())
+
+    @classmethod
+    def provenance_or_fallback(
+        cls,
+        data: object,
+        fallback: DataProvenance,
+    ) -> tuple[DataProvenance, ...]:
+        """Use tool-provided provenance, retaining a safe fallback for legacy data."""
+
+        return cls.provenance_from_data(data) or (fallback,)

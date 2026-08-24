@@ -177,7 +177,12 @@ class TrustAgent(DomainAgent):
                 "method": "per_product_trust_complaints_vi_v1",
             },
             errors=errors,
-            provenance=(self._provenance(),),
+            provenance=self.provenance_or_fallback(
+                {
+                    "analyses": items,
+                },
+                self._provenance(),
+            ),
             duration_ms=(perf_counter() - started_at) * 1_000,
         )
 
@@ -195,7 +200,7 @@ class TrustAgent(DomainAgent):
             status=TaskStatus.PARTIAL_SUCCESS if errors else TaskStatus.SUCCESS,
             data=data,
             errors=errors,
-            provenance=(self._provenance(),),
+            provenance=self.provenance_or_fallback(data, self._provenance()),
             duration_ms=(perf_counter() - started_at) * 1_000,
         )
 
