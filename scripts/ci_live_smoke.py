@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -28,6 +29,7 @@ def main() -> None:
     _wait_until_ready()
     _assert_liveness()
     _assert_json_chat()
+    _assert_bounded_concurrency()
     _assert_sse_chat()
     _assert_operations_authentication()
     _assert_metrics()
@@ -106,6 +108,30 @@ def _assert_sse_chat() -> None:
         _require(
             completed.get("status") in {"success", "partial_success"}, "SSE result"
         )
+
+
+def _assert_bounded_concurrency() -> None:
+    def invoke(index: int) -> HttpResult:
+        return _request(
+            "POST",
+            "/api/v1/chat",
+            headers={"X-API-Key": GATEWAY_KEY, "Content-Type": "application/json"},
+            body=json.dumps(
+                {"message": f"Tìm sản phẩm mẫu số {index} dưới 1 triệu."}
+            ).encode("utf-8"),
+            timeout=60,
+        )
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        results = list(executor.map(invoke, range(8)))
+    _require(
+        all(
+            result.status == 200
+            and _json(result).get("status") in {"success", "partial_success"}
+            for result in results
+        ),
+        "bounded concurrency",
+    )
 
 
 def _assert_operations_authentication() -> None:
