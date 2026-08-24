@@ -155,7 +155,12 @@ def test_prepare_snapshot_is_deterministic_and_drops_invalid_rows(
         for line in (first / "reviews.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert {item["external_id"] for item in products} == {"1", "2"}
-    assert {item["external_id"] for item in reviews} == {"101", "102", "201"}
+    assert {item["external_id"] for item in reviews} == {
+        "1:101",
+        "1:102",
+        "2:201",
+    }
+    assert len({item["external_id"] for item in reviews}) == len(reviews)
     assert all("customer_id" not in item for item in reviews)
 
 

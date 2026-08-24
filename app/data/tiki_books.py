@@ -231,6 +231,7 @@ def _read_reviews(
     by_product_and_rating: dict[str, dict[int, list[NormalizedReview]]] = defaultdict(
         lambda: defaultdict(list)
     )
+    seen_external_ids: dict[str, int] = defaultdict(int)
     skipped = 0
     for row in _csv_rows(archive, member):
         product_id = row.get("product_id", "").strip()
@@ -241,6 +242,12 @@ def _read_reviews(
         except (TypeError, ValueError):
             skipped += 1
             continue
+        occurrence = seen_external_ids[review.external_id]
+        seen_external_ids[review.external_id] += 1
+        if occurrence:
+            review = review.model_copy(
+                update={"external_id": f"{review.external_id}:{occurrence}"}
+            )
         by_product_and_rating[product_id][review.rating].append(review)
 
     selected: list[NormalizedReview] = []
@@ -352,14 +359,16 @@ def _normalize_review(row: Mapping[str, str], product_id: str) -> NormalizedRevi
     content = _clean_text(row.get("content", ""))
     if not content:
         raise ValueError("review content is required")
-    external_id = _clean_text(row.get("comment_id", ""))
-    if not external_id:
+    comment_id = _clean_text(row.get("comment_id", ""))
+    if not comment_id:
         raise ValueError("review comment_id is required")
     rating = _parse_int(row.get("rating", ""))
     if not 1 <= rating <= 5:
         raise ValueError("review rating is outside 1..5")
     return NormalizedReview(
-        external_id=external_id,
+        # The source reuses comment IDs across products; scope them to the
+        # product so the normalized source key remains globally unique.
+        external_id=f"{product_id}:{comment_id}",
         product_external_id=product_id,
         rating=rating,
         content=content,
