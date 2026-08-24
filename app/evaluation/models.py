@@ -176,7 +176,9 @@ class BaselineManifest(BaseModel):
 class EvaluationObservation(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    system_id: Literal["multi_agent_offline"] = "multi_agent_offline"
+    system_id: Literal["multi_agent_offline", "multi_agent_real"] = (
+        "multi_agent_offline"
+    )
     case_id: str
     category: EvaluationCategory
     repetition: int = Field(ge=0)
@@ -248,7 +250,9 @@ class EvaluationReport(BaseModel):
 
     schema_version: Literal["1.1"] = "1.1"
     generated_at: datetime
-    system_id: Literal["multi_agent_offline"] = "multi_agent_offline"
+    system_id: Literal["multi_agent_offline", "multi_agent_real"] = (
+        "multi_agent_offline"
+    )
     application_version: str
     sut_source_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     sut_source_files: tuple[str, ...] = Field(min_length=1)
