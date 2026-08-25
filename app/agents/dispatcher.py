@@ -14,6 +14,16 @@ from app.agents.trust import TrustAgent
 from app.contracts import AgentError, AgentMessage, AgentResult, TaskStatus
 from app.shared import ModelRuntime, ModelRuntimeMode, ReasoningEffort
 
+DEFAULT_AGENT_TYPES: tuple[type[DomainAgent], ...] = (
+    ProductAgent,
+    ReviewAgent,
+    TrustAgent,
+    MarketAgent,
+)
+DEFAULT_AGENT_IDS: tuple[str, ...] = tuple(
+    agent_type.agent_id for agent_type in DEFAULT_AGENT_TYPES
+)
+
 
 class AgentDispatcher:
     """Route typed messages without dynamic import or arbitrary dispatch."""
@@ -61,11 +71,20 @@ class AgentDispatcher:
 def build_default_dispatcher(
     gateway: AgentGateway,
     *,
+    enabled_agents: Iterable[str] | None = None,
     model_runtime: ModelRuntime | None = None,
     runtime_mode: ModelRuntimeMode = "off",
     specialist_model: str = "gpt-5.4-nano",
     reasoning_effort: ReasoningEffort = "low",
 ) -> AgentDispatcher:
+    requested_agents = (
+        tuple(enabled_agents) if enabled_agents is not None else DEFAULT_AGENT_IDS
+    )
+    if len(requested_agents) != len(set(requested_agents)):
+        raise ValueError("enabled agents must be unique")
+    unknown_agents = set(requested_agents) - set(DEFAULT_AGENT_IDS)
+    if unknown_agents:
+        raise ValueError(f"unknown enabled agents: {sorted(unknown_agents)}")
     reasoner = (
         AgentReasoner(
             model_runtime,
@@ -77,11 +96,10 @@ def build_default_dispatcher(
         else None
     )
     return AgentDispatcher(
-        (
-            ProductAgent(gateway),
-            ReviewAgent(gateway),
-            TrustAgent(gateway),
-            MarketAgent(gateway),
+        tuple(
+            agent_type(gateway)
+            for agent_type in DEFAULT_AGENT_TYPES
+            if agent_type.agent_id in requested_agents
         ),
         reasoner=reasoner,
     )

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from app.agent_gateway import AgentGateway
-from app.agents import AgentDispatcher, build_default_dispatcher
+from app.agents import DEFAULT_AGENT_IDS, AgentDispatcher, build_default_dispatcher
 from app.contracts import AgentMessage, TaskStatus
 from app.mcp.catalog import build_default_mcp_router
 
@@ -172,3 +172,24 @@ async def test_dispatcher_returns_stable_error_for_unknown_agent(
 
     assert result.status == TaskStatus.FAILED
     assert result.errors[0].code == "dispatcher.agent_not_found"
+
+
+def test_dispatcher_can_build_a_validated_agent_ablation() -> None:
+    gateway = AgentGateway(router=build_default_mcp_router())
+
+    dispatcher = build_default_dispatcher(
+        gateway,
+        enabled_agents=("product_agent", "trust_agent"),
+    )
+
+    assert DEFAULT_AGENT_IDS == (
+        "product_agent",
+        "review_agent",
+        "trust_agent",
+        "market_agent",
+    )
+    assert dispatcher.agent_ids() == ("product_agent", "trust_agent")
+    with pytest.raises(ValueError, match="unknown enabled agents"):
+        build_default_dispatcher(gateway, enabled_agents=("unknown_agent",))
+    with pytest.raises(ValueError, match="at least one agent"):
+        build_default_dispatcher(gateway, enabled_agents=())
