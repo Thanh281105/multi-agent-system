@@ -9,13 +9,20 @@ from pathlib import Path
 import pytest
 
 from app.evaluation.corpus import load_evaluation_corpus_v2
+from app.evaluation.experiment import load_evaluation_experiment_v2
 from app.evaluation.models import EvaluationCategory
 from app.evaluation.protocol import canonical_sha256
-from app.evaluation.v2_models import PricingManifestV2, RobustnessPolicy
+from app.evaluation.v2_models import (
+    ModelStage,
+    PricingManifestV2,
+    RobustnessPolicy,
+    RuntimeMode,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BASE_CORPUS_PATH = PROJECT_ROOT / "evaluation" / "cases.v1.json"
 CORPUS_V2_PATH = PROJECT_ROOT / "evaluation" / "corpus.v2.json"
+EXPERIMENT_PATH = PROJECT_ROOT / "evaluation" / "experiment.v2.json"
 PRICING_PATH = (
     PROJECT_ROOT / "evaluation" / "pricing" / "openai-standard-2026-08-25.v2.json"
 )
@@ -115,3 +122,67 @@ def test_clean_corpus_still_has_all_thesis_categories() -> None:
     )
 
     assert clean_categories == {category: 4 for category in EvaluationCategory}
+
+
+def test_experiment_manifest_binds_paired_baseline_and_stage_ablations() -> None:
+    experiment = load_evaluation_experiment_v2(
+        EXPERIMENT_PATH,
+        CORPUS_V2_PATH,
+        BASE_CORPUS_PATH,
+        PRICING_PATH,
+    )
+
+    assert len(experiment.config.variants) == 6
+    assert experiment.config.baseline_variant_id == "deterministic_v2"
+    assert experiment.config.variants[0].runtime_mode == RuntimeMode.DETERMINISTIC
+    assert len(experiment.config.latency_case_ids) == len(EvaluationCategory)
+    full = next(
+        variant
+        for variant in experiment.config.variants
+        if variant.variant_id == "hybrid_full"
+    )
+    assert {binding.stage for binding in full.model_bindings} == {
+        ModelStage.ROUTING,
+        ModelStage.PLANNING,
+        ModelStage.SPECIALIST,
+        ModelStage.SYNTHESIS,
+    }
+    assert {binding.model for binding in full.model_bindings} == {
+        "gpt-5.4-nano-2026-03-17",
+        "gpt-5.4-mini-2026-03-17",
+    }
+    enabled_stages = {
+        variant.variant_id: {binding.stage for binding in variant.model_bindings}
+        for variant in experiment.config.variants
+    }
+    all_stages = {
+        ModelStage.ROUTING,
+        ModelStage.PLANNING,
+        ModelStage.SPECIALIST,
+        ModelStage.SYNTHESIS,
+    }
+    assert enabled_stages == {
+        "deterministic_v2": set(),
+        "hybrid_full": all_stages,
+        "hybrid_no_router": all_stages - {ModelStage.ROUTING},
+        "hybrid_no_planner": all_stages - {ModelStage.PLANNING},
+        "hybrid_no_specialist": all_stages - {ModelStage.SPECIALIST},
+        "hybrid_no_synthesis": all_stages - {ModelStage.SYNTHESIS},
+    }
+    assert len(experiment.experiment_sha256) == 64
+    assert len(experiment.pricing_sha256) == 64
+
+
+def test_experiment_loader_rejects_unknown_latency_case(tmp_path: Path) -> None:
+    payload = json.loads(EXPERIMENT_PATH.read_text(encoding="utf-8"))
+    payload["latency_case_ids"][0] = "unknown_case"
+    invalid = tmp_path / "invalid_experiment.json"
+    invalid.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unknown latency cases"):
+        load_evaluation_experiment_v2(
+            invalid,
+            CORPUS_V2_PATH,
+            BASE_CORPUS_PATH,
+            PRICING_PATH,
+        )

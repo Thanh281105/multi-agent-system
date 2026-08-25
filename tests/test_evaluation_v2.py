@@ -633,6 +633,8 @@ def _hybrid_variant() -> EvaluationVariantV2:
 def _protocol(*, case_order: tuple[str, ...] | None = None) -> EvaluationProtocolV2:
     return EvaluationProtocolV2(
         protocol_id="paired_protocol_v2",
+        experiment_sha256="d" * 64,
+        baseline_variant_id="deterministic_v1",
         corpus_id="commerce_corpus_v2",
         corpus_sha256="a" * 64,
         dataset_id="synthetic_seed_v2",

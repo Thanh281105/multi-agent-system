@@ -149,6 +149,8 @@ class EvaluationProtocolV2(BaseModel):
 
     schema_version: Literal["2.0"] = "2.0"
     protocol_id: str = Field(pattern=_IDENTIFIER)
+    experiment_sha256: str = Field(pattern=_SHA256)
+    baseline_variant_id: str = Field(pattern=_IDENTIFIER)
     corpus_id: str = Field(pattern=_IDENTIFIER)
     corpus_sha256: str = Field(pattern=_SHA256)
     dataset_id: str = Field(pattern=_IDENTIFIER)
@@ -194,6 +196,8 @@ class EvaluationProtocolV2(BaseModel):
         if len(variant_ids) != len(set(variant_ids)):
             raise ValueError("variant IDs must be unique")
         known_variants = set(variant_ids)
+        if self.baseline_variant_id not in known_variants:
+            raise ValueError("protocol baseline variant is unknown")
         for variant in self.variants:
             if (
                 variant.parent_variant_id is not None

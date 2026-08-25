@@ -1,0 +1,239 @@
+{
+  "schema_version": "2.0",
+  "experiment_id": "thesis_paired_ablation_v2",
+  "baseline_variant_id": "deterministic_v2",
+  "random_seed": 42,
+  "correctness_repeats": 3,
+  "warmup_repeats": 1,
+  "latency_repeats": 5,
+  "bootstrap_samples": 10000,
+  "warmup_case_id": "simple_01_nova_search",
+  "latency_case_ids": [
+    "simple_01_nova_search",
+    "complex_01_compare_headphones",
+    "multi_domain_01_headphones",
+    "missing_data_01_review",
+    "tool_failure_01_trust",
+    "ambiguous_01_product",
+    "irrelevant_01_poem"
+  ],
+  "variants": [
+    {
+      "variant_id": "deterministic_v2",
+      "description": "Deterministic router, planner, four domain agents, and grounded synthesis.",
+      "runtime_mode": "deterministic",
+      "enabled_agents": [
+        "product_agent",
+        "review_agent",
+        "trust_agent",
+        "market_agent"
+      ],
+      "embedding_backend": "hashing",
+      "max_model_calls": 0,
+      "fallback_policy": "deterministic_fallback",
+      "hypothesis": "A zero-LLM baseline establishes the quality, latency, token, and cost floor."
+    },
+    {
+      "variant_id": "hybrid_full",
+      "description": "Structured GPT routing, planning, specialist reasoning, and grounded synthesis with deterministic fallback.",
+      "runtime_mode": "hybrid",
+      "model_router_enabled": true,
+      "model_planner_enabled": true,
+      "model_specialists_enabled": true,
+      "model_synthesis_enabled": true,
+      "enabled_agents": [
+        "product_agent",
+        "review_agent",
+        "trust_agent",
+        "market_agent"
+      ],
+      "embedding_backend": "hashing",
+      "model_bindings": [
+        {
+          "stage": "routing",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "planning",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "specialist",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "synthesis",
+          "provider": "openai",
+          "model": "gpt-5.4-mini-2026-03-17",
+          "reasoning_effort": "low"
+        }
+      ],
+      "max_model_calls": 7,
+      "fallback_policy": "deterministic_fallback",
+      "parent_variant_id": "deterministic_v2",
+      "hypothesis": "The full hybrid system improves grounded task quality and robustness at measurable token, cost, and latency overhead."
+    },
+    {
+      "variant_id": "hybrid_no_router",
+      "description": "Hybrid system using deterministic routing while retaining model planning, specialist reasoning, and synthesis.",
+      "runtime_mode": "hybrid",
+      "model_planner_enabled": true,
+      "model_specialists_enabled": true,
+      "model_synthesis_enabled": true,
+      "enabled_agents": [
+        "product_agent",
+        "review_agent",
+        "trust_agent",
+        "market_agent"
+      ],
+      "embedding_backend": "hashing",
+      "model_bindings": [
+        {
+          "stage": "planning",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "specialist",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "synthesis",
+          "provider": "openai",
+          "model": "gpt-5.4-mini-2026-03-17",
+          "reasoning_effort": "low"
+        }
+      ],
+      "max_model_calls": 6,
+      "fallback_policy": "deterministic_fallback",
+      "parent_variant_id": "hybrid_full",
+      "hypothesis": "Removing model routing isolates whether intent classification contributes beyond deterministic rules."
+    },
+    {
+      "variant_id": "hybrid_no_planner",
+      "description": "Hybrid system using deterministic planning while retaining model routing, specialist reasoning, and synthesis.",
+      "runtime_mode": "hybrid",
+      "model_router_enabled": true,
+      "model_specialists_enabled": true,
+      "model_synthesis_enabled": true,
+      "enabled_agents": [
+        "product_agent",
+        "review_agent",
+        "trust_agent",
+        "market_agent"
+      ],
+      "embedding_backend": "hashing",
+      "model_bindings": [
+        {
+          "stage": "routing",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "specialist",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "synthesis",
+          "provider": "openai",
+          "model": "gpt-5.4-mini-2026-03-17",
+          "reasoning_effort": "low"
+        }
+      ],
+      "max_model_calls": 6,
+      "fallback_policy": "deterministic_fallback",
+      "parent_variant_id": "hybrid_full",
+      "hypothesis": "Removing model planning isolates the contribution of model-generated dependency-aware task graphs."
+    },
+    {
+      "variant_id": "hybrid_no_specialist",
+      "description": "Hybrid system retaining model routing, planning, and synthesis while domain agents use deterministic tool outputs only.",
+      "runtime_mode": "hybrid",
+      "model_router_enabled": true,
+      "model_planner_enabled": true,
+      "model_synthesis_enabled": true,
+      "enabled_agents": [
+        "product_agent",
+        "review_agent",
+        "trust_agent",
+        "market_agent"
+      ],
+      "embedding_backend": "hashing",
+      "model_bindings": [
+        {
+          "stage": "routing",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "planning",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "synthesis",
+          "provider": "openai",
+          "model": "gpt-5.4-mini-2026-03-17",
+          "reasoning_effort": "low"
+        }
+      ],
+      "max_model_calls": 3,
+      "fallback_policy": "deterministic_fallback",
+      "parent_variant_id": "hybrid_full",
+      "hypothesis": "Removing specialist model reasoning isolates whether agent-local analysis improves evidence use."
+    },
+    {
+      "variant_id": "hybrid_no_synthesis",
+      "description": "Hybrid system retaining model routing, planning, and specialist reasoning with deterministic grounded aggregation.",
+      "runtime_mode": "hybrid",
+      "model_router_enabled": true,
+      "model_planner_enabled": true,
+      "model_specialists_enabled": true,
+      "enabled_agents": [
+        "product_agent",
+        "review_agent",
+        "trust_agent",
+        "market_agent"
+      ],
+      "embedding_backend": "hashing",
+      "model_bindings": [
+        {
+          "stage": "routing",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "planning",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "specialist",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        }
+      ],
+      "max_model_calls": 6,
+      "fallback_policy": "deterministic_fallback",
+      "parent_variant_id": "hybrid_full",
+      "hypothesis": "Removing model synthesis isolates whether natural-language aggregation adds value beyond deterministic grounded output."
+    }
+  ]
+}
