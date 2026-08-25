@@ -10,10 +10,12 @@ from typing import Any
 import pytest
 
 from app.agents.reasoning import SpecialistInsight
+from app.evaluation.artifacts import validate_bundle
 from app.evaluation.execution import run_evaluation_matrix_v2
 from app.evaluation.experiment import load_evaluation_experiment_v2
 from app.evaluation.preparation import GitStateV2, build_evaluation_protocol_v2
 from app.evaluation.protocol import validate_observation_protocol
+from app.evaluation.reporting import write_evaluation_bundle_v2
 from app.evaluation.v2_models import EvaluationPhase, ModelStage
 from app.orchestrator.model_schemas import (
     GroundedClaim,
@@ -90,7 +92,9 @@ async def test_matrix_rejects_hybrid_without_runtime_before_execution() -> None:
 
 
 @pytest.mark.asyncio
-async def test_hybrid_matrix_runs_bound_models_and_discards_warmup_calls() -> None:
+async def test_hybrid_matrix_runs_bound_models_and_discards_warmup_calls(
+    tmp_path: Path,
+) -> None:
     assets = _assets()
     prepared = build_evaluation_protocol_v2(
         assets,
@@ -170,6 +174,16 @@ async def test_hybrid_matrix_runs_bound_models_and_discards_warmup_calls() -> No
     )
     for observation in execution.observations:
         validate_observation_protocol(observation, protocol)
+    completed = write_evaluation_bundle_v2(
+        tmp_path / "hybrid_bundle",
+        run_id="run_hybrid_matrix_v2",
+        execution=execution,
+        pricing=assets.pricing,
+    )
+    assert completed.manifest.comparison_count == 8
+    assert completed.manifest.omission_count == 0
+    assert completed.analysis.robustness == ()
+    assert validate_bundle(tmp_path / "hybrid_bundle") == completed.manifest
 
 
 class _SchemaAwareResponses:
