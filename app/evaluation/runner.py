@@ -23,10 +23,11 @@ from sqlalchemy.orm import Session, sessionmaker
 from app import __version__
 from app.agent_gateway import AgentGateway
 from app.agents import AgentDispatcher, build_default_dispatcher
-from app.contracts import AgentError, AgentMessage, AgentResult, TaskStatus
+from app.contracts import AgentResult, TaskStatus
 from app.db import session as db_session
 from app.db.base import Base
 from app.db.seed import seed_database
+from app.evaluation.failure import FailureInjectingDispatcher
 from app.evaluation.metrics import (
     aggregate_metrics,
     observations_for_categories,
@@ -40,7 +41,6 @@ from app.evaluation.models import (
     EvaluationCorpus,
     EvaluationObservation,
     EvaluationReport,
-    FailureInjection,
 )
 from app.mcp.catalog import build_default_mcp_router
 from app.orchestrator import MultiAgentOrchestrator
@@ -74,41 +74,6 @@ ALLOWED_INTENTS = frozenset(
     }
 )
 REQUIRED_CATEGORY_COUNT = 4
-
-
-class FailureInjectingDispatcher(AgentDispatcher):
-    """Inject one declared agent failure without changing production agents."""
-
-    def __init__(
-        self,
-        delegate: AgentDispatcher,
-        injection: FailureInjection,
-    ) -> None:
-        self._delegate = delegate
-        self._injection = injection
-
-    async def dispatch(self, message: AgentMessage) -> AgentResult:
-        if (
-            message.target == self._injection.agent_id
-            and message.action == self._injection.action
-        ):
-            return AgentResult(
-                task_id=message.task_id,
-                agent_id=self._injection.agent_id,
-                status=TaskStatus.FAILED,
-                errors=(
-                    AgentError(
-                        code=self._injection.error_code,
-                        message="Agent lỗi có chủ đích trong benchmark offline.",
-                        source=self._injection.agent_id,
-                        retryable=True,
-                    ),
-                ),
-            )
-        return await self._delegate.dispatch(message)
-
-    def agent_ids(self) -> tuple[str, ...]:
-        return self._delegate.agent_ids()
 
 
 def load_corpus(path: Path) -> EvaluationCorpus:

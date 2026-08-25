@@ -9,8 +9,8 @@ from typing import Callable
 
 from app.agent_gateway import AgentGateway
 from app.agents import build_default_dispatcher
+from app.evaluation.failure import FailureInjectingDispatcher
 from app.evaluation.models import FailureInjection
-from app.evaluation.runner import FailureInjectingDispatcher
 from app.evaluation.v2_models import (
     EvaluationVariantV2,
     ModelBindingV2,
