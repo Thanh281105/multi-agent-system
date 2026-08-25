@@ -40,6 +40,12 @@ cấp trực tiếp URL đã mã hóa ngoài Compose template.
 Copy-Item .env.example .env
 # Thay placeholder bằng secret thật; không in nội dung .env ra terminal/log.
 docker compose --env-file .env config --quiet
+Push-Location frontend
+npm ci
+npm run lint
+npm test
+npm run build
+Pop-Location
 python -m pip install -r requirements-dev.lock
 pytest -m "not integration" -q
 ruff check app tests migrations
@@ -47,8 +53,10 @@ mypy app
 ```
 
 `requirements.lock` là runtime lock được image sử dụng; `requirements-dev.lock`
-include lock runtime và pin các công cụ kiểm thử. Khi đổi `pyproject.toml`, phải
-cập nhật hai lock file trong cùng một commit và chạy lại build image/CI.
+include lock runtime và pin các công cụ kiểm thử. `frontend/package-lock.json`
+khóa toolchain web; Vite sinh `app/frontend/dist` trước khi chạy Python test hoặc
+đóng wheel. Không sửa hay commit output này. Khi đổi dependency, cập nhật lock
+file tương ứng trong cùng commit và chạy lại build image/CI.
 
 Kiểm tra image build ở host có Docker daemon:
 

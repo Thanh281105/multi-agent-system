@@ -1,3 +1,17 @@
+FROM node:24.19.0-bookworm-slim AS frontend-builder
+
+ENV NPM_CONFIG_AUDIT=false \
+    NPM_CONFIG_FUND=false
+
+WORKDIR /build/frontend
+
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+COPY frontend ./
+RUN npm run build
+
+
 FROM python:3.12.14-slim-bookworm AS builder
 
 ENV VIRTUAL_ENV=/opt/venv \
@@ -10,6 +24,7 @@ RUN python -m venv "$VIRTUAL_ENV"
 
 COPY pyproject.toml README.md requirements.lock ./
 COPY app ./app
+COPY --from=frontend-builder /build/app/frontend/dist ./app/frontend/dist
 
 RUN pip install --no-cache-dir --no-compile -r requirements.lock \
     && pip install --no-cache-dir --no-compile --no-build-isolation --no-deps . \

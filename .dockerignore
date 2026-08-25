@@ -11,6 +11,8 @@ __pycache__
 .mypy_cache
 .ruff_cache
 *.egg-info
+frontend/node_modules
+output
 build
 dist
 tests

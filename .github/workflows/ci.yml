@@ -20,6 +20,21 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.19.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Verify and build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -55,6 +70,24 @@ jobs:
 
       - name: Build Python wheel
         run: python -m pip wheel --no-deps --no-build-isolation --wheel-dir dist .
+
+      - name: Verify wheel frontend contents
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          wheel = next(Path("dist").glob("*.whl"))
+          with ZipFile(wheel) as archive:
+              names = set(archive.namelist())
+          prefix = "app/frontend/dist/"
+          assert prefix + "index.html" in names
+          assert prefix + "favicon.svg" in names
+          assert any(name.startswith(prefix + "assets/") and name.endswith(".js") for name in names)
+          assert any(name.startswith(prefix + "assets/") and name.endswith(".css") for name in names)
+          assert any(name.startswith(prefix + "assets/") and name.endswith(".woff2") for name in names)
+          print(f"WHEEL_FRONTEND_STATUS=PASS file={wheel.name}")
+          PY
 
       - name: Validate Compose model
         env:

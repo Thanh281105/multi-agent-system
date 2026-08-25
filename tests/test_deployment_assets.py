@@ -13,10 +13,24 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 def test_container_runs_as_non_root_with_healthcheck() -> None:
     dockerfile = (PROJECT_ROOT / "Dockerfile").read_text(encoding="utf-8")
 
-    assert dockerfile.count("FROM ") == 2
+    assert dockerfile.count("FROM ") == 3
+    assert "FROM node:24.19.0-bookworm-slim AS frontend-builder" in dockerfile
+    assert "COPY frontend/package.json frontend/package-lock.json ./" in dockerfile
+    assert "RUN npm ci" in dockerfile
+    assert "RUN npm run build" in dockerfile
+    assert (
+        "COPY --from=frontend-builder /build/app/frontend/dist ./app/frontend/dist"
+    ) in dockerfile
     assert "USER 10001:10001" in dockerfile
     assert "HEALTHCHECK" in dockerfile
     assert "python:3.12.14-slim-bookworm" in dockerfile
+
+
+def test_container_context_excludes_secrets_dependencies_and_generated_assets() -> None:
+    dockerignore = (PROJECT_ROOT / ".dockerignore").read_text(encoding="utf-8")
+
+    for ignored in (".env", ".env.*", "frontend/node_modules", "dist", "output"):
+        assert ignored in dockerignore.splitlines()
 
 
 def test_compose_separates_bootstrap_jobs_and_private_data_services() -> None:

@@ -1,54 +1,127 @@
-"""Static client packaging, security-header, and integration smoke tests."""
+"""React bundle packaging, SPA isolation, and security-header tests."""
 
+from __future__ import annotations
+
+import tomllib
+from html.parser import HTMLParser
 from pathlib import Path
 
+import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
+from app.gateway import frontend as frontend_module
 from app.main import create_app
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-def test_frontend_is_served_with_accessible_product_specific_content() -> None:
+
+class _AssetCollector(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.urls: list[str] = []
+
+    def handle_starttag(
+        self,
+        _tag: str,
+        attributes: list[tuple[str, str | None]],
+    ) -> None:
+        for name, value in attributes:
+            if name in {"href", "src"} and value and value.startswith("/assets/"):
+                self.urls.append(value)
+
+
+def test_frontend_serves_vite_shell_with_discoverable_hashed_assets() -> None:
     response = TestClient(create_app(frontend_settings())).get("/")
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
-    assert "Thương Trí — E-commerce Multi-Agent" in response.text
+    assert response.headers["cache-control"] == "no-cache"
+    assert "Thương Trí — Evidence Atlas" in response.text
     assert 'lang="vi"' in response.text
-    assert 'id="composer-input"' in response.text
-    assert 'aria-live="polite"' in response.text
-    assert "Dữ liệu tổng hợp" in response.text
-    assert "Product" in response.text
-    assert "Review" in response.text
-    assert "Trust" in response.text
-    assert "Market" in response.text
+    assert 'id="root"' in response.text
+    assert 'src="/src/' not in response.text
     assert "<style" not in response.text
     assert "onclick=" not in response.text
+    assert {Path(url).suffix for url in _asset_urls(response.text)} >= {".css", ".js"}
 
 
-def test_frontend_assets_use_safe_same_origin_streaming_client() -> None:
+def test_frontend_assets_are_same_origin_immutable_and_memory_only() -> None:
     client = TestClient(create_app(frontend_settings()))
+    index = client.get("/")
+    asset_urls = _asset_urls(index.text)
 
-    script = client.get("/assets/app.js")
-    styles = client.get("/assets/styles.css")
-    favicon = client.get("/favicon.ico")
+    responses = {url: client.get(url) for url in asset_urls}
+    assert all(response.status_code == 200 for response in responses.values())
+    assert all(
+        response.headers["cache-control"] == "public, max-age=31536000, immutable"
+        for response in responses.values()
+    )
 
-    assert script.status_code == 200
-    assert styles.status_code == 200
-    assert favicon.status_code == 204
-    assert script.headers["cache-control"] == "public, max-age=0, must-revalidate"
+    script = next(
+        response for url, response in responses.items() if url.endswith(".js")
+    )
+    styles = next(
+        response for url, response in responses.items() if url.endswith(".css")
+    )
     assert "/api/v1/chat/stream" in script.text
     assert "sessionStorage" in script.text
     assert "localStorage" not in script.text
     assert "thuong-tri.api-key" not in script.text
-    assert "innerHTML" not in script.text
-    assert "textContent" in script.text
     assert "AbortController" in script.text
-    assert "await reader.cancel()" in script.text
-    assert "requestGeneration" in script.text
-    assert "response.body.getReader" in script.text
     assert "prefers-reduced-motion" in styles.text
-    assert "@media (max-width: 780px)" in styles.text
+
+
+def test_frontend_serves_root_favicon_without_spa_fallback() -> None:
+    client = TestClient(create_app(frontend_settings()))
+
+    favicon = client.get("/favicon.svg")
+
+    assert favicon.status_code == 200
+    assert favicon.headers["content-type"].startswith("image/svg+xml")
+    assert favicon.headers["cache-control"] == "public, max-age=86400"
+    assert "<svg" in favicon.text
+    assert client.get("/favicon.ico").status_code == 204
+
+
+def test_spa_fallback_handles_only_safe_extensionless_client_routes() -> None:
+    client = TestClient(create_app(frontend_settings()))
+    index = client.get("/")
+
+    deep_link = client.get("/sessions/demo-run")
+
+    assert deep_link.status_code == 200
+    assert deep_link.content == index.content
+    assert deep_link.headers["cache-control"] == "no-cache"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/missing.js",
+        "/api/v1/not-real",
+        "/docs/missing",
+        "/%2e%2e/pyproject.toml",
+        "/assets/%2e%2e/index.html",
+        "/.git/config",
+    ],
+)
+def test_spa_fallback_rejects_server_file_and_traversal_paths(path: str) -> None:
+    response = TestClient(create_app(frontend_settings())).get(path)
+
+    assert response.status_code == 404
+    assert not response.headers["content-type"].startswith("text/html")
+
+
+def test_frontend_installation_fails_closed_when_bundle_is_incomplete(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(frontend_module, "_FRONTEND_ROOT", tmp_path)
+
+    with pytest.raises(RuntimeError, match="packaged frontend assets are missing"):
+        frontend_module.install_frontend(FastAPI())
 
 
 def test_frontend_and_api_receive_strict_security_headers() -> None:
@@ -102,12 +175,22 @@ def test_production_disables_interactive_docs_and_enables_hsts() -> None:
 
 
 def test_frontend_assets_are_declared_as_python_package_data() -> None:
-    project_root = Path(__file__).resolve().parents[1]
-    pyproject = (project_root / "pyproject.toml").read_text(encoding="utf-8")
+    metadata = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text("utf-8"))
+    package_data = metadata["tool"]["setuptools"]["package-data"]["app.frontend"]
 
-    assert '"app.frontend" = ["index.html", "assets/*.css", "assets/*.js"]' in (
-        pyproject
-    )
+    assert set(package_data) == {
+        "dist/index.html",
+        "dist/assets/*",
+        "dist/*.svg",
+        "dist/*.ico",
+        "dist/*.webmanifest",
+    }
+
+
+def _asset_urls(document: str) -> tuple[str, ...]:
+    collector = _AssetCollector()
+    collector.feed(document)
+    return tuple(collector.urls)
 
 
 def frontend_settings() -> Settings:

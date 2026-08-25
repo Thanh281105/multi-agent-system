@@ -130,6 +130,11 @@ python -m venv .venv
 python -m pip install -r requirements-dev.lock
 python -m pip install --no-build-isolation --no-deps -e .
 
+Push-Location frontend
+npm ci
+npm run build
+Pop-Location
+
 $env:APP_ENV = "development"
 $env:DATABASE_URL = "sqlite+pysqlite:///./local-sample.db"
 $env:GATEWAY_API_KEYS = "demo:demo-local-key"
@@ -188,6 +193,13 @@ gateway.session_not_found`, tránh rò rỉ ownership.
 ## Kiểm thử và quality gates
 
 ```powershell
+Push-Location frontend
+npm ci
+npm run lint
+npm test
+npm run build
+Pop-Location
+
 python -m pip install -r requirements-dev.lock
 ruff check app tests migrations
 ruff format --check app tests migrations
@@ -196,9 +208,10 @@ pytest -m "not integration" -q
 python -m pip wheel --no-deps --wheel-dir dist .
 ```
 
-CI chạy các bước trên, validate Compose và build Docker image. Test offline dùng
-SQLite tạm, fakeredis và Qdrant mock contract; chỉ test có marker `integration`
-cần OpenAI key/network thật.
+CI chạy các bước trên, kiểm tra React bundle nằm trong Python wheel, validate
+Compose và build Docker image ba stage. Test offline dùng SQLite tạm, fakeredis
+và Qdrant mock contract; chỉ test có marker `integration` cần OpenAI key/network
+thật. Không sửa thủ công `app/frontend/dist`; đây là output của Vite.
 
 ## Benchmark khóa luận
 

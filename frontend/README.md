@@ -17,6 +17,7 @@ The development server proxies `/api` to `http://127.0.0.1:8000`.
 
 ```powershell
 npm run lint
+npm test
 npm run build
 ```
 

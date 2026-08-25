@@ -233,7 +233,7 @@ def _set_security_headers(request: Request, response: Response) -> None:
     elif request.url.path == "/":
         response.headers["Cache-Control"] = "no-cache"
     elif request.url.path.startswith("/assets/"):
-        response.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
 
     runtime = getattr(request.app.state, "gateway_runtime", None)
     if isinstance(runtime, GatewayRuntime) and runtime.config.app_env == "production":

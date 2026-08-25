@@ -42,7 +42,13 @@ where = ["."]
 include = ["app*"]
 
 [tool.setuptools.package-data]
-"app.frontend" = ["index.html", "assets/*.css", "assets/*.js"]
+"app.frontend" = [
+    "dist/index.html",
+    "dist/assets/*",
+    "dist/*.svg",
+    "dist/*.ico",
+    "dist/*.webmanifest",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
