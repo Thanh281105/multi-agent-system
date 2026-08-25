@@ -155,6 +155,7 @@ class EvaluationProtocolV2(BaseModel):
     corpus_sha256: str = Field(pattern=_SHA256)
     dataset_id: str = Field(pattern=_IDENTIFIER)
     dataset_sha256: str = Field(pattern=_SHA256)
+    sample_seed_sha256: str = Field(pattern=_SHA256)
     evaluator_sha256: str = Field(pattern=_SHA256)
     sample_data: Literal[True] = True
     random_seed: int = Field(default=42, ge=0, le=2**32 - 1)

@@ -688,6 +688,7 @@ def _protocol(*, case_order: tuple[str, ...] | None = None) -> EvaluationProtoco
         corpus_sha256="a" * 64,
         dataset_id="synthetic_seed_v2",
         dataset_sha256="b" * 64,
+        sample_seed_sha256="e" * 64,
         evaluator_sha256="c" * 64,
         correctness_repeats=1,
         latency_repeats=0,

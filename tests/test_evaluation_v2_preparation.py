@@ -38,6 +38,7 @@ def test_protocol_builder_closes_variant_parents_and_binds_sources() -> None:
     assert protocol.experiment_sha256 == assets.experiment_sha256
     assert protocol.pricing_sha256 == assets.pricing_sha256
     assert protocol.network_allowed is True
+    assert len(protocol.sample_seed_sha256) == 64
     assert len(protocol.evaluator_sha256) == 64
 
 

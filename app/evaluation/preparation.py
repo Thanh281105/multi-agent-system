@@ -89,6 +89,7 @@ def build_evaluation_protocol_v2(
         corpus_sha256=assets.corpus.corpus_sha256,
         dataset_id=assets.corpus.manifest.base_dataset_id,
         dataset_sha256=assets.corpus.dataset_sha256,
+        sample_seed_sha256=_sha256_file(project_root / "app" / "db" / "seed.py"),
         evaluator_sha256=source_manifest_sha256_v2(project_root),
         random_seed=config.random_seed,
         correctness_repeats=config.correctness_repeats,
@@ -144,3 +145,9 @@ def _run_git(project_root: Path, *arguments: str) -> str:
     except (OSError, subprocess.CalledProcessError) as exc:
         raise RuntimeError("evaluation could not inspect Git state") from exc
     return completed.stdout
+
+
+def _sha256_file(path: Path) -> str:
+    if not path.is_file():
+        raise RuntimeError(f"evaluation source file is missing: {path.name}")
+    return hashlib.sha256(path.read_bytes()).hexdigest()

@@ -78,6 +78,7 @@ def _protocol() -> EvaluationProtocolV2:
         corpus_sha256="b" * 64,
         dataset_id="schedule_dataset_v2",
         dataset_sha256="c" * 64,
+        sample_seed_sha256="e" * 64,
         evaluator_sha256="d" * 64,
         random_seed=73,
         correctness_repeats=2,
