@@ -487,6 +487,55 @@ def test_bundle_binds_versioned_pricing_to_protocol(tmp_path: Path) -> None:
             pricing=pricing,
             created_at=datetime(2026, 8, 25, tzinfo=UTC),
         )
+
+
+def test_bundle_preserves_a_recomputed_cost_unavailability_reason(
+    tmp_path: Path,
+) -> None:
+    pricing = _pricing()
+    protocol = EvaluationProtocolV2.model_validate(
+        {
+            **_protocol().model_dump(),
+            "pricing_sha256": canonical_sha256(pricing),
+        }
+    )
+    observations = list(_paired_observations(protocol))
+    failed_call = _model_call().model_copy(
+        update={
+            "outcome": ModelCallOutcome.ERROR,
+            "error_code": "model_timeout",
+        }
+    )
+    unavailable = estimate_observation_cost(
+        observations[1].model_copy(update={"model_calls": (failed_call,)}),
+        pricing,
+    )
+    observations = [
+        item.model_copy(update={"estimated_cost_usd": Decimal("0E-12")})
+        for item in observations
+    ]
+    observations[1] = observations[1].model_copy(
+        update={
+            "model_calls": (failed_call,),
+            "estimated_cost_usd": None,
+            "cost_unavailable_reason": unavailable.unavailable_reason,
+        }
+    )
+
+    manifest = write_bundle(
+        tmp_path / "unavailable_cost",
+        run_id="run_paired_v2",
+        protocol=protocol,
+        observations=observations,
+        comparisons=(),
+        pricing=pricing,
+        created_at=datetime(2026, 8, 25, tzinfo=UTC),
+    )
+
+    assert manifest.observation_count == 8
+    assert unavailable.unavailable_reason == (
+        "model call 'call_synthesis_1' has no token usage"
+    )
     with pytest.raises(ValueError, match="declare pricing together"):
         write_bundle(
             tmp_path / "missing_pricing",

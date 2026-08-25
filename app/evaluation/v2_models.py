@@ -427,6 +427,11 @@ class EvaluationObservationV2(BaseModel):
     retrieval_f1: float | None = Field(default=None, ge=0, le=1)
     model_calls: tuple[ModelCallV2, ...] = ()
     estimated_cost_usd: Decimal | None = Field(default=None, ge=0)
+    cost_unavailable_reason: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=2_000,
+    )
     error_codes: tuple[str, ...] = ()
 
     @model_validator(mode="after")
@@ -439,6 +444,11 @@ class EvaluationObservationV2(BaseModel):
             raise ValueError("retrieved product IDs must be positive")
         if len(self.provenance_source_ids) != len(set(self.provenance_source_ids)):
             raise ValueError("provenance source IDs must be unique")
+        if (
+            self.estimated_cost_usd is not None
+            and self.cost_unavailable_reason is not None
+        ):
+            raise ValueError("available cost cannot carry an unavailable reason")
         call_ids = [call.call_id for call in self.model_calls]
         if len(call_ids) != len(set(call_ids)):
             raise ValueError("model call IDs must be unique per observation")

@@ -242,13 +242,19 @@ def _validate_bundle_inputs(
             raise ValueError("observation execution orders must be unique")
         execution_orders.add(observation.execution_order)
         if pricing is None:
-            if observation.estimated_cost_usd is not None:
-                raise ValueError("unpriced observations cannot declare estimated cost")
+            if (
+                observation.estimated_cost_usd is not None
+                or observation.cost_unavailable_reason is not None
+            ):
+                raise ValueError("unpriced observations cannot declare cost accounting")
         else:
             estimate = estimate_observation_cost(observation, pricing)
-            if observation.estimated_cost_usd != estimate.value_usd:
+            if (
+                observation.estimated_cost_usd != estimate.value_usd
+                or observation.cost_unavailable_reason != estimate.unavailable_reason
+            ):
                 raise ValueError(
-                    "observation estimated cost does not match pinned pricing"
+                    "observation cost accounting does not match pinned pricing"
                 )
     expected_keys = {
         (variant.variant_id, case_id, phase, repetition)
