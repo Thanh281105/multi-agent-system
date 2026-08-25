@@ -23,6 +23,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BASE_CORPUS_PATH = PROJECT_ROOT / "evaluation" / "cases.v1.json"
 CORPUS_V2_PATH = PROJECT_ROOT / "evaluation" / "corpus.v2.json"
 EXPERIMENT_PATH = PROJECT_ROOT / "evaluation" / "experiment.v2.json"
+LIVE_PILOT_PATH = PROJECT_ROOT / "evaluation" / "experiment.live-pilot.v2.json"
 PRICING_PATH = (
     PROJECT_ROOT / "evaluation" / "pricing" / "openai-standard-2026-08-25.v2.json"
 )
@@ -186,3 +187,21 @@ def test_experiment_loader_rejects_unknown_latency_case(tmp_path: Path) -> None:
             BASE_CORPUS_PATH,
             PRICING_PATH,
         )
+
+
+def test_live_pilot_is_explicitly_bounded_to_one_paired_repeat() -> None:
+    pilot = load_evaluation_experiment_v2(
+        LIVE_PILOT_PATH,
+        CORPUS_V2_PATH,
+        BASE_CORPUS_PATH,
+        PRICING_PATH,
+    )
+
+    assert pilot.config.experiment_id == "thesis_live_pilot_v2"
+    assert pilot.config.correctness_repeats == 1
+    assert pilot.config.warmup_repeats == 0
+    assert pilot.config.latency_repeats == 0
+    assert tuple(variant.variant_id for variant in pilot.config.variants) == (
+        "deterministic_v2",
+        "hybrid_full",
+    )

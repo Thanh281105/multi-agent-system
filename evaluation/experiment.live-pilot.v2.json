@@ -1,0 +1,74 @@
+{
+  "schema_version": "2.0",
+  "experiment_id": "thesis_live_pilot_v2",
+  "baseline_variant_id": "deterministic_v2",
+  "random_seed": 42,
+  "correctness_repeats": 1,
+  "warmup_repeats": 0,
+  "latency_repeats": 0,
+  "bootstrap_samples": 1000,
+  "latency_case_ids": [],
+  "variants": [
+    {
+      "variant_id": "deterministic_v2",
+      "description": "Deterministic router, planner, four domain agents, and grounded synthesis.",
+      "runtime_mode": "deterministic",
+      "enabled_agents": [
+        "product_agent",
+        "review_agent",
+        "trust_agent",
+        "market_agent"
+      ],
+      "embedding_backend": "hashing",
+      "max_model_calls": 0,
+      "fallback_policy": "deterministic_fallback",
+      "hypothesis": "A zero-LLM baseline establishes the quality, latency, token, and cost floor."
+    },
+    {
+      "variant_id": "hybrid_full",
+      "description": "Bounded live pilot of structured GPT routing, planning, specialist reasoning, and grounded synthesis.",
+      "runtime_mode": "hybrid",
+      "model_router_enabled": true,
+      "model_planner_enabled": true,
+      "model_specialists_enabled": true,
+      "model_synthesis_enabled": true,
+      "enabled_agents": [
+        "product_agent",
+        "review_agent",
+        "trust_agent",
+        "market_agent"
+      ],
+      "embedding_backend": "hashing",
+      "model_bindings": [
+        {
+          "stage": "routing",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "planning",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "specialist",
+          "provider": "openai",
+          "model": "gpt-5.4-nano-2026-03-17",
+          "reasoning_effort": "low"
+        },
+        {
+          "stage": "synthesis",
+          "provider": "openai",
+          "model": "gpt-5.4-mini-2026-03-17",
+          "reasoning_effort": "low"
+        }
+      ],
+      "max_model_calls": 7,
+      "fallback_policy": "deterministic_fallback",
+      "parent_variant_id": "deterministic_v2",
+      "hypothesis": "The live full hybrid path should execute all four structured stages while preserving grounded task behavior."
+    }
+  ]
+}
