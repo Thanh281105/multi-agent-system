@@ -608,6 +608,24 @@ class PairedComparisonV2(BaseModel):
         return self
 
 
+class ComparisonOmissionV2(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal["2.0"] = "2.0"
+    protocol_sha256: str = Field(pattern=_SHA256)
+    baseline_variant_id: str = Field(pattern=_IDENTIFIER)
+    candidate_variant_id: str = Field(pattern=_IDENTIFIER)
+    metric: ComparisonMetric
+    phase: EvaluationPhase
+    reason: Literal["no_comparable_paired_values"]
+
+    @model_validator(mode="after")
+    def validate_pair(self) -> ComparisonOmissionV2:
+        if self.baseline_variant_id == self.candidate_variant_id:
+            raise ValueError("omitted comparison requires distinct variants")
+        return self
+
+
 class RobustnessTransformSummaryV2(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
@@ -655,6 +673,7 @@ class EvaluationBundleManifestV2(BaseModel):
     git_dirty: bool
     observation_count: int = Field(ge=0)
     comparison_count: int = Field(ge=0)
+    omission_count: int = Field(ge=0)
     files: tuple[ArtifactFileV2, ...] = Field(min_length=1)
 
     @model_validator(mode="after")

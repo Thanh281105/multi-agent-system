@@ -21,6 +21,7 @@ from app.evaluation.protocol import (
 )
 from app.evaluation.v2_models import (
     ComparisonMetric,
+    ComparisonOmissionV2,
     EvaluationExperimentConfigV2,
     EvaluationObservationV2,
     EvaluationPhase,
@@ -370,6 +371,7 @@ def test_artifact_bundle_is_atomic_hashed_and_non_overwriting(tmp_path: Path) ->
         "protocol.json",
         "observations.jsonl",
         "comparisons.json",
+        "omissions.json",
         "robustness.json",
         "report.json",
     }
@@ -626,6 +628,47 @@ def test_bundle_recomputes_comparisons_from_observations(tmp_path: Path) -> None
             protocol=protocol,
             observations=observations,
             comparisons=(contradictory,),
+            created_at=datetime(2026, 8, 25, tzinfo=UTC),
+        )
+
+
+def test_bundle_verifies_explicit_unavailable_comparison_omissions(
+    tmp_path: Path,
+) -> None:
+    protocol = _protocol()
+    observations = tuple(
+        item.model_copy(update={"retrieval_f1": None})
+        for item in _paired_observations(protocol)
+    )
+    omission = ComparisonOmissionV2(
+        protocol_sha256=protocol_sha256(protocol),
+        baseline_variant_id="deterministic_v1",
+        candidate_variant_id="hybrid_full",
+        metric=ComparisonMetric.RETRIEVAL_F1,
+        phase=EvaluationPhase.CORRECTNESS,
+        reason="no_comparable_paired_values",
+    )
+
+    manifest = write_bundle(
+        tmp_path / "omitted_metric",
+        run_id="run_paired_v2",
+        protocol=protocol,
+        observations=observations,
+        comparisons=(),
+        omissions=(omission,),
+        created_at=datetime(2026, 8, 25, tzinfo=UTC),
+    )
+
+    assert manifest.omission_count == 1
+    assert validate_bundle(tmp_path / "omitted_metric") == manifest
+    with pytest.raises(ValueError, match="hides available paired values"):
+        write_bundle(
+            tmp_path / "fraudulent_omission",
+            run_id="run_paired_v2",
+            protocol=protocol,
+            observations=_paired_observations(protocol),
+            comparisons=(),
+            omissions=(omission,),
             created_at=datetime(2026, 8, 25, tzinfo=UTC),
         )
 

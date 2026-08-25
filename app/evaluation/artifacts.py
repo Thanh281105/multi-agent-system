@@ -22,6 +22,7 @@ from app.evaluation.protocol import (
 )
 from app.evaluation.v2_models import (
     ArtifactFileV2,
+    ComparisonOmissionV2,
     EvaluationBundleManifestV2,
     EvaluationObservationV2,
     EvaluationPhase,
@@ -41,6 +42,7 @@ def write_bundle(
     protocol: EvaluationProtocolV2,
     observations: Sequence[EvaluationObservationV2],
     comparisons: Sequence[PairedComparisonV2],
+    omissions: Sequence[ComparisonOmissionV2] = (),
     robustness: Sequence[RobustnessSummaryV2] = (),
     pricing: PricingManifestV2 | None = None,
     created_at: datetime,
@@ -61,6 +63,7 @@ def write_bundle(
         protocol_hash=protocol_hash,
         observations=observations,
         comparisons=comparisons,
+        omissions=omissions,
         robustness=robustness,
         pricing=pricing,
     )
@@ -76,20 +79,19 @@ def write_bundle(
         files.append(_write_json(staging, "protocol.json", protocol))
         files.append(_write_json_lines(staging, "observations.jsonl", observations))
         files.append(_write_json(staging, "comparisons.json", list(comparisons)))
+        files.append(_write_json(staging, "omissions.json", list(omissions)))
         files.append(_write_json(staging, "robustness.json", list(robustness)))
         if pricing is not None:
             files.append(_write_json(staging, "pricing.json", pricing))
-        report = {
-            "schema_version": "2.0",
-            "run_id": run_id,
-            "protocol_sha256": protocol_hash,
-            "variant_ids": [variant.variant_id for variant in protocol.variants],
-            "observation_count": len(observations),
-            "comparison_count": len(comparisons),
-            "robustness_summary_count": len(robustness),
-            "comparisons": [item.model_dump(mode="json") for item in comparisons],
-            "robustness": [item.model_dump(mode="json") for item in robustness],
-        }
+        report = _report_payload(
+            run_id=run_id,
+            protocol=protocol,
+            protocol_hash=protocol_hash,
+            observations=observations,
+            comparisons=comparisons,
+            omissions=omissions,
+            robustness=robustness,
+        )
         files.append(_write_json(staging, "report.json", report))
 
         manifest = EvaluationBundleManifestV2(
@@ -100,6 +102,7 @@ def write_bundle(
             git_dirty=protocol.git_dirty,
             observation_count=len(observations),
             comparison_count=len(comparisons),
+            omission_count=len(omissions),
             files=tuple(files),
         )
         _write_bytes(staging / _MANIFEST_NAME, canonical_json_bytes(manifest))
@@ -124,6 +127,7 @@ def validate_bundle(output_directory: Path) -> EvaluationBundleManifestV2:
         "protocol.json",
         "observations.jsonl",
         "comparisons.json",
+        "omissions.json",
         "robustness.json",
         "report.json",
     }
@@ -191,23 +195,45 @@ def validate_bundle(output_directory: Path) -> EvaluationBundleManifestV2:
     ]
     if len(comparisons) != manifest.comparison_count:
         raise ValueError("bundle comparison count mismatch")
+    omissions = tuple(
+        ComparisonOmissionV2.model_validate(item)
+        for item in json.loads(
+            (output_directory / "omissions.json").read_text(encoding="utf-8")
+        )
+    )
+    if len(omissions) != manifest.omission_count:
+        raise ValueError("bundle omission count mismatch")
+    observations = tuple(
+        EvaluationObservationV2.model_validate_json(line) for line in observation_lines
+    )
+    robustness = tuple(
+        RobustnessSummaryV2.model_validate(item)
+        for item in json.loads(
+            (output_directory / "robustness.json").read_text(encoding="utf-8")
+        )
+    )
     _validate_bundle_inputs(
         run_id=manifest.run_id,
         protocol=protocol,
         protocol_hash=manifest.protocol_sha256,
-        observations=tuple(
-            EvaluationObservationV2.model_validate_json(line)
-            for line in observation_lines
-        ),
+        observations=observations,
         comparisons=comparisons,
-        robustness=tuple(
-            RobustnessSummaryV2.model_validate(item)
-            for item in json.loads(
-                (output_directory / "robustness.json").read_text(encoding="utf-8")
-            )
-        ),
+        omissions=omissions,
+        robustness=robustness,
         pricing=pricing,
     )
+    report = json.loads((output_directory / "report.json").read_text(encoding="utf-8"))
+    expected_report = _report_payload(
+        run_id=manifest.run_id,
+        protocol=protocol,
+        protocol_hash=manifest.protocol_sha256,
+        observations=observations,
+        comparisons=comparisons,
+        omissions=omissions,
+        robustness=robustness,
+    )
+    if report != expected_report:
+        raise ValueError("bundle report does not match verified artifacts")
     return manifest
 
 
@@ -218,6 +244,7 @@ def _validate_bundle_inputs(
     protocol_hash: str,
     observations: Sequence[EvaluationObservationV2],
     comparisons: Sequence[PairedComparisonV2],
+    omissions: Sequence[ComparisonOmissionV2],
     robustness: Sequence[RobustnessSummaryV2],
     pricing: PricingManifestV2 | None,
 ) -> None:
@@ -312,6 +339,38 @@ def _validate_bundle_inputs(
         )
         if recomputed != comparison:
             raise ValueError("comparison does not match bundled observations")
+    for omission in omissions:
+        if omission.protocol_sha256 != protocol_hash:
+            raise ValueError("comparison omission protocol hash does not match bundle")
+        if not {
+            omission.baseline_variant_id,
+            omission.candidate_variant_id,
+        }.issubset(known_variants):
+            raise ValueError("comparison omission references unknown variant")
+        omission_key = (
+            omission.baseline_variant_id,
+            omission.candidate_variant_id,
+            omission.metric.value,
+            omission.phase,
+        )
+        if omission_key in comparison_keys:
+            raise ValueError("bundle duplicates a comparison or omission")
+        comparison_keys.add(omission_key)
+        try:
+            compare_variants(
+                observations,
+                baseline_variant_id=omission.baseline_variant_id,
+                candidate_variant_id=omission.candidate_variant_id,
+                metric=omission.metric,
+                phase=omission.phase,
+                bootstrap_samples=protocol.bootstrap_samples,
+                random_seed=protocol.random_seed,
+            )
+        except ValueError as exc:
+            if "no comparable paired values" not in str(exc):
+                raise ValueError("comparison omission has an invalid reason") from exc
+        else:
+            raise ValueError("comparison omission hides available paired values")
     for summary in robustness:
         if summary.protocol_sha256 != protocol_hash:
             raise ValueError("robustness protocol hash does not match bundle")
@@ -319,6 +378,31 @@ def _validate_bundle_inputs(
             raise ValueError("robustness summary references unknown protocol variant")
         if summarize_robustness(observations, variant_id=summary.variant_id) != summary:
             raise ValueError("robustness summary does not match bundled observations")
+
+
+def _report_payload(
+    *,
+    run_id: str,
+    protocol: EvaluationProtocolV2,
+    protocol_hash: str,
+    observations: Sequence[EvaluationObservationV2],
+    comparisons: Sequence[PairedComparisonV2],
+    omissions: Sequence[ComparisonOmissionV2],
+    robustness: Sequence[RobustnessSummaryV2],
+) -> dict[str, Any]:
+    return {
+        "schema_version": "2.0",
+        "run_id": run_id,
+        "protocol_sha256": protocol_hash,
+        "variant_ids": [variant.variant_id for variant in protocol.variants],
+        "observation_count": len(observations),
+        "comparison_count": len(comparisons),
+        "omission_count": len(omissions),
+        "robustness_summary_count": len(robustness),
+        "comparisons": [item.model_dump(mode="json") for item in comparisons],
+        "omissions": [item.model_dump(mode="json") for item in omissions],
+        "robustness": [item.model_dump(mode="json") for item in robustness],
+    }
 
 
 def _write_json(
