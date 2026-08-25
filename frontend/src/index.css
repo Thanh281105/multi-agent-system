@@ -1,0 +1,213 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/newsreader";
+@import "@fontsource-variable/manrope";
+@import "@fontsource-variable/jetbrains-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-display);
+  --font-display: "Newsreader Variable", ui-serif, Georgia, serif;
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.65);
+  --radius-3xl: calc(var(--radius) * 2);
+  --radius-4xl: calc(var(--radius) * 2.4);
+}
+
+:root {
+  color-scheme: light;
+  --background: oklch(0.965 0.014 86);
+  --foreground: oklch(0.235 0.038 257);
+  --card: oklch(0.985 0.009 86);
+  --card-foreground: oklch(0.235 0.038 257);
+  --popover: oklch(0.992 0.006 86);
+  --popover-foreground: oklch(0.235 0.038 257);
+  --primary: oklch(0.285 0.072 257);
+  --primary-foreground: oklch(0.985 0.006 86);
+  --secondary: oklch(0.915 0.024 83);
+  --secondary-foreground: oklch(0.285 0.055 257);
+  --muted: oklch(0.925 0.012 82);
+  --muted-foreground: oklch(0.455 0.033 254);
+  --accent: oklch(0.455 0.145 31);
+  --accent-foreground: oklch(0.985 0.006 86);
+  --success: oklch(0.48 0.085 145);
+  --success-foreground: oklch(0.985 0.006 86);
+  --destructive: oklch(0.52 0.19 27);
+  --destructive-foreground: oklch(0.985 0.006 86);
+  --border: oklch(0.73 0.025 79);
+  --input: oklch(0.73 0.025 79);
+  --ring: oklch(0.49 0.145 31);
+  --chart-1: oklch(0.455 0.145 31);
+  --chart-2: oklch(0.48 0.085 145);
+  --chart-3: oklch(0.285 0.072 257);
+  --chart-4: oklch(0.64 0.08 83);
+  --chart-5: oklch(0.58 0.07 257);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.945 0.018 85);
+  --sidebar-foreground: oklch(0.235 0.038 257);
+  --sidebar-primary: oklch(0.285 0.072 257);
+  --sidebar-primary-foreground: oklch(0.985 0.006 86);
+  --sidebar-accent: oklch(0.9 0.035 80);
+  --sidebar-accent-foreground: oklch(0.285 0.055 257);
+  --sidebar-border: oklch(0.73 0.025 79);
+  --sidebar-ring: oklch(0.49 0.145 31);
+  --atlas-shadow: 0 18px 45px oklch(0.235 0.038 257 / 0.1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply bg-background font-sans text-foreground antialiased;
+    scroll-padding-top: 1rem;
+  }
+
+  body {
+    @apply min-h-svh bg-background text-foreground;
+    min-width: 20rem;
+    text-rendering: optimizeLegibility;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  a[href] {
+    cursor: pointer;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  a {
+    text-underline-offset: 0.2em;
+  }
+
+  ::selection {
+    color: var(--primary-foreground);
+    background: var(--primary);
+  }
+
+  ::-webkit-scrollbar {
+    width: 0.7rem;
+    height: 0.7rem;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--muted);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 0.15rem solid var(--muted);
+    border-radius: 999px;
+    background: var(--muted-foreground);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--foreground);
+  }
+}
+
+@layer components {
+  .skip-link {
+    @apply fixed start-4 top-4 z-[100] -translate-y-24 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition-transform focus-visible:translate-y-0;
+  }
+
+  .atlas-panel {
+    @apply rounded-xl border bg-card text-card-foreground;
+  }
+
+  .atlas-rule {
+    @apply border-t border-border/80;
+  }
+
+  .atlas-data {
+    @apply font-mono text-[0.72rem] leading-relaxed tabular-nums;
+  }
+
+  .atlas-kicker {
+    @apply text-[0.68rem] leading-none font-bold tracking-[0.14em] text-muted-foreground uppercase;
+  }
+
+  .atlas-elevated {
+    box-shadow: var(--atlas-shadow);
+  }
+
+  .route-active {
+    stroke-dasharray: 8 7;
+    animation: route-progress 1.15s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes route-progress {
+  from {
+    stroke-dashoffset: 45;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .route-active {
+    stroke-dashoffset: 0;
+  }
+}

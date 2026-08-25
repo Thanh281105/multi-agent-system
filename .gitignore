@@ -16,3 +16,4 @@ data/cache/
 *.sqlite
 *.sqlite3
 .codegraph/
+.ai-router/
