@@ -11,6 +11,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.contracts import TaskStatus
+from app.evaluation.models import EvalCase
 
 _IDENTIFIER = r"^[a-z][a-z0-9_.-]{2,127}$"
 _SHA256 = r"^[a-f0-9]{64}$"
@@ -172,6 +173,73 @@ class EvaluationProtocolV2(BaseModel):
                 and variant.parent_variant_id not in known_variants
             ):
                 raise ValueError(f"unknown parent variant: {variant.parent_variant_id}")
+        return self
+
+
+class RobustnessCaseDefinitionV2(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    case_id: str = Field(pattern=_IDENTIFIER)
+    parent_case_id: str = Field(pattern=_IDENTIFIER)
+    transform_id: str = Field(pattern=_IDENTIFIER)
+    policy: RobustnessPolicy
+    message: str = Field(min_length=2, max_length=2_000)
+    rationale: str = Field(min_length=1, max_length=500)
+
+    @model_validator(mode="after")
+    def validate_transform(self) -> RobustnessCaseDefinitionV2:
+        if self.case_id == self.parent_case_id:
+            raise ValueError("robustness case must differ from its parent")
+        if self.policy == RobustnessPolicy.CLEAN:
+            raise ValueError("robustness case cannot use the clean policy")
+        return self
+
+
+class EvaluationCorpusManifestV2(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal["2.0"] = "2.0"
+    corpus_id: str = Field(pattern=_IDENTIFIER)
+    base_dataset_id: str = Field(pattern=_IDENTIFIER)
+    base_dataset_sha256: str = Field(pattern=_SHA256)
+    sample_data: Literal[True] = True
+    curation_note: str = Field(min_length=1, max_length=2_000)
+    robustness_cases: tuple[RobustnessCaseDefinitionV2, ...] = Field(
+        min_length=1,
+        max_length=500,
+    )
+
+    @model_validator(mode="after")
+    def validate_cases(self) -> EvaluationCorpusManifestV2:
+        case_ids = [case.case_id for case in self.robustness_cases]
+        if len(case_ids) != len(set(case_ids)):
+            raise ValueError("robustness case IDs must be unique")
+        transform_keys = [
+            (case.parent_case_id, case.transform_id) for case in self.robustness_cases
+        ]
+        if len(transform_keys) != len(set(transform_keys)):
+            raise ValueError("each parent can use a transform only once")
+        return self
+
+
+class EvaluationCaseSpecV2(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    case_id: str = Field(pattern=_IDENTIFIER)
+    gold_case: EvalCase
+    robustness_policy: RobustnessPolicy
+    parent_case_id: str | None = Field(default=None, pattern=_IDENTIFIER)
+    transform_id: str | None = Field(default=None, pattern=_IDENTIFIER)
+
+    @model_validator(mode="after")
+    def validate_case_identity(self) -> EvaluationCaseSpecV2:
+        if self.gold_case.case_id != self.case_id:
+            raise ValueError("gold case ID must match executable case ID")
+        if self.robustness_policy == RobustnessPolicy.CLEAN:
+            if self.parent_case_id is not None or self.transform_id is not None:
+                raise ValueError("clean executable cases cannot reference a parent")
+        elif self.parent_case_id is None or self.transform_id is None:
+            raise ValueError("transformed cases require parent and transform IDs")
         return self
 
 
