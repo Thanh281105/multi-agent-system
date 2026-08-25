@@ -20,6 +20,30 @@ CATEGORY_ALIASES: dict[str, str] = {
     "phụ kiện": "Phụ kiện",
 }
 FOLLOW_UP_PREFIXES = ("còn ", "thế ", "vậy ", "nó ", "sản phẩm đó")
+QUESTION_SUFFIXES = (
+    "ra sao",
+    "thế nào",
+    "như thế nào",
+    "như nào",
+    "thế nào rồi",
+    "sao",
+    "ổn không",
+    "tốt không",
+    "có tốt không",
+    "có nên mua không",
+    "được không",
+    "không",
+    "nhỉ",
+    "ạ",
+)
+QUESTION_SUFFIX_PATTERN = re.compile(
+    rf"\s+(?:{'|'.join(re.escape(s) for s in QUESTION_SUFFIXES)})\s*$",
+    flags=re.IGNORECASE,
+)
+
+
+def _clean_question_suffix(text: str) -> str:
+    return QUESTION_SUFFIX_PATTERN.sub("", text).strip(" ,.;:?!")
 
 
 class IntentRouter:
@@ -209,6 +233,7 @@ class IntentRouter:
         if not match:
             return None
         subject = match.group(1).strip(" ,.;:?!")
+        subject = _clean_question_suffix(subject)
         return subject[:220] if subject else None
 
     @staticmethod
@@ -222,6 +247,7 @@ class IntentRouter:
         if not match:
             return None
         subject = match.group(1).strip(" ,.;:?!")
+        subject = _clean_question_suffix(subject)
         return subject[:220] if subject else None
 
     @staticmethod

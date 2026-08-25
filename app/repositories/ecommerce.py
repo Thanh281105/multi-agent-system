@@ -1,6 +1,6 @@
-"""Repository operations for products, shops, and reviews."""
-
+import re
 from collections.abc import Sequence
+from typing import Any
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
@@ -9,6 +9,11 @@ from app.models.dataset_source import DatasetSource
 from app.models.product import Product
 from app.models.review import Review
 from app.models.shop import Shop
+
+_CATEGORY_PREFIX_PATTERN = re.compile(
+    r"^(?:sách|cuốn sách|quyển sách|tai nghe|điện thoại|laptop|máy tính|sản phẩm)\s+",
+    flags=re.IGNORECASE,
+)
 
 
 class EcommerceRepository:
@@ -30,45 +35,52 @@ class EcommerceRepository:
     ) -> list[dict[str, object]]:
         """Return products matching structured filters and text search."""
 
-        filters = []
-        if query:
-            pattern = f"%{query.strip()}%"
-            filters.append(
-                or_(
-                    Product.name.ilike(pattern),
-                    Product.category.ilike(pattern),
-                    Product.description.ilike(pattern),
-                    Shop.name.ilike(pattern),
+        def _build_statement(search_text: str | None) -> Any:
+            filters = []
+            if search_text:
+                pattern = f"%{search_text.strip()}%"
+                filters.append(
+                    or_(
+                        Product.name.ilike(pattern),
+                        Product.category.ilike(pattern),
+                        Product.description.ilike(pattern),
+                        Shop.name.ilike(pattern),
+                    )
                 )
-            )
-        if category:
-            filters.append(Product.category.ilike(category.strip()))
-        if max_price is not None:
-            filters.append(Product.price <= max_price)
-        if min_price is not None:
-            filters.append(Product.price >= min_price)
-        if min_rating is not None:
-            filters.append(Product.rating >= min_rating)
-        if platform:
-            filters.append(Product.platform.ilike(platform.strip()))
+            if category:
+                filters.append(Product.category.ilike(category.strip()))
+            if max_price is not None:
+                filters.append(Product.price <= max_price)
+            if min_price is not None:
+                filters.append(Product.price >= min_price)
+            if min_rating is not None:
+                filters.append(Product.rating >= min_rating)
+            if platform:
+                filters.append(Product.platform.ilike(platform.strip()))
 
-        statement = (
-            select(Product)
-            .join(Product.shop)
-            .where(*filters)
-            .options(
-                joinedload(Product.shop),
-                joinedload(Product.dataset_source),
+            return (
+                select(Product)
+                .join(Product.shop)
+                .where(*filters)
+                .options(
+                    joinedload(Product.shop),
+                    joinedload(Product.dataset_source),
+                )
+                .order_by(
+                    Product.rating.desc(),
+                    Product.sold_count.desc(),
+                    Product.price.asc(),
+                    Product.id.asc(),
+                )
+                .limit(limit)
             )
-            .order_by(
-                Product.rating.desc(),
-                Product.sold_count.desc(),
-                Product.price.asc(),
-                Product.id.asc(),
-            )
-            .limit(limit)
-        )
-        products = self.session.scalars(statement).all()
+
+        products = self.session.scalars(_build_statement(query)).all()
+        if not products and query:
+            cleaned = _CATEGORY_PREFIX_PATTERN.sub("", query.strip()).strip()
+            if cleaned and cleaned.casefold() != query.strip().casefold():
+                products = self.session.scalars(_build_statement(cleaned)).all()
+
         return [_product_summary(product) for product in products]
 
     def get_product_by_id(self, product_id: int) -> Product | None:

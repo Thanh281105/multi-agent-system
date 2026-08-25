@@ -12,3 +12,7 @@ build/
 dist/
 data/raw/
 data/cache/
+*.db
+*.sqlite
+*.sqlite3
+.codegraph/

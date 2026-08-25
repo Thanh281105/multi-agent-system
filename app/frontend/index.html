@@ -3,191 +3,294 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#102a2a" />
+    <meta name="theme-color" content="#0f172a" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <meta
       name="description"
-      content="Nền tảng phân tích thương mại điện tử Việt Nam bằng hệ thống đa agent có truy vết."
+      content="NovaCart AI — Nền tảng phân tích mua sắm thông minh đa tác nhân (Multi-Agent System) có truy vết nguồn gốc."
     />
-    <title>Thương Trí — E-commerce Multi-Agent</title>
+    <title>NovaCart AI — Thương Trí — E-commerce Multi-Agent</title>
     <link rel="stylesheet" href="/assets/styles.css" />
     <script src="/assets/app.js" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#composer-input">Đi đến ô nhập câu hỏi</a>
 
+    <!-- Top Navigation Bar -->
     <header class="topbar">
-      <a class="brand" href="/" aria-label="Trang chính Thương Trí">
-        <span class="brand-mark" aria-hidden="true">TT</span>
-        <span>
-          <strong>Thương Trí</strong>
-          <small>E-commerce Multi-Agent Lab</small>
-        </span>
-      </a>
-      <div class="topbar-actions">
-        <span class="connection" id="connection-state" role="status">
-          <span class="connection-dot" aria-hidden="true"></span>
-          <span id="connection-label">Sẵn sàng</span>
-        </span>
-        <button class="button button-quiet" id="credential-button" type="button">
-          Cấu hình truy cập
-        </button>
+      <div class="topbar-inner">
+        <a class="brand" href="/" aria-label="NovaCart AI Home">
+          <div class="brand-badge-3d" aria-hidden="true">
+            <span class="badge-core">NC</span>
+            <div class="badge-glow"></div>
+          </div>
+          <div class="brand-info">
+            <span class="brand-title">NovaCart <span class="gradient-text">AI</span></span>
+            <span class="brand-tagline">Multi-Agent Decision Studio</span>
+          </div>
+        </a>
+
+        <div class="topbar-actions">
+          <div class="connection-pill" id="connection-state" role="status">
+            <span class="status-indicator"></span>
+            <span id="connection-label" class="status-text">Sẵn sàng</span>
+          </div>
+
+          <button class="btn btn-glass" id="credential-button" type="button">
+            <svg class="icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+            </svg>
+            <span>Cấu hình API Key</span>
+          </button>
+        </div>
       </div>
     </header>
 
+    <!-- Main Studio Workspace -->
     <main class="workspace">
+      <!-- Left Panel: Agents & Workspace Info -->
       <aside class="context-panel" aria-label="Thông tin hệ thống">
-        <div>
-          <p class="eyebrow">Đồ án ứng dụng</p>
-          <h1>Quyết định mua hàng có căn cứ.</h1>
-          <p class="intro-copy">
-            Một Orchestrator phối hợp bốn chuyên gia miền để tìm, đọc review,
-            phát hiện complaint và giải thích recommendation.
+        <div class="panel-card-3d hero-card">
+          <div class="card-glow"></div>
+          <div class="pill-badge">Hệ Thống Trợ Lý AI</div>
+          <h1 class="hero-title">Quyết định mua hàng có căn cứ.</h1>
+          <p class="hero-subtitle">
+            Hệ thống đa tác nhân thông minh phối hợp truy xuất dữ liệu, tổng hợp đánh giá và phân tích độ tin cậy thời gian thực.
           </p>
         </div>
 
-        <div class="sample-notice" role="note">
-          <span class="sample-icon" aria-hidden="true">MẪU</span>
-          <div>
-            <strong>Dữ liệu tổng hợp</strong>
-            <p>Kết quả hiện dùng bộ dữ liệu mẫu, chưa đại diện thị trường thật.</p>
+        <div class="sample-notice panel-card-3d" role="note">
+          <div class="notice-icon-box" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <path d="M2 15h10"></path>
+              <path d="M9 18l3-3-3-3"></path>
+            </svg>
+          </div>
+          <div class="notice-content">
+            <strong>Dữ liệu tổng hợp &amp; Tiki Books</strong>
+            <p>Đã nạp 200 sản phẩm &amp; 1.773 reviews thực tế từ kho dữ liệu.</p>
           </div>
         </div>
 
-        <ol class="agent-map" aria-label="Các agent trong hệ thống">
-          <li><span>P</span><div><strong>Product</strong><small>Tìm &amp; xếp hạng</small></div></li>
-          <li><span>R</span><div><strong>Review</strong><small>Cảm xúc &amp; khía cạnh</small></div></li>
-          <li><span>T</span><div><strong>Trust</strong><small>Complaint &amp; độ tin cậy</small></div></li>
-          <li><span>M</span><div><strong>Market</strong><small>Tín hiệu danh mục</small></div></li>
-        </ol>
+        <div class="panel-card-3d agent-matrix">
+          <div class="section-label">ĐỘI TÁC NHÂN CHUYÊN MIỀN</div>
+          <ol class="agent-map" aria-label="Các agent trong hệ thống">
+            <li class="agent-item">
+              <div class="agent-avatar avatar-product">P</div>
+              <div class="agent-details">
+                <strong>Product Scout</strong>
+                <small>Tìm kiếm &amp; xếp hạng sản phẩm</small>
+              </div>
+            </li>
+            <li class="agent-item">
+              <div class="agent-avatar avatar-review">R</div>
+              <div class="agent-details">
+                <strong>Review Intelligence</strong>
+                <small>Cảm xúc &amp; phân tích khía cạnh</small>
+              </div>
+            </li>
+            <li class="agent-item">
+              <div class="agent-avatar avatar-trust">T</div>
+              <div class="agent-details">
+                <strong>Trust &amp; Risk Guard</strong>
+                <small>Tỷ lệ phàn nàn &amp; độ tin cậy</small>
+              </div>
+            </li>
+            <li class="agent-item">
+              <div class="agent-avatar avatar-market">M</div>
+              <div class="agent-details">
+                <strong>Market Radar</strong>
+                <small>Tín hiệu giá &amp; phân khúc thị trường</small>
+              </div>
+            </li>
+          </ol>
+        </div>
 
-        <button class="new-session" id="new-session-button" type="button">
-          Bắt đầu phiên mới
+        <button class="btn btn-primary-3d new-session" id="new-session-button" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Tạo phiên hội thoại mới</span>
         </button>
       </aside>
 
+      <!-- Center Panel: Chat & Interactions -->
       <section class="chat-panel" aria-labelledby="chat-title">
         <header class="chat-header">
-          <div>
-            <p class="eyebrow">Orchestrator trực tuyến</p>
-            <h2 id="chat-title">Hỏi dữ liệu, xem cách hệ thống phối hợp.</h2>
+          <div class="chat-header-info">
+            <div class="active-dot"></div>
+            <div>
+              <h2 id="chat-title" class="chat-title">Trợ Lý Phân Tích Mua Sắm</h2>
+              <p class="chat-subtitle">Hỏi đáp trực tiếp với bằng chứng minh bạch</p>
+            </div>
           </div>
           <span class="session-label" id="session-label">Phiên mới</span>
         </header>
 
         <div class="conversation" id="conversation" aria-live="polite">
-          <section class="welcome-card" id="welcome-card">
-            <p class="welcome-kicker">Bắt đầu với một use case</p>
-            <h3>So sánh nhiều tín hiệu trong cùng một câu hỏi.</h3>
+          <section class="welcome-card panel-card-3d" id="welcome-card">
+            <div class="welcome-icon-wrap">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                <line x1="15" y1="9" x2="15.01" y2="9"></line>
+              </svg>
+            </div>
+            <h3>Khám phá sản phẩm &amp; Đánh giá có căn cứ</h3>
             <p>
-              Thử một câu hỏi phức hợp để xem Product, Review và Trust Agent
-              cùng tạo recommendation minh bạch.
+              Chọn nhanh câu hỏi mẫu hoặc nhập nhu cầu của bạn để hệ sinh thái tác nhân phối hợp phân tích.
             </p>
             <div class="suggestions" aria-label="Câu hỏi gợi ý">
-              <button type="button" data-prompt="Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn.">
-                Tai nghe bán tốt, ít complaint
+              <button class="suggestion-chip" type="button" data-prompt="Tìm sách dưới 150 nghìn bán chạy và ít bị chê nhất">
+                <span class="chip-icon">📚</span>
+                <span>Sách hay dưới 150k, ít phàn nàn</span>
               </button>
-              <button type="button" data-prompt="So sánh Nova Air S2 với Sonic G5. Nếu ưu tiên giá và rating thì chọn sản phẩm nào?">
-                So sánh hai sản phẩm
+              <button class="suggestion-chip" type="button" data-prompt="Review về sách Kinh Dịch Đạo Của Người Quân Tử ra sao?">
+                <span class="chip-icon">📖</span>
+                <span>Review sách Kinh Dịch Đạo Của Người Quân Tử</span>
               </button>
-              <button type="button" data-prompt="Khách hàng đánh giá thế nào về Tai nghe Bluetooth Nova Air S2?">
-                Tóm tắt review tiếng Việt
+              <button class="suggestion-chip" type="button" data-prompt="Khách hàng đánh giá thế nào về sách Bạch Dạ Hành?">
+                <span class="chip-icon">🔍</span>
+                <span>Đánh giá sách trinh thám Bạch Dạ Hành</span>
+              </button>
+              <button class="suggestion-chip" type="button" data-prompt="Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn.">
+                <span class="chip-icon">🎧</span>
+                <span>Tai nghe bán tốt &amp; ít complaint</span>
               </button>
             </div>
           </section>
         </div>
 
-        <section class="progress-panel" id="progress-panel" hidden>
+        <!-- Real-time Agent Progress Flow -->
+        <section class="progress-panel panel-card-3d" id="progress-panel" hidden>
           <div class="progress-heading">
-            <span class="pulse" aria-hidden="true"></span>
-            <strong>Luồng xử lý</strong>
-            <button id="cancel-button" type="button">Dừng</button>
+            <div class="pulse-ring" aria-hidden="true"></div>
+            <strong>Tiến trình điều phối Agents</strong>
+            <button id="cancel-button" class="btn btn-sm btn-ghost" type="button">Dừng lại</button>
           </div>
-          <ol id="progress-list" aria-live="polite"></ol>
+          <ol id="progress-list" class="progress-steps" aria-live="polite"></ol>
         </section>
 
+        <!-- Floating Composer Input -->
         <form class="composer" id="composer-form">
-          <label class="sr-only" for="composer-input">Nhập câu hỏi</label>
-          <textarea
-            id="composer-input"
-            name="message"
-            rows="1"
-            maxlength="2000"
-            placeholder="Ví dụ: Tìm tai nghe dưới 1 triệu, bán tốt và ít complaint…"
-            required
-          ></textarea>
-          <button class="send-button" id="send-button" type="submit">
-            <span>Gửi</span>
-            <span aria-hidden="true">↗</span>
-          </button>
+          <div class="composer-box-3d">
+            <label class="sr-only" for="composer-input">Nhập câu hỏi</label>
+            <textarea
+              id="composer-input"
+              name="message"
+              rows="1"
+              maxlength="2000"
+              placeholder="Nhập câu hỏi (Ví dụ: Tìm sách kinh tế dưới 200k được đánh giá cao...)"
+              required
+            ></textarea>
+            <button class="send-button btn-send-3d" id="send-button" type="submit" aria-label="Gửi yêu cầu">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
           <p class="composer-note">
-            Câu trả lời hiển thị nguồn, trạng thái agent và cảnh báo dữ liệu mẫu.
+            Được bảo vệ bởi Agent Gateway • Dữ liệu có nguồn dẫn chứng minh bạch
           </p>
         </form>
       </section>
 
+      <!-- Right Panel: Evidence & Execution Rail -->
       <aside class="evidence-panel" aria-label="Bằng chứng và thực thi">
         <div class="evidence-header">
           <div>
-            <p class="eyebrow">Evidence rail</p>
+            <div class="section-label">AUDIT TRAIL</div>
             <h2>Dấu vết thực thi</h2>
           </div>
-          <span id="result-status" class="status-badge">Chưa có</span>
+          <span id="result-status" class="status-badge status-idle">Sẵn sàng</span>
         </div>
 
-        <section class="evidence-section">
-          <h3>Agent đã chạy</h3>
+        <section class="evidence-section panel-card-3d">
+          <div class="section-title-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <h3>Agent đã thực thi</h3>
+          </div>
           <div class="empty-evidence" id="executions-empty">
-            Trạng thái từng agent sẽ xuất hiện sau khi gửi câu hỏi.
+            Trạng thái từng tác nhân sẽ hiển thị sau khi gửi câu hỏi.
           </div>
           <ol class="execution-list" id="execution-list"></ol>
         </section>
 
-        <section class="evidence-section">
-          <h3>Nguồn dữ liệu</h3>
+        <section class="evidence-section panel-card-3d">
+          <div class="section-title-wrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <h3>Nguồn dữ liệu đối chứng</h3>
+          </div>
           <div class="empty-evidence" id="sources-empty">
-            Nguồn và trường dữ liệu sẽ được liệt kê tại đây.
+            Danh sách bảng dữ liệu &amp; bản ghi sẽ xuất hiện tại đây.
           </div>
           <ul class="source-list" id="source-list"></ul>
         </section>
 
-        <section class="trace-card">
-          <span>Trace ID</span>
-          <code id="trace-id">—</code>
+        <section class="trace-card panel-card-3d">
+          <div class="trace-header">
+            <span>Trace Identifier</span>
+            <div class="security-chip">Encrypted</div>
+          </div>
+          <code id="trace-id" class="trace-code">—</code>
         </section>
       </aside>
     </main>
 
+    <!-- Credential Modal -->
     <dialog
       class="credential-dialog"
       id="credential-dialog"
       aria-labelledby="credential-title"
       aria-describedby="credential-description"
     >
-      <form method="dialog" id="credential-form">
-        <div class="dialog-mark" aria-hidden="true">KEY</div>
-        <p class="eyebrow">Kết nối Gateway</p>
-        <h2 id="credential-title">Nhập API key của bạn</h2>
+      <form method="dialog" id="credential-form" class="credential-box-3d">
+        <div class="dialog-icon-badge" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <div class="section-label">XÁC THỰC GATEWAY</div>
+        <h2 id="credential-title">Cấu hình API Key</h2>
         <p id="credential-description">
-          Key chỉ được giữ trong bộ nhớ đến khi tải lại tab và không được ghi vào lịch sử chat.
-          Môi trường demo mặc định dùng <code>demo-local-key</code>.
+          Khóa xác thực chỉ được lưu tạm trong bộ nhớ phiên làm việc của tab này. Môi trường kiểm thử mặc định: <code>demo-local-key</code>.
         </p>
-        <label for="api-key-input">API key</label>
-        <input
-          id="api-key-input"
-          name="api-key"
-          type="password"
-          minlength="8"
-          maxlength="256"
-          autocomplete="off"
-          placeholder="demo-local-key"
-          required
-        />
+        <div class="input-group">
+          <label for="api-key-input">Khóa API Gateway</label>
+          <input
+            id="api-key-input"
+            name="api-key"
+            type="password"
+            minlength="8"
+            maxlength="256"
+            autocomplete="off"
+            placeholder="Nhập API key (mặc định: demo-local-key)"
+            required
+          />
+        </div>
         <div class="dialog-actions">
-          <button class="button button-quiet" id="credential-cancel" type="button">
-            Để sau
+          <button class="btn btn-glass" id="credential-cancel" type="button">
+            Đóng
           </button>
-          <button class="button button-primary" type="submit">Lưu cho tab này</button>
+          <button class="btn btn-primary-3d" type="submit">Lưu xác thực</button>
         </div>
       </form>
     </dialog>
