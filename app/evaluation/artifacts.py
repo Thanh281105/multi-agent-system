@@ -253,11 +253,19 @@ def _validate_bundle_inputs(
     expected_keys = {
         (variant.variant_id, case_id, phase, repetition)
         for variant in protocol.variants
-        for case_id in protocol.case_order
-        for phase, repeats in (
-            (EvaluationPhase.CORRECTNESS, protocol.correctness_repeats),
-            (EvaluationPhase.LATENCY, protocol.latency_repeats),
+        for phase, repeats, phase_cases in (
+            (
+                EvaluationPhase.CORRECTNESS,
+                protocol.correctness_repeats,
+                protocol.case_order,
+            ),
+            (
+                EvaluationPhase.LATENCY,
+                protocol.latency_repeats,
+                protocol.effective_latency_case_order,
+            ),
         )
+        for case_id in phase_cases
         for repetition in range(repeats)
     }
     if observation_keys != expected_keys:

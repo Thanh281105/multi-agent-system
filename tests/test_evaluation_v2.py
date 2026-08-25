@@ -21,6 +21,7 @@ from app.evaluation.protocol import (
 )
 from app.evaluation.v2_models import (
     ComparisonMetric,
+    EvaluationExperimentConfigV2,
     EvaluationObservationV2,
     EvaluationPhase,
     EvaluationProtocolV2,
@@ -69,6 +70,101 @@ def test_protocol_hash_is_canonical_and_variants_are_strict() -> None:
     with pytest.raises(ValidationError, match="frozen"):
         protocol.variants[1].model_bindings[0].model = "mutated-model"
     assert protocol_sha256(protocol) == original_hash
+
+
+def test_experiment_config_rejects_ambiguous_warmups_and_parent_cycles() -> None:
+    variants = (_deterministic_variant(), _hybrid_variant())
+    config = EvaluationExperimentConfigV2(
+        experiment_id="paired_experiment_v2",
+        baseline_variant_id="deterministic_v1",
+        warmup_repeats=1,
+        warmup_case_id="case_a",
+        variants=variants,
+    )
+
+    assert config.baseline_variant_id == "deterministic_v1"
+    with pytest.raises(ValidationError, match="declared together"):
+        EvaluationExperimentConfigV2.model_validate(
+            {
+                **config.model_dump(),
+                "warmup_case_id": None,
+            }
+        )
+    cyclic = (
+        variants[0].model_copy(update={"parent_variant_id": "hybrid_full"}),
+        variants[1],
+    )
+    with pytest.raises(ValidationError, match="acyclic"):
+        EvaluationExperimentConfigV2.model_validate(
+            {
+                **config.model_dump(),
+                "variants": [item.model_dump() for item in cyclic],
+            }
+        )
+
+
+def test_latency_subset_is_protocol_bound_and_bundle_complete(tmp_path: Path) -> None:
+    protocol = EvaluationProtocolV2.model_validate(
+        {
+            **_protocol().model_dump(),
+            "latency_repeats": 1,
+            "latency_case_order": ["case_a", "case_c"],
+        }
+    )
+    correctness = _paired_observations(protocol)
+    latency = tuple(
+        _observation(
+            protocol,
+            variant_id=variant_id,
+            case_id=case_id,
+            phase=EvaluationPhase.LATENCY,
+            execution_order=len(correctness) + index,
+        )
+        for index, (case_id, variant_id) in enumerate(
+            (
+                ("case_a", "deterministic_v1"),
+                ("case_a", "hybrid_full"),
+                ("case_c", "deterministic_v1"),
+                ("case_c", "hybrid_full"),
+            )
+        )
+    )
+
+    manifest = write_bundle(
+        tmp_path / "latency_subset",
+        run_id="run_paired_v2",
+        protocol=protocol,
+        observations=(*correctness, *latency),
+        comparisons=(),
+        created_at=datetime(2026, 8, 25, tzinfo=UTC),
+    )
+
+    assert manifest.observation_count == 12
+    invalid_latency = latency[0].model_copy(update={"case_id": "case_b"})
+    with pytest.raises(ValueError, match="non-latency case"):
+        validate_observation_protocol(invalid_latency, protocol)
+
+
+def test_zero_attempt_model_call_is_reserved_for_open_circuit() -> None:
+    call = ModelCallV2(
+        call_id="call_router_circuit",
+        stage=ModelStage.ROUTING,
+        provider="openai",
+        model="gpt-5.4-nano",
+        outcome=ModelCallOutcome.ERROR,
+        attempt=0,
+        latency_ms=0,
+        error_code="model_circuit_open",
+    )
+
+    assert call.attempt == 0
+    with pytest.raises(ValidationError, match="open circuit"):
+        ModelCallV2.model_validate(
+            {
+                **call.model_dump(),
+                "error_code": "model_timeout",
+            }
+        )
 
 
 def test_token_accounting_and_versioned_cost_are_exact() -> None:

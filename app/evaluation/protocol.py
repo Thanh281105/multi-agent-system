@@ -119,6 +119,10 @@ def validate_observation_protocol(
         )
     if observation.case_id not in set(protocol.case_order):
         raise ValueError(f"observation references unknown case: {observation.case_id}")
+    if observation.phase == EvaluationPhase.LATENCY and observation.case_id not in set(
+        protocol.effective_latency_case_order
+    ):
+        raise ValueError("latency observation references a non-latency case")
     repeat_limit = (
         protocol.correctness_repeats
         if observation.phase == EvaluationPhase.CORRECTNESS

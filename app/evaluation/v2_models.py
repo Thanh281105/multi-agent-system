@@ -65,12 +65,21 @@ class EvaluationPhase(StrEnum):
     LATENCY = "latency"
 
 
+class ReasoningEffortV2(StrEnum):
+    NONE = "none"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    XHIGH = "xhigh"
+
+
 class ModelBindingV2(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     stage: ModelStage
     provider: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
     model: str = Field(min_length=1, max_length=128)
+    reasoning_effort: ReasoningEffortV2 = ReasoningEffortV2.LOW
 
 
 class EvaluationVariantV2(BaseModel):
@@ -87,6 +96,9 @@ class EvaluationVariantV2(BaseModel):
     embedding_backend: str = Field(min_length=1, max_length=128)
     model_bindings: tuple[ModelBindingV2, ...] = ()
     max_model_calls: int = Field(default=0, ge=0, le=100)
+    fallback_policy: Literal["deterministic_fallback", "fail_closed"] = (
+        "deterministic_fallback"
+    )
     parent_variant_id: str | None = Field(default=None, pattern=_IDENTIFIER)
     hypothesis: str | None = Field(default=None, min_length=1, max_length=1_000)
 
@@ -149,6 +161,8 @@ class EvaluationProtocolV2(BaseModel):
     latency_repeats: int = Field(default=0, ge=0, le=100)
     bootstrap_samples: int = Field(default=5_000, ge=100, le=100_000)
     case_order: tuple[str, ...] = Field(min_length=1, max_length=5_000)
+    latency_case_order: tuple[str, ...] = Field(default=(), max_length=5_000)
+    warmup_case_id: str | None = Field(default=None, pattern=_IDENTIFIER)
     variants: tuple[EvaluationVariantV2, ...] = Field(min_length=1, max_length=50)
     pricing_sha256: str | None = Field(default=None, pattern=_SHA256)
     judge_prompt_sha256: str | None = Field(default=None, pattern=_SHA256)
@@ -163,6 +177,19 @@ class EvaluationProtocolV2(BaseModel):
             raise ValueError("protocol requires correctness or latency observations")
         if len(self.case_order) != len(set(self.case_order)):
             raise ValueError("case order must contain unique case IDs")
+        if len(self.latency_case_order) != len(set(self.latency_case_order)):
+            raise ValueError("latency case order must contain unique case IDs")
+        if not set(self.latency_case_order).issubset(self.case_order):
+            raise ValueError("latency cases must be a subset of the corpus cases")
+        if (self.warmup_repeats > 0) != (self.warmup_case_id is not None):
+            raise ValueError(
+                "warmup repeats and pinned warmup case must be declared together"
+            )
+        if (
+            self.warmup_case_id is not None
+            and self.warmup_case_id not in self.case_order
+        ):
+            raise ValueError("warmup case must belong to the protocol case order")
         variant_ids = [variant.variant_id for variant in self.variants]
         if len(variant_ids) != len(set(variant_ids)):
             raise ValueError("variant IDs must be unique")
@@ -173,6 +200,53 @@ class EvaluationProtocolV2(BaseModel):
                 and variant.parent_variant_id not in known_variants
             ):
                 raise ValueError(f"unknown parent variant: {variant.parent_variant_id}")
+        _validate_variant_parent_graph(self.variants)
+        return self
+
+    @property
+    def effective_latency_case_order(self) -> tuple[str, ...]:
+        return self.latency_case_order or self.case_order
+
+
+class EvaluationExperimentConfigV2(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal["2.0"] = "2.0"
+    experiment_id: str = Field(pattern=_IDENTIFIER)
+    baseline_variant_id: str = Field(pattern=_IDENTIFIER)
+    random_seed: int = Field(default=42, ge=0, le=2**32 - 1)
+    correctness_repeats: int = Field(default=3, ge=1, le=50)
+    warmup_repeats: int = Field(default=1, ge=0, le=20)
+    latency_repeats: int = Field(default=5, ge=0, le=100)
+    bootstrap_samples: int = Field(default=10_000, ge=100, le=100_000)
+    warmup_case_id: str | None = Field(default=None, pattern=_IDENTIFIER)
+    latency_case_ids: tuple[str, ...] = Field(default=(), max_length=5_000)
+    variants: tuple[EvaluationVariantV2, ...] = Field(min_length=2, max_length=50)
+
+    @model_validator(mode="after")
+    def validate_experiment(self) -> EvaluationExperimentConfigV2:
+        variant_ids = [variant.variant_id for variant in self.variants]
+        if len(variant_ids) != len(set(variant_ids)):
+            raise ValueError("experiment variant IDs must be unique")
+        if self.baseline_variant_id not in variant_ids:
+            raise ValueError("experiment baseline variant is unknown")
+        known_variants = set(variant_ids)
+        for variant in self.variants:
+            if (
+                variant.parent_variant_id is not None
+                and variant.parent_variant_id not in known_variants
+            ):
+                raise ValueError(
+                    "experiment contains unknown parent variant: "
+                    f"{variant.parent_variant_id}"
+                )
+        _validate_variant_parent_graph(self.variants)
+        if len(self.latency_case_ids) != len(set(self.latency_case_ids)):
+            raise ValueError("experiment latency case IDs must be unique")
+        if (self.warmup_repeats > 0) != (self.warmup_case_id is not None):
+            raise ValueError(
+                "experiment warmup repeats and pinned case must be declared together"
+            )
         return self
 
 
@@ -271,7 +345,7 @@ class ModelCallV2(BaseModel):
     provider: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
     model: str = Field(min_length=1, max_length=128)
     outcome: ModelCallOutcome
-    attempt: int = Field(default=1, ge=1, le=20)
+    attempt: int = Field(default=1, ge=0, le=20)
     latency_ms: float = Field(ge=0)
     usage: TokenUsageV2 | None = None
     response_id: str | None = Field(default=None, min_length=1, max_length=256)
@@ -283,7 +357,25 @@ class ModelCallV2(BaseModel):
             raise ValueError("failed model calls require an error code")
         if self.outcome == ModelCallOutcome.SUCCESS and self.error_code is not None:
             raise ValueError("successful model calls cannot carry an error code")
+        if self.attempt == 0 and self.error_code != "model_circuit_open":
+            raise ValueError("zero-attempt calls must be rejected by an open circuit")
+        if self.error_code == "model_circuit_open" and self.attempt != 0:
+            raise ValueError("open-circuit calls cannot declare provider attempts")
         return self
+
+
+def _validate_variant_parent_graph(
+    variants: tuple[EvaluationVariantV2, ...],
+) -> None:
+    parents = {variant.variant_id: variant.parent_variant_id for variant in variants}
+    for variant_id in parents:
+        visited: set[str] = set()
+        current: str | None = variant_id
+        while current is not None:
+            if current in visited:
+                raise ValueError("variant parent graph must be acyclic")
+            visited.add(current)
+            current = parents.get(current)
 
 
 class PlanEdgeV2(BaseModel):
