@@ -26,6 +26,7 @@ from app.shared import (
     SessionStore,
     Telemetry,
     bind_execution_context,
+    collect_model_calls,
 )
 
 
@@ -70,39 +71,67 @@ class MultiAgentOrchestrator:
             trace_id=trace_id,
         )
         with bind_execution_context(context):
-            routed = self.router.route(message, session)
-            await emit_progress(
-                progress,
-                OrchestrationProgress(
-                    phase="routing.completed",
-                    message="Đã phân tích yêu cầu và xác định miền xử lý.",
-                ),
-            )
-            plan = self.planner.build(routed)
-            await emit_progress(
-                progress,
-                OrchestrationProgress(
-                    phase="planning.completed",
-                    message=f"Đã tạo kế hoạch gồm {len(plan.steps)} bước.",
-                ),
-            )
-            agent_results = await self.executor.execute(
-                plan,
-                context,
-                progress,
-            )
-            aggregation = self.aggregator.aggregate(
-                intent=routed.intent,
-                results=agent_results,
-            )
-            await emit_progress(
-                progress,
-                OrchestrationProgress(
-                    phase="aggregation.completed",
-                    message="Đã tổng hợp câu trả lời có nguồn.",
-                    status=aggregation.status,
-                ),
-            )
+            with collect_model_calls() as model_calls:
+                call_count = len(model_calls)
+                routed = await self.router.route_async(message, session)
+                if len(model_calls) > call_count:
+                    await emit_progress(
+                        progress,
+                        OrchestrationProgress(
+                            phase="model.routing.completed",
+                            message="Model Router đã hoàn tất phân loại có cấu trúc.",
+                        ),
+                    )
+                await emit_progress(
+                    progress,
+                    OrchestrationProgress(
+                        phase="routing.completed",
+                        message="Đã phân tích yêu cầu và xác định miền xử lý.",
+                    ),
+                )
+                call_count = len(model_calls)
+                plan = await self.planner.build_async(routed)
+                if len(model_calls) > call_count:
+                    await emit_progress(
+                        progress,
+                        OrchestrationProgress(
+                            phase="model.planning.completed",
+                            message="Model Planner đã đề xuất capability graph hợp lệ.",
+                        ),
+                    )
+                await emit_progress(
+                    progress,
+                    OrchestrationProgress(
+                        phase="planning.completed",
+                        message=f"Đã tạo kế hoạch gồm {len(plan.steps)} bước.",
+                    ),
+                )
+                agent_results = await self.executor.execute(
+                    plan,
+                    context,
+                    progress,
+                )
+                call_count = len(model_calls)
+                aggregation = await self.aggregator.aggregate_async(
+                    intent=routed.intent,
+                    results=agent_results,
+                )
+                if len(model_calls) > call_count:
+                    await emit_progress(
+                        progress,
+                        OrchestrationProgress(
+                            phase="model.synthesis.completed",
+                            message="Model Synthesis đã tạo các claim gắn nguồn.",
+                        ),
+                    )
+                await emit_progress(
+                    progress,
+                    OrchestrationProgress(
+                        phase="aggregation.completed",
+                        message="Đã tổng hợp câu trả lời có nguồn.",
+                        status=aggregation.status,
+                    ),
+                )
 
         active_agent = self._active_agent(routed.intent, session.active_agent)
         state_patch: dict[str, object] = {}
@@ -140,6 +169,10 @@ class MultiAgentOrchestrator:
             attributes={
                 "intent": routed.intent,
                 "agent_steps": len(plan.steps),
+                "model_calls": len(model_calls),
+                "model_fallbacks": sum(
+                    1 for item in model_calls if item.fallback_used
+                ),
             },
         )
         return OrchestrationResult(
@@ -154,6 +187,7 @@ class MultiAgentOrchestrator:
             plan=plan,
             agent_results=agent_results,
             provenance=aggregation.provenance,
+            model_calls=tuple(model_calls),
             warnings=aggregation.warnings,
             duration_ms=duration_ms,
         )

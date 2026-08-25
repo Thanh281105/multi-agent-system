@@ -5,6 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.contracts import AgentResult, DataProvenance, ExecutionPlan, TaskStatus
+from app.shared.model_runtime import ModelCallMetadata
 
 
 class RoutedIntent(BaseModel):
@@ -34,5 +35,6 @@ class OrchestrationResult(BaseModel):
     plan: ExecutionPlan
     agent_results: tuple[AgentResult, ...] = ()
     provenance: tuple[DataProvenance, ...] = ()
+    model_calls: tuple[ModelCallMetadata, ...] = ()
     warnings: tuple[str, ...] = ()
     duration_ms: float = Field(ge=0)

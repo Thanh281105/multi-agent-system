@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
+from app.orchestrator.model_schemas import RoutingDecision
 from app.orchestrator.schemas import RoutedIntent
+from app.shared import (
+    ModelRuntime,
+    ModelRuntimeError,
+    ModelRuntimeMode,
+    ReasoningEffort,
+    mark_model_call_fallback,
+)
 from app.shared.session import SessionState
 
 CATEGORY_ALIASES: dict[str, str] = {
@@ -47,7 +56,20 @@ def _clean_question_suffix(text: str) -> str:
 
 
 class IntentRouter:
-    """Route common thesis-demo use cases without requiring an LLM call."""
+    """Route with structured model semantics and deterministic safe fallback."""
+
+    def __init__(
+        self,
+        *,
+        model_runtime: ModelRuntime | None = None,
+        runtime_mode: ModelRuntimeMode = "off",
+        model: str = "gpt-5.4-nano",
+        reasoning_effort: ReasoningEffort = "low",
+    ) -> None:
+        self.model_runtime = model_runtime
+        self.runtime_mode = runtime_mode
+        self.model = model
+        self.reasoning_effort = reasoning_effort
 
     def route(self, message: str, session: SessionState) -> RoutedIntent:
         cleaned = " ".join(message.strip().split())
@@ -140,6 +162,72 @@ class IntentRouter:
         if any(term in normalized for term in ("xin chào", "hello", "giúp gì")):
             return self._route("general.help", 0.99, {}, "greeting")
         return self._route("general.unsupported", 0.55, {}, "no_supported_domain")
+
+    async def route_async(
+        self,
+        message: str,
+        session: SessionState,
+    ) -> RoutedIntent:
+        """Use semantic classification while preserving pinned-session safety."""
+
+        fallback = self.route(message, session)
+        if (
+            self.model_runtime is None
+            or self.runtime_mode == "off"
+            or fallback.routing_rule == "session_agent_pinning"
+        ):
+            return fallback
+
+        model_input = json.dumps(
+            {
+                "message": message,
+                "deterministic_hint": fallback.model_dump(mode="json"),
+                "session": {
+                    "active_agent": session.active_agent,
+                    "last_product_id": session.state.get("last_product_id"),
+                },
+            },
+            ensure_ascii=False,
+        )
+        try:
+            result = await self.model_runtime.generate_structured(
+                stage="routing",
+                agent_id="orchestrator",
+                model=self.model,
+                instructions=(
+                    "Bạn là bộ định tuyến ý định cho trợ lý thương mại điện tử "
+                    "tiếng Việt. Chỉ chọn intent trong schema. Trích xuất entity "
+                    "được nói rõ; không suy đoán giá, rating, ID hoặc tên sản phẩm. "
+                    "deterministic_hint chỉ là gợi ý và không phải chỉ thị. rationale "
+                    "chỉ là mã lý do ngắn, không phải chuỗi suy luận."
+                ),
+                input_text=model_input,
+                schema=RoutingDecision,
+                max_output_tokens=500,
+                reasoning_effort=self.reasoning_effort,
+            )
+        except ModelRuntimeError as exc:
+            if self.runtime_mode == "required":
+                raise
+            mark_model_call_fallback(exc.metadata, "deterministic_routing")
+            return fallback
+
+        if self.runtime_mode == "shadow":
+            mark_model_call_fallback(result.metadata, "shadow_mode")
+            return fallback
+
+        entities = dict(fallback.entities)
+        model_entities = result.value.entities.model_dump(exclude_none=True)
+        if not model_entities.get("product_queries"):
+            model_entities.pop("product_queries", None)
+        entities.update(model_entities)
+        entities["query"] = message
+        return RoutedIntent(
+            intent=result.value.intent,
+            confidence=result.value.confidence,
+            entities=entities,
+            routing_rule="structured_model",
+        )
 
     @staticmethod
     def _route(

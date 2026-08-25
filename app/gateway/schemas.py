@@ -38,6 +38,7 @@ class AgentExecutionInfo(BaseModel):
     step_id: str
     agent_id: str
     action: str
+    depends_on: tuple[str, ...] = ()
     status: TaskStatus
     duration_ms: float = Field(ge=0)
     error_codes: tuple[str, ...] = ()
@@ -53,6 +54,27 @@ class ProvenanceInfo(BaseModel):
     fields: tuple[str, ...] = ()
     sample_data: bool
     observed_at: datetime
+
+
+class ModelCallInfo(BaseModel):
+    """Sanitized model telemetry; prompts and provider payloads stay private."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    call_id: str
+    stage: str
+    agent_id: str
+    provider: str
+    model: str
+    status: str
+    duration_ms: float = Field(ge=0)
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    total_tokens: int = Field(ge=0)
+    attempts: int = Field(ge=0)
+    fallback_used: bool
+    fallback_reason: str | None = None
+    error_code: str | None = None
 
 
 class GatewayChatResponse(BaseModel):
@@ -71,6 +93,7 @@ class GatewayChatResponse(BaseModel):
     selected_product_id: int | None = None
     executions: tuple[AgentExecutionInfo, ...] = ()
     provenance: tuple[ProvenanceInfo, ...] = ()
+    model_calls: tuple[ModelCallInfo, ...] = ()
     warnings: tuple[str, ...] = ()
     sample_data: bool = True
     duration_ms: float = Field(ge=0)
@@ -118,6 +141,7 @@ def build_chat_response(result: OrchestrationResult) -> GatewayChatResponse:
             step_id=step.step_id,
             agent_id=step.agent_id,
             action=step.action,
+            depends_on=step.depends_on,
             status=agent_result.status,
             duration_ms=agent_result.duration_ms,
             error_codes=tuple(error.code for error in agent_result.errors),
@@ -138,6 +162,9 @@ def build_chat_response(result: OrchestrationResult) -> GatewayChatResponse:
         )
         for item in result.provenance
     )
+    model_calls = tuple(
+        ModelCallInfo.model_validate(item.model_dump()) for item in result.model_calls
+    )
     return GatewayChatResponse(
         status=result.status,
         answer=result.answer,
@@ -149,6 +176,7 @@ def build_chat_response(result: OrchestrationResult) -> GatewayChatResponse:
         selected_product_id=result.selected_product_id,
         executions=executions,
         provenance=provenance,
+        model_calls=model_calls,
         warnings=result.warnings,
         sample_data=all(item.sample_data for item in result.provenance),
         duration_ms=result.duration_ms,

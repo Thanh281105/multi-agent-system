@@ -2,15 +2,37 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 from uuid import uuid4
 
 from app.contracts import ExecutionPlan, ExecutionStep
+from app.orchestrator.model_schemas import CapabilityName, PlanningDecision
 from app.orchestrator.schemas import RoutedIntent
+from app.shared import (
+    ModelRuntime,
+    ModelRuntimeError,
+    ModelRuntimeMode,
+    ReasoningEffort,
+    mark_model_call_fallback,
+)
 
 
 class ExecutionPlanner:
     """Create small DAGs whose bindings are resolved by the executor."""
+
+    def __init__(
+        self,
+        *,
+        model_runtime: ModelRuntime | None = None,
+        runtime_mode: ModelRuntimeMode = "off",
+        model: str = "gpt-5.4-mini",
+        reasoning_effort: ReasoningEffort = "low",
+    ) -> None:
+        self.model_runtime = model_runtime
+        self.runtime_mode = runtime_mode
+        self.model = model
+        self.reasoning_effort = reasoning_effort
 
     def build(self, routed: RoutedIntent) -> ExecutionPlan:
         intent = routed.intent
@@ -135,6 +157,108 @@ class ExecutionPlanner:
         else:
             return self._plan("general.unsupported", [])
         return self._plan(intent, steps)
+
+    async def build_async(self, routed: RoutedIntent) -> ExecutionPlan:
+        """Ask the model for capabilities, then compile an authorized DAG."""
+
+        fallback = self.build(routed)
+        expected = self._expected_capabilities(routed)
+        if (
+            self.model_runtime is None
+            or self.runtime_mode == "off"
+            or not expected
+        ):
+            return fallback
+
+        try:
+            result = await self.model_runtime.generate_structured(
+                stage="planning",
+                agent_id="orchestrator",
+                model=self.model,
+                instructions=(
+                    "Bạn là planner cho hệ thống multi-agent. Chọn tập capability "
+                    "nhỏ nhất, đúng thứ tự phụ thuộc để xử lý intent. Chỉ dùng "
+                    "capability trong schema; không tạo MCP tool, server, action, "
+                    "agent hay dữ liệu đầu vào mới. rationale là lý do ngắn, không "
+                    "phải chuỗi suy luận."
+                ),
+                input_text=json.dumps(
+                    {
+                        "route": routed.model_dump(mode="json"),
+                        "policy": {
+                            "max_steps": 8,
+                            "max_candidates": 5,
+                            "tool_access": "agent_gateway_only",
+                        },
+                    },
+                    ensure_ascii=False,
+                ),
+                schema=PlanningDecision,
+                max_output_tokens=500,
+                reasoning_effort=self.reasoning_effort,
+            )
+        except ModelRuntimeError as exc:
+            if self.runtime_mode == "required":
+                raise
+            mark_model_call_fallback(exc.metadata, "deterministic_planning")
+            return fallback
+
+        if self.runtime_mode == "shadow":
+            mark_model_call_fallback(result.metadata, "shadow_mode")
+            return fallback
+
+        proposed = tuple(result.value.capabilities)
+        if proposed != expected:
+            mark_model_call_fallback(result.metadata, "unauthorized_plan")
+            if self.runtime_mode == "required":
+                raise ValueError("model_plan_not_authorized")
+            return fallback
+
+        entities = dict(routed.entities)
+        if routed.intent in {"product.rank", "multi.recommendation"}:
+            entities["limit"] = result.value.candidate_limit
+        compiled_route = routed.model_copy(update={"entities": entities})
+        compiled = self.build(compiled_route)
+        if len(compiled.steps) > 8:
+            mark_model_call_fallback(result.metadata, "plan_step_limit")
+            if self.runtime_mode == "required":
+                raise ValueError("model_plan_exceeds_step_limit")
+            return fallback
+        return compiled
+
+    @staticmethod
+    def _expected_capabilities(
+        routed: RoutedIntent,
+    ) -> tuple[CapabilityName, ...]:
+        intent = routed.intent
+        if intent in {"general.help", "general.unsupported"}:
+            return ()
+        if intent == "product.search":
+            return ("product.search",)
+        if intent == "product.rank":
+            return ("product.rank",)
+        if intent == "product.follow_up":
+            return ("product.compare",)
+        if intent == "product.compare":
+            queries = routed.entities.get("product_queries")
+            if isinstance(queries, list) and len(queries) >= 2:
+                return ("product.search", "product.compare")
+            return ("product.compare",)
+        if intent == "review.summary":
+            if isinstance(routed.entities.get("product_id"), int):
+                return ("review.summarize",)
+            return ("product.search", "review.summarize")
+        if intent == "trust.complaints":
+            if isinstance(routed.entities.get("product_id"), int):
+                return ("trust.complaints",)
+            return ("product.search", "trust.complaints")
+        if intent == "multi.recommendation":
+            return ("product.rank", "review.compare", "trust.compare")
+        if intent == "market.analyze":
+            return ("market.analyze",)
+        if intent == "market.search":
+            return ("market.search",)
+        return ()
 
     def _product_dependent_steps(
         self,
