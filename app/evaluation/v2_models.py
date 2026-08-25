@@ -206,6 +206,13 @@ class EvaluationProtocolV2(BaseModel):
             ):
                 raise ValueError(f"unknown parent variant: {variant.parent_variant_id}")
         _validate_variant_parent_graph(self.variants)
+        requires_network = any(
+            variant.runtime_mode == RuntimeMode.HYBRID for variant in self.variants
+        )
+        if self.network_allowed != requires_network:
+            raise ValueError(
+                "protocol network policy must exactly match executable variants"
+            )
         return self
 
     @property

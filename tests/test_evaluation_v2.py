@@ -697,6 +697,7 @@ def _protocol(*, case_order: tuple[str, ...] | None = None) -> EvaluationProtoco
         variants=(_deterministic_variant(), _hybrid_variant()),
         git_revision="abcdef1",
         git_dirty=False,
+        network_allowed=True,
     )
 
 
