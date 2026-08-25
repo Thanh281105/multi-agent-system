@@ -17,3 +17,4 @@ data/cache/
 *.sqlite3
 .codegraph/
 .ai-router/
+output/playwright/
