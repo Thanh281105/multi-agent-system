@@ -18,3 +18,4 @@ data/cache/
 .codegraph/
 .ai-router/
 output/playwright/
+output/evaluation-v2/
