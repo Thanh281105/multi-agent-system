@@ -36,3 +36,10 @@ class HashingTextEmbedder:
             vector[bucket] += sign * (1.0 + math.log(count))
         norm = math.sqrt(sum(value * value for value in vector))
         return [value / norm for value in vector]
+
+    def embed_many(self, texts: list[str]) -> list[list[float]]:
+        """Embed a bounded batch while preserving deterministic input order."""
+
+        if not texts:
+            raise ValueError("embedding inputs must not be empty")
+        return [self.embed(text) for text in texts]

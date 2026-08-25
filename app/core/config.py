@@ -118,6 +118,82 @@ class Settings(BaseSettings):
         default="gpt-5.4-mini",
         validation_alias=AliasChoices("OPENAI_MODEL", "MODEL"),
     )
+    model_runtime_mode: Literal["off", "shadow", "hybrid", "required"] = Field(
+        default="hybrid",
+        validation_alias="MODEL_RUNTIME_MODE",
+    )
+    openai_routing_model: str = Field(
+        default="gpt-5.4-nano",
+        validation_alias="OPENAI_ROUTING_MODEL",
+    )
+    openai_planning_model: str = Field(
+        default="gpt-5.4-mini",
+        validation_alias="OPENAI_PLANNING_MODEL",
+    )
+    openai_specialist_model: str = Field(
+        default="gpt-5.4-nano",
+        validation_alias="OPENAI_SPECIALIST_MODEL",
+    )
+    openai_synthesis_model: str = Field(
+        default="gpt-5.4-mini",
+        validation_alias="OPENAI_SYNTHESIS_MODEL",
+    )
+    openai_reasoning_effort: Literal[
+        "none", "low", "medium", "high", "xhigh"
+    ] = Field(
+        default="low",
+        validation_alias="OPENAI_REASONING_EFFORT",
+    )
+    openai_request_timeout_seconds: float = Field(
+        default=18.0,
+        ge=1,
+        le=120,
+        validation_alias="OPENAI_REQUEST_TIMEOUT_SECONDS",
+    )
+    openai_max_retries: int = Field(
+        default=2,
+        ge=0,
+        le=5,
+        validation_alias="OPENAI_MAX_RETRIES",
+    )
+    openai_max_output_tokens: int = Field(
+        default=1_200,
+        ge=64,
+        le=16_384,
+        validation_alias="OPENAI_MAX_OUTPUT_TOKENS",
+    )
+    openai_max_concurrency: int = Field(
+        default=8,
+        ge=1,
+        le=64,
+        validation_alias="OPENAI_MAX_CONCURRENCY",
+    )
+    openai_circuit_failure_threshold: int = Field(
+        default=4,
+        ge=1,
+        le=20,
+        validation_alias="OPENAI_CIRCUIT_FAILURE_THRESHOLD",
+    )
+    openai_circuit_recovery_seconds: float = Field(
+        default=30.0,
+        ge=1,
+        le=600,
+        validation_alias="OPENAI_CIRCUIT_RECOVERY_SECONDS",
+    )
+    embedding_backend: Literal["auto", "hashing", "openai"] = Field(
+        default="auto",
+        validation_alias="EMBEDDING_BACKEND",
+    )
+    openai_embedding_model: str = Field(
+        default="text-embedding-3-small",
+        validation_alias="OPENAI_EMBEDDING_MODEL",
+    )
+    openai_embedding_dimensions: int = Field(
+        default=1_536,
+        ge=32,
+        le=3_072,
+        validation_alias="OPENAI_EMBEDDING_DIMENSIONS",
+    )
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
 
     @model_validator(mode="after")
@@ -170,6 +246,28 @@ class Settings(BaseSettings):
             raise ValueError(
                 "production requires a strong non-placeholder QDRANT_API_KEY"
             )
+        openai_key = (self.openai_api_key or "").strip()
+        if (
+            self.app_env == "production"
+            and self.model_runtime_mode != "off"
+            and not openai_key
+        ):
+            raise ValueError(
+                "production requires OPENAI_API_KEY when model runtime is enabled"
+            )
+        if self.model_runtime_mode == "required" and not openai_key:
+            raise ValueError("MODEL_RUNTIME_MODE=required requires OPENAI_API_KEY")
+        if self.embedding_backend == "openai" and not openai_key:
+            raise ValueError("EMBEDDING_BACKEND=openai requires OPENAI_API_KEY")
+        if (
+            self.app_env == "production"
+            and self.knowledge_backend == "qdrant"
+            and self.embedding_backend == "auto"
+            and not openai_key
+        ):
+            raise ValueError(
+                "production Qdrant auto embedding requires OPENAI_API_KEY"
+            )
         return self
 
 
@@ -184,6 +282,14 @@ def public_settings(config: Settings = settings) -> dict[str, Any]:
         "llm_provider": "openai",
         "openai_model": config.openai_model,
         "openai_configured": bool(config.openai_api_key),
+        "model_runtime_mode": config.model_runtime_mode,
+        "routing_model": config.openai_routing_model,
+        "planning_model": config.openai_planning_model,
+        "specialist_model": config.openai_specialist_model,
+        "synthesis_model": config.openai_synthesis_model,
+        "embedding_backend": config.embedding_backend,
+        "embedding_model": config.openai_embedding_model,
+        "embedding_dimensions": config.openai_embedding_dimensions,
         "app_env": config.app_env,
         "gateway_api_key_count": len(
             [

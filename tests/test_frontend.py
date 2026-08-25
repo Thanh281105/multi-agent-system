@@ -85,6 +85,8 @@ def test_production_disables_interactive_docs_and_enables_hsts() -> None:
         knowledge_backend="qdrant",
         qdrant_api_key="strong-qdrant-key",
         operations_api_key="strong-operations-key",
+        model_runtime_mode="off",
+        embedding_backend="hashing",
     )
     client = TestClient(create_app(production))
 

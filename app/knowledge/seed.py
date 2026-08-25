@@ -8,15 +8,24 @@ from app.knowledge.qdrant import (
     KnowledgeStoreUnavailableError,
     QdrantKnowledgeStore,
 )
+from app.knowledge.runtime import (
+    build_knowledge_embedder,
+    versioned_knowledge_collection,
+)
 from app.knowledge.sample import SAMPLE_MARKET_DOCUMENTS
 
 
 def seed_sample_knowledge() -> int:
+    embedder = build_knowledge_embedder(settings)
     store = QdrantKnowledgeStore(
         settings.qdrant_url,
-        collection=settings.qdrant_collection,
+        collection=versioned_knowledge_collection(
+            settings.qdrant_collection,
+            embedder,
+        ),
         api_key=settings.qdrant_api_key.get_secret_value(),
         timeout_seconds=settings.qdrant_timeout_seconds,
+        embedder=embedder,
     )
     store.ensure_collection()
     return store.upsert_documents(SAMPLE_MARKET_DOCUMENTS)

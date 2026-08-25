@@ -12,6 +12,7 @@ from urllib.request import Request, urlopen
 from uuid import NAMESPACE_URL, uuid5
 
 from app.knowledge.embedding import HashingTextEmbedder
+from app.shared.embedding_runtime import EmbeddingRuntime
 
 Transport = Callable[[str, str, dict[str, Any] | None], tuple[int, Any]]
 
@@ -34,7 +35,7 @@ class QdrantKnowledgeStore:
         collection: str = "sample_market_knowledge",
         api_key: str = "",
         timeout_seconds: float = 3,
-        embedder: HashingTextEmbedder | None = None,
+        embedder: EmbeddingRuntime | None = None,
         transport: Transport | None = None,
         request_retries: int = 2,
     ) -> None:

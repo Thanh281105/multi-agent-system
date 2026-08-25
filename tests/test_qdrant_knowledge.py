@@ -252,6 +252,8 @@ def test_production_requires_authenticated_qdrant() -> None:
         "shared_state_backend": "redis",
         "redis_url": "redis://:strong-redis-password@localhost:6379/0",
         "operations_api_key": "strong-operations-key",
+        "model_runtime_mode": "off",
+        "embedding_backend": "hashing",
     }
     with pytest.raises(ValueError, match="KNOWLEDGE_BACKEND=qdrant"):
         Settings(**base)

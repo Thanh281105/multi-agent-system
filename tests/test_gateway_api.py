@@ -367,6 +367,8 @@ def test_settings_reject_insecure_production_gateway() -> None:
         knowledge_backend="qdrant",
         qdrant_api_key="strong-qdrant-key",
         operations_api_key="strong-operations-key",
+        model_runtime_mode="off",
+        embedding_backend="hashing",
     )
     assert production.app_env == "production"
     production_app = create_app(production)
