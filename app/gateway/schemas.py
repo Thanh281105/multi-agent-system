@@ -66,10 +66,13 @@ class ModelCallInfo(BaseModel):
     agent_id: str
     provider: str
     model: str
+    response_id: str | None = None
     status: str
     duration_ms: float = Field(ge=0)
     input_tokens: int = Field(ge=0)
+    cached_input_tokens: int = Field(ge=0)
     output_tokens: int = Field(ge=0)
+    reasoning_tokens: int = Field(ge=0)
     total_tokens: int = Field(ge=0)
     attempts: int = Field(ge=0)
     fallback_used: bool

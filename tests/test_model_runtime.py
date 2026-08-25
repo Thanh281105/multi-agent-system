@@ -52,9 +52,16 @@ def test_required_model_mode_rejects_missing_key() -> None:
 
 def parsed_response(answer: str) -> Any:
     return SimpleNamespace(
+        id="resp_safe_metadata_123",
         status="completed",
         output_parsed=ParsedAnswer(answer=answer),
-        usage=SimpleNamespace(input_tokens=12, output_tokens=7, total_tokens=19),
+        usage=SimpleNamespace(
+            input_tokens=12,
+            input_tokens_details=SimpleNamespace(cached_tokens=4),
+            output_tokens=7,
+            output_tokens_details=SimpleNamespace(reasoning_tokens=3),
+            total_tokens=19,
+        ),
     )
 
 
@@ -80,6 +87,9 @@ async def test_model_runtime_returns_schema_and_collects_safe_metadata() -> None
     assert result.value.answer == "Có căn cứ."
     assert calls == [result.metadata]
     assert result.metadata.total_tokens == 19
+    assert result.metadata.cached_input_tokens == 4
+    assert result.metadata.reasoning_tokens == 3
+    assert result.metadata.response_id == "resp_safe_metadata_123"
     assert result.metadata.status == "success"
     request = client.responses.requests[0]
     assert request["store"] is False

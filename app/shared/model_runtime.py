@@ -25,7 +25,7 @@ from openai import (
     InternalServerError,
     RateLimitError,
 )
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.shared.context import current_execution_context
 from app.shared.telemetry import Telemetry
@@ -45,15 +45,28 @@ class ModelCallMetadata(BaseModel):
     agent_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{2,127}$")
     provider: Literal["openai"] = "openai"
     model: str = Field(min_length=1, max_length=120)
+    response_id: str | None = Field(default=None, min_length=1, max_length=256)
     status: Literal["success", "failed"]
     duration_ms: float = Field(ge=0)
     input_tokens: int = Field(default=0, ge=0)
+    cached_input_tokens: int = Field(default=0, ge=0)
     output_tokens: int = Field(default=0, ge=0)
+    reasoning_tokens: int = Field(default=0, ge=0)
     total_tokens: int = Field(default=0, ge=0)
     attempts: int = Field(ge=0, le=10)
     fallback_used: bool = False
     fallback_reason: str | None = Field(default=None, max_length=80)
     error_code: str | None = Field(default=None, max_length=80)
+
+    @model_validator(mode="after")
+    def validate_usage(self) -> ModelCallMetadata:
+        if self.cached_input_tokens > self.input_tokens:
+            raise ValueError("cached input tokens cannot exceed input tokens")
+        if self.reasoning_tokens > self.output_tokens:
+            raise ValueError("reasoning tokens must be included in output tokens")
+        if self.total_tokens != self.input_tokens + self.output_tokens:
+            raise ValueError("total tokens must equal input plus output tokens")
+        return self
 
 
 @dataclass(frozen=True, slots=True)
@@ -358,19 +371,27 @@ class OpenAIModelRuntime:
     ) -> ModelCallMetadata:
         usage = getattr(response, "usage", None)
         input_tokens = int(getattr(usage, "input_tokens", 0) or 0)
+        input_details = getattr(usage, "input_tokens_details", None)
+        cached_input_tokens = int(getattr(input_details, "cached_tokens", 0) or 0)
         output_tokens = int(getattr(usage, "output_tokens", 0) or 0)
+        output_details = getattr(usage, "output_tokens_details", None)
+        reasoning_tokens = int(getattr(output_details, "reasoning_tokens", 0) or 0)
         total_tokens = int(
             getattr(usage, "total_tokens", input_tokens + output_tokens) or 0
         )
+        raw_response_id = getattr(response, "id", None)
         return ModelCallMetadata(
             call_id=call_id,
             stage=stage,
             agent_id=agent_id,
             model=model,
+            response_id=(str(raw_response_id) if raw_response_id else None),
             status=status,
             duration_ms=duration_ms,
             input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
             output_tokens=output_tokens,
+            reasoning_tokens=reasoning_tokens,
             total_tokens=total_tokens,
             attempts=attempts,
             error_code=error_code,
