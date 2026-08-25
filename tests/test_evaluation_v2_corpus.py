@@ -98,7 +98,9 @@ def test_pricing_manifest_is_versioned_and_covers_selected_models() -> None:
     assert pricing.source_url == "https://platform.openai.com/pricing"
     assert {entry.model for entry in pricing.entries} == {
         "gpt-5.4-mini",
+        "gpt-5.4-mini-2026-03-17",
         "gpt-5.4-nano",
+        "gpt-5.4-nano-2026-03-17",
     }
     assert all(entry.output_per_million_usd > 0 for entry in pricing.entries)
     assert len(canonical_sha256(pricing)) == 64
