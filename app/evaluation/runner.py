@@ -9,7 +9,7 @@ import hashlib
 import json
 import platform
 from collections import Counter
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app import __version__
 from app.agent_gateway import AgentGateway
 from app.agents import AgentDispatcher, build_default_dispatcher
-from app.contracts import AgentResult, TaskStatus
+from app.contracts import TaskStatus
 from app.db import session as db_session
 from app.db.base import Base
 from app.db.seed import seed_database
@@ -42,6 +42,7 @@ from app.evaluation.models import (
     EvaluationObservation,
     EvaluationReport,
 )
+from app.evaluation.observation import retrieved_product_ids
 from app.mcp.catalog import build_default_mcp_router
 from app.orchestrator import MultiAgentOrchestrator
 
@@ -271,7 +272,7 @@ async def observe_case(case: EvalCase, *, repetition: int) -> EvaluationObservat
         status=result.status,
         predicted_intent=result.intent,
         actions=tuple(step.action for step in result.plan.steps),
-        retrieved_product_ids=_retrieved_product_ids(result.agent_results),
+        retrieved_product_ids=retrieved_product_ids(result.agent_results),
         selected_product_id=result.selected_product_id,
         answer=result.answer,
         error_codes=tuple(
@@ -432,41 +433,6 @@ def _write_observations_csv(report: EvaluationReport, path: Path) -> None:
                     "llm_cost_usd": observation.llm_cost_usd,
                 }
             )
-
-
-def _retrieved_product_ids(results: Sequence[AgentResult]) -> tuple[int, ...]:
-    product_ids: list[int] = []
-
-    def append(value: object) -> None:
-        if (
-            isinstance(value, int)
-            and not isinstance(value, bool)
-            and value not in product_ids
-        ):
-            product_ids.append(value)
-
-    for result in results:
-        data = result.data
-        for key in ("products", "analyses"):
-            values = data.get(key)
-            if isinstance(values, list):
-                for item in values:
-                    if isinstance(item, dict):
-                        append(item.get("id", item.get("product_id")))
-        for key in ("ranking", "search"):
-            container = data.get(key)
-            if isinstance(container, dict):
-                values = container.get("products")
-                if isinstance(values, list):
-                    for item in values:
-                        if isinstance(item, dict):
-                            append(item.get("id"))
-        retrieval = data.get("retrieval")
-        if isinstance(retrieval, dict):
-            product = retrieval.get("product")
-            if isinstance(product, dict):
-                append(product.get("id"))
-    return tuple(product_ids)
 
 
 def _sha256(path: Path) -> str:

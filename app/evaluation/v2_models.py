@@ -355,6 +355,7 @@ class ModelCallV2(BaseModel):
     usage: TokenUsageV2 | None = None
     response_id: str | None = Field(default=None, min_length=1, max_length=256)
     error_code: str | None = Field(default=None, pattern=_IDENTIFIER)
+    fallback_reason: str | None = Field(default=None, pattern=_IDENTIFIER)
 
     @model_validator(mode="after")
     def validate_outcome(self) -> ModelCallV2:
@@ -366,6 +367,12 @@ class ModelCallV2(BaseModel):
             raise ValueError("zero-attempt calls must be rejected by an open circuit")
         if self.error_code == "model_circuit_open" and self.attempt != 0:
             raise ValueError("open-circuit calls cannot declare provider attempts")
+        if (self.outcome == ModelCallOutcome.FALLBACK) != (
+            self.fallback_reason is not None
+        ):
+            raise ValueError(
+                "fallback outcome and fallback reason must be declared together"
+            )
         return self
 
 
