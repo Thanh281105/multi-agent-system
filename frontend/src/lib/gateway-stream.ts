@@ -28,6 +28,7 @@ export interface RawSseFrame {
 }
 
 export class GatewayClientError extends Error {
+  readonly source: "gateway" | "client"
   readonly code: string
   readonly retryable: boolean
   readonly requestId?: string
@@ -38,6 +39,7 @@ export class GatewayClientError extends Error {
     code: string,
     message: string,
     options: {
+      source?: "gateway" | "client"
       retryable?: boolean
       requestId?: string
       traceId?: string
@@ -46,6 +48,7 @@ export class GatewayClientError extends Error {
   ) {
     super(message)
     this.name = "GatewayClientError"
+    this.source = options.source ?? "client"
     this.code = code
     this.retryable = options.retryable ?? false
     this.requestId = options.requestId
@@ -337,6 +340,7 @@ export async function parseHttpError(
         parsed.data.error.message,
         {
           retryable: parsed.data.error.retryable,
+          source: "gateway",
           requestId: parsed.data.error.request_id,
           traceId: parsed.data.error.trace_id,
           httpStatus: response.status,
@@ -365,6 +369,7 @@ function protocolError(code: string): GatewayClientError {
 
 function streamError(detail: GatewayErrorDetail): GatewayClientError {
   return new GatewayClientError(detail.code, detail.message, {
+    source: "gateway",
     retryable: detail.retryable,
     requestId: detail.request_id,
     traceId: detail.trace_id,

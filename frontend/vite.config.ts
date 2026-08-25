@@ -30,6 +30,7 @@ export default defineConfig({
         "src/lib/gateway-stream.ts",
         "src/features/chat/chat-state.ts",
         "src/features/chat/chat-storage.ts",
+        "src/features/chat/use-chat-controller.ts",
       ],
       thresholds: {
         lines: 90,
