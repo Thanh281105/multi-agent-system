@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
@@ -207,23 +208,17 @@ class _SchemaAwareResponses:
                 rationale="single_product_search",
             )
         elif schema is SpecialistInsight:
+            payload = json.loads(request["input"])
             value = SpecialistInsight(
-                summary="Nova Air S2 được tìm thấy trong dữ liệu mẫu.",
-                findings=["Giá và tên đã được tool xác nhận."],
-                caveats=["Chỉ áp dụng cho dữ liệu mẫu."],
-                evidence_source_ids=["postgresql:products"],
+                selected_fact_ids=[payload["fact_catalog"][0]["fact_id"]],
                 confidence=0.95,
             )
         elif schema is GroundedSynthesis:
+            payload = json.loads(request["input"])
             value = GroundedSynthesis(
                 claims=[
-                    GroundedClaim(
-                        statement=(
-                            "Tai nghe Bluetooth Nova Air S2 có giá 799.000₫ "
-                            "trong dữ liệu mẫu."
-                        ),
-                        source_ids=["postgresql:products"],
-                    )
+                    GroundedClaim(claim_id=item["claim_id"])
+                    for item in payload["claim_catalog"]
                 ],
             )
         else:  # pragma: no cover

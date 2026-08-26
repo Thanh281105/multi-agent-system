@@ -216,11 +216,16 @@ class IntentRouter:
             mark_model_call_fallback(result.metadata, "shadow_mode")
             return fallback
 
-        entities = dict(fallback.entities)
         model_entities = result.value.entities.model_dump(exclude_none=True)
         if not model_entities.get("product_queries"):
             model_entities.pop("product_queries", None)
-        entities.update(model_entities)
+        if not self._entities_are_authorized(fallback.entities, model_entities):
+            mark_model_call_fallback(result.metadata, "ungrounded_routing_entities")
+            if self.runtime_mode == "required":
+                raise ValueError("routing_entities_not_authorized")
+            return fallback
+
+        entities = dict(fallback.entities)
         entities["query"] = message
         return RoutedIntent(
             intent=result.value.intent,
@@ -228,6 +233,33 @@ class IntentRouter:
             entities=entities,
             routing_rule="structured_model",
         )
+
+    @classmethod
+    def _entities_are_authorized(
+        cls,
+        fallback_entities: dict[str, Any],
+        model_entities: dict[str, Any],
+    ) -> bool:
+        """Only accept entity values independently extracted by Python."""
+
+        return all(
+            key in fallback_entities
+            and cls._entity_values_equal(fallback_entities[key], value)
+            for key, value in model_entities.items()
+        )
+
+    @staticmethod
+    def _entity_values_equal(left: object, right: object) -> bool:
+        if isinstance(left, str) and isinstance(right, str):
+            return (
+                " ".join(left.split()).casefold() == " ".join(right.split()).casefold()
+            )
+        if isinstance(left, list) and isinstance(right, list):
+            return len(left) == len(right) and all(
+                IntentRouter._entity_values_equal(left_item, right_item)
+                for left_item, right_item in zip(left, right, strict=True)
+            )
+        return type(left) is type(right) and left == right
 
     @staticmethod
     def _route(

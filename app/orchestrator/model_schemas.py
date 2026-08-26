@@ -86,18 +86,23 @@ class PlanningDecision(BaseModel):
 
 
 class GroundedClaim(BaseModel):
-    """One answer sentence tied to one or more returned provenance records."""
+    """Reference to one server-authored answer claim."""
 
     model_config = ConfigDict(extra="forbid")
 
-    statement: str = Field(min_length=1, max_length=600)
-    source_ids: list[str] = Field(min_length=1, max_length=5)
+    claim_id: str = Field(pattern=r"^claim_[0-9]{3}$")
 
 
 class GroundedSynthesis(BaseModel):
-    """Final response draft assembled from individually cited claims."""
+    """Ordering of server-authored, evidence-bound answer claims."""
 
     model_config = ConfigDict(extra="forbid")
 
     claims: list[GroundedClaim] = Field(min_length=1, max_length=6)
-    limitations: list[str] = Field(default_factory=list, max_length=3)
+
+    @model_validator(mode="after")
+    def validate_unique_claims(self) -> GroundedSynthesis:
+        claim_ids = [claim.claim_id for claim in self.claims]
+        if len(claim_ids) != len(set(claim_ids)):
+            raise ValueError("grounded claim IDs must be unique")
+        return self

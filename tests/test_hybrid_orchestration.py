@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from app.agent_gateway import AgentGateway
 from app.agents import build_default_dispatcher
@@ -27,21 +29,34 @@ from app.shared import OpenAIModelRuntime
 
 
 class SchemaAwareResponses:
-    def __init__(self, *, invalid_plan: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        invalid_plan: bool = False,
+        invalid_entities: bool = False,
+        invalid_specialist: bool = False,
+        invalid_synthesis: bool = False,
+    ) -> None:
         self.invalid_plan = invalid_plan
+        self.invalid_entities = invalid_entities
+        self.invalid_specialist = invalid_specialist
+        self.invalid_synthesis = invalid_synthesis
         self.requests: list[dict[str, Any]] = []
 
     async def parse(self, **request: Any) -> Any:
         self.requests.append(request)
         schema = request["text_format"]
-        metadata = request["metadata"]
         if schema is RoutingDecision:
             value: Any = RoutingDecision(
                 intent="multi.recommendation",
                 confidence=0.98,
-                entities=RoutingEntities(
-                    category="Tai nghe",
-                    max_price=1_000_000,
+                entities=(
+                    RoutingEntities(product_id=987_654_321)
+                    if self.invalid_entities
+                    else RoutingEntities(
+                        category="Tai nghe",
+                        max_price=1_000_000,
+                    )
                 ),
                 rationale="recommendation_with_complaint_constraint",
             )
@@ -56,33 +71,24 @@ class SchemaAwareResponses:
                 rationale="rank_then_parallel_review_and_trust",
             )
         elif schema is SpecialistInsight:
-            source_id = (
-                "postgresql:products"
-                if metadata["agent_id"] == "product_agent"
-                else "postgresql:reviews"
-            )
+            payload = json.loads(request["input"])
+            fact_ids = [item["fact_id"] for item in payload["fact_catalog"]]
             value = SpecialistInsight(
-                summary=f"Insight có căn cứ của {metadata['agent_id']}.",
-                findings=["Tín hiệu đã được tool xác nhận."],
-                caveats=["Chỉ áp dụng cho dữ liệu mẫu."],
-                evidence_source_ids=[source_id],
+                selected_fact_ids=(
+                    ["fact_999"] if self.invalid_specialist else fact_ids[:2]
+                ),
                 confidence=0.9,
             )
         elif schema is GroundedSynthesis:
+            payload = json.loads(request["input"])
+            claim_ids = [item["claim_id"] for item in payload["claim_catalog"]]
             value = GroundedSynthesis(
                 claims=[
-                    GroundedClaim(
-                        statement=(
-                            "Nova Air S2 là đề xuất đứng đầu trong dữ liệu mẫu "
-                            "sau khi kết hợp tín hiệu sản phẩm và review."
-                        ),
-                        source_ids=[
-                            "postgresql:products",
-                            "postgresql:reviews",
-                        ],
+                    GroundedClaim(claim_id=claim_id)
+                    for claim_id in (
+                        ["claim_999"] if self.invalid_synthesis else claim_ids
                     )
-                ],
-                limitations=["Không đại diện toàn bộ thị trường thật"],
+                ]
             )
         else:  # pragma: no cover - catches accidental schema expansion
             raise AssertionError(f"unexpected schema: {schema}")
@@ -94,15 +100,23 @@ class SchemaAwareResponses:
 
 
 class FakeClient:
-    def __init__(self, *, invalid_plan: bool = False) -> None:
-        self.responses = SchemaAwareResponses(invalid_plan=invalid_plan)
+    def __init__(self, **failure_modes: bool) -> None:
+        self.responses = SchemaAwareResponses(**failure_modes)
 
 
 def build_hybrid_orchestrator(
     *,
     invalid_plan: bool = False,
+    invalid_entities: bool = False,
+    invalid_specialist: bool = False,
+    invalid_synthesis: bool = False,
 ) -> tuple[MultiAgentOrchestrator, SchemaAwareResponses]:
-    client = FakeClient(invalid_plan=invalid_plan)
+    client = FakeClient(
+        invalid_plan=invalid_plan,
+        invalid_entities=invalid_entities,
+        invalid_specialist=invalid_specialist,
+        invalid_synthesis=invalid_synthesis,
+    )
     runtime = OpenAIModelRuntime(
         "test-key",
         client=client,
@@ -136,7 +150,7 @@ async def test_hybrid_flow_runs_all_structured_reasoning_stages() -> None:
     orchestrator, responses = build_hybrid_orchestrator()
 
     result = await orchestrator.run(
-        message="Tìm tai nghe dưới một triệu, đáng mua và ít bị phàn nàn.",
+        message="Tìm tai nghe dưới 1 triệu, đáng mua và ít bị phàn nàn.",
         principal_id="user-a",
         session_id="sess_hybrid_123",
     )
@@ -185,3 +199,68 @@ async def test_unauthorized_model_plan_falls_back_to_compiled_allowlist() -> Non
     )
     assert planning_call.fallback_used is True
     assert planning_call.fallback_reason == "unauthorized_plan"
+
+
+@pytest.mark.asyncio
+async def test_model_cannot_invent_routing_entities() -> None:
+    orchestrator, _ = build_hybrid_orchestrator(invalid_entities=True)
+
+    result = await orchestrator.run(
+        message="Tìm tai nghe dưới 1 triệu, đáng mua và ít bị phàn nàn.",
+        principal_id="user-a",
+        session_id="sess_hybrid_bad_entity_123",
+    )
+
+    routing_call = next(item for item in result.model_calls if item.stage == "routing")
+    assert routing_call.fallback_used is True
+    assert routing_call.fallback_reason == "ungrounded_routing_entities"
+    assert "987654321" not in result.model_dump_json()
+
+
+@pytest.mark.asyncio
+async def test_model_cannot_select_unknown_specialist_fact() -> None:
+    orchestrator, _ = build_hybrid_orchestrator(invalid_specialist=True)
+
+    result = await orchestrator.run(
+        message="Tìm tai nghe dưới 1 triệu, đáng mua và ít bị phàn nàn.",
+        principal_id="user-a",
+        session_id="sess_hybrid_bad_fact_123",
+    )
+
+    specialist_calls = [
+        item for item in result.model_calls if item.stage == "specialist.analysis"
+    ]
+    assert specialist_calls
+    assert all(
+        item.fallback_reason == "ungrounded_specialist" for item in specialist_calls
+    )
+    assert all("model_insight" not in item.data for item in result.agent_results)
+
+
+@pytest.mark.asyncio
+async def test_model_cannot_select_unknown_synthesis_claim() -> None:
+    orchestrator, _ = build_hybrid_orchestrator(invalid_synthesis=True)
+
+    result = await orchestrator.run(
+        message="Tìm tai nghe dưới 1 triệu, đáng mua và ít bị phàn nàn.",
+        principal_id="user-a",
+        session_id="sess_hybrid_bad_claim_123",
+    )
+
+    synthesis_call = next(
+        item for item in result.model_calls if item.stage == "synthesis"
+    )
+    assert synthesis_call.fallback_used is True
+    assert synthesis_call.fallback_reason == "ungrounded_synthesis"
+    assert "claim_999" not in result.answer
+    assert "(nguồn:" not in result.answer
+
+
+def test_grounded_claim_schema_rejects_model_authored_prose() -> None:
+    with pytest.raises(ValidationError):
+        GroundedClaim.model_validate(
+            {
+                "claim_id": "claim_001",
+                "statement": "unchecked model prose",
+            }
+        )

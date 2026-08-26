@@ -44,10 +44,12 @@ async def smoke() -> int:
             agent_id="orchestrator",
             model=settings.openai_synthesis_model,
             instructions=(
-                "Return one Vietnamese claim tied only to the supplied source ID."
+                "Return every supplied claim_id exactly once and no authored prose."
             ),
             input_text=(
-                "Fact: sản phẩm mẫu A có rating 4.8. Allowed source ID: smoke:sample."
+                '{"claim_catalog":[{"claim_id":"claim_001",'
+                '"statement":"Sản phẩm mẫu A có rating 4.8.",'
+                '"source_ids":["smoke:sample"]}]}'
             ),
             schema=GroundedSynthesis,
             max_output_tokens=400,
@@ -61,6 +63,9 @@ async def smoke() -> int:
         return 1
     if not all(isinstance(claim, GroundedClaim) for claim in synthesis.value.claims):
         print("LIVE_MODEL_STATUS=FAILED code=invalid_claim_contract")
+        return 1
+    if [claim.claim_id for claim in synthesis.value.claims] != ["claim_001"]:
+        print("LIVE_MODEL_STATUS=FAILED code=unauthorized_claim_selection")
         return 1
     total_tokens = route.metadata.total_tokens + synthesis.metadata.total_tokens
     print(
