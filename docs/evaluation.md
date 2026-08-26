@@ -1,265 +1,230 @@
 # Phương pháp Evaluation
 
-## 1. Mục tiêu
+## 1. Mục tiêu và giới hạn claim
 
-Evaluation trả lời ba câu hỏi có thể kiểm chứng:
+Evaluation v2 trả lời bốn câu hỏi có thể kiểm chứng:
 
-1. Router/planner có chọn đúng intent và tập action đã gắn nhãn không?
-2. Hệ thống có hoàn thành task, chỉ dùng candidate/facts phù hợp và giữ
-   provenance khi có dữ liệu/agent lỗi không?
-3. Kết quả có tái lập trên snapshot mẫu hiện tại không?
+1. Hybrid multi-agent có giữ đúng intent, plan, task assertions và retrieval khi
+   so paired với deterministic baseline trên cùng case/repetition không?
+2. Mỗi lớp model-assisted routing, planning, specialist và synthesis đóng góp gì
+   khi bị loại riêng bằng ablation?
+3. Chất lượng thay đổi thế nào trước typo, paraphrase, distractor và prompt
+   injection giữ nguyên nhãn?
+4. Đổi lại bao nhiêu latency, token và chi phí ước tính theo pricing đã pin?
 
-Nó **không** chứng minh chất lượng trên dữ liệu marketplace thật hoặc semantic
-correctness tự do. Repository có cả frozen single-agent real-model baseline và
-real-model Multi-Agent capture; bảng chênh lệch hiện là descriptive vì prompt,
-runtime orchestration và số repetition chưa đồng nhất.
+Protocol không chứng minh chất lượng trên marketplace thật, không thay human
+semantic evaluation và không cho phép claim superiority chỉ từ một live smoke.
+Structured rubric đo contract đã freeze; nó không chấm toàn bộ sắc thái ngôn ngữ
+tự do hoặc mức hữu ích cảm nhận bởi người dùng.
 
-## 2. Frozen artifacts
+## 2. Frozen inputs v2
 
-- Corpus: [`evaluation/cases.v1.json`](../evaluation/cases.v1.json)
-- Baseline manifest:
-  [`evaluation/baselines/single_agent.v1.json`](../evaluation/baselines/single_agent.v1.json)
-- Single-agent real-model observations/report:
-  [`evaluation/results/baseline-single-agent-v1`](../evaluation/results/baseline-single-agent-v1)
-- Multi-Agent real-model observations/report:
-  [`evaluation/results/real-multi-agent-v1`](../evaluation/results/real-multi-agent-v1)
-- Reference report:
-  [`evaluation/results/reference-v1/report.md`](../evaluation/results/reference-v1/report.md)
+- Clean gold cases: [`evaluation/cases.v1.json`](../evaluation/cases.v1.json)
+- Robustness corpus: [`evaluation/corpus.v2.json`](../evaluation/corpus.v2.json)
+- Full paired experiment: [`evaluation/experiment.v2.json`](../evaluation/experiment.v2.json)
+- Bounded live pilot: [`evaluation/experiment.live-pilot.v2.json`](../evaluation/experiment.live-pilot.v2.json)
+- Pinned pricing: [`evaluation/pricing/openai-standard-2026-08-25.v2.json`](../evaluation/pricing/openai-standard-2026-08-25.v2.json)
 
-Mỗi report ghi SHA-256 của corpus, `app/db/seed.py` và manifest có thứ tự của mọi
-tệp Python trong `app/`, cùng Python/platform, app version, seed `42`, row counts
-và số lần lặp. Manifest hash từng nội dung tệp kèm relative path, nên thay đổi
-source SUT sẽ tạo identifier mới. Gold labels được curator đóng băng trong JSON;
-runner không truy vấn SUT để tự sinh expected values. Artifact SHA-256 canonicalize
-CRLF về LF trước khi hash, nên cùng artifact giữ nguyên digest giữa Windows và
-Linux GitHub runner.
+Corpus gồm 28 clean cases v1 và 16 label-preserving transformations: bốn biến
+thể cho mỗi parent thuộc simple, complex, multi-domain và irrelevant. Gold của
+transformed case kế thừa từ parent; file lưu rõ `parent_case_id`, `transform_id`,
+policy và rationale curator. Bảy nhóm clean vẫn là simple, complex,
+multi-domain, missing data, tool failure, ambiguous và irrelevant.
 
-## 3. Corpus design
+Protocol runtime ghi hash SHA-256 của experiment, corpus, base dataset, sample
+seed, evaluator và pricing; đồng thời ghi Git revision/dirty state, network
+policy, case order, model binding và execution budget. Vì vậy hai observation
+chỉ được paired khi cùng protocol hash, không chỉ khi trùng tên case.
 
-Đúng 28 case, bốn case mỗi nhóm yêu cầu trong workflow:
+## 3. Variants và giả thuyết ablation
 
-| Category | Mục tiêu |
-| --- | --- |
-| `simple` | Exact search và review theo product ID |
-| `complex` | Comparison nhiều bước, filtered ranking, market aggregate |
-| `multi_domain` | Product + Review + Trust top-N recommendation |
-| `missing_data` | Unknown product, mixed comparison, impossible filter |
-| `tool_failure` | Inject Product/Review/Trust agent failure có kiểm soát |
-| `ambiguous` | Regression policy cho yêu cầu thiếu context |
-| `irrelevant` | Không gọi tool ngoài bốn domain hỗ trợ |
+| Variant | Model stages | Mục đích |
+| --- | --- | --- |
+| `deterministic_v2` | Không có | Quality/latency/token/cost floor |
+| `hybrid_full` | Routing + planning + specialist + synthesis | Treatment đầy đủ |
+| `hybrid_no_router` | Bỏ model routing | Cô lập semantic intent routing |
+| `hybrid_no_planner` | Bỏ model planning | Cô lập capability planning |
+| `hybrid_no_specialist` | Bỏ agent-local model insight | Cô lập specialist reasoning |
+| `hybrid_no_synthesis` | Bỏ model synthesis | Cô lập grounded natural-language synthesis |
 
-Mỗi case khai báo accepted intents/statuses, action multiset (giữ duplicate),
-relevant product IDs hoặc explicit `null`, structured answer assertions và, nếu
-có, exact failure injection.
+Full experiment pin `gpt-5.4-nano-2026-03-17` cho routing, planning và specialist;
+`gpt-5.4-mini-2026-03-17` cho synthesis, reasoning effort `low`. Mỗi variant
+khai báo chính xác stage/model, parent ablation, max model calls và fallback
+policy. Full hybrid tối đa 7 model calls/turn: router, planner, tối đa bốn
+specialist calls và một synthesis call.
 
-## 4. Execution protocol
+Model không sở hữu fact, final status hay tool permission:
 
-- Tạo SQLite tạm mới và seed đúng 5 shop/30 sản phẩm/150 review cho mỗi run.
-- Tạo Orchestrator/session mới cho từng case; không rò state giữa case.
-- IDs được derive ổn định từ case/repetition.
-- Không import/call OpenAI integration runner, không gọi network hay Qdrant.
-- Static market notes là local deterministic adapter của production interface.
-- Repetition `0` dùng cho correctness; mọi repetition dùng cho latency.
-- Failure dispatcher chỉ fail đúng `(agent_id, action)` đã gắn nhãn và trả
-  `AgentError` an toàn.
+- router chỉ trả object theo intent/entity schema;
+- planner chỉ đề xuất capability; Python so với capability policy rồi biên dịch
+  DAG đã kiểm tra dependency/step limit;
+- specialist chỉ diễn giải bounded tool facts và phải dùng source ID cho phép;
+- synthesis chỉ tạo claim có citation trong provenance allowlist; Python giữ
+  status, selected product, warning và sample-data caveat.
 
-Library runner tạm bind DB session factory process-wide, vì vậy CLI được thiết
-kế chạy trong process evaluation cô lập; không nhúng concurrent benchmark vào
-process web production.
+## 4. Paired execution protocol
 
-Real-model Multi-Agent capture dùng script riêng và chỉ chạy khi được gọi rõ
-ràng:
+Full configuration freeze:
+
+- correctness: 44 cases × 3 repetitions × 6 variants = 792 observations;
+- latency: 7 representative cases × 5 repetitions × 6 variants = 210
+  observations;
+- warmup: 1 turn/variant, không đưa vào observation matrix;
+- tổng measured matrix: 1.002 observations;
+- random seed `42`, 10.000 clustered bootstrap samples.
+
+Runner tạo schedule xác định trước. Trong từng case/repetition, thứ tự sáu
+variant được shuffle rồi interleave bằng seeded PRNG; correctness và latency dùng
+seed stream riêng. So sánh gộp repetitions thành case mean rồi bootstrap theo
+**independent base cases**, không giả vờ mỗi repetition là một sample độc lập.
+
+Mỗi turn dùng SQLite tạm đã seed đúng sample dataset, hashing embedding và
+Orchestrator/session cô lập. Failure injection chỉ tác động đúng agent/action đã
+gắn nhãn. Network mặc định bị chặn; experiment có hybrid variant chỉ chạy khi
+người vận hành truyền `--allow-network`. Dirty worktree bị từ chối trừ khi truyền
+`--allow-dirty`, và artifact vẫn ghi `git_dirty=true` để không che provenance.
+
+Bundle được ghi vào staging directory rồi atomic rename. Existing output không
+bị overwrite. `manifest.json` khóa size/hash/count của `protocol.json`,
+`observations.jsonl`, `comparisons.json`, `omissions.json`, `robustness.json`,
+`pricing.json` và `report.json`. Validator đọc lại toàn bộ schema/hash, kiểm tra
+observation matrix đầy đủ/liên tục, recompute pricing, comparison và robustness;
+file thiếu, thừa, symlink hoặc bị sửa đều làm validation fail.
+
+## 5. Metrics và thống kê
+
+| Metric | Direction | Ý nghĩa |
+| --- | --- | --- |
+| `task_success` | Cao hơn tốt hơn | Status hợp lệ và mọi critical assertion pass |
+| `routing_correct` | Cao hơn tốt hơn | Intent thuộc accepted intents |
+| `exact_plan` | Cao hơn tốt hơn | Action multiset đúng, gồm duplicate khi cần |
+| `answer_assertion_accuracy` | Cao hơn tốt hơn | Tỷ lệ structured assertions pass |
+| `retrieval_f1` | Cao hơn tốt hơn | F1 trên frozen relevant product IDs |
+| `end_to_end_latency_ms` | Thấp hơn tốt hơn | Toàn bộ orchestration turn |
+| `total_tokens` | Thấp hơn tốt hơn | Provider usage của mọi model stage |
+| `estimated_cost_usd` | Thấp hơn tốt hơn | Usage × pricing manifest đã hash |
+
+Mọi delta là `candidate - baseline`; direction quyết định win/loss. Report ghi
+baseline/candidate mean, mean/median paired delta, case-level win/tie/loss, 95%
+clustered bootstrap interval, paired effect size và exact two-sided sign-test cho
+binary metrics khi tính được. Pair có `N/A` ở một phía được đếm vào
+`excluded_pair_count`; nếu không còn pair hợp lệ, runner phải ghi omission
+`no_comparable_paired_values`, không được biến thành 0 hay âm thầm bỏ metric.
+
+Robustness report ghép từng transformed case với clean parent cùng repetition,
+báo task-success rate, intent consistency, mean/maximum degradation và worst
+transform cho từng variant. Đây là invariance test trong corpus, không phải
+security certification cho mọi prompt injection.
+
+Chi phí là **ước tính** theo manifest có effective date, không phải hóa đơn
+provider. Snapshot model trả về từ API, token breakdown, attempts, duration và
+fallback reason được capture; prompt, raw provider response và key không được
+ghi vào artifact.
+
+## 6. Live pilot đã xác minh
+
+Ngày 2026-08-26 đã chạy bounded pilot sau bằng provider key hiện hành:
 
 ```powershell
-python scripts/run_real_multi_agent_benchmark.py --repeats 1
+python -m app.evaluation.v2_runner run `
+  --experiment evaluation/experiment.live-pilot.v2.json `
+  --variant hybrid_full `
+  --max-cases 1 `
+  --allow-network `
+  --run-id run_live_pilot_20260826_v2
+
+python -m app.evaluation.v2_runner validate `
+  --bundle output/evaluation-v2/run_live_pilot_20260826_v2
 ```
 
-Script vẫn seed SQLite cô lập và chạy router/planner/domain agents deterministic
-như protocol trên, sau đó gọi OpenAI Responses API một lần cho lớp tổng hợp cuối
-mỗi case. Input gửi cho model gồm evidence có provenance và deterministic draft;
-model được phép chỉnh trình bày nhưng không được xoá facts, warning, refusal hay
-partial-success caveat. `--score-only` chỉ đọc artifact đã capture, không cần
-network hoặc `OPENAI_API_KEY`, nên mới được dùng trong CI.
+Kết quả đã validate:
 
-## 5. Metric definitions
-
-### Routing Accuracy
-
-```text
-mean(predicted_intent ∈ accepted_intents)
-```
-
-### Tool Selection
-
-Action là multiset để comparison có thể yêu cầu `product.search` hai lần.
-
-```text
-TP = Σ_action min(predicted_count, expected_count)
-precision = TP / predicted_count
-recall = TP / expected_count
-F1 = harmonic_mean(precision, recall)
-```
-
-No-tool cases được báo riêng bằng `no_tool_correctness`; zero denominator là
-`N/A` với reason, không ép thành 0.
-
-### Task Success Rate
-
-Một case pass khi terminal status thuộc accepted statuses và mọi assertion
-`critical` pass. Partial success có thể là kết quả đúng chỉ với case được gắn
-nhãn như vậy.
-
-### Answer Assertion Accuracy
-
-Tỷ lệ structured assertions pass: normalized `contains`/`excludes`, exact
-selected product ID, minimum provenance và exact safe error code. Đây là rubric
-deterministic, không phải đánh giá toàn bộ ý nghĩa văn bản.
-
-### Retrieval
-
-So sánh set predicted IDs với frozen relevant IDs. Case `relevant_product_ids:
-null` không tham gia retrieval metric. Gold/predicted đều rỗng được báo qua
-`empty_retrieval_correctness`, không dùng để làm tăng precision/recall.
-
-### Failure
-
-- `agent_failure_rate`: failed agent steps / attempted agent steps; gồm cả
-  expected missing-dependency và injected failures.
-- `partial_recovery_rate`: recoverable injected cases vẫn đạt task success /
-  recoverable injected cases.
-- `provenance_case_coverage`: non-failed agent-backed cases có ít nhất một
-  provenance record.
-
-### Latency, token và cost
-
-- p50/p95 dùng nearest-rank trên adapter-level local elapsed time;
-- real-model p50/p95 dùng toàn bộ elapsed time (orchestration + API), đồng thời
-  report thêm `model_latency_p50_ms`/`model_latency_p95_ms` cho riêng API;
-- deterministic v1 runtime quan sát 0 model calls, nhưng token/cost production
-  được ghi **N/A**, không ghi 0.
-- Real artifact ghi token usage từ Responses API; pricing/provider billing vẫn
-  `N/A` nếu không có dữ liệu chi phí đáng tin cậy.
-
-## 6. Reference result v1
-
-Snapshot hiện tại chạy 28 case × 3 lần lặp, 84 observations:
-
-Reference artifact dùng report schema `1.1` và công khai SUT source-manifest
-SHA-256 ngay đầu `report.md`; `report.json` còn lưu danh sách 88 tệp đã hash để
-có thể tái tạo phép kiểm tra.
-
-| Metric | Reference result |
+| Quan sát | Giá trị |
 | --- | ---: |
-| Routing accuracy | 28/28 |
-| Tool selection precision/recall | 46/46 |
-| Exact plan | 28/28 |
-| Task success | 28/28 |
-| Answer assertions | 86/86 |
-| Retrieval precision/recall | 31/31 |
-| Empty retrieval correctness | 9/9 |
-| Recoverable injected failure | 2/2 |
-| Provenance case coverage | 23/23 applicable |
+| Observation / comparison / omission | 2 / 7 / 0 |
+| Hybrid model stages thành công | 4/4 |
+| Model snapshots | `gpt-5.4-nano-2026-03-17`, `gpt-5.4-mini-2026-03-17` |
+| Total tokens | 2.645 |
+| Estimated cost | USD 0.00236865 |
+| Hybrid end-to-end latency | 16.326,4788 ms |
+| Task/routing/plan/assertion/retrieval | 1.0 ở cả hai variant |
+| Protocol SHA-256 | `01c6597ef20a94e24739803e06186e0bfb073da1157a520e6ba957c154cf9dbe` |
 
-Latency là số phụ thuộc máy và xem trực tiếp trong report snapshot. Agent
-failure rate reference là 8/46 vì corpus chủ động chứa missing-data và injected
-failure; không diễn giải nó như production incident rate.
+Một case chỉ chứng minh wiring thật, structured stage execution, usage/cost
+capture và artifact integrity. Năm quality metrics hòa `1–1`; token/cost cao hơn
+deterministic là expected. Không suy diễn confidence interval một-case thành
+độ ổn định hoặc superiority. Full 1.002-observation live experiment chưa được
+chạy và không chạy trong CI vì tốn network, tiền và thời gian.
 
-Kết quả 100% phù hợp cho **regression corpus đồng phát triển với deterministic
-system**. Nó không phải external validity, không có confidence đủ cho thị
-trường thật và không được dùng làm claim “AI chính xác 100%”.
+## 7. Chạy và kiểm tra v2
 
-## 7. Real Multi-Agent result v1
+Chạy full experiment từ clean revision:
 
-Capture tại revision `6124a0e` chạy 28 case × 1 repetition bằng
-`gpt-5.4-mini`, cùng dataset hash với baseline main:
+```powershell
+python -m app.evaluation.v2_runner run `
+  --experiment evaluation/experiment.v2.json `
+  --allow-network `
+  --run-id run_thesis_v2
+```
 
-| Metric | Multi-Agent real | Single-Agent main real | Delta (multi − single) |
-| --- | ---: | ---: | ---: |
-| Answer assertions | 100.00% (86/86) | 12.79% (11/86) | +87.21 pp |
-| Tool precision | 100.00% (46/46) | 47.62% (20/42) | +52.38 pp |
-| Tool recall | 100.00% (46/46) | 43.48% (20/46) | +56.52 pp |
-| Exact plan | 100.00% (28/28) | 50.00% (14/28) | +50.00 pp |
-| Retrieval precision | 100.00% (31/31) | 79.41% (27/34) | +20.59 pp |
-| Retrieval recall | 100.00% (31/31) | 87.10% (27/31) | +12.90 pp |
-| Provenance coverage | 100.00% (23/23) | 0.00% (0/24) | +100.00 pp |
-| Task success (frozen rubric) | 100.00% (28/28) | 0.00% (0/28) | +100.00 pp |
-| Latency p50 | 1,168 ms | 3,405 ms | −2,238 ms |
-| Latency p95 | 2,042 ms | 8,475 ms | −6,433 ms |
-| Token usage | 61,778 | 58,878 | +2,900 |
+Smoke ít case nhưng vẫn tự thêm paired baseline khi chọn candidate:
 
-Các delta chỉ mang tính mô tả: Multi-Agent có planner/domain evidence
-deterministic và model dùng draft được khóa facts, còn baseline main để model tự
-chọn tools/answer; hai prompt/runtime không phải paired treatment. Kết quả này
-cho thấy pipeline Multi-Agent hiện giữ plan, provenance và answer assertions tốt
-hơn trong frozen rubric, không chứng minh chất lượng tổng quát hay superiority
-thống kê. Cần human semantic rubric, nhiều repetition và cùng protocol trước khi
-viết claim paired win/tie/loss.
+```powershell
+python -m app.evaluation.v2_runner run `
+  --experiment evaluation/experiment.live-pilot.v2.json `
+  --variant hybrid_full `
+  --max-cases 1 `
+  --allow-network `
+  --run-id run_smoke_v2
+```
 
-## 8. Baseline honesty
+Validate bundle và recompute một comparison:
 
-Reference offline vẫn có hai fake-provider traces phục vụ tool-loop regression
-và không được dùng thay cho baseline. Baseline thật hiện đã có 28 captured
-observations, model/hash/artifact metadata và token/latency; các trường còn thiếu
-cho một paired claim gồm:
+```powershell
+python -m app.evaluation.v2_runner validate `
+  --bundle output/evaluation-v2/run_thesis_v2
 
-- cùng provider/runtime cho cả hai hệ thống;
-- human/semantic rubric ngoài structured assertions;
-- provider pricing/billing để tính cost;
-- nhiều repetitions/seed để báo paired win-tie-loss và khoảng tin cậy.
+python -m app.evaluation.v2_runner compare `
+  --bundle output/evaluation-v2/run_thesis_v2 `
+  --baseline deterministic_v2 `
+  --candidate hybrid_full `
+  --metric task_success `
+  --phase correctness
+```
 
-Manifest ghi `real_model_captured`; report baseline giữ nguyên raw structured
-tool calls/results và **không** tự suy diễn routing intent ẩn từ tool call.
-`ecommerce-evaluate` vẫn là benchmark deterministic regression; real script là
-capture bổ sung và không được chạy tự động trong CI.
+Không commit bundle local theo mặc định. Chỉ freeze một report khóa luận sau khi
+đã review protocol hash, revision sạch, đủ matrix, omissions, model snapshots,
+pricing date và mọi artifact hash.
 
-## 9. Re-run
+## 8. Artifact v1 lịch sử
+
+V1 được giữ để regression và tái kiểm tra lịch sử, không phải paired evidence
+cho runtime mới:
+
+- deterministic 28-case × 3 reference:
+  [`evaluation/results/reference-v1`](../evaluation/results/reference-v1);
+- frozen single-agent real capture:
+  [`evaluation/results/baseline-single-agent-v1`](../evaluation/results/baseline-single-agent-v1);
+- deterministic-agents + one-call synthesis capture:
+  [`evaluation/results/real-multi-agent-v1`](../evaluation/results/real-multi-agent-v1).
+
+Hai real artifact v1 dùng prompt/runtime khác nhau và một repetition nên delta
+chỉ descriptive. Con số 100% trong regression rubric không phải “AI chính xác
+100%”. Các runner tương thích vẫn có thể dùng để reproduce/chấm lại:
 
 ```powershell
 ecommerce-evaluate --repeats 3 --output evaluation/results/latest
-```
-
-Smoke một phần corpus:
-
-```powershell
-ecommerce-evaluate --repeats 1 --max-cases 4 `
-  --output evaluation/results/smoke
-```
-
-Chấm lại artifact single-agent đã capture mà không gọi network:
-
-```powershell
 python scripts/score_real_baseline.py
-```
-
-Chấm lại artifact Multi-Agent real đã capture mà không gọi network:
-
-```powershell
 python scripts/run_real_multi_agent_benchmark.py --score-only
 ```
 
-Outputs:
+## 9. Điều kiện trước claim khóa luận mạnh hơn
 
-- `report.json`: metadata, global/category metrics, scores và observations;
-- `observations.csv`: normalized per-run execution facts;
-- `report.md`: bảng/giới hạn đọc được cho khóa luận.
-
-Baseline raw observations nằm trong `evaluation/results/baseline-single-agent-v1/`;
-scorer kiểm tra đủ 28 case, gắn artifact SHA-256 và tách rõ API turn success
-khỏi task success theo frozen assertions. Real Multi-Agent raw observations nằm
-tại `evaluation/results/real-multi-agent-v1/`; scorer kiểm tra đủ từng
-`case_id/repetition`, ghi usage/latency và render bảng so sánh descriptive.
-
-Không overwrite `reference-v1` nếu chưa review diff, hash, all case scores và
-runtime environment. Report mới với dataset/seed hash khác là một benchmark
-version mới, không phải so sánh trực tiếp mặc định.
-
-## 10. Mở rộng với dữ liệu thật
-
-1. Freeze seed/data manifest và provenance policy mới.
-2. Curator độc lập gắn gold facts/relevance; không dùng SUT sinh gold.
-3. Thêm semantic/human evaluation rubric và inter-annotator agreement.
-4. Chạy lại single-agent và multi-agent bằng cùng provider/model/runtime.
-5. Chạy nhiều seed/model runs; tách correctness và latency repetitions.
-6. Báo Wilson interval/paired win-tie-loss; không claim significance với sample
-   nhỏ.
-7. Bổ sung load, chaos, drift, fairness và PII/security evaluation.
+1. Chạy đủ protocol v2 từ clean revision và lưu immutable bundle đã validate.
+2. Dùng curator độc lập/human semantic rubric, báo rubric và inter-annotator
+   agreement; không dùng SUT tạo gold.
+3. Replicate qua nhiều seed/model snapshot và báo sensitivity, không cherry-pick.
+4. Báo paired effect/interval/win-tie-loss cùng absolute quality, latency, token
+   và estimated/billed cost tách biệt.
+5. Thêm load/soak, chaos, drift, fairness, PII/security evaluation trước claim
+   production trên dữ liệu/người dùng thật.
