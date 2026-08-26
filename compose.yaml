@@ -34,6 +34,9 @@ x-app-common: &app-common
   tmpfs:
     - /tmp:size=64m,mode=1777
   init: true
+  cpus: 2.0
+  mem_limit: 2g
+  pids_limit: 256
   cap_drop:
     - ALL
   security_opt:
@@ -56,6 +59,9 @@ services:
       timeout: 5s
       retries: 12
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 256
     logging:
       options:
         max-size: 10m
@@ -81,6 +87,9 @@ services:
       timeout: 5s
       retries: 12
     restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    pids_limit: 128
     logging:
       options:
         max-size: 10m
@@ -95,6 +104,9 @@ services:
     networks:
       - data
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 256
     logging:
       options:
         max-size: 10m

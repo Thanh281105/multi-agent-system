@@ -50,6 +50,9 @@ def test_compose_separates_bootstrap_jobs_and_private_data_services() -> None:
     assert "internal: true" in compose
     assert "read_only: true" in compose
     assert "no-new-privileges:true" in compose
+    assert compose.count("mem_limit:") == 4
+    assert compose.count("cpus:") == 4
+    assert compose.count("pids_limit:") == 4
     assert "5432:5432" not in compose
     assert "6379:6379" not in compose
     assert "6333:6333" not in compose
