@@ -254,9 +254,7 @@ class OpenAIModelRuntime:
                         raise _ModelResponseError("model_response_incomplete")
                     value = getattr(response, "output_parsed", None)
                     if not isinstance(value, schema):
-                        raise _ModelResponseError(
-                            "model_response_contract_violation"
-                        )
+                        raise _ModelResponseError("model_response_contract_violation")
                     metadata = self._metadata(
                         call_id=call_id,
                         stage=stage,
