@@ -377,7 +377,8 @@ tests/                # offline regression + optional integration
 - Trace ring buffer chỉ phục vụ chẩn đoán ngắn hạn và mất khi restart.
 - Redis lưu tối đa 40 user/assistant turn entries mỗi session theo TTL. Model chỉ
   nhận message hiện tại và structured state (`active_agent`, `last_product_id`),
-  chưa dùng free-text memory; chưa có long-term preference/summary/artifact memory.
+  chưa đưa free-text memory vào inference. Chưa có long-term
+  preference/summary/artifact memory.
 - Paired protocol v2 và live pilot đã sẵn sàng, nhưng full six-variant live run,
   semantic human rubric, load/soak và nhiều seed/model replication vẫn là
   follow-up trước mọi claim superiority.

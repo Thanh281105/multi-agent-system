@@ -210,7 +210,9 @@ cho runtime mới:
 
 Hai real artifact v1 dùng prompt/runtime khác nhau và một repetition nên delta
 chỉ descriptive. Con số 100% trong regression rubric không phải “AI chính xác
-100%”. Các runner tương thích vẫn có thể dùng để reproduce/chấm lại:
+100%” và không phải external validity. V1 ghi trạng thái `real_model_captured`
+cùng `source-manifest` SHA-256 để ràng buộc artifact với source SUT đã chạy. Các
+runner tương thích vẫn có thể dùng để reproduce/chấm lại:
 
 ```powershell
 ecommerce-evaluate --repeats 3 --output evaluation/results/latest

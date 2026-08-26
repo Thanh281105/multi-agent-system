@@ -231,10 +231,10 @@ trên một session tại một thời điểm.
 
 Router/model runtime chỉ nhận message hiện tại và structured session projection
 (`active_agent`, `last_product_id`); free-text memory được lưu cho lifecycle/audit
-mở rộng nhưng chưa đưa vào routing, specialist reasoning hay aggregation. Thiết
-kế này tránh biến lịch sử hội thoại chưa được lọc thành prompt. Muốn sử dụng
-phần text đó về sau phải có projection có giới hạn, chống prompt injection và
-policy xóa/đồng ý riêng.
+mở rộng nhưng chưa đưa vào routing hay aggregation, cũng không đưa vào specialist
+reasoning. Thiết kế này tránh biến lịch sử hội thoại chưa được lọc thành prompt.
+Muốn sử dụng phần text đó về sau phải có projection có giới hạn, chống prompt
+injection và policy xóa/đồng ý riêng.
 
 ### Qdrant
 
