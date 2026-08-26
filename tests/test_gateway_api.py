@@ -353,6 +353,13 @@ def test_settings_reject_insecure_production_gateway() -> None:
             gateway_api_keys="production:strong-production-key",
             legacy_chat_enabled=True,
         )
+    with pytest.raises(ValueError, match="at least 16 characters"):
+        Settings(
+            _env_file=None,
+            app_env="production",
+            gateway_api_keys="production:short-key",
+            legacy_chat_enabled=False,
+        )
 
     production = Settings(
         _env_file=None,

@@ -163,14 +163,14 @@ async def run_agent(
 def _get_client() -> AsyncOpenAI:
     if openai_client is not None:
         return openai_client
-    if not settings.openai_api_key:
+    if not settings.openai_api_key_value:
         raise AgentRunError("OPENAI_API_KEY is not configured")
     return _create_client()
 
 
 def _create_client() -> AsyncOpenAI:
     global openai_client
-    openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
+    openai_client = AsyncOpenAI(api_key=settings.openai_api_key_value)
     return openai_client
 
 

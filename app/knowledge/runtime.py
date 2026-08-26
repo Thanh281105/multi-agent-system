@@ -10,7 +10,7 @@ from app.shared import EmbeddingRuntime, OpenAIEmbeddingRuntime
 def build_knowledge_embedder(config: Settings) -> EmbeddingRuntime:
     """Use OpenAI when selected/available; otherwise retain reproducible hashing."""
 
-    key = (config.openai_api_key or "").strip()
+    key = config.openai_api_key_value
     use_openai = config.embedding_backend == "openai" or (
         config.embedding_backend == "auto" and bool(key)
     )

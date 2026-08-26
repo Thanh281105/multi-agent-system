@@ -110,7 +110,7 @@ class Settings(BaseSettings):
         default=True,
         validation_alias="LEGACY_CHAT_ENABLED",
     )
-    openai_api_key: str | None = Field(
+    openai_api_key: SecretStr | None = Field(
         default=None,
         validation_alias="OPENAI_API_KEY",
     )
@@ -200,9 +200,19 @@ class Settings(BaseSettings):
     def validate_production_secrets(self) -> Settings:
         configured_keys = self.gateway_api_keys.get_secret_value().strip()
         if self.app_env == "production" and (
-            not configured_keys or "demo-local-key" in configured_keys
+            not configured_keys
+            or "demo-local-key" in configured_keys
+            or "replace-with-" in configured_keys.casefold()
         ):
             raise ValueError("production requires non-default GATEWAY_API_KEYS")
+        if self.app_env == "production" and any(
+            not separator or len(secret.strip()) < 16
+            for entry in configured_keys.split(",")
+            for _, separator, secret in (entry.partition(":"),)
+        ):
+            raise ValueError(
+                "production requires GATEWAY_API_KEYS secrets of at least 16 characters"
+            )
         if self.app_env == "production" and self.legacy_chat_enabled:
             raise ValueError("production requires LEGACY_CHAT_ENABLED=false")
         if (
@@ -246,7 +256,7 @@ class Settings(BaseSettings):
             raise ValueError(
                 "production requires a strong non-placeholder QDRANT_API_KEY"
             )
-        openai_key = (self.openai_api_key or "").strip()
+        openai_key = self.openai_api_key_value
         if (
             self.app_env == "production"
             and self.model_runtime_mode != "off"
@@ -270,6 +280,14 @@ class Settings(BaseSettings):
             )
         return self
 
+    @property
+    def openai_api_key_value(self) -> str:
+        """Reveal the provider key only at an outbound client boundary."""
+
+        if self.openai_api_key is None:
+            return ""
+        return self.openai_api_key.get_secret_value().strip()
+
 
 settings = Settings()
 
@@ -281,7 +299,7 @@ def public_settings(config: Settings = settings) -> dict[str, Any]:
         "database_driver": config.database_url.split(":", 1)[0],
         "llm_provider": "openai",
         "openai_model": config.openai_model,
-        "openai_configured": bool(config.openai_api_key),
+        "openai_configured": bool(config.openai_api_key_value),
         "model_runtime_mode": config.model_runtime_mode,
         "routing_model": config.openai_routing_model,
         "planning_model": config.openai_planning_model,

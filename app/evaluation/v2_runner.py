@@ -147,7 +147,7 @@ def _compare_command(arguments: argparse.Namespace) -> int:
 def _openai_runtime_factory(
     settings: Settings,
 ) -> Callable[[EvaluationVariantV2], ModelRuntime]:
-    api_key = (settings.openai_api_key or "").strip()
+    api_key = settings.openai_api_key_value
     if not api_key:
         raise RuntimeError("hybrid evaluation requires OPENAI_API_KEY")
 

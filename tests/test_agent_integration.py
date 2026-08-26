@@ -8,7 +8,7 @@ from app.core.config import settings
 pytestmark = pytest.mark.integration
 
 
-if not settings.openai_api_key:
+if not settings.openai_api_key_value:
     pytest.skip(
         "OPENAI_API_KEY is required for the OpenAI integration test",
         allow_module_level=True,

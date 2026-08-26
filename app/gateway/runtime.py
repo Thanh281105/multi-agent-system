@@ -63,7 +63,7 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
     """Build one coherent runtime without module-global mutable agent state."""
 
     telemetry = Telemetry()
-    api_key = (config.openai_api_key or "").strip()
+    api_key = config.openai_api_key_value
     model_runtime: ModelRuntime | None = None
     if config.model_runtime_mode != "off" and api_key:
         model_runtime = OpenAIModelRuntime(

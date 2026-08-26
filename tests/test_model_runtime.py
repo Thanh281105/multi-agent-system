@@ -50,6 +50,19 @@ def test_required_model_mode_rejects_missing_key() -> None:
         )
 
 
+def test_openai_key_is_redacted_until_an_explicit_client_boundary() -> None:
+    raw_key = "test-provider-secret-value"
+    config = Settings(
+        _env_file=None,
+        model_runtime_mode="hybrid",
+        openai_api_key=raw_key,
+    )
+
+    assert config.openai_api_key_value == raw_key
+    assert raw_key not in repr(config)
+    assert raw_key not in config.model_dump_json()
+
+
 def parsed_response(answer: str) -> Any:
     return SimpleNamespace(
         id="resp_safe_metadata_123",
