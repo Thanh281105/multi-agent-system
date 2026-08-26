@@ -14,7 +14,7 @@ from app.shared import ModelRuntimeError, OpenAIModelRuntime
 
 
 async def smoke() -> int:
-    key = (settings.openai_api_key or "").strip()
+    key = settings.openai_api_key_value
     if not key:
         print("LIVE_MODEL_STATUS=SKIPPED reason=missing_api_key")
         return 2

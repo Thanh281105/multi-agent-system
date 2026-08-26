@@ -33,6 +33,17 @@ from app.shared.telemetry import Telemetry
 StructuredT = TypeVar("StructuredT", bound=BaseModel)
 ModelRuntimeMode = Literal["off", "shadow", "hybrid", "required"]
 ReasoningEffort = Literal["none", "low", "medium", "high", "xhigh"]
+ModelErrorCode = Literal[
+    "model_timeout",
+    "model_rate_limited",
+    "model_connection_failed",
+    "model_provider_error",
+    "model_response_incomplete",
+    "model_response_contract_violation",
+    "model_response_invalid",
+    "model_runtime_failed",
+    "model_circuit_open",
+]
 
 
 class ModelCallMetadata(BaseModel):
@@ -56,7 +67,7 @@ class ModelCallMetadata(BaseModel):
     attempts: int = Field(ge=0, le=10)
     fallback_used: bool = False
     fallback_reason: str | None = Field(default=None, max_length=80)
-    error_code: str | None = Field(default=None, max_length=80)
+    error_code: ModelErrorCode | None = None
 
     @model_validator(mode="after")
     def validate_usage(self) -> ModelCallMetadata:
@@ -80,10 +91,24 @@ class StructuredModelResult(Generic[StructuredT]):
 class ModelRuntimeError(RuntimeError):
     """Stable model failure that carries no provider response text."""
 
-    def __init__(self, code: str, metadata: ModelCallMetadata) -> None:
+    def __init__(self, code: ModelErrorCode, metadata: ModelCallMetadata) -> None:
         super().__init__(code)
         self.code = code
         self.metadata = metadata
+
+
+class _ModelResponseError(ValueError):
+    """Internal response-state failure carrying only an allowlisted code."""
+
+    def __init__(
+        self,
+        code: Literal[
+            "model_response_incomplete",
+            "model_response_contract_violation",
+        ],
+    ) -> None:
+        super().__init__(code)
+        self.code = code
 
 
 class ModelRuntime(Protocol):
@@ -226,10 +251,12 @@ class OpenAIModelRuntime:
                             timeout=self._timeout_seconds,
                         )
                     if getattr(response, "status", None) != "completed":
-                        raise ValueError("model_response_incomplete")
+                        raise _ModelResponseError("model_response_incomplete")
                     value = getattr(response, "output_parsed", None)
                     if not isinstance(value, schema):
-                        raise ValueError("model_response_contract_violation")
+                        raise _ModelResponseError(
+                            "model_response_contract_violation"
+                        )
                     metadata = self._metadata(
                         call_id=call_id,
                         stage=stage,
@@ -367,7 +394,7 @@ class OpenAIModelRuntime:
         duration_ms: float,
         attempts: int,
         response: Any | None = None,
-        error_code: str | None = None,
+        error_code: ModelErrorCode | None = None,
     ) -> ModelCallMetadata:
         usage = getattr(response, "usage", None)
         input_tokens = int(getattr(usage, "input_tokens", 0) or 0)
@@ -421,7 +448,7 @@ class OpenAIModelRuntime:
         }
 
     @staticmethod
-    def _error_code(error: BaseException | None) -> str:
+    def _error_code(error: BaseException | None) -> ModelErrorCode:
         if isinstance(error, (TimeoutError, APITimeoutError)):
             return "model_timeout"
         if isinstance(error, RateLimitError):
@@ -430,6 +457,8 @@ class OpenAIModelRuntime:
             return "model_connection_failed"
         if isinstance(error, APIStatusError):
             return "model_provider_error"
+        if isinstance(error, _ModelResponseError):
+            return error.code
         if isinstance(error, ValueError):
-            return str(error)[:80]
+            return "model_response_invalid"
         return "model_runtime_failed"

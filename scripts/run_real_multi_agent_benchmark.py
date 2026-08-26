@@ -102,7 +102,7 @@ def _jsonable(value: Any) -> Any:
 
 def _safe_error(value: object) -> str:
     text = str(value)
-    secret = settings.openai_api_key or ""
+    secret = settings.openai_api_key_value
     if secret:
         text = text.replace(secret, "[REDACTED]")
     return text[:2_000]
@@ -248,12 +248,12 @@ async def capture_artifact(
     repeats: int,
     max_cases: int | None,
 ) -> dict[str, Any]:
-    if not settings.openai_api_key:
+    if not settings.openai_api_key_value:
         raise RuntimeError("OPENAI_API_KEY is required for real benchmark capture")
     if not 1 <= repeats <= 3:
         raise ValueError("repeats must be between 1 and 3 for real API capture")
     cases = corpus.cases[:max_cases] if max_cases is not None else corpus.cases
-    client = AsyncOpenAI(api_key=settings.openai_api_key)
+    client = AsyncOpenAI(api_key=settings.openai_api_key_value)
     results: list[dict[str, Any]] = []
     with isolated_sample_database() as sample_counts:
         for repetition in range(repeats):

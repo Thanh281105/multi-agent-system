@@ -165,3 +165,31 @@ async def test_model_runtime_rejects_incomplete_or_unparsed_output() -> None:
     assert calls[0].status == "failed"
     assert calls[0].fallback_used is True
     assert calls[0].fallback_reason == "deterministic_fallback"
+
+
+@pytest.mark.asyncio
+async def test_model_runtime_never_exposes_parser_exception_text() -> None:
+    canary = "sensitive-provider-payload-fragment"
+    runtime = OpenAIModelRuntime(
+        "test-key",
+        client=FakeClient([ValueError(canary)]),
+        max_retries=0,
+    )
+
+    with collect_model_calls() as calls:
+        with pytest.raises(ModelRuntimeError) as captured:
+            await runtime.generate_structured(
+                stage="synthesis",
+                agent_id="orchestrator",
+                model="gpt-5.4-mini",
+                instructions="Return the requested schema.",
+                input_text="bounded facts",
+                schema=ParsedAnswer,
+            )
+
+    assert captured.value.code == "model_response_invalid"
+    assert captured.value.metadata.error_code == "model_response_invalid"
+    serialized = captured.value.metadata.model_dump_json()
+    assert canary not in str(captured.value)
+    assert canary not in serialized
+    assert canary not in repr(calls)
