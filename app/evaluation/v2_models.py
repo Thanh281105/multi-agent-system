@@ -714,7 +714,7 @@ class EvaluationBundleManifestV2(BaseModel):
     run_id: str = Field(pattern=_IDENTIFIER)
     protocol_sha256: str = Field(pattern=_SHA256)
     created_at: datetime
-    completion_status: Literal["complete"] = "complete"
+    completion_status: Literal["partial", "complete"]
     git_revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{7,40}$")
     git_dirty: bool
     observation_count: int = Field(ge=0)

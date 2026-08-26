@@ -116,6 +116,7 @@ def _validate_command(arguments: argparse.Namespace) -> int:
             "observations": manifest.observation_count,
             "comparisons": manifest.comparison_count,
             "omissions": manifest.omission_count,
+            "completion_status": manifest.completion_status,
             "protocol_sha256": manifest.protocol_sha256,
         }
     )

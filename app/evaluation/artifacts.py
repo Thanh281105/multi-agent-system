@@ -10,18 +10,21 @@ import tempfile
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from app.evaluation.comparison import compare_variants, summarize_robustness
 from app.evaluation.protocol import (
     canonical_json_bytes,
     canonical_sha256,
+    comparison_seed_v2,
     estimate_observation_cost,
+    expected_comparison_keys_v2,
     protocol_sha256,
     validate_observation_protocol,
 )
 from app.evaluation.v2_models import (
     ArtifactFileV2,
+    ComparisonMetric,
     ComparisonOmissionV2,
     EvaluationBundleManifestV2,
     EvaluationObservationV2,
@@ -29,6 +32,7 @@ from app.evaluation.v2_models import (
     EvaluationProtocolV2,
     PairedComparisonV2,
     PricingManifestV2,
+    RobustnessPolicy,
     RobustnessSummaryV2,
 )
 
@@ -46,6 +50,7 @@ def write_bundle(
     robustness: Sequence[RobustnessSummaryV2] = (),
     pricing: PricingManifestV2 | None = None,
     created_at: datetime,
+    completion_status: Literal["partial", "complete"] = "partial",
 ) -> EvaluationBundleManifestV2:
     if output_directory.exists():
         raise FileExistsError(f"evaluation output already exists: {output_directory}")
@@ -66,6 +71,7 @@ def write_bundle(
         omissions=omissions,
         robustness=robustness,
         pricing=pricing,
+        completion_status=completion_status,
     )
     output_directory.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(
@@ -91,6 +97,7 @@ def write_bundle(
             comparisons=comparisons,
             omissions=omissions,
             robustness=robustness,
+            completion_status=completion_status,
         )
         files.append(_write_json(staging, "report.json", report))
 
@@ -98,6 +105,7 @@ def write_bundle(
             run_id=run_id,
             protocol_sha256=protocol_hash,
             created_at=created_at,
+            completion_status=completion_status,
             git_revision=protocol.git_revision,
             git_dirty=protocol.git_dirty,
             observation_count=len(observations),
@@ -221,6 +229,7 @@ def validate_bundle(output_directory: Path) -> EvaluationBundleManifestV2:
         omissions=omissions,
         robustness=robustness,
         pricing=pricing,
+        completion_status=manifest.completion_status,
     )
     report = json.loads((output_directory / "report.json").read_text(encoding="utf-8"))
     expected_report = _report_payload(
@@ -231,6 +240,7 @@ def validate_bundle(output_directory: Path) -> EvaluationBundleManifestV2:
         comparisons=comparisons,
         omissions=omissions,
         robustness=robustness,
+        completion_status=manifest.completion_status,
     )
     if report != expected_report:
         raise ValueError("bundle report does not match verified artifacts")
@@ -247,6 +257,7 @@ def _validate_bundle_inputs(
     omissions: Sequence[ComparisonOmissionV2],
     robustness: Sequence[RobustnessSummaryV2],
     pricing: PricingManifestV2 | None,
+    completion_status: Literal["partial", "complete"],
 ) -> None:
     observation_keys: set[tuple[str, str, EvaluationPhase, int]] = set()
     execution_orders: set[int] = set()
@@ -310,7 +321,8 @@ def _validate_bundle_inputs(
     if execution_orders != set(range(len(observations))):
         raise ValueError("observation execution orders must be contiguous from zero")
     known_variants = {variant.variant_id for variant in protocol.variants}
-    comparison_keys: set[tuple[str, str, str, EvaluationPhase]] = set()
+    comparison_keys: set[tuple[str, str, ComparisonMetric, EvaluationPhase]] = set()
+    expected_analysis_keys = set(expected_comparison_keys_v2(protocol))
     for comparison in comparisons:
         if comparison.protocol_sha256 != protocol_hash:
             raise ValueError("comparison protocol hash does not match bundle")
@@ -322,20 +334,33 @@ def _validate_bundle_inputs(
         comparison_key = (
             comparison.baseline_variant_id,
             comparison.candidate_variant_id,
-            comparison.metric.value,
+            comparison.metric,
             comparison.phase,
         )
         if comparison_key in comparison_keys:
             raise ValueError("bundle contains duplicate comparisons")
         comparison_keys.add(comparison_key)
+        expected_seed = comparison_seed_v2(
+            protocol.random_seed,
+            comparison.baseline_variant_id,
+            comparison.candidate_variant_id,
+            comparison.metric,
+            comparison.phase,
+        )
+        if (
+            comparison.confidence_interval.bootstrap_samples
+            != protocol.bootstrap_samples
+            or comparison.confidence_interval.random_seed != expected_seed
+        ):
+            raise ValueError("comparison bootstrap controls do not match protocol")
         recomputed = compare_variants(
             observations,
             baseline_variant_id=comparison.baseline_variant_id,
             candidate_variant_id=comparison.candidate_variant_id,
             metric=comparison.metric,
             phase=comparison.phase,
-            bootstrap_samples=comparison.confidence_interval.bootstrap_samples,
-            random_seed=comparison.confidence_interval.random_seed,
+            bootstrap_samples=protocol.bootstrap_samples,
+            random_seed=expected_seed,
         )
         if recomputed != comparison:
             raise ValueError("comparison does not match bundled observations")
@@ -350,12 +375,19 @@ def _validate_bundle_inputs(
         omission_key = (
             omission.baseline_variant_id,
             omission.candidate_variant_id,
-            omission.metric.value,
+            omission.metric,
             omission.phase,
         )
         if omission_key in comparison_keys:
             raise ValueError("bundle duplicates a comparison or omission")
         comparison_keys.add(omission_key)
+        omission_seed = comparison_seed_v2(
+            protocol.random_seed,
+            omission.baseline_variant_id,
+            omission.candidate_variant_id,
+            omission.metric,
+            omission.phase,
+        )
         try:
             compare_variants(
                 observations,
@@ -364,20 +396,51 @@ def _validate_bundle_inputs(
                 metric=omission.metric,
                 phase=omission.phase,
                 bootstrap_samples=protocol.bootstrap_samples,
-                random_seed=protocol.random_seed,
+                random_seed=omission_seed,
             )
         except ValueError as exc:
             if "no comparable paired values" not in str(exc):
                 raise ValueError("comparison omission has an invalid reason") from exc
         else:
             raise ValueError("comparison omission hides available paired values")
+    unexpected_analysis = comparison_keys - expected_analysis_keys
+    if unexpected_analysis:
+        raise ValueError(
+            "bundle analysis contains unexpected protocol cells: "
+            f"count={len(unexpected_analysis)}"
+        )
+    if completion_status == "complete" and comparison_keys != expected_analysis_keys:
+        raise ValueError(
+            "complete bundle analysis matrix does not match protocol: "
+            f"missing={len(expected_analysis_keys - comparison_keys)}, "
+            f"unexpected={len(comparison_keys - expected_analysis_keys)}"
+        )
+    robustness_keys: set[str] = set()
     for summary in robustness:
         if summary.protocol_sha256 != protocol_hash:
             raise ValueError("robustness protocol hash does not match bundle")
         if summary.variant_id not in known_variants:
             raise ValueError("robustness summary references unknown protocol variant")
+        if summary.variant_id in robustness_keys:
+            raise ValueError("bundle contains duplicate robustness summaries")
+        robustness_keys.add(summary.variant_id)
         if summarize_robustness(observations, variant_id=summary.variant_id) != summary:
             raise ValueError("robustness summary does not match bundled observations")
+    transformed_correctness = any(
+        observation.phase == EvaluationPhase.CORRECTNESS
+        and observation.robustness_policy != RobustnessPolicy.CLEAN
+        for observation in observations
+    )
+    expected_robustness_keys = known_variants if transformed_correctness else set()
+    unexpected_robustness = robustness_keys - expected_robustness_keys
+    if unexpected_robustness:
+        raise ValueError("bundle contains unexpected robustness summaries")
+    if completion_status == "complete" and robustness_keys != expected_robustness_keys:
+        raise ValueError(
+            "complete bundle robustness matrix does not match protocol: "
+            f"missing={len(expected_robustness_keys - robustness_keys)}, "
+            f"unexpected={len(robustness_keys - expected_robustness_keys)}"
+        )
 
 
 def _report_payload(
@@ -389,11 +452,13 @@ def _report_payload(
     comparisons: Sequence[PairedComparisonV2],
     omissions: Sequence[ComparisonOmissionV2],
     robustness: Sequence[RobustnessSummaryV2],
+    completion_status: Literal["partial", "complete"],
 ) -> dict[str, Any]:
     return {
         "schema_version": "2.0",
         "run_id": run_id,
         "protocol_sha256": protocol_hash,
+        "completion_status": completion_status,
         "variant_ids": [variant.variant_id for variant in protocol.variants],
         "observation_count": len(observations),
         "comparison_count": len(comparisons),

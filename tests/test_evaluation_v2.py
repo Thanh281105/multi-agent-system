@@ -14,8 +14,10 @@ from app.evaluation.artifacts import validate_bundle, write_bundle
 from app.evaluation.comparison import compare_variants, summarize_robustness
 from app.evaluation.protocol import (
     canonical_sha256,
+    comparison_seed_v2,
     estimate_model_call_cost,
     estimate_observation_cost,
+    expected_comparison_keys_v2,
     protocol_sha256,
     validate_observation_protocol,
 )
@@ -418,7 +420,14 @@ def test_artifact_bundle_is_atomic_hashed_and_non_overwriting(tmp_path: Path) ->
         candidate_variant_id="hybrid_full",
         metric=ComparisonMetric.TASK_SUCCESS,
         phase=EvaluationPhase.CORRECTNESS,
-        bootstrap_samples=200,
+        bootstrap_samples=protocol.bootstrap_samples,
+        random_seed=comparison_seed_v2(
+            protocol.random_seed,
+            "deterministic_v1",
+            "hybrid_full",
+            ComparisonMetric.TASK_SUCCESS,
+            EvaluationPhase.CORRECTNESS,
+        ),
     )
     output = tmp_path / "run_v2"
 
@@ -433,6 +442,7 @@ def test_artifact_bundle_is_atomic_hashed_and_non_overwriting(tmp_path: Path) ->
 
     assert manifest.observation_count == 8
     assert manifest.comparison_count == 1
+    assert manifest.completion_status == "partial"
     assert validate_bundle(output) == manifest
     assert {entry.path for entry in manifest.files} == {
         "protocol.json",
@@ -451,6 +461,52 @@ def test_artifact_bundle_is_atomic_hashed_and_non_overwriting(tmp_path: Path) ->
             comparisons=(comparison,),
             created_at=datetime(2026, 8, 25, tzinfo=UTC),
         )
+
+
+def test_complete_bundle_rejects_missing_analysis_matrix(tmp_path: Path) -> None:
+    protocol = _protocol()
+
+    with pytest.raises(ValueError, match="complete bundle analysis matrix"):
+        write_bundle(
+            tmp_path / "missing_analysis",
+            run_id="run_paired_v2",
+            protocol=protocol,
+            observations=_paired_observations(protocol),
+            comparisons=(),
+            created_at=datetime(2026, 8, 25, tzinfo=UTC),
+            completion_status="complete",
+        )
+
+
+def test_expected_analysis_matrix_includes_baseline_and_parent_pairs() -> None:
+    protocol = _protocol()
+    child = _hybrid_variant().model_copy(
+        update={
+            "variant_id": "hybrid_child",
+            "parent_variant_id": "hybrid_full",
+        }
+    )
+    expanded = EvaluationProtocolV2.model_validate(
+        {
+            **protocol.model_dump(),
+            "variants": [
+                _deterministic_variant().model_dump(),
+                _hybrid_variant().model_dump(),
+                child.model_dump(),
+            ],
+        }
+    )
+
+    pairs = {
+        (baseline, candidate)
+        for baseline, candidate, _, _ in expected_comparison_keys_v2(expanded)
+    }
+
+    assert pairs == {
+        ("deterministic_v1", "hybrid_full"),
+        ("deterministic_v1", "hybrid_child"),
+        ("hybrid_full", "hybrid_child"),
+    }
 
 
 def test_artifact_validator_detects_tampering_and_unexpected_files(
@@ -684,7 +740,14 @@ def test_bundle_recomputes_comparisons_from_observations(tmp_path: Path) -> None
         candidate_variant_id="hybrid_full",
         metric=ComparisonMetric.TASK_SUCCESS,
         phase=EvaluationPhase.CORRECTNESS,
-        bootstrap_samples=200,
+        bootstrap_samples=protocol.bootstrap_samples,
+        random_seed=comparison_seed_v2(
+            protocol.random_seed,
+            "deterministic_v1",
+            "hybrid_full",
+            ComparisonMetric.TASK_SUCCESS,
+            EvaluationPhase.CORRECTNESS,
+        ),
     )
     contradictory = comparison.model_copy(update={"median_delta": 999.0})
 
@@ -695,6 +758,30 @@ def test_bundle_recomputes_comparisons_from_observations(tmp_path: Path) -> None
             protocol=protocol,
             observations=observations,
             comparisons=(contradictory,),
+            created_at=datetime(2026, 8, 25, tzinfo=UTC),
+        )
+
+
+def test_bundle_rejects_unpinned_bootstrap_controls(tmp_path: Path) -> None:
+    protocol = _protocol()
+    observations = _paired_observations(protocol)
+    comparison = compare_variants(
+        observations,
+        baseline_variant_id="deterministic_v1",
+        candidate_variant_id="hybrid_full",
+        metric=ComparisonMetric.TASK_SUCCESS,
+        phase=EvaluationPhase.CORRECTNESS,
+        bootstrap_samples=protocol.bootstrap_samples,
+        random_seed=123,
+    )
+
+    with pytest.raises(ValueError, match="bootstrap controls"):
+        write_bundle(
+            tmp_path / "unpinned_bootstrap",
+            run_id="run_paired_v2",
+            protocol=protocol,
+            observations=observations,
+            comparisons=(comparison,),
             created_at=datetime(2026, 8, 25, tzinfo=UTC),
         )
 

@@ -183,6 +183,7 @@ async def test_hybrid_matrix_runs_bound_models_and_discards_warmup_calls(
     )
     assert completed.manifest.comparison_count == 8
     assert completed.manifest.omission_count == 0
+    assert completed.manifest.completion_status == "complete"
     assert completed.analysis.robustness == ()
     assert validate_bundle(tmp_path / "hybrid_bundle") == completed.manifest
 

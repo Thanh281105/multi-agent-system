@@ -87,6 +87,7 @@ def test_cli_runs_deterministic_without_key_then_validates_bundle(
     validation = json.loads(capsys.readouterr().out)
     assert validation["status"] == "valid"
     assert validation["run_id"] == "run_cli_deterministic_v2"
+    assert validation["completion_status"] == "complete"
 
 
 def test_cli_recomputes_comparison_only_after_bundle_validation(
