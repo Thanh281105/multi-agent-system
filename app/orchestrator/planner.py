@@ -163,11 +163,7 @@ class ExecutionPlanner:
 
         fallback = self.build(routed)
         expected = self._expected_capabilities(routed)
-        if (
-            self.model_runtime is None
-            or self.runtime_mode == "off"
-            or not expected
-        ):
+        if self.model_runtime is None or self.runtime_mode == "off" or not expected:
             return fallback
 
         try:

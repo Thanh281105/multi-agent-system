@@ -138,9 +138,7 @@ class Settings(BaseSettings):
         default="gpt-5.4-mini",
         validation_alias="OPENAI_SYNTHESIS_MODEL",
     )
-    openai_reasoning_effort: Literal[
-        "none", "low", "medium", "high", "xhigh"
-    ] = Field(
+    openai_reasoning_effort: Literal["none", "low", "medium", "high", "xhigh"] = Field(
         default="low",
         validation_alias="OPENAI_REASONING_EFFORT",
     )
@@ -275,9 +273,7 @@ class Settings(BaseSettings):
             and self.embedding_backend == "auto"
             and not openai_key
         ):
-            raise ValueError(
-                "production Qdrant auto embedding requires OPENAI_API_KEY"
-            )
+            raise ValueError("production Qdrant auto embedding requires OPENAI_API_KEY")
         return self
 
     @property

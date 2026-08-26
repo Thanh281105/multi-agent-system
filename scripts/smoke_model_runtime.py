@@ -47,8 +47,7 @@ async def smoke() -> int:
                 "Return one Vietnamese claim tied only to the supplied source ID."
             ),
             input_text=(
-                "Fact: sản phẩm mẫu A có rating 4.8. "
-                "Allowed source ID: smoke:sample."
+                "Fact: sản phẩm mẫu A có rating 4.8. Allowed source ID: smoke:sample."
             ),
             schema=GroundedSynthesis,
             max_output_tokens=400,
@@ -60,9 +59,7 @@ async def smoke() -> int:
     if not route.value.intent or not synthesis.value.claims:
         print("LIVE_MODEL_STATUS=FAILED code=empty_structured_output")
         return 1
-    if not all(
-        isinstance(claim, GroundedClaim) for claim in synthesis.value.claims
-    ):
+    if not all(isinstance(claim, GroundedClaim) for claim in synthesis.value.claims):
         print("LIVE_MODEL_STATUS=FAILED code=invalid_claim_contract")
         return 1
     total_tokens = route.metadata.total_tokens + synthesis.metadata.total_tokens

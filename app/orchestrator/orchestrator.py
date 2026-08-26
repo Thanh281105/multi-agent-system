@@ -170,9 +170,7 @@ class MultiAgentOrchestrator:
                 "intent": routed.intent,
                 "agent_steps": len(plan.steps),
                 "model_calls": len(model_calls),
-                "model_fallbacks": sum(
-                    1 for item in model_calls if item.fallback_used
-                ),
+                "model_fallbacks": sum(1 for item in model_calls if item.fallback_used),
             },
         )
         return OrchestrationResult(
