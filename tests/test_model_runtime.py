@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import traceback
 from types import SimpleNamespace
 from typing import Any
 
@@ -190,6 +191,9 @@ async def test_model_runtime_never_exposes_parser_exception_text() -> None:
     assert captured.value.code == "model_response_invalid"
     assert captured.value.metadata.error_code == "model_response_invalid"
     serialized = captured.value.metadata.model_dump_json()
+    formatted_traceback = "".join(traceback.format_exception(captured.value))
     assert canary not in str(captured.value)
     assert canary not in serialized
     assert canary not in repr(calls)
+    assert canary not in formatted_traceback
+    assert captured.value.__cause__ is None

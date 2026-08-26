@@ -287,7 +287,7 @@ class OpenAIModelRuntime:
             error_code=code,
         )
         await self._record_failure(metadata)
-        raise ModelRuntimeError(code, metadata) from last_error
+        raise ModelRuntimeError(code, metadata) from None
 
     async def _assert_circuit_available(
         self,
