@@ -53,14 +53,21 @@ khai báo chính xác stage/model, parent ablation, max model calls và fallback
 policy. Full hybrid tối đa 7 model calls/turn: router, planner, tối đa bốn
 specialist calls và một synthesis call.
 
+Experiment và protocol cùng freeze runtime policy không chứa credential:
+provider, request timeout, retry, output-token ceiling, concurrency và circuit
+breaker. API key không được ghi, hash hay fingerprint vào artifact. Protocol là
+nguồn cấu hình runtime thật, không chỉ là metadata mô tả.
+
 Model không sở hữu fact, final status hay tool permission:
 
-- router chỉ trả object theo intent/entity schema;
+- router chọn intent nhưng entity chỉ được dùng khi khớp giá trị Python đã trích
+  xuất từ request/session;
 - planner chỉ đề xuất capability; Python so với capability policy rồi biên dịch
   DAG đã kiểm tra dependency/step limit;
-- specialist chỉ diễn giải bounded tool facts và phải dùng source ID cho phép;
-- synthesis chỉ tạo claim có citation trong provenance allowlist; Python giữ
-  status, selected product, warning và sample-data caveat.
+- specialist chỉ chọn opaque fact ID trong catalog bounded do server tạo;
+- synthesis chỉ sắp xếp toàn bộ claim ID trong catalog deterministic;
+- Python materialize fact text, claim text, citation, status, selected product,
+  warning và sample-data caveat. Model không có trường prose/citation để bịa fact.
 
 ## 4. Paired execution protocol
 
@@ -78,7 +85,8 @@ variant được shuffle rồi interleave bằng seeded PRNG; correctness và la
 seed stream riêng. So sánh gộp repetitions thành case mean rồi bootstrap theo
 **independent base cases**, không giả vờ mỗi repetition là một sample độc lập.
 
-Mỗi turn dùng SQLite tạm đã seed đúng sample dataset, hashing embedding và
+Mỗi turn dùng SQLite tạm đã seed đúng sample dataset và retrieval
+`hashed_token_cosine_v1` thực thi thật (không chỉ là nhãn), cùng
 Orchestrator/session cô lập. Failure injection chỉ tác động đúng agent/action đã
 gắn nhãn. Network mặc định bị chặn; experiment có hybrid variant chỉ chạy khi
 người vận hành truyền `--allow-network`. Dirty worktree bị từ chối trừ khi truyền
@@ -89,7 +97,11 @@ bị overwrite. `manifest.json` khóa size/hash/count của `protocol.json`,
 `observations.jsonl`, `comparisons.json`, `omissions.json`, `robustness.json`,
 `pricing.json` và `report.json`. Validator đọc lại toàn bộ schema/hash, kiểm tra
 observation matrix đầy đủ/liên tục, recompute pricing, comparison và robustness;
-file thiếu, thừa, symlink hoặc bị sửa đều làm validation fail.
+file thiếu, thừa, symlink hoặc bị sửa đều làm validation fail. Low-level bundle
+mặc định là `partial`. Bundle `complete` phải có đúng mỗi analysis cell được
+protocol yêu cầu, biểu diễn bởi một comparison hoặc omission hợp lệ, đúng
+bootstrap sample/seed; robustness summary cũng phải phủ mọi variant khi corpus
+có transformed correctness case.
 
 ## 5. Metrics và thống kê
 

@@ -47,8 +47,8 @@ không vô tình thưởng cho ứng viên thiếu dữ liệu.
 | Khối | Trách nhiệm chính | Guardrail |
 | --- | --- | --- |
 | API Gateway | Auth, rate limit, correlation, timeout, JSON/SSE | Stable error envelope; owner-bound session |
-| Orchestrator | GPT-assisted route/plan/synthesis, execute DAG | Python authorizes plan/facts; deterministic fallback |
-| Domain Agents | Product, review, trust, market + GPT specialist insight | Tool facts và source IDs bị allowlist |
+| Orchestrator | GPT-assisted route/plan/synthesis, execute DAG | Python sở hữu entity, claim text, citation và deterministic fallback |
+| Domain Agents | Product, review, trust, market + GPT specialist selection | Model chỉ chọn fact ID trong catalog do server tạo |
 | Agent Gateway | Registry, permission, MCP routing, audit | Không log prompt hay raw tool arguments |
 | Shared Platform | Redis session/memory/turn lock, telemetry | TTL, optimistic update, bounded local traces |
 | Data Platform | PostgreSQL + Alembic, Qdrant sample knowledge | Idempotent seed; refuse mixed/non-sample DB |
@@ -64,8 +64,9 @@ Chi tiết: [kiến trúc](docs/architecture.md), [API](docs/api.md),
   bản, không trình bày như ML model đã huấn luyện.
 - Recommendation kết hợp Product + Review + Trust cho toàn bộ top-N ứng viên.
 - GPT tham gia thật ở bốn stage: routing, capability planning, specialist
-  reasoning và grounded synthesis; mọi output qua schema, policy và provenance
-  allowlist trước khi được dùng.
+  selection và grounded synthesis ordering. Router không được thêm entity ngoài
+  kết quả Python; specialist/synthesis chỉ chọn ID trong catalog do server tạo,
+  còn Python render fact, claim text và citation.
 - Market Agent dùng thống kê PostgreSQL và market notes mẫu qua Qdrant.
 - Session/follow-up có ownership theo principal, TTL và khóa lượt phân tán Redis.
 - Streaming SSE có progress thật, heartbeat, terminal `completed`/`error` duy
@@ -182,7 +183,9 @@ uvicorn app.main:app --reload
 Mặc định là `hybrid`: routing/specialist dùng `gpt-5.4-nano`, planning/synthesis
 dùng `gpt-5.4-mini`. Production yêu cầu `OPENAI_API_KEY` khi runtime khác `off`.
 Provider call dùng structured output, `store=false`, timeout/retry/concurrency
-budget, circuit breaker và chỉ xuất metadata usage đã làm sạch vào trace.
+budget, circuit breaker và chỉ xuất metadata usage đã làm sạch vào trace. Mọi
+lỗi provider/parser được ánh xạ sang allowlisted error code, không sao chép
+payload lỗi vào API hoặc telemetry.
 
 ## API nhanh
 
@@ -259,9 +262,13 @@ repetitions trên 7 case, thứ tự variant interleaved ngẫu nhiên tái lậ
 
 Model snapshot được pin theo stage: `gpt-5.4-nano-2026-03-17` cho
 routing/planning/specialist và `gpt-5.4-mini-2026-03-17` cho synthesis. Runner
-không gọi network nếu thiếu cờ đồng ý, từ chối dirty worktree mặc định, ghi bundle
-qua staging/atomic rename rồi xác minh hash, observation matrix, pricing và phép
-so sánh có thể recompute.
+pin thêm runtime policy không chứa secret (provider, timeout, retry, output,
+concurrency, circuit breaker) và thực thi đúng retrieval
+`hashed_token_cosine_v1`. Runner không gọi network nếu thiếu cờ đồng ý, từ chối
+dirty worktree mặc định, ghi bundle qua staging/atomic rename rồi xác minh hash,
+observation matrix, pricing và phép so sánh có thể recompute. Bundle `complete`
+phải phủ chính xác mọi comparison/omission cell và robustness summary; artifact
+thăm dò thủ công được ghi rõ `partial`.
 
 ```powershell
 python -m app.evaluation.v2_runner run `

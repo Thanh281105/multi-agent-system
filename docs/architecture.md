@@ -86,11 +86,11 @@ khác `1` để giới hạn này không bị vô tình vi phạm.
 | Component | Input | Output | Failure boundary |
 | --- | --- | --- | --- |
 | Gateway | Authenticated HTTP payload | Stable JSON/SSE contract | 401/404/409/422/429/503/504 envelope |
-| Intent Router | Message + bounded session state | `RoutedIntent` | Structured model decision or deterministic fallback |
+| Intent Router | Message + bounded session state | `RoutedIntent` | Model intent; entity phải khớp extraction do Python sở hữu |
 | Planner | `RoutedIntent` | Authorized `ExecutionPlan` DAG | Model chỉ chọn capability; Python biên dịch/kiểm tra DAG |
 | Executor | Plan + correlation context | Ordered `AgentResult` tuple | Exceptions sanitized to typed agent error |
-| Domain reasoner | Tool facts + allowed source IDs | Evidence-linked specialist insight | Không được tạo source/fact mới |
-| Aggregator | Intent + agent results | Grounded answer/status/warnings | Python giữ status/selection; claim model phải có citation |
+| Domain reasoner | Server-owned fact catalog | Evidence-linked fact selection | Model chỉ trả opaque fact ID + confidence |
+| Aggregator | Intent + agent results | Grounded answer/status/warnings | Model chỉ sắp xếp claim ID; Python render text/citation |
 | Model runtime | Bounded JSON + Pydantic schema | Validated structured object + redacted usage | Timeout/retry/concurrency/circuit breaker; no raw provider text |
 | Agent Gateway | Agent request + registry policy | MCP tool response + audit | Agent/server/tool/permission allowlists |
 | Repositories/tools | Validated arguments | JSON-friendly sample facts | Short DB sessions, rollback on exception |
@@ -125,13 +125,15 @@ sequenceDiagram
         A->>S: bounded read
         S-->>A: structured sample facts
         A-->>D: GatewayResponse + redacted audit
-        D->>L: specialist schema (facts + allowed source IDs)
-        L-->>D: evidence-linked insight
+        D->>L: specialist schema (server-owned fact catalog)
+        L-->>D: selected fact IDs + confidence
+        D->>D: render findings/citations from catalog
         D-->>O: AgentResult + errors + provenance
     end
     O->>O: deterministic status, score and provenance
-    O->>L: synthesis schema (facts + allowed source IDs)
-    L-->>O: cited claims
+    O->>L: synthesis schema (server-owned claim catalog)
+    L-->>O: ordered claim IDs
+    O->>O: render deterministic text + provenance citations
     O->>R: update state/memory with TTL
     O-->>G: OrchestrationResult
     G-->>C: response or terminal SSE event
@@ -259,8 +261,11 @@ nhất một point. API key không xuất hiện trong public settings/logs.
 - Tất cả agents lỗi trả gateway 503; không có fallback tạo facts.
 - Model call bị giới hạn timeout, retry, concurrency và circuit breaker. Chế độ
   `hybrid` fallback về kết quả deterministic đã tính; `required` dừng request.
-- Router/planner/specialist/synthesis model outputs đều schema-constrained; plan
-  và source ID ngoài allowlist bị từ chối trước khi ảnh hưởng response.
+- Router/planner/specialist/synthesis model outputs đều schema-constrained.
+  Router entity phải khớp extraction Python, plan phải qua capability compiler,
+  còn specialist/synthesis chỉ được chọn ID trong catalog server-owned; unknown,
+  duplicate hoặc thiếu claim ID sẽ fallback/fail closed trước khi ảnh hưởng
+  response.
 - SSE luôn có `request.accepted`, progress có sequence và đúng một terminal
   `completed` hoặc `error`; heartbeat 10 giây giữ connection.
 
@@ -305,15 +310,15 @@ Prometheus collector + OpenTelemetry/log backend bên ngoài.
 | --- | --- |
 | Single-agent baseline | Legacy path còn giữ; frozen real-model baseline từ `main` đã capture |
 | Domain agents | Product, Review, Trust, Market đã triển khai |
-| Orchestrator | GPT-assisted routing/planning/synthesis, authorized parallel DAG, deterministic fallback/failure semantics |
-| Specialist reasoning | GPT enrichment theo từng AgentResult thành công, bị khóa bởi provenance allowlist |
+| Orchestrator | GPT-assisted routing/planning/claim ordering, authorized parallel DAG, deterministic fallback/failure semantics |
+| Specialist reasoning | GPT chọn fact ID theo từng AgentResult; Python sở hữu fact text và provenance |
 | Shared platform | Session, Redis short-term turn storage, correlation, tracing, metrics, evaluation; chưa có long-term user memory |
 | Agent Gateway/Registry | Capabilities, permissions, MCP allowlists, audit |
 | MCP | In-process typed catalog; chưa phải remote MCP transport |
 | RAG/vector DB | Qdrant adapter + versioned hashing/OpenAI embedding spaces |
 | API/UI | Authenticated v1 JSON/SSE + same-origin evidence-first client |
 | Deployment | Compose + Helm production/kind profiles, migration hook, NetworkPolicy, monitoring pack, CI gates |
-| Evaluation | Paired protocol v2: deterministic/full hybrid + four ablations, 28 clean + 16 robustness cases, pinned pricing/hashes |
+| Evaluation | Paired protocol v2: deterministic/full hybrid + four ablations, 28 clean + 16 robustness cases, pinned runtime/retrieval/pricing/hashes |
 
 Khi thay dữ liệu thật, thứ tự mở rộng an toàn là: data contract/quality gate →
 versioned embedding/index → shadow evaluation → chạy đủ paired protocol + human

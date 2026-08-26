@@ -42,7 +42,8 @@ agents, model calls, fallbacks, provenance, and trace identity.
   fallback.
 - Authorized DAG compilation for Product, Review, Trust, and Market agents.
 - Agent Gateway-only data/tool access with typed contracts and provenance.
-- Evidence-linked specialist analysis and final claim synthesis.
+- Evidence-linked specialist fact selection and final claim ordering; all fact
+  text and citations are rendered from server-owned catalogs.
 - JSON and POST-based SSE chat interfaces with cancellation and stable errors.
 - Frozen objective evaluation assets and explicitly labeled sample datasets.
 - Synthetic regression data (30 products, 150 reviews) and a small public Tiki
@@ -81,7 +82,9 @@ marketing page or passive report.
 
 The interface may claim that the repository demonstrates typed orchestration,
 structured model calls, deterministic authorization/fallback, provenance, and
-objective regression evaluation when the corresponding checks pass. It must not
+objective regression evaluation when the corresponding checks pass. Model prose
+must never be presented as grounded merely because it names an allowed source;
+grounded content comes from server-owned fact/claim catalogs. It must not
 claim marketplace representativeness, human preference superiority, semantic
 helpfulness superiority, high availability, or “perfect production” without
 direct evidence.
