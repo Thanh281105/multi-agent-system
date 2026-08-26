@@ -28,6 +28,8 @@ flowchart LR
     O --> R[Review Agent]
     O --> T[Trust Agent]
     O --> M[Market Agent]
+    O & P & R & T & M --> L[Schema-constrained GPT runtime]
+    L --> OA[OpenAI Responses API]
     P & R & T & M --> AG[Agent Gateway + Registry]
     AG --> MCP[MCP-style allowlisted tools]
     MCP --> PG[(PostgreSQL sample facts)]
@@ -45,12 +47,12 @@ không vô tình thưởng cho ứng viên thiếu dữ liệu.
 | Khối | Trách nhiệm chính | Guardrail |
 | --- | --- | --- |
 | API Gateway | Auth, rate limit, correlation, timeout, JSON/SSE | Stable error envelope; owner-bound session |
-| Orchestrator | Route, plan DAG, execute, aggregate | Typed A2A contracts; partial-failure semantics |
-| Domain Agents | Product, review, trust, market analysis | Chỉ gọi skill được allowlist qua Agent Gateway |
+| Orchestrator | GPT-assisted route/plan/synthesis, execute DAG | Python authorizes plan/facts; deterministic fallback |
+| Domain Agents | Product, review, trust, market + GPT specialist insight | Tool facts và source IDs bị allowlist |
 | Agent Gateway | Registry, permission, MCP routing, audit | Không log prompt hay raw tool arguments |
 | Shared Platform | Redis session/memory/turn lock, telemetry | TTL, optimistic update, bounded local traces |
 | Data Platform | PostgreSQL + Alembic, Qdrant sample knowledge | Idempotent seed; refuse mixed/non-sample DB |
-| Evaluation | 28 frozen cases × 7 workflow categories | Dataset/seed hashes; explicit N/A; honest baseline |
+| Evaluation | Paired v2 + ablations + robustness corpus | Pinned protocol/pricing; hashes; paired CI/bootstrap |
 
 Chi tiết: [kiến trúc](docs/architecture.md), [API](docs/api.md),
 [vận hành](docs/operations.md), [đánh giá](docs/evaluation.md).
@@ -61,6 +63,9 @@ Chi tiết: [kiến trúc](docs/architecture.md), [API](docs/api.md),
 - Phân tích sentiment/aspect review và complaint/trust theo heuristic có phiên
   bản, không trình bày như ML model đã huấn luyện.
 - Recommendation kết hợp Product + Review + Trust cho toàn bộ top-N ứng viên.
+- GPT tham gia thật ở bốn stage: routing, capability planning, specialist
+  reasoning và grounded synthesis; mọi output qua schema, policy và provenance
+  allowlist trước khi được dùng.
 - Market Agent dùng thống kê PostgreSQL và market notes mẫu qua Qdrant.
 - Session/follow-up có ownership theo principal, TTL và khóa lượt phân tán Redis.
 - Streaming SSE có progress thật, heartbeat, terminal `completed`/`error` duy
@@ -71,7 +76,8 @@ Chi tiết: [kiến trúc](docs/architecture.md), [API](docs/api.md),
   collection Qdrant đúng vector contract, đã có dữ liệu; protected `/metrics`,
   trace/audit/agent inventory.
 - Alembic migration, fail-safe sample seed, non-root read-only container,
-  private data network và CI lint/type/test/wheel/container gates.
+  private data network, Helm production/kind profiles, NetworkPolicy và CI
+  lint/type/test/wheel/container/chart gates.
 
 ## Khởi động production-like bằng Docker Compose
 
@@ -119,6 +125,22 @@ Không đưa dịch vụ HTTP này trực tiếp lên Internet. Hãy đặt sau 
 và chỉ cấu hình HSTS khi HTTPS đã được đảm bảo end-to-end; xem
 [runbook vận hành](docs/operations.md).
 
+## Triển khai Kubernetes bằng Helm
+
+Chart tại [`deploy/helm/ecommerce-multi-agent`](deploy/helm/ecommerce-multi-agent)
+có hai profile được schema-gate:
+
+- `values.yaml` cho production: một application replica, dependency managed bên
+  ngoài, existing Secret, Alembic migration hook, sample seed tắt mặc định;
+- `values-kind.yaml` cho smoke: dependency nội bộ có PVC, migrate/seed tuần tự,
+  model `off` và hashing embedding để không cần network/provider key.
+
+Chart dùng non-root/read-only security context, drop capabilities, probes,
+resource budget, ClusterIP và NetworkPolicy. Monitoring tùy chọn cung cấp
+ServiceMonitor, PrometheusRule và Grafana dashboard. Lệnh production/kind đầy
+đủ, bao gồm cách cấp secret không commit manifest nhạy cảm, nằm trong
+[runbook](docs/operations.md#4-triển-khai).
+
 ## Chạy local tối giản
 
 Python `3.12+` được hỗ trợ. Có thể dùng SQLite cho local demo/tests; production
@@ -141,16 +163,26 @@ $env:GATEWAY_API_KEYS = "demo:demo-local-key"
 $env:SHARED_STATE_BACKEND = "memory"
 $env:KNOWLEDGE_BACKEND = "static"
 $env:LEGACY_CHAT_ENABLED = "true"
+$env:MODEL_RUNTIME_MODE = "off"
 
 ecommerce-migrate
 ecommerce-seed
 uvicorn app.main:app --reload
 ```
 
-OpenAI không phải dependency của đường `/api/v1` hiện tại: routing, agents và
-aggregation đều deterministic để benchmark tái lập. `OPENAI_API_KEY` chỉ phục
-vụ đường single-agent Phase 1 cũ khi chủ động bật legacy endpoint hoặc chạy
-integration test; production Compose tắt endpoint này.
+Đường `/api/v1` hỗ trợ bốn chế độ model runtime:
+
+| Mode | Hành vi |
+| --- | --- |
+| `off` | Không gọi model; dùng pipeline deterministic để phát triển/regression offline |
+| `shadow` | Gọi model và thu telemetry nhưng giữ quyết định deterministic |
+| `hybrid` | Dùng model output hợp lệ; lỗi/vi phạm policy fallback deterministic |
+| `required` | Fail closed nếu model call hoặc authorization check thất bại |
+
+Mặc định là `hybrid`: routing/specialist dùng `gpt-5.4-nano`, planning/synthesis
+dùng `gpt-5.4-mini`. Production yêu cầu `OPENAI_API_KEY` khi runtime khác `off`.
+Provider call dùng structured output, `store=false`, timeout/retry/concurrency
+budget, circuit breaker và chỉ xuất metadata usage đã làm sạch vào trace.
 
 ## API nhanh
 
@@ -187,8 +219,9 @@ gateway.session_not_found`, tránh rò rỉ ownership.
   gắn version dataset vào từng product/review và có thể chạy lại an toàn.
 - Seed từ chối database rỗng một phần, database lẫn dữ liệu khác hoặc dữ liệu
   thật; `--reset --confirm-reset` chỉ dùng local và bị chặn trong production.
-- Knowledge seed dùng deterministic hashing vector `hashed_token_cosine_v1`;
-  đây là retrieval baseline tái lập, không phải semantic embedding model.
+- Knowledge seed hỗ trợ hashing vector `hashed_token_cosine_v1` cho regression
+  offline và OpenAI embedding có version cho semantic retrieval. Hai vector
+  space dùng collection riêng nên không thể bị trộn nhầm.
 
 ## Kiểm thử và quality gates
 
@@ -209,11 +242,58 @@ python -m pip wheel --no-deps --wheel-dir dist .
 ```
 
 CI chạy các bước trên, kiểm tra React bundle nằm trong Python wheel, validate
-Compose và build Docker image ba stage. Test offline dùng SQLite tạm, fakeredis
-và Qdrant mock contract; chỉ test có marker `integration` cần OpenAI key/network
-thật. Không sửa thủ công `app/frontend/dist`; đây là output của Vite.
+Compose, lint/render Helm bằng hai profile, kubeconform manifest và build Docker
+image ba stage. Test offline dùng SQLite tạm, fakeredis và Qdrant mock contract;
+chỉ test có marker `integration` cần OpenAI key/network thật. Không sửa thủ công
+`app/frontend/dist`; đây là output của Vite.
 
-## Benchmark khóa luận
+## Evaluation khóa luận: paired protocol v2
+
+Protocol v2 là đường đánh giá chính cho kiến trúc mới. Nó ghép cặp cùng case và
+repetition giữa deterministic baseline với full hybrid, rồi chạy bốn ablation
+`no_router`, `no_planner`, `no_specialist`, `no_synthesis`. Corpus gồm 28 clean
+case v1 và 16 biến thể label-preserving cho typo, paraphrase, distractor và
+prompt injection. Cấu hình freeze 3 correctness repetitions, 1 warmup, 5 latency
+repetitions trên 7 case, thứ tự variant interleaved ngẫu nhiên tái lập bằng seed
+`42`, 10.000 bootstrap samples và pricing manifest có hash.
+
+Model snapshot được pin theo stage: `gpt-5.4-nano-2026-03-17` cho
+routing/planning/specialist và `gpt-5.4-mini-2026-03-17` cho synthesis. Runner
+không gọi network nếu thiếu cờ đồng ý, từ chối dirty worktree mặc định, ghi bundle
+qua staging/atomic rename rồi xác minh hash, observation matrix, pricing và phép
+so sánh có thể recompute.
+
+```powershell
+python -m app.evaluation.v2_runner run `
+  --experiment evaluation/experiment.v2.json `
+  --allow-network `
+  --run-id run_thesis_v2
+
+python -m app.evaluation.v2_runner validate `
+  --bundle output/evaluation-v2/run_thesis_v2
+
+python -m app.evaluation.v2_runner compare `
+  --bundle output/evaluation-v2/run_thesis_v2 `
+  --candidate hybrid_full `
+  --metric task_success `
+  --phase correctness
+```
+
+Live pilot có giới hạn đã chạy trên đúng provider path với một clean case, hai
+variant và không có omission: hybrid thực hiện đủ 4 stage model, dùng
+`2.645` token, chi phí ước tính `$0.00236865`, end-to-end latency khoảng
+`16.326 ms`, không fallback; task/routing/plan/retrieval/assertion đều `1.0` ở
+cả baseline và candidate. Đây là **integration smoke**, không phải bằng chứng
+superiority hay ước lượng latency đại diện. Bundle local bị ignore; protocol và
+lệnh tái tạo được freeze tại
+[`evaluation/experiment.live-pilot.v2.json`](evaluation/experiment.live-pilot.v2.json).
+
+Chi tiết protocol, metric direction, win/tie/loss, paired bootstrap, robustness
+và quy tắc diễn giải nằm trong [tài liệu evaluation](docs/evaluation.md).
+
+### Artifact v1 lịch sử
+
+Runner v1 vẫn được giữ để regression và tái kiểm tra các artifact khóa luận cũ:
 
 ```powershell
 ecommerce-evaluate --repeats 3 --output evaluation/results/latest
@@ -257,7 +337,8 @@ report cùng bảng so sánh descriptive nằm tại
 | Latency p95 | 2,042 ms | 8,475 ms | −6,433 ms |
 | Token usage | 61,778 | 58,878 | +2,900 |
 
-Đây là mô tả trên cùng model và corpus nhưng chưa phải paired win/tie/loss:
+Đây là mô tả **lịch sử v1** trên cùng model và corpus nhưng chưa phải paired
+win/tie/loss:
 prompt, runtime orchestration và số repetition chưa đồng nhất; chi phí ghi `N/A`
 vì chưa capture pricing/provider billing. Reference deterministic vẫn được giữ
 để regression không phụ thuộc network. Report schema `1.1` và real artifact ghi
@@ -274,33 +355,35 @@ app/
 ├── agent_gateway/    # permission/rate/audit boundary
 ├── registry/         # immutable agent bundles
 ├── mcp/              # allowlisted tool catalog/router
-├── shared/           # context, Redis/memory session, telemetry
-├── knowledge/        # Qdrant adapter, hashing embedder, sample notes
-├── evaluation/       # schemas, metrics, deterministic + real benchmark artifacts
+├── shared/           # context, model/embedding runtime, Redis, telemetry
+├── knowledge/        # Qdrant adapter, versioned embedding, sample notes
+├── evaluation/       # paired protocol, execution, artifacts, comparison
 ├── frontend/         # same-origin accessible web client
 ├── db/, models/, repositories/, tools/
 └── agent/, api/      # legacy Phase 1 path; disabled in production
 migrations/           # Alembic lifecycle
-evaluation/           # frozen corpus, honest baseline manifest, reports
+deploy/helm/          # production/kind profiles + monitoring resources
+evaluation/           # frozen v1/v2 corpus, experiments, pricing, reports
 tests/                # offline regression + optional integration
 ```
 
 ## Giới hạn có chủ đích
 
 - Dataset và knowledge base vẫn là mẫu tổng hợp theo yêu cầu hiện tại.
-- Router/analytics là deterministic rules; chưa phải fine-tuned LLM hoặc mô hình
-  sentiment/trust được hiệu chỉnh trên dữ liệu thật.
+- Runtime đã dùng LLM có cấu trúc nhưng sentiment/trust facts vẫn là heuristic
+  có version trên dữ liệu mẫu, chưa phải model được hiệu chỉnh trên dữ liệu thật.
 - Rate limiter và telemetry aggregation nằm trong một process. Compose cố định
   một Uvicorn worker; scale-out cần distributed limiter và external telemetry.
 - Trace ring buffer chỉ phục vụ chẩn đoán ngắn hạn và mất khi restart.
-- Redis lưu tối đa 40 user/assistant turn entries mỗi session theo TTL, nhưng
-  deterministic router v1 chỉ tiêu thụ structured state (`active_agent`,
-  `last_product_id`), chưa đưa free-text memory vào inference. Chưa có long-term
-  user preference, conversation summary hay historical-artifact memory.
-- Đã có một real-model run single-vs-multi trên cùng model/corpus; paired nhiều
-  repetition, load/soak và semantic human rubric vẫn là follow-up.
-- Qdrant live-container integration và Docker image build phải được CI/môi trường
-  có Docker daemon xác nhận; unit suite dùng contract mocks.
+- Redis lưu tối đa 40 user/assistant turn entries mỗi session theo TTL. Model chỉ
+  nhận message hiện tại và structured state (`active_agent`, `last_product_id`),
+  chưa dùng free-text memory; chưa có long-term preference/summary/artifact memory.
+- Paired protocol v2 và live pilot đã sẵn sàng, nhưng full six-variant live run,
+  semantic human rubric, load/soak và nhiều seed/model replication vẫn là
+  follow-up trước mọi claim superiority.
+- Helm đã được lint/render/kubeconform và smoke thật trên kind một node; HA,
+  managed data services, ingress/TLS, backup restore và external monitoring vẫn
+  phải được xác nhận trong môi trường production đích.
 
 Những giới hạn này được giữ công khai để kết quả khóa luận có thể kiểm chứng và
 không vượt quá bằng chứng hiện có.
