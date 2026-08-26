@@ -173,10 +173,6 @@
     @apply font-mono text-[0.72rem] leading-relaxed tabular-nums;
   }
 
-  .atlas-kicker {
-    @apply text-[0.68rem] leading-none font-bold tracking-[0.14em] text-muted-foreground uppercase;
-  }
-
   .atlas-elevated {
     box-shadow: var(--atlas-shadow);
   }

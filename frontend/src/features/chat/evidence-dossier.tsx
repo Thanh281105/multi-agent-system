@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useId, useMemo } from "react"
 import {
   Check,
   CircleAlert,
@@ -15,15 +15,28 @@ import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { ChatState } from "@/features/chat/chat-state"
 import {
   formatDuration,
   friendlyAgent,
+  provenanceAnchorId,
   shortenIdentifier,
   statusLabels,
+  type ProvenanceAnchorScope,
 } from "@/features/chat/presentation"
 import { cn } from "@/lib/utils"
 import type {
@@ -37,14 +50,22 @@ import type {
 interface EvidenceDossierProps {
   state: ChatState
   compact?: boolean
+  anchorScope: ProvenanceAnchorScope
+  selectedSourceId?: string
 }
 
-export function EvidenceDossier({ state, compact = false }: EvidenceDossierProps) {
+export function EvidenceDossier({
+  state,
+  compact = false,
+  anchorScope,
+  selectedSourceId,
+}: EvidenceDossierProps) {
+  const titleId = useId()
   const result =
     state.request.phase === "completed" ? state.request.result : undefined
   return (
     <section
-      aria-labelledby="evidence-dossier-title"
+      aria-labelledby={titleId}
       className={cn(
         "atlas-panel overflow-hidden",
         compact ? "border-0" : "flex flex-col xl:h-[calc(100svh-5.5rem)]",
@@ -52,10 +73,7 @@ export function EvidenceDossier({ state, compact = false }: EvidenceDossierProps
     >
       <header className="flex items-end justify-between border-b px-4 py-4">
         <div>
-          <h2
-            id="evidence-dossier-title"
-            className="font-display text-xl font-semibold"
-          >
+          <h2 id={titleId} className="font-display text-xl font-semibold">
             Hồ sơ thực thi
           </h2>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -66,7 +84,7 @@ export function EvidenceDossier({ state, compact = false }: EvidenceDossierProps
       </header>
 
       <ScrollArea className={cn("min-h-0", !compact && "flex-1")}>
-        <div className="space-y-5 px-4 py-4">
+        <div className="flex flex-col gap-5 px-4 py-4">
           <DossierSection
             icon={GitFork}
             title="Tuyến DAG"
@@ -92,7 +110,11 @@ export function EvidenceDossier({ state, compact = false }: EvidenceDossierProps
             title="Chỉ mục nguồn"
             count={result?.provenance.length}
           >
-            <ProvenanceIndex sources={result?.provenance ?? []} />
+            <ProvenanceIndex
+              sources={result?.provenance ?? []}
+              anchorScope={anchorScope}
+              selectedSourceId={selectedSourceId}
+            />
           </DossierSection>
 
           <Separator />
@@ -153,18 +175,30 @@ function DossierStatus({ state }: { state: ChatState }) {
     )
   }
   if (phase === "completed") {
-    const partial = state.request.result.status === "partial_success"
+    const resultStatus = state.request.result.status
+    if (resultStatus === "success") {
+      return (
+        <Badge variant="outline" className="border-success/40 text-success">
+          <Check />
+          Đã kiểm chứng
+        </Badge>
+      )
+    }
+    if (resultStatus === "partial_success") {
+      return (
+        <Badge variant="outline" className="border-accent/40 text-accent">
+          <CircleAlert />
+          Một phần
+        </Badge>
+      )
+    }
+    if (resultStatus === "failed") {
+      return <Badge variant="destructive">Thất bại</Badge>
+    }
     return (
-      <Badge
-        variant="outline"
-        className={cn(
-          partial
-            ? "border-accent/40 text-accent"
-            : "border-success/40 text-success",
-        )}
-      >
-        {partial ? <CircleAlert /> : <Check />}
-        {partial ? "Một phần" : "Đã kiểm chứng"}
+      <Badge variant="outline" className="border-accent/40 text-accent">
+        <CircleAlert />
+        {resultStatus === "running" ? "Chưa hoàn tất" : "Đang chờ"}
       </Badge>
     )
   }
@@ -203,7 +237,11 @@ function ExecutionGraph({ executions }: { executions: AgentExecution[] }) {
             stroke={statusColor(edge.status)}
             strokeWidth="2"
             strokeDasharray={
-              edge.status === "pending" ? "3 5" : edge.status === "failed" ? "2 4" : undefined
+              edge.status === "pending"
+                ? "3 5"
+                : edge.status === "failed"
+                  ? "2 4"
+                  : undefined
             }
             className={edge.status === "running" ? "route-active" : undefined}
             vectorEffect="non-scaling-stroke"
@@ -234,7 +272,7 @@ function ExecutionGraph({ executions }: { executions: AgentExecution[] }) {
         ))}
       </svg>
 
-      <ol className="mt-2 space-y-2">
+      <ol className="mt-2 flex flex-col gap-2">
         {executions.map((execution, index) => (
           <li
             key={execution.step_id}
@@ -256,7 +294,10 @@ function ExecutionGraph({ executions }: { executions: AgentExecution[] }) {
             </div>
             <div className="mt-2 flex items-center justify-between gap-2 text-[0.62rem] text-muted-foreground">
               <span className="truncate">
-                từ · {execution.depends_on.length ? execution.depends_on.join(", ") : "ROOT"}
+                từ ·{" "}
+                {execution.depends_on.length
+                  ? execution.depends_on.join(", ")
+                  : "ROOT"}
               </span>
               <span className="shrink-0 font-mono tabular-nums">
                 {formatDuration(execution.duration_ms)}
@@ -280,45 +321,71 @@ function ModelLedger({ calls }: { calls: ModelCall[] }) {
     )
   }
   return (
-    <ol className="space-y-2">
-      {calls.map((call) => (
-        <li key={call.call_id} className="rounded-lg border bg-card px-2.5 py-2.5">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate text-[0.72rem] font-bold">{call.model}</p>
-              <p className="mt-0.5 truncate font-mono text-[0.61rem] text-muted-foreground">
-                {call.provider} / {call.stage} / {friendlyAgent(call.agent_id)}
-              </p>
+    <ol className="flex flex-col gap-2">
+      {calls.map((call) => {
+        const failedRequired = Boolean(call.error_code && !call.fallback_used)
+        const outcomeLabel = call.fallback_used
+          ? "Fallback an toàn"
+          : failedRequired
+            ? "Lỗi bắt buộc"
+            : call.status === "success"
+              ? "Thành công"
+              : call.status
+        return (
+          <li
+            key={call.call_id}
+            className="rounded-lg border bg-card px-2.5 py-2.5"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-[0.72rem] font-bold">
+                  {call.model}
+                </p>
+                <p className="mt-0.5 truncate font-mono text-[0.61rem] text-muted-foreground">
+                  {call.provider} / {call.stage} /{" "}
+                  {friendlyAgent(call.agent_id)}
+                </p>
+              </div>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "h-4 px-1.5 text-[0.58rem]",
+                  failedRequired
+                    ? "border-destructive/40 text-destructive"
+                    : call.fallback_used
+                      ? "border-accent/40 text-accent"
+                      : "border-success/40 text-success",
+                )}
+              >
+                {outcomeLabel}
+              </Badge>
             </div>
-            <Badge
-              variant="outline"
-              className={cn(
-                "h-4 px-1.5 text-[0.58rem]",
-                call.error_code
-                  ? "border-destructive/40 text-destructive"
-                  : "border-success/40 text-success",
-              )}
-            >
-              {call.fallback_used ? "Fallback" : call.status}
-            </Badge>
-          </div>
-          <div className="mt-2 grid grid-cols-3 gap-2 border-t pt-2 font-mono text-[0.6rem] text-muted-foreground tabular-nums">
-            <span>{call.total_tokens.toLocaleString("vi-VN")} tok</span>
-            <span>{formatDuration(call.duration_ms)}</span>
-            <span className="text-right">{call.attempts} lần</span>
-          </div>
-          {call.fallback_reason ? (
-            <p className="mt-2 text-[0.62rem] leading-5 text-accent">
-              {call.fallback_reason}
-            </p>
-          ) : null}
-        </li>
-      ))}
+            <div className="mt-2 grid grid-cols-3 gap-2 border-t pt-2 font-mono text-[0.6rem] text-muted-foreground tabular-nums">
+              <span>{call.total_tokens.toLocaleString("vi-VN")} tok</span>
+              <span>{formatDuration(call.duration_ms)}</span>
+              <span className="text-right">{call.attempts} lần</span>
+            </div>
+            {call.fallback_reason ? (
+              <p className="mt-2 text-[0.62rem] leading-5 text-accent">
+                {call.fallback_reason}
+              </p>
+            ) : null}
+          </li>
+        )
+      })}
     </ol>
   )
 }
 
-function ProvenanceIndex({ sources }: { sources: Provenance[] }) {
+function ProvenanceIndex({
+  sources,
+  anchorScope,
+  selectedSourceId,
+}: {
+  sources: Provenance[]
+  anchorScope: ProvenanceAnchorScope
+  selectedSourceId?: string
+}) {
   if (!sources.length) {
     return (
       <EmptyDossier
@@ -329,11 +396,20 @@ function ProvenanceIndex({ sources }: { sources: Provenance[] }) {
     )
   }
   return (
-    <ol className="space-y-2">
+    <ol className="flex flex-col gap-2">
       {sources.map((source, index) => (
         <li
           key={`${source.source_type}-${source.source_id}-${index}`}
-          className="border-l-2 border-accent/50 pl-3"
+          id={provenanceAnchorId(anchorScope, source.source_id)}
+          tabIndex={-1}
+          aria-current={
+            selectedSourceId === source.source_id ? "true" : undefined
+          }
+          className={cn(
+            "rounded-lg border bg-card px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
+            selectedSourceId === source.source_id &&
+              "border-accent/50 bg-accent/5",
+          )}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
@@ -380,7 +456,7 @@ function TraceLedger({
     ["session", result?.session_id ?? sessionId],
   ] as const
   return (
-    <dl className="space-y-2">
+    <dl className="flex flex-col gap-2">
       {entries.map(([label, value]) => (
         <div
           key={label}
@@ -389,7 +465,10 @@ function TraceLedger({
           <dt className="text-[0.62rem] font-semibold text-muted-foreground">
             {label}
           </dt>
-          <dd className="truncate font-mono text-[0.62rem]" title={value ?? undefined}>
+          <dd
+            className="truncate font-mono text-[0.62rem]"
+            title={value ?? undefined}
+          >
             {value ? shortenIdentifier(value) : "—"}
           </dd>
           <dd>
@@ -399,19 +478,25 @@ function TraceLedger({
       ))}
       {result ? (
         <div className="mt-3 flex items-center justify-between border-t pt-2 text-[0.62rem] text-muted-foreground">
-          <span className="flex items-center gap-1.5">
+          <dt className="flex items-center gap-1.5">
             <Clock3 aria-hidden="true" className="size-3" /> tổng thời gian
-          </span>
-          <span className="font-mono tabular-nums">
+          </dt>
+          <dd className="font-mono tabular-nums">
             {formatDuration(result.duration_ms)}
-          </span>
+          </dd>
         </div>
       ) : null}
     </dl>
   )
 }
 
-function CopyButton({ label, value }: { label: string; value?: string | null }) {
+function CopyButton({
+  label,
+  value,
+}: {
+  label: string
+  value?: string | null
+}) {
   const copy = async () => {
     if (!value) return
     try {
@@ -463,11 +548,17 @@ function EmptyDossier({
   detail: string
 }) {
   return (
-    <div className="rounded-lg border border-dashed bg-muted/25 px-3 py-4 text-center">
-      <Icon aria-hidden="true" className="mx-auto size-4 text-muted-foreground" />
-      <p className="mt-2 text-xs font-semibold">{title}</p>
-      <p className="mt-1 text-[0.65rem] leading-5 text-muted-foreground">{detail}</p>
-    </div>
+    <Empty className="gap-2 rounded-lg border border-dashed bg-muted/25 px-3 py-4">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <Icon aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyDescription className="text-[0.65rem] leading-5">
+          {detail}
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   )
 }
 

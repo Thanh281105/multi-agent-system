@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Compass,
   DatabaseZap,
@@ -19,7 +19,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Toaster } from "@/components/ui/sonner"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { AgentRoster } from "@/features/chat/agent-roster"
 import { ConversationWorkspace } from "@/features/chat/conversation-workspace"
 import { CredentialDialog } from "@/features/chat/credential-dialog"
@@ -28,7 +33,11 @@ import {
   useChatController,
   type ChatController,
 } from "@/features/chat/use-chat-controller"
-import { shortenIdentifier } from "@/features/chat/presentation"
+import {
+  provenanceAnchorId,
+  shortenIdentifier,
+  type ProvenanceAnchorScope,
+} from "@/features/chat/presentation"
 import { cn } from "@/lib/utils"
 
 function App() {
@@ -38,11 +47,42 @@ function App() {
 
 export function EvidenceAtlas({ controller }: { controller: ChatController }) {
   const [credentialOpen, setCredentialOpen] = useState(false)
+  const [evidenceOpen, setEvidenceOpen] = useState(false)
+  const [sourceTarget, setSourceTarget] = useState<{
+    scope: ProvenanceAnchorScope
+    sourceId: string
+  } | null>(null)
   const { state } = controller
-  const result = state.request.phase === "completed" ? state.request.result : undefined
+  const result =
+    state.request.phase === "completed" ? state.request.result : undefined
   const executions = result?.executions ?? []
   const statuses =
     state.request.phase === "streaming" ? state.request.statuses : []
+
+  useEffect(() => {
+    if (!sourceTarget) return
+    const frame = window.requestAnimationFrame(() => {
+      const target = document.getElementById(
+        provenanceAnchorId(sourceTarget.scope, sourceTarget.sourceId),
+      )
+      if (!target) return
+      const reducedMotion =
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+      target.scrollIntoView?.({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: "center",
+      })
+      target.focus({ preventScroll: true })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [evidenceOpen, sourceTarget])
+
+  const revealProvenance = (sourceId: string) => {
+    const scope: ProvenanceAnchorScope =
+      window.innerWidth >= 1_280 ? "desktop" : "mobile"
+    setSourceTarget({ scope, sourceId })
+    if (scope === "mobile") setEvidenceOpen(true)
+  }
 
   return (
     <TooltipProvider delayDuration={250}>
@@ -53,13 +93,22 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
         <TopBar
           controller={controller}
           onCredentialRequest={() => setCredentialOpen(true)}
+          evidenceOpen={evidenceOpen}
+          onEvidenceOpenChange={setEvidenceOpen}
+          selectedSourceId={
+            sourceTarget?.scope === "mobile" ? sourceTarget.sourceId : undefined
+          }
         />
 
         <div className="mx-auto grid w-full max-w-[100rem] gap-2 px-2 pb-2 xl:grid-cols-[17.5rem_minmax(32rem,1fr)_23rem]">
-          <main id="workspace" className="min-w-0 xl:col-start-2 xl:row-start-1">
+          <main
+            id="workspace"
+            className="min-w-0 xl:col-start-2 xl:row-start-1"
+          >
             <ConversationWorkspace
               controller={controller}
               onCredentialRequest={() => setCredentialOpen(true)}
+              onProvenanceRequest={revealProvenance}
             />
           </main>
 
@@ -78,7 +127,15 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
             aria-label="Hồ sơ thực thi"
             className="hidden min-w-0 xl:col-start-3 xl:row-start-1 xl:block"
           >
-            <EvidenceDossier state={state} />
+            <EvidenceDossier
+              state={state}
+              anchorScope="desktop"
+              selectedSourceId={
+                sourceTarget?.scope === "desktop"
+                  ? sourceTarget.sourceId
+                  : undefined
+              }
+            />
           </aside>
         </div>
 
@@ -98,12 +155,19 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
 function TopBar({
   controller,
   onCredentialRequest,
+  evidenceOpen,
+  onEvidenceOpenChange,
+  selectedSourceId,
 }: {
   controller: ChatController
   onCredentialRequest(): void
+  evidenceOpen: boolean
+  onEvidenceOpenChange(open: boolean): void
+  selectedSourceId?: string
 }) {
   const { state } = controller
-  const result = state.request.phase === "completed" ? state.request.result : undefined
+  const result =
+    state.request.phase === "completed" ? state.request.result : undefined
   const executions = result?.executions ?? []
   const statuses =
     state.request.phase === "streaming" ? state.request.statuses : []
@@ -130,9 +194,14 @@ function TopBar({
             {state.online ? (
               <Wifi aria-hidden="true" className="size-3.5 text-success" />
             ) : (
-              <WifiOff aria-hidden="true" className="size-3.5 text-destructive" />
+              <WifiOff
+                aria-hidden="true"
+                className="size-3.5 text-destructive"
+              />
             )}
-            <span className={state.online ? "text-success" : "text-destructive"}>
+            <span
+              className={state.online ? "text-success" : "text-destructive"}
+            >
               {state.online ? "Trình duyệt online" : "Trình duyệt ngoại tuyến"}
             </span>
           </div>
@@ -143,12 +212,17 @@ function TopBar({
               className="max-w-44 truncate font-mono text-[0.65rem]"
               title={state.sessionId ?? undefined}
             >
-              {state.sessionId ? shortenIdentifier(state.sessionId, 28) : "phiên mới"}
+              {state.sessionId
+                ? shortenIdentifier(state.sessionId, 28)
+                : "phiên mới"}
             </p>
           </div>
         </div>
 
-        <nav aria-label="Điều khiển workspace" className="flex items-center gap-1.5">
+        <nav
+          aria-label="Điều khiển workspace"
+          className="flex items-center gap-1.5"
+        >
           <Sheet>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -156,7 +230,7 @@ function TopBar({
                   <Button
                     variant="outline"
                     size="icon"
-                    className="xl:hidden"
+                    className="size-10 xl:hidden"
                     aria-label="Mở danh sách agent"
                   >
                     <Menu />
@@ -165,7 +239,10 @@ function TopBar({
               </TooltipTrigger>
               <TooltipContent>Danh sách agent</TooltipContent>
             </Tooltip>
-            <SheetContent side="left" className="w-[20rem] overflow-y-auto p-0 sm:max-w-sm">
+            <SheetContent
+              side="left"
+              className="w-[20rem] overflow-y-auto p-0 sm:max-w-sm"
+            >
               <SheetHeader className="sr-only">
                 <SheetTitle>Trạm chuyên gia</SheetTitle>
                 <SheetDescription>
@@ -181,14 +258,14 @@ function TopBar({
             </SheetContent>
           </Sheet>
 
-          <Sheet>
+          <Sheet open={evidenceOpen} onOpenChange={onEvidenceOpenChange}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <SheetTrigger asChild>
                   <Button
                     variant="outline"
                     size="icon"
-                    className="xl:hidden"
+                    className="size-10 xl:hidden"
                     aria-label="Mở hồ sơ thực thi"
                   >
                     <DatabaseZap />
@@ -197,14 +274,23 @@ function TopBar({
               </TooltipTrigger>
               <TooltipContent>Hồ sơ thực thi</TooltipContent>
             </Tooltip>
-            <SheetContent side="right" className="w-[22rem] overflow-y-auto p-0 sm:max-w-md">
+            <SheetContent
+              side="right"
+              className="w-[22rem] overflow-y-auto p-0 sm:max-w-md"
+            >
               <SheetHeader className="sr-only">
                 <SheetTitle>Hồ sơ thực thi</SheetTitle>
                 <SheetDescription>
-                  DAG, model call, provenance và định danh trace đã được làm sạch.
+                  DAG, model call, provenance và định danh trace đã được làm
+                  sạch.
                 </SheetDescription>
               </SheetHeader>
-              <EvidenceDossier state={state} compact />
+              <EvidenceDossier
+                state={state}
+                compact
+                anchorScope="mobile"
+                selectedSourceId={selectedSourceId}
+              />
             </SheetContent>
           </Sheet>
 
@@ -219,14 +305,17 @@ function TopBar({
                 variant={state.credentialConfigured ? "outline" : "secondary"}
                 size="sm"
                 className={cn(
-                  "h-9 gap-2",
-                  state.credentialConfigured && "border-success/40 text-success",
+                  "h-10 min-w-10 gap-2",
+                  state.credentialConfigured &&
+                    "border-success/40 text-success",
                 )}
                 onClick={onCredentialRequest}
               >
                 <KeyRound data-icon="inline-start" />
                 <span className="hidden sm:inline">
-                  {state.credentialConfigured ? "Key trong bộ nhớ" : "Kết nối key"}
+                  {state.credentialConfigured
+                    ? "Key trong bộ nhớ"
+                    : "Kết nối key"}
                 </span>
               </Button>
             </TooltipTrigger>
@@ -242,6 +331,7 @@ function TopBar({
               <Button
                 variant="ghost"
                 size="icon"
+                className="size-10"
                 onClick={controller.resetSession}
                 aria-label="Tạo phiên mới"
               >

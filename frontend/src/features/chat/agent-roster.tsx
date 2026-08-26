@@ -1,4 +1,6 @@
+import { useId } from "react"
 import {
+  Ban,
   ChartNoAxesCombined,
   CircleCheck,
   CircleDashed,
@@ -31,6 +33,14 @@ interface AgentDefinition {
   role: string
   index: string
   icon: LucideIcon
+}
+
+type RosterStatus = TaskStatus | "cancelled" | "not_run"
+
+const rosterStatusLabels: Record<RosterStatus, string> = {
+  ...statusLabels,
+  cancelled: "Đã dừng",
+  not_run: "Không chạy",
 }
 
 const agents: AgentDefinition[] = [
@@ -77,9 +87,10 @@ export function AgentRoster({
   requestPhase,
   compact = false,
 }: AgentRosterProps) {
+  const titleId = useId()
   return (
     <section
-      aria-labelledby="agent-roster-title"
+      aria-labelledby={titleId}
       className={cn(
         "atlas-panel overflow-hidden",
         compact ? "border-0" : "flex flex-col xl:h-[calc(100svh-5.5rem)]",
@@ -87,7 +98,7 @@ export function AgentRoster({
     >
       <header className="flex items-end justify-between border-b px-4 py-4">
         <div>
-          <h2 id="agent-roster-title" className="font-display text-xl font-semibold">
+          <h2 id={titleId} className="font-display text-xl font-semibold">
             Trạm chuyên gia
           </h2>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -128,13 +139,17 @@ export function AgentRoster({
                     status === "partial_success" && "border-accent text-accent",
                     status === "failed" &&
                       "border-destructive bg-destructive text-destructive-foreground",
+                    status === "cancelled" &&
+                      "border-destructive text-destructive",
                   )}
                 >
                   <Icon aria-hidden="true" className="size-4" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-semibold">{agent.name}</span>
+                    <span className="truncate text-sm font-semibold">
+                      {agent.name}
+                    </span>
                     <span className="atlas-data text-muted-foreground">
                       {agent.index}
                     </span>
@@ -146,15 +161,25 @@ export function AgentRoster({
               </div>
               <div className="absolute top-[3.35rem] left-[3.2rem] flex items-center gap-1.5">
                 {status === "success" ? (
-                  <CircleCheck aria-hidden="true" className="size-3 text-success" />
+                  <CircleCheck
+                    aria-hidden="true"
+                    className="size-3 text-success"
+                  />
+                ) : status === "cancelled" ? (
+                  <Ban aria-hidden="true" className="size-3 text-destructive" />
                 ) : (
                   <CircleDashed
                     aria-hidden="true"
-                    className={cn("size-3 text-muted-foreground", active && "animate-spin text-accent")}
+                    className={cn(
+                      "size-3 text-muted-foreground",
+                      active && "animate-spin text-accent",
+                    )}
                   />
                 )}
                 <span className="text-[0.64rem] font-medium text-muted-foreground">
-                  {status === "pending" ? "Sẵn tuyến" : statusLabels[status]}
+                  {status === "pending"
+                    ? "Sẵn tuyến"
+                    : rosterStatusLabels[status]}
                 </span>
               </div>
             </li>
@@ -168,7 +193,8 @@ export function AgentRoster({
           Action allowlist bật
         </Badge>
         <p className="mt-2 text-[0.7rem] leading-5 text-muted-foreground">
-          Model đề xuất; code kiểm tra DAG, action và nguồn dữ liệu trước khi chạy.
+          Model đề xuất; code kiểm tra DAG, action và nguồn dữ liệu trước khi
+          chạy.
         </p>
       </footer>
     </section>
@@ -180,16 +206,20 @@ function resolveAgentStatus(
   executions: AgentExecution[],
   statuses: GatewayStatusEvent[],
   requestPhase: AgentRosterProps["requestPhase"],
-): TaskStatus {
+): RosterStatus {
   if (agentId === "orchestrator") {
     if (requestPhase === "streaming") return "running"
     if (requestPhase === "completed") return "success"
     if (requestPhase === "failed") return "failed"
+    if (requestPhase === "cancelled") return "cancelled"
     return "pending"
   }
 
   const execution = executions.find((item) => item.agent_id === agentId)
   if (execution) return execution.status
+
+  if (requestPhase === "cancelled" || requestPhase === "failed")
+    return "not_run"
 
   const progress = statuses.findLast((item) => item.agent_id === agentId)
   return progress?.status ?? "pending"

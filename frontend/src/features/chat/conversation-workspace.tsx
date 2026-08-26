@@ -7,13 +7,14 @@ import {
 } from "react"
 import {
   AlertCircle,
+  ArrowDown,
   ArrowUp,
   Ban,
   BookOpenCheck,
   KeyRound,
   LoaderCircle,
+  MapPinned,
   RotateCcw,
-  Sparkles,
   WifiOff,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -25,6 +26,7 @@ import {
   AlertTitle,
 } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -33,14 +35,31 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
-import { Textarea } from "@/components/ui/textarea"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from "@/components/ui/input-group"
+import { Marker, MarkerContent, MarkerIcon } from "@/components/ui/marker"
+import { Message, MessageContent, MessageHeader } from "@/components/ui/message"
+import {
+  MessageScroller,
+  MessageScrollerButton,
+  MessageScrollerContent,
+  MessageScrollerItem,
+  MessageScrollerProvider,
+  MessageScrollerViewport,
+} from "@/components/ui/message-scroller"
 import type { ChatController } from "@/features/chat/use-chat-controller"
 import { friendlyAgent, friendlyPhase } from "@/features/chat/presentation"
 import { cn } from "@/lib/utils"
+import type { Provenance } from "@/lib/contracts"
 
 interface ConversationWorkspaceProps {
   controller: ChatController
   onCredentialRequest(): void
+  onProvenanceRequest(sourceId: string): void
 }
 
 const prompts = [
@@ -52,26 +71,31 @@ const prompts = [
 export function ConversationWorkspace({
   controller,
   onCredentialRequest,
+  onProvenanceRequest,
 }: ConversationWorkspaceProps) {
   const [draft, setDraft] = useState("")
   const [draftError, setDraftError] = useState("")
-  const transcriptRef = useRef<HTMLDivElement>(null)
+  const composerRef = useRef<HTMLTextAreaElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
   const { state, workspaceState } = controller
   const streaming = state.request.phase === "streaming"
+  const wasStreaming = useRef(streaming)
   const statuses =
     state.request.phase === "streaming" ? state.request.statuses : []
+  const result =
+    state.request.phase === "completed" ? state.request.result : undefined
 
   useEffect(() => {
-    const transcript = transcriptRef.current
-    if (!transcript) return
-    if (typeof transcript.scrollTo === "function") {
-      transcript.scrollTo({ top: transcript.scrollHeight, behavior: "smooth" })
-    } else {
-      transcript.scrollTop = transcript.scrollHeight
-    }
-  }, [state.messages, state.request.phase, statuses.length])
+    if (streaming && !wasStreaming.current) cancelRef.current?.focus()
+    if (!streaming && wasStreaming.current) composerRef.current?.focus()
+    wasStreaming.current = streaming
+  }, [streaming])
 
   const send = async (value: string) => {
+    if (!state.credentialConfigured) {
+      onCredentialRequest()
+      return
+    }
     const cleaned = value.trim()
     if (!cleaned) {
       setDraftError("Hãy nhập câu hỏi cần điều phối.")
@@ -79,10 +103,6 @@ export function ConversationWorkspace({
     }
     if (cleaned.length > 2_000) {
       setDraftError("Câu hỏi không được vượt quá 2.000 ký tự.")
-      return
-    }
-    if (!state.credentialConfigured) {
-      onCredentialRequest()
       return
     }
     if (!state.online) {
@@ -134,7 +154,8 @@ export function ConversationWorkspace({
   return (
     <section
       aria-labelledby="conversation-title"
-      className="atlas-panel atlas-elevated flex min-h-[42rem] flex-col overflow-hidden xl:h-[calc(100svh-5.5rem)]"
+      aria-busy={streaming}
+      className="atlas-panel atlas-elevated flex h-[calc(100svh-5.5rem)] min-h-[36rem] flex-col overflow-hidden"
     >
       <header className="flex flex-wrap items-center justify-between gap-3 border-b bg-card px-4 py-3 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
@@ -158,101 +179,146 @@ export function ConversationWorkspace({
         </Badge>
       </header>
 
-      <div
-        ref={transcriptRef}
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6"
-        aria-live="off"
+      <MessageScrollerProvider
+        autoScroll={state.messages.length > 0 || streaming}
       >
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
-          <Alert
-            role="note"
-            className="border-accent/25 bg-accent/5 text-foreground"
+        <MessageScroller className="min-h-0 flex-1">
+          <MessageScrollerViewport
+            className="px-4 py-5 sm:px-6"
+            aria-label="Hội thoại và trạng thái điều phối"
           >
-            <Sparkles aria-hidden="true" className="text-accent" />
-            <AlertTitle>Phạm vi bằng chứng</AlertTitle>
-            <AlertDescription>
-              Kho hiện tại phục vụ kiểm thử và trình diễn khóa luận; không đại
-              diện toàn bộ thị trường. Mỗi nguồn trong kết quả đều ghi rõ Mẫu
-              hoặc Thật.
-            </AlertDescription>
-          </Alert>
-
-          {state.messages.length === 0 ? (
-            <WelcomePanel onPrompt={(prompt) => setDraft(prompt)} />
-          ) : (
-            <MessageList messages={state.messages} />
-          )}
-
-          {streaming ? <StreamingMessage statuses={statuses} /> : null}
-
-          {state.request.phase === "failed" ? (
-            <Alert variant="destructive" className="py-3" aria-live="assertive">
-              <AlertCircle aria-hidden="true" />
-              <AlertTitle>Không thể hoàn tất tuyến này</AlertTitle>
-              <AlertDescription>
-                {state.request.failure.message}
-                {state.request.failure.traceId ? (
-                  <span className="mt-1 block font-mono text-[0.68rem]">
-                    trace · {state.request.failure.traceId}
-                  </span>
-                ) : null}
-              </AlertDescription>
-              <AlertAction>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={
-                    state.request.failure.code === "gateway.authentication_failed"
-                      ? onCredentialRequest
-                      : retryLastMessage
-                  }
+            <MessageScrollerContent className="mx-auto w-full max-w-3xl gap-5">
+              <MessageScrollerItem messageId="evidence-scope">
+                <Alert
+                  role="note"
+                  className="border-accent/25 bg-accent/5 text-foreground"
                 >
-                  {state.request.failure.code === "gateway.authentication_failed" ? (
-                    <KeyRound data-icon="inline-start" />
-                  ) : (
-                    <RotateCcw data-icon="inline-start" />
-                  )}
-                  {state.request.failure.code === "gateway.authentication_failed"
-                    ? "Thiết lập key"
-                    : "Thử lại"}
-                </Button>
-              </AlertAction>
-            </Alert>
-          ) : null}
+                  <MapPinned aria-hidden="true" className="text-accent" />
+                  <AlertTitle>Phạm vi bằng chứng</AlertTitle>
+                  <AlertDescription>
+                    Kho hiện tại phục vụ kiểm thử và trình diễn khóa luận; không
+                    đại diện toàn bộ thị trường. Mỗi nguồn trong kết quả đều ghi
+                    rõ Mẫu hoặc Thật.
+                  </AlertDescription>
+                </Alert>
+              </MessageScrollerItem>
 
-          {workspaceState === "cancelled" ? (
-            <Alert role="status">
-              <Ban aria-hidden="true" />
-              <AlertTitle>Đã dừng theo yêu cầu</AlertTitle>
-              <AlertDescription>
-                Kết quả đến muộn của tuyến cũ sẽ bị bỏ qua. Bạn có thể gửi một
-                câu hỏi mới ngay bây giờ.
-              </AlertDescription>
-            </Alert>
-          ) : null}
+              {state.messages.length === 0 ? (
+                <MessageScrollerItem messageId="welcome">
+                  <WelcomePanel onPrompt={(prompt) => setDraft(prompt)} />
+                </MessageScrollerItem>
+              ) : (
+                <MessageList
+                  messages={state.messages}
+                  provenance={result?.provenance ?? []}
+                  onProvenanceRequest={onProvenanceRequest}
+                />
+              )}
 
-          {!state.online ? (
-            <Alert variant="destructive" aria-live="assertive">
-              <WifiOff aria-hidden="true" />
-              <AlertTitle>Đang ngoại tuyến</AlertTitle>
-              <AlertDescription>
-                Nội dung trong phiên vẫn còn trên tab này; gửi yêu cầu sẽ được
-                mở lại khi mạng phục hồi.
-              </AlertDescription>
-            </Alert>
-          ) : null}
+              {streaming ? <StreamingMessage statuses={statuses} /> : null}
 
-          {!controller.storageAvailable ? (
-            <Alert role="status">
-              <AlertCircle aria-hidden="true" />
-              <AlertTitle>Session storage bị chặn</AlertTitle>
-              <AlertDescription>
-                Phiên và lịch sử chỉ tồn tại cho đến khi trang được đóng hoặc tải lại.
-              </AlertDescription>
-            </Alert>
-          ) : null}
-        </div>
-      </div>
+              {result ? (
+                <ResultNotice
+                  result={result}
+                  workspaceState={workspaceState}
+                  onRetry={retryLastMessage}
+                />
+              ) : null}
+
+              {state.request.phase === "failed" ? (
+                <MessageScrollerItem messageId="request-failed">
+                  <Alert
+                    variant="destructive"
+                    className="py-3"
+                    aria-live="assertive"
+                  >
+                    <AlertCircle aria-hidden="true" />
+                    <AlertTitle>Không thể hoàn tất tuyến này</AlertTitle>
+                    <AlertDescription>
+                      {state.request.failure.message}
+                      {state.request.failure.traceId ? (
+                        <span className="mt-1 block font-mono text-[0.68rem]">
+                          trace · {state.request.failure.traceId}
+                        </span>
+                      ) : null}
+                    </AlertDescription>
+                    <AlertAction>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={
+                          state.request.failure.code ===
+                          "gateway.authentication_failed"
+                            ? onCredentialRequest
+                            : retryLastMessage
+                        }
+                      >
+                        {state.request.failure.code ===
+                        "gateway.authentication_failed" ? (
+                          <KeyRound data-icon="inline-start" />
+                        ) : (
+                          <RotateCcw data-icon="inline-start" />
+                        )}
+                        {state.request.failure.code ===
+                        "gateway.authentication_failed"
+                          ? "Thiết lập key"
+                          : "Thử lại"}
+                      </Button>
+                    </AlertAction>
+                  </Alert>
+                </MessageScrollerItem>
+              ) : null}
+
+              {workspaceState === "cancelled" ? (
+                <MessageScrollerItem messageId="request-cancelled">
+                  <Alert role="status">
+                    <Ban aria-hidden="true" />
+                    <AlertTitle>Đã dừng theo yêu cầu</AlertTitle>
+                    <AlertDescription>
+                      Kết quả đến muộn của tuyến cũ sẽ bị bỏ qua. Bạn có thể gửi
+                      một câu hỏi mới ngay bây giờ.
+                    </AlertDescription>
+                  </Alert>
+                </MessageScrollerItem>
+              ) : null}
+
+              {!state.online ? (
+                <MessageScrollerItem messageId="request-offline">
+                  <Alert variant="destructive" aria-live="assertive">
+                    <WifiOff aria-hidden="true" />
+                    <AlertTitle>Đang ngoại tuyến</AlertTitle>
+                    <AlertDescription>
+                      Nội dung trong phiên vẫn còn trên tab này; gửi yêu cầu sẽ
+                      được mở lại khi mạng phục hồi.
+                    </AlertDescription>
+                  </Alert>
+                </MessageScrollerItem>
+              ) : null}
+
+              {!controller.storageAvailable ? (
+                <MessageScrollerItem messageId="storage-unavailable">
+                  <Alert role="status">
+                    <AlertCircle aria-hidden="true" />
+                    <AlertTitle>Session storage bị chặn</AlertTitle>
+                    <AlertDescription>
+                      Phiên và lịch sử chỉ tồn tại cho đến khi trang được đóng
+                      hoặc tải lại.
+                    </AlertDescription>
+                  </Alert>
+                </MessageScrollerItem>
+              ) : null}
+            </MessageScrollerContent>
+          </MessageScrollerViewport>
+          <MessageScrollerButton
+            size="icon"
+            className="size-10"
+            aria-label="Đi đến tin nhắn mới nhất"
+          >
+            <ArrowDown />
+            <span className="sr-only">Đi đến tin nhắn mới nhất</span>
+          </MessageScrollerButton>
+        </MessageScroller>
+      </MessageScrollerProvider>
 
       <form
         onSubmit={handleSubmit}
@@ -260,9 +326,14 @@ export function ConversationWorkspace({
       >
         <div className="mx-auto max-w-3xl">
           <FieldGroup>
-            <Field data-invalid={Boolean(draftError)}>
+            <Field
+              data-invalid={Boolean(draftError)}
+              data-disabled={streaming || undefined}
+            >
               <div className="mb-1 flex items-end justify-between gap-4">
-                <FieldLabel htmlFor="chat-query">Câu hỏi cần điều phối</FieldLabel>
+                <FieldLabel htmlFor="chat-query">
+                  Câu hỏi cần điều phối
+                </FieldLabel>
                 <span
                   className={cn(
                     "atlas-data text-muted-foreground",
@@ -272,8 +343,9 @@ export function ConversationWorkspace({
                   {draft.length.toLocaleString("vi-VN")} / 2.000
                 </span>
               </div>
-              <div className="relative rounded-xl border bg-background p-1.5 shadow-sm transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/20">
-                <Textarea
+              <InputGroup className="h-auto rounded-xl bg-background shadow-sm">
+                <InputGroupTextarea
+                  ref={composerRef}
                   id="chat-query"
                   value={draft}
                   onChange={(event) => {
@@ -287,35 +359,39 @@ export function ConversationWorkspace({
                   aria-invalid={Boolean(draftError)}
                   aria-describedby="composer-help composer-error"
                   placeholder="Ví dụ: Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn…"
-                  className="max-h-40 min-h-16 resize-none border-0 bg-transparent pr-14 shadow-none focus-visible:ring-0"
+                  className="max-h-40 min-h-20 py-3"
                 />
-                {streaming ? (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="destructive"
-                    className="absolute right-2 bottom-2 size-10"
-                    onClick={controller.cancelRequest}
-                    aria-label="Dừng yêu cầu đang chạy"
-                  >
-                    <Ban />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    size="icon"
-                    className="absolute right-2 bottom-2 size-10 active:scale-[0.98]"
-                    disabled={!state.online || !draft.trim()}
-                    aria-label={
-                      state.credentialConfigured
-                        ? "Gửi câu hỏi"
-                        : "Kết nối Gateway key để gửi"
-                    }
-                  >
-                    {state.credentialConfigured ? <ArrowUp /> : <KeyRound />}
-                  </Button>
-                )}
-              </div>
+                <InputGroupAddon align="inline-end" className="self-end pb-2">
+                  {streaming ? (
+                    <InputGroupButton
+                      ref={cancelRef}
+                      type="button"
+                      size="icon-sm"
+                      variant="destructive"
+                      className="size-10"
+                      onClick={controller.cancelRequest}
+                      aria-label="Dừng yêu cầu đang chạy"
+                    >
+                      <Ban />
+                    </InputGroupButton>
+                  ) : (
+                    <InputGroupButton
+                      type="submit"
+                      size="icon-sm"
+                      variant="default"
+                      className="size-10 active:scale-[0.98]"
+                      disabled={!state.online}
+                      aria-label={
+                        state.credentialConfigured
+                          ? "Gửi câu hỏi"
+                          : "Kết nối Gateway key để gửi"
+                      }
+                    >
+                      {state.credentialConfigured ? <ArrowUp /> : <KeyRound />}
+                    </InputGroupButton>
+                  )}
+                </InputGroupAddon>
+              </InputGroup>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <FieldDescription id="composer-help">
                   Enter để gửi · Shift + Enter để xuống dòng
@@ -341,10 +417,9 @@ export function ConversationWorkspace({
 
 function WelcomePanel({ onPrompt }: { onPrompt(prompt: string): void }) {
   return (
-    <section className="py-6 sm:py-10">
+    <section className="py-3 sm:py-8">
       <div className="max-w-2xl">
-        <span className="atlas-data text-accent">ATLAS NOTE / 001</span>
-        <h2 className="mt-3 max-w-xl font-display text-4xl leading-[1.08] font-semibold tracking-[-0.025em] text-balance sm:text-5xl">
+        <h2 className="max-w-xl font-display text-4xl leading-[1.08] font-semibold tracking-[-0.025em] text-balance sm:text-5xl">
           Mỗi kết luận đều có một đường về nguồn.
         </h2>
         <p className="mt-4 max-w-xl text-[0.95rem] leading-7 text-muted-foreground">
@@ -352,18 +427,15 @@ function WelcomePanel({ onPrompt }: { onPrompt(prompt: string): void }) {
           Planner và các agent miền sẽ để lại tuyến thực thi có thể kiểm tra.
         </p>
       </div>
-      <div className="mt-7 grid gap-2 sm:grid-cols-3">
-        {prompts.map((prompt, index) => (
+      <div className="mt-6 grid gap-2 sm:grid-cols-3">
+        {prompts.map((prompt) => (
           <Button
             key={prompt}
             type="button"
             variant="outline"
-            className="h-auto min-h-20 items-start justify-start whitespace-normal px-3 py-3 text-left leading-5"
+            className="h-auto min-h-16 items-start justify-start whitespace-normal px-3 py-3 text-left leading-5"
             onClick={() => onPrompt(prompt)}
           >
-            <span className="mr-1 font-mono text-[0.65rem] text-accent">
-              0{index + 1}
-            </span>
             <span>{prompt}</span>
           </Button>
         ))}
@@ -374,39 +446,57 @@ function WelcomePanel({ onPrompt }: { onPrompt(prompt: string): void }) {
 
 function MessageList({
   messages,
+  provenance,
+  onProvenanceRequest,
 }: {
   messages: ChatController["state"]["messages"]
+  provenance: Provenance[]
+  onProvenanceRequest(sourceId: string): void
 }) {
   return (
-    <div className="flex flex-col gap-5">
+    <>
       {messages.map((message) => (
-        <article
+        <MessageScrollerItem
           key={message.id}
-          className={cn(
-            "max-w-[92%]",
-            message.role === "user" ? "ml-auto" : "mr-auto w-full",
-          )}
+          messageId={message.id}
+          scrollAnchor={message.role === "user"}
         >
-          <div className="mb-1.5 flex items-center gap-2 text-[0.68rem] font-bold text-muted-foreground">
-            <span>{message.role === "user" ? "Bạn" : "Orchestrator"}</span>
-            <span aria-hidden="true">·</span>
-            <span>{message.role === "user" ? "Yêu cầu" : "Kết luận có nguồn"}</span>
-          </div>
-          <div
-            className={cn(
-              "rounded-xl px-4 py-3 text-[0.94rem] leading-7",
-              message.role === "user"
-                ? "rounded-tr-sm bg-primary text-primary-foreground"
-                : "rounded-tl-sm border bg-card",
-            )}
+          <Message
+            align={message.role === "user" ? "end" : "start"}
+            role="article"
+            aria-label={
+              message.role === "user" ? "Yêu cầu của bạn" : "Kết luận có nguồn"
+            }
           >
-            {message.role === "assistant"
-              ? renderAnswer(message.text)
-              : message.text}
-          </div>
-        </article>
+            <MessageContent>
+              <MessageHeader>
+                {message.role === "user"
+                  ? "Bạn · Yêu cầu"
+                  : "Orchestrator · Kết luận có nguồn"}
+              </MessageHeader>
+              <Bubble
+                align={message.role === "user" ? "end" : "start"}
+                variant={message.role === "user" ? "default" : "outline"}
+                className={cn(
+                  "max-w-[92%]",
+                  message.role === "assistant" && "w-full max-w-full",
+                )}
+              >
+                <BubbleContent className="whitespace-pre-wrap [overflow-wrap:anywhere] text-[0.94rem] leading-7">
+                  {message.role === "assistant"
+                    ? renderAnswer(
+                        message.text,
+                        provenance,
+                        onProvenanceRequest,
+                      )
+                    : message.text}
+                </BubbleContent>
+              </Bubble>
+            </MessageContent>
+          </Message>
+        </MessageScrollerItem>
       ))}
-    </div>
+    </>
   )
 }
 
@@ -419,45 +509,159 @@ function StreamingMessage({
   >["statuses"]
 }) {
   const current = statuses.at(-1)
+  const liveUpdate = current
+    ? `${friendlyPhase(current.phase)}. ${
+        current.agent_id ? friendlyAgent(current.agent_id) : current.message
+      }`
+    : "Đang khởi tạo tuyến"
   return (
-    <article className="mr-auto w-full max-w-[92%]" aria-live="polite">
-      <div className="mb-1.5 text-[0.68rem] font-bold text-muted-foreground">
-        Orchestrator · Đang lập tuyến
-      </div>
-      <div className="rounded-xl rounded-tl-sm border bg-card px-4 py-3">
-        <div className="flex items-center gap-3">
-          <LoaderCircle aria-hidden="true" className="size-4 animate-spin text-accent" />
-          <div>
-            <p className="text-sm font-semibold">
-              {current ? friendlyPhase(current.phase) : "Đang khởi tạo tuyến"}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {current?.agent_id ? friendlyAgent(current.agent_id) : current?.message}
-            </p>
-          </div>
-        </div>
-        {statuses.length ? (
-          <ol className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
-            {statuses.map((status) => (
-              <li
-                key={`${status.sequence}-${status.phase}-${status.step_id ?? "system"}`}
-                className="shrink-0 rounded-md bg-muted px-2 py-1 font-mono text-[0.62rem] text-muted-foreground"
-                title={status.message}
-              >
-                {String(status.sequence).padStart(2, "0")} · {friendlyPhase(status.phase)}
-              </li>
-            ))}
-          </ol>
-        ) : null}
-      </div>
-    </article>
+    <MessageScrollerItem messageId="streaming-status">
+      <span
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {liveUpdate}
+      </span>
+      <Message role="article" aria-label="Tiến trình điều phối">
+        <MessageContent className="max-w-[92%]">
+          <Marker variant="border">
+            <MarkerIcon>
+              <LoaderCircle className="animate-spin text-accent" />
+            </MarkerIcon>
+            <MarkerContent>Orchestrator · Đang lập tuyến</MarkerContent>
+          </Marker>
+          <Bubble variant="outline" className="w-full max-w-full">
+            <BubbleContent className="w-full px-4 py-3">
+              <p className="text-sm font-semibold">
+                {current ? friendlyPhase(current.phase) : "Đang khởi tạo tuyến"}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {current?.agent_id
+                  ? friendlyAgent(current.agent_id)
+                  : current?.message}
+              </p>
+              {statuses.length ? (
+                <ol className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
+                  {statuses.map((status) => (
+                    <li
+                      key={`${status.sequence}-${status.phase}-${status.step_id ?? "system"}`}
+                      title={status.message}
+                    >
+                      <Badge
+                        variant="secondary"
+                        className="shrink-0 font-mono tabular-nums"
+                      >
+                        {String(status.sequence).padStart(2, "0")} ·{" "}
+                        {friendlyPhase(status.phase)}
+                      </Badge>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+            </BubbleContent>
+          </Bubble>
+        </MessageContent>
+      </Message>
+    </MessageScrollerItem>
   )
 }
 
-function renderAnswer(value: string) {
+function ResultNotice({
+  result,
+  workspaceState,
+  onRetry,
+}: {
+  result: Extract<
+    ChatController["state"]["request"],
+    { phase: "completed" }
+  >["result"]
+  workspaceState: ChatController["workspaceState"]
+  onRetry(): void
+}) {
+  if (workspaceState === "success" && result.warnings.length === 0) return null
+
+  const warnings = result.warnings.join(" · ")
+  const content =
+    workspaceState === "partial"
+      ? {
+          title: "Kết quả hoàn tất một phần",
+          detail:
+            warnings ||
+            "Một hoặc nhiều bước không hoàn tất; chỉ các kết luận có bằng chứng hợp lệ được hiển thị.",
+          destructive: false,
+        }
+      : workspaceState === "empty"
+        ? {
+            title: "Chưa có kết luận để hiển thị",
+            detail:
+              warnings ||
+              "Gateway đã hoàn tất nhưng không trả nội dung kết luận. Hãy thử diễn đạt câu hỏi cụ thể hơn.",
+            destructive: false,
+          }
+        : workspaceState === "error"
+          ? {
+              title: "Tuyến chưa đạt trạng thái hoàn tất",
+              detail:
+                warnings ||
+                `Gateway trả trạng thái ${result.status}; kết quả này chưa được xem là đã kiểm chứng.`,
+              destructive: true,
+            }
+          : {
+              title: "Lưu ý thực thi",
+              detail: warnings,
+              destructive: false,
+            }
+
+  return (
+    <MessageScrollerItem messageId={`result-${workspaceState}`}>
+      <Alert
+        variant={content.destructive ? "destructive" : "default"}
+        role="status"
+      >
+        <AlertCircle aria-hidden="true" />
+        <AlertTitle>{content.title}</AlertTitle>
+        <AlertDescription>{content.detail}</AlertDescription>
+        {workspaceState === "empty" || workspaceState === "error" ? (
+          <AlertAction>
+            <Button size="sm" variant="outline" onClick={onRetry}>
+              <RotateCcw data-icon="inline-start" />
+              Thử lại
+            </Button>
+          </AlertAction>
+        ) : null}
+      </Alert>
+    </MessageScrollerItem>
+  )
+}
+
+function renderAnswer(
+  value: string,
+  provenance: Provenance[],
+  onProvenanceRequest: (sourceId: string) => void,
+) {
+  const sourceIds = new Set(provenance.map((source) => source.source_id))
   const segments = value.split(/(\[[^\]\n]{1,120}\])/g)
-  return segments.map((segment, index) =>
-    /^\[[^\]\n]{1,120}\]$/.test(segment) ? (
+  return segments.map((segment, index) => {
+    const citation = /^\[([^\]\n]{1,120})\]$/.exec(segment)
+    if (citation && sourceIds.has(citation[1])) {
+      const sourceId = citation[1]
+      return (
+        <Button
+          key={`${segment}-${index}`}
+          type="button"
+          variant="link"
+          size="xs"
+          className="mx-0.5 h-auto min-h-6 px-1 py-0 align-baseline"
+          onClick={() => onProvenanceRequest(sourceId)}
+          aria-label={`Mở nguồn ${sourceId}`}
+        >
+          <code className="font-mono">{segment}</code>
+        </Button>
+      )
+    }
+    return citation ? (
       <code
         key={`${segment}-${index}`}
         className="mx-0.5 rounded bg-accent/10 px-1 py-0.5 font-mono text-[0.78em] text-accent"
@@ -466,6 +670,6 @@ function renderAnswer(value: string) {
       </code>
     ) : (
       segment
-    ),
-  )
+    )
+  })
 }

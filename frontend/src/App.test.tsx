@@ -1,12 +1,14 @@
 import axe from "axe-core"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { EvidenceAtlas } from "@/App"
 import {
   createInitialChatState,
+  selectWorkspaceState,
   type ChatState,
 } from "@/features/chat/chat-state"
+import { provenanceAnchorId } from "@/features/chat/presentation"
 import type { ChatController } from "@/features/chat/use-chat-controller"
 import { completedResponse, statusEvent } from "@/test/fixtures"
 
@@ -39,14 +41,10 @@ describe("EvidenceAtlas", () => {
       .mockReturnValueOnce(false)
       .mockReturnValueOnce(true)
     render(
-      <EvidenceAtlas
-        controller={createController({ configureCredential })}
-      />,
+      <EvidenceAtlas controller={createController({ configureCredential })} />,
     )
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Kết nối Gateway key" }),
-    )
+    fireEvent.click(screen.getByRole("button", { name: "Kết nối Gateway key" }))
     const dialog = screen.getByRole("dialog", {
       name: "Kết nối với Agent Gateway",
     })
@@ -109,9 +107,7 @@ describe("EvidenceAtlas", () => {
       },
     }
     render(
-      <EvidenceAtlas
-        controller={createController({ state, cancelRequest })}
-      />,
+      <EvidenceAtlas controller={createController({ state, cancelRequest })} />,
     )
 
     expect(screen.getByText("Đã tiếp nhận")).toBeInTheDocument()
@@ -119,6 +115,156 @@ describe("EvidenceAtlas", () => {
       screen.getByRole("button", { name: "Dừng yêu cầu đang chạy" }),
     )
     expect(cancelRequest).toHaveBeenCalledOnce()
+  })
+
+  it("keeps completed failure and fallback states truthful", () => {
+    const failedResponse = {
+      ...completedResponse,
+      status: "failed" as const,
+      warnings: ["Planner không hoàn tất trong giới hạn thời gian."],
+      model_calls: [
+        {
+          ...completedResponse.model_calls[0],
+          status: "failed",
+          fallback_used: true,
+          fallback_reason: "Structured output không hợp lệ.",
+          error_code: "model.invalid_output",
+        },
+      ],
+    }
+    const state: ChatState = {
+      ...createInitialChatState({ credentialConfigured: true }),
+      request: {
+        phase: "completed",
+        generation: 1,
+        result: failedResponse,
+      },
+      messages: [
+        { id: "user", role: "user", text: "Phân tích sản phẩm" },
+        { id: "assistant", role: "assistant", text: failedResponse.answer },
+      ],
+    }
+    render(<EvidenceAtlas controller={createController({ state })} />)
+
+    expect(
+      screen
+        .getByText("Tuyến chưa đạt trạng thái hoàn tất")
+        .closest('[role="status"]'),
+    ).toHaveTextContent("Planner không hoàn tất")
+    expect(screen.getByText("Thất bại")).toBeInTheDocument()
+    expect(screen.getByText("Fallback an toàn")).toBeInTheDocument()
+    expect(screen.queryByText("Đã kiểm chứng")).not.toBeInTheDocument()
+  })
+
+  it("opens and focuses a unique mobile provenance target from a claim citation", async () => {
+    const state: ChatState = {
+      ...createInitialChatState({ credentialConfigured: true }),
+      sessionId: completedResponse.session_id,
+      messages: [
+        { id: "user", role: "user", text: "Tìm tai nghe" },
+        { id: "assistant", role: "assistant", text: completedResponse.answer },
+      ],
+      request: {
+        phase: "completed",
+        generation: 1,
+        result: completedResponse,
+      },
+    }
+    render(<EvidenceAtlas controller={createController({ state })} />)
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Mở nguồn product:101" }),
+    )
+    expect(
+      await screen.findByRole("dialog", { name: "Hồ sơ thực thi" }),
+    ).toBeInTheDocument()
+
+    const target = document.getElementById(
+      provenanceAnchorId("mobile", "product:101"),
+    )
+    expect(target).not.toBeNull()
+    await waitFor(() => expect(target).toHaveFocus())
+
+    const ids = Array.from(document.querySelectorAll("[id]"), (node) => node.id)
+    expect(new Set(ids).size).toBe(ids.length)
+
+    const results = await axe.run(document.body, {
+      runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] },
+      rules: { "color-contrast": { enabled: false } },
+    })
+    expect(results.violations).toEqual([])
+  })
+
+  it("moves focus to cancel during streaming and restores the composer", async () => {
+    const idleState = createInitialChatState({ credentialConfigured: true })
+    const { rerender } = render(
+      <EvidenceAtlas controller={createController({ state: idleState })} />,
+    )
+    const composer = screen.getByLabelText("Câu hỏi cần điều phối")
+    composer.focus()
+
+    const streamingState: ChatState = {
+      ...idleState,
+      messages: [{ id: "user", role: "user", text: "Tìm laptop" }],
+      request: {
+        phase: "streaming",
+        generation: 1,
+        statuses: [statusEvent],
+        lastSequence: 1,
+      },
+    }
+    rerender(
+      <EvidenceAtlas
+        controller={createController({ state: streamingState })}
+      />,
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Dừng yêu cầu đang chạy" }),
+      ).toHaveFocus(),
+    )
+
+    const completedState: ChatState = {
+      ...idleState,
+      messages: [
+        ...streamingState.messages,
+        { id: "assistant", role: "assistant", text: completedResponse.answer },
+      ],
+      request: {
+        phase: "completed",
+        generation: 1,
+        result: completedResponse,
+      },
+    }
+    rerender(
+      <EvidenceAtlas
+        controller={createController({ state: completedState })}
+      />,
+    )
+    await waitFor(() =>
+      expect(screen.getByLabelText("Câu hỏi cần điều phối")).toHaveFocus(),
+    )
+  })
+
+  it("preserves multiline answers and wraps unbroken identifiers", () => {
+    const state: ChatState = {
+      ...createInitialChatState({ credentialConfigured: true }),
+      messages: [
+        {
+          id: "assistant",
+          role: "assistant",
+          text: `Dòng thứ nhất\n${"identifier".repeat(80)}`,
+        },
+      ],
+      request: { phase: "idle", generation: 0 },
+    }
+    render(<EvidenceAtlas controller={createController({ state })} />)
+
+    const bubble = screen
+      .getByText(/Dòng thứ nhất/)
+      .closest('[data-slot="bubble-content"]')
+    expect(bubble).toHaveClass("whitespace-pre-wrap")
+    expect(bubble).toHaveClass("[overflow-wrap:anywhere]")
   })
 })
 
@@ -128,11 +274,7 @@ function createController(
   const state = overrides.state ?? createInitialChatState()
   return {
     state,
-    workspaceState: state.online
-      ? state.credentialConfigured
-        ? "initial"
-        : "disabled"
-      : "offline",
+    workspaceState: selectWorkspaceState(state),
     storageAvailable: true,
     configureCredential: vi.fn(() => true),
     clearCredential: vi.fn(),

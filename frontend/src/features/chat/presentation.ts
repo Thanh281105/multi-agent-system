@@ -47,3 +47,12 @@ export function shortenIdentifier(value: string, maxLength = 24): string {
   const visible = Math.max(6, Math.floor((maxLength - 1) / 2))
   return `${value.slice(0, visible)}…${value.slice(-visible)}`
 }
+
+export type ProvenanceAnchorScope = "desktop" | "mobile"
+
+export function provenanceAnchorId(
+  scope: ProvenanceAnchorScope,
+  sourceId: string,
+): string {
+  return `provenance-${scope}-${encodeURIComponent(sourceId)}`
+}
