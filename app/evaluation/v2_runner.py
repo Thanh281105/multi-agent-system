@@ -23,6 +23,7 @@ from app.evaluation.v2_models import (
     EvaluationPhase,
     EvaluationProtocolV2,
     EvaluationVariantV2,
+    ModelRuntimePolicyV2,
 )
 from app.shared import ModelRuntime, OpenAIModelRuntime
 
@@ -67,7 +68,13 @@ def _run_command(arguments: argparse.Namespace) -> int:
             raise RuntimeError(
                 "hybrid evaluation requires explicit --allow-network consent"
             )
-        runtime_factory = _openai_runtime_factory(Settings())
+        policy = protocol.model_runtime_policy
+        if policy is None:
+            raise RuntimeError("hybrid evaluation protocol omits runtime policy")
+        runtime_factory = _openai_runtime_factory(
+            Settings().openai_api_key_value,
+            policy,
+        )
     run_id = arguments.run_id or _new_run_id()
     output = arguments.output or (
         arguments.project_root / "output" / "evaluation-v2" / run_id
@@ -145,21 +152,21 @@ def _compare_command(arguments: argparse.Namespace) -> int:
 
 
 def _openai_runtime_factory(
-    settings: Settings,
+    api_key: str,
+    policy: ModelRuntimePolicyV2,
 ) -> Callable[[EvaluationVariantV2], ModelRuntime]:
-    api_key = settings.openai_api_key_value
     if not api_key:
         raise RuntimeError("hybrid evaluation requires OPENAI_API_KEY")
 
     def create(_: EvaluationVariantV2) -> ModelRuntime:
         return OpenAIModelRuntime(
             api_key,
-            timeout_seconds=settings.openai_request_timeout_seconds,
-            max_retries=settings.openai_max_retries,
-            max_output_tokens=settings.openai_max_output_tokens,
-            max_concurrency=settings.openai_max_concurrency,
-            circuit_failure_threshold=settings.openai_circuit_failure_threshold,
-            circuit_recovery_seconds=settings.openai_circuit_recovery_seconds,
+            timeout_seconds=policy.request_timeout_seconds,
+            max_retries=policy.max_retries,
+            max_output_tokens=policy.max_output_tokens,
+            max_concurrency=policy.max_concurrency,
+            circuit_failure_threshold=policy.circuit_failure_threshold,
+            circuit_recovery_seconds=policy.circuit_recovery_seconds,
         )
 
     return create

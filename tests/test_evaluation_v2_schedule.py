@@ -59,14 +59,14 @@ def _protocol() -> EvaluationProtocolV2:
             description="Deterministic baseline.",
             runtime_mode=RuntimeMode.DETERMINISTIC,
             enabled_agents=("product_agent",),
-            embedding_backend="hashing",
+            embedding_backend="hashed_token_cosine_v1",
         ),
         EvaluationVariantV2(
             variant_id="candidate_v2",
             description="Second deterministic schedule peer.",
             runtime_mode=RuntimeMode.DETERMINISTIC,
             enabled_agents=("product_agent",),
-            embedding_backend="hashing",
+            embedding_backend="hashed_token_cosine_v1",
             parent_variant_id="baseline_v2",
         ),
     )

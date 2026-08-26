@@ -38,6 +38,8 @@ def test_protocol_builder_closes_variant_parents_and_binds_sources() -> None:
     assert protocol.experiment_sha256 == assets.experiment_sha256
     assert protocol.pricing_sha256 == assets.pricing_sha256
     assert protocol.network_allowed is True
+    assert protocol.model_runtime_policy == assets.config.model_runtime_policy
+    assert "api_key" not in protocol.model_dump_json()
     assert len(protocol.sample_seed_sha256) == 64
     assert len(protocol.evaluator_sha256) == 64
 
@@ -63,6 +65,7 @@ def test_protocol_builder_rejects_dirty_or_unknown_inputs() -> None:
     )
     assert allowed.git_dirty is True
     assert allowed.network_allowed is False
+    assert allowed.model_runtime_policy is None
     with pytest.raises(ValueError, match="unknown evaluation variants"):
         build_evaluation_protocol_v2(
             assets,

@@ -25,6 +25,7 @@ from app.evaluation.v2_models import (
     ModelBindingV2,
     ModelCallOutcome,
     ModelPriceV2,
+    ModelRuntimePolicyV2,
     ModelStage,
     PricingManifestV2,
     RuntimeMode,
@@ -246,7 +247,7 @@ def _protocol(pricing: PricingManifestV2) -> EvaluationProtocolV2:
         description="Deterministic mapping baseline.",
         runtime_mode=RuntimeMode.DETERMINISTIC,
         enabled_agents=("product_agent",),
-        embedding_backend="hashing",
+        embedding_backend="hashed_token_cosine_v1",
     )
     hybrid = EvaluationVariantV2(
         variant_id="hybrid_mapping_v2",
@@ -257,7 +258,7 @@ def _protocol(pricing: PricingManifestV2) -> EvaluationProtocolV2:
         model_specialists_enabled=True,
         model_synthesis_enabled=True,
         enabled_agents=("product_agent", "review_agent"),
-        embedding_backend="hashing",
+        embedding_backend="hashed_token_cosine_v1",
         model_bindings=tuple(
             ModelBindingV2(
                 stage=stage,
@@ -291,6 +292,14 @@ def _protocol(pricing: PricingManifestV2) -> EvaluationProtocolV2:
         correctness_repeats=1,
         case_order=("simple_01_nova_search",),
         variants=(deterministic, hybrid),
+        model_runtime_policy=ModelRuntimePolicyV2(
+            request_timeout_seconds=18,
+            max_retries=2,
+            max_output_tokens=1_200,
+            max_concurrency=8,
+            circuit_failure_threshold=4,
+            circuit_recovery_seconds=30,
+        ),
         pricing_sha256=canonical_sha256(pricing),
         git_revision="abcdef1",
         git_dirty=False,

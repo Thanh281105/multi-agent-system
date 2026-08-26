@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from app.contracts import ExecutionPlan, TaskStatus
+from app.evaluation.retrieval import search_evaluation_sample_knowledge_v2
 from app.evaluation.runner import isolated_sample_database, load_corpus
 from app.evaluation.v2_models import EvaluationVariantV2, RuntimeMode
 from app.evaluation.variant_runtime import (
@@ -64,6 +65,14 @@ def test_variant_runtime_rejects_missing_or_hidden_model_runtime() -> None:
         build_variant_orchestrator_v2(deterministic, model_runtime=object())  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="require a model runtime"):
         build_variant_orchestrator_v2(hybrid, model_runtime=None)
+
+
+def test_variant_runtime_uses_declared_hashing_retrieval() -> None:
+    result = search_evaluation_sample_knowledge_v2("tai nghe pin", limit=2)
+
+    assert result["method"] == "hashed_token_cosine_v1"
+    assert result["documents"]
+    assert all(item["sample_data"] is True for item in result["documents"])
 
 
 @pytest.mark.asyncio
@@ -144,5 +153,5 @@ def _deterministic_variant() -> EvaluationVariantV2:
             "trust_agent",
             "market_agent",
         ),
-        embedding_backend="hashing",
+        embedding_backend="hashed_token_cosine_v1",
     )

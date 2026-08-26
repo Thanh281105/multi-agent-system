@@ -82,6 +82,20 @@ class ModelBindingV2(BaseModel):
     reasoning_effort: ReasoningEffortV2 = ReasoningEffortV2.LOW
 
 
+class ModelRuntimePolicyV2(BaseModel):
+    """Non-secret provider controls frozen into an executable protocol."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    provider: Literal["openai"] = "openai"
+    request_timeout_seconds: float = Field(ge=1, le=120)
+    max_retries: int = Field(ge=0, le=5)
+    max_output_tokens: int = Field(ge=64, le=16_384)
+    max_concurrency: int = Field(ge=1, le=64)
+    circuit_failure_threshold: int = Field(ge=1, le=20)
+    circuit_recovery_seconds: float = Field(ge=1, le=600)
+
+
 class EvaluationVariantV2(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -93,7 +107,7 @@ class EvaluationVariantV2(BaseModel):
     model_specialists_enabled: bool = False
     model_synthesis_enabled: bool = False
     enabled_agents: tuple[str, ...] = Field(min_length=1)
-    embedding_backend: str = Field(min_length=1, max_length=128)
+    embedding_backend: Literal["hashed_token_cosine_v1"]
     model_bindings: tuple[ModelBindingV2, ...] = ()
     max_model_calls: int = Field(default=0, ge=0, le=100)
     fallback_policy: Literal["deterministic_fallback", "fail_closed"] = (
@@ -167,6 +181,7 @@ class EvaluationProtocolV2(BaseModel):
     latency_case_order: tuple[str, ...] = Field(default=(), max_length=5_000)
     warmup_case_id: str | None = Field(default=None, pattern=_IDENTIFIER)
     variants: tuple[EvaluationVariantV2, ...] = Field(min_length=1, max_length=50)
+    model_runtime_policy: ModelRuntimePolicyV2 | None = None
     pricing_sha256: str | None = Field(default=None, pattern=_SHA256)
     judge_prompt_sha256: str | None = Field(default=None, pattern=_SHA256)
     judge_schema_sha256: str | None = Field(default=None, pattern=_SHA256)
@@ -213,6 +228,21 @@ class EvaluationProtocolV2(BaseModel):
             raise ValueError(
                 "protocol network policy must exactly match executable variants"
             )
+        if requires_network != (self.model_runtime_policy is not None):
+            raise ValueError(
+                "hybrid protocols must declare exactly one model runtime policy"
+            )
+        if self.model_runtime_policy is not None:
+            for variant in self.variants:
+                if variant.runtime_mode != RuntimeMode.HYBRID:
+                    continue
+                if any(
+                    binding.provider != self.model_runtime_policy.provider
+                    for binding in variant.model_bindings
+                ):
+                    raise ValueError(
+                        "hybrid model binding provider must match runtime policy"
+                    )
         return self
 
     @property
@@ -234,6 +264,7 @@ class EvaluationExperimentConfigV2(BaseModel):
     warmup_case_id: str | None = Field(default=None, pattern=_IDENTIFIER)
     latency_case_ids: tuple[str, ...] = Field(default=(), max_length=5_000)
     variants: tuple[EvaluationVariantV2, ...] = Field(min_length=2, max_length=50)
+    model_runtime_policy: ModelRuntimePolicyV2 | None = None
 
     @model_validator(mode="after")
     def validate_experiment(self) -> EvaluationExperimentConfigV2:
@@ -259,6 +290,21 @@ class EvaluationExperimentConfigV2(BaseModel):
             raise ValueError(
                 "experiment warmup repeats and pinned case must be declared together"
             )
+        hybrid_variants = tuple(
+            variant
+            for variant in self.variants
+            if variant.runtime_mode == RuntimeMode.HYBRID
+        )
+        if bool(hybrid_variants) != (self.model_runtime_policy is not None):
+            raise ValueError(
+                "hybrid experiments must declare exactly one model runtime policy"
+            )
+        if self.model_runtime_policy is not None and any(
+            binding.provider != self.model_runtime_policy.provider
+            for variant in hybrid_variants
+            for binding in variant.model_bindings
+        ):
+            raise ValueError("hybrid model binding provider must match runtime policy")
         return self
 
 

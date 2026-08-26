@@ -17,6 +17,15 @@
     "ambiguous_01_product",
     "irrelevant_01_poem"
   ],
+  "model_runtime_policy": {
+    "provider": "openai",
+    "request_timeout_seconds": 18.0,
+    "max_retries": 2,
+    "max_output_tokens": 1200,
+    "max_concurrency": 8,
+    "circuit_failure_threshold": 4,
+    "circuit_recovery_seconds": 30.0
+  },
   "variants": [
     {
       "variant_id": "deterministic_v2",
@@ -28,7 +37,7 @@
         "trust_agent",
         "market_agent"
       ],
-      "embedding_backend": "hashing",
+      "embedding_backend": "hashed_token_cosine_v1",
       "max_model_calls": 0,
       "fallback_policy": "deterministic_fallback",
       "hypothesis": "A zero-LLM baseline establishes the quality, latency, token, and cost floor."
@@ -47,7 +56,7 @@
         "trust_agent",
         "market_agent"
       ],
-      "embedding_backend": "hashing",
+      "embedding_backend": "hashed_token_cosine_v1",
       "model_bindings": [
         {
           "stage": "routing",
@@ -92,7 +101,7 @@
         "trust_agent",
         "market_agent"
       ],
-      "embedding_backend": "hashing",
+      "embedding_backend": "hashed_token_cosine_v1",
       "model_bindings": [
         {
           "stage": "planning",
@@ -131,7 +140,7 @@
         "trust_agent",
         "market_agent"
       ],
-      "embedding_backend": "hashing",
+      "embedding_backend": "hashed_token_cosine_v1",
       "model_bindings": [
         {
           "stage": "routing",
@@ -170,7 +179,7 @@
         "trust_agent",
         "market_agent"
       ],
-      "embedding_backend": "hashing",
+      "embedding_backend": "hashed_token_cosine_v1",
       "model_bindings": [
         {
           "stage": "routing",
@@ -209,7 +218,7 @@
         "trust_agent",
         "market_agent"
       ],
-      "embedding_backend": "hashing",
+      "embedding_backend": "hashed_token_cosine_v1",
       "model_bindings": [
         {
           "stage": "routing",

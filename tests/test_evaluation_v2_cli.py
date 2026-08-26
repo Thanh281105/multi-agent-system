@@ -11,11 +11,43 @@ from app.evaluation.protocol import protocol_sha256
 from app.evaluation.v2_models import (
     EvaluationObservationV2,
     EvaluationProtocolV2,
+    EvaluationVariantV2,
+    ModelRuntimePolicyV2,
     PricingManifestV2,
+    RuntimeMode,
 )
-from app.evaluation.v2_runner import cli
+from app.evaluation.v2_runner import _openai_runtime_factory, cli
+from app.shared import OpenAIModelRuntime
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_runtime_factory_uses_only_protocol_bound_controls() -> None:
+    policy = ModelRuntimePolicyV2(
+        request_timeout_seconds=7,
+        max_retries=1,
+        max_output_tokens=777,
+        max_concurrency=3,
+        circuit_failure_threshold=2,
+        circuit_recovery_seconds=9,
+    )
+    variant = EvaluationVariantV2(
+        variant_id="deterministic_factory_v2",
+        description="Factory construction peer.",
+        runtime_mode=RuntimeMode.DETERMINISTIC,
+        enabled_agents=("product_agent",),
+        embedding_backend="hashed_token_cosine_v1",
+    )
+
+    runtime = _openai_runtime_factory("test-key", policy)(variant)
+
+    assert isinstance(runtime, OpenAIModelRuntime)
+    assert runtime._timeout_seconds == 7
+    assert runtime._max_retries == 1
+    assert runtime._max_output_tokens == 777
+    assert runtime._semaphore._value == 3
+    assert runtime._circuit_failure_threshold == 2
+    assert runtime._circuit_recovery_seconds == 9
 
 
 def test_cli_runs_deterministic_without_key_then_validates_bundle(

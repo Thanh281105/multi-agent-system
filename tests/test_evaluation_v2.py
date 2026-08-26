@@ -31,6 +31,7 @@ from app.evaluation.v2_models import (
     ModelCallOutcome,
     ModelCallV2,
     ModelPriceV2,
+    ModelRuntimePolicyV2,
     ModelStage,
     PricingManifestV2,
     RobustnessPolicy,
@@ -81,6 +82,7 @@ def test_experiment_config_rejects_ambiguous_warmups_and_parent_cycles() -> None
         warmup_repeats=1,
         warmup_case_id="case_a",
         variants=variants,
+        model_runtime_policy=_runtime_policy(),
     )
 
     assert config.baseline_variant_id == "deterministic_v1"
@@ -101,6 +103,71 @@ def test_experiment_config_rejects_ambiguous_warmups_and_parent_cycles() -> None
                 **config.model_dump(),
                 "variants": [item.model_dump() for item in cyclic],
             }
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    (
+        ("request_timeout_seconds", 19.0),
+        ("max_retries", 3),
+        ("max_output_tokens", 1_300),
+        ("max_concurrency", 9),
+        ("circuit_failure_threshold", 5),
+        ("circuit_recovery_seconds", 31.0),
+    ),
+)
+def test_runtime_policy_is_part_of_protocol_hash(
+    field: str,
+    replacement: int | float,
+) -> None:
+    protocol = _protocol()
+    policy = protocol.model_runtime_policy
+    assert policy is not None
+
+    changed = protocol.model_copy(
+        update={
+            "model_runtime_policy": policy.model_copy(
+                update={field: replacement},
+            )
+        }
+    )
+
+    assert protocol_sha256(changed) != protocol_sha256(protocol)
+    assert "api_key" not in protocol.model_dump_json()
+
+
+def test_runtime_policy_and_embedding_declarations_fail_closed() -> None:
+    protocol = _protocol()
+    with pytest.raises(ValidationError, match="runtime policy"):
+        EvaluationProtocolV2.model_validate(
+            {**protocol.model_dump(), "model_runtime_policy": None}
+        )
+    deterministic_only = {
+        **protocol.model_dump(),
+        "baseline_variant_id": "deterministic_v1",
+        "variants": [_deterministic_variant().model_dump()],
+        "network_allowed": False,
+    }
+    with pytest.raises(ValidationError, match="runtime policy"):
+        EvaluationProtocolV2.model_validate(deterministic_only)
+    with pytest.raises(ValidationError, match="hashed_token_cosine_v1"):
+        EvaluationVariantV2.model_validate(
+            {
+                **_deterministic_variant().model_dump(),
+                "embedding_backend": "hashing",
+            }
+        )
+
+
+def test_runtime_policy_rejects_provider_mismatch() -> None:
+    protocol = _protocol()
+    variants = [variant.model_dump() for variant in protocol.variants]
+    variants[1]["model_bindings"][0]["provider"] = "another_provider"
+
+    with pytest.raises(ValidationError, match="provider must match"):
+        EvaluationProtocolV2.model_validate(
+            {**protocol.model_dump(), "variants": variants}
         )
 
 
@@ -679,7 +746,7 @@ def _deterministic_variant() -> EvaluationVariantV2:
         description="Deterministic routing, planning, agents, and synthesis.",
         runtime_mode=RuntimeMode.DETERMINISTIC,
         enabled_agents=("product_agent", "review_agent", "trust_agent"),
-        embedding_backend="hashing",
+        embedding_backend="hashed_token_cosine_v1",
     )
 
 
@@ -693,7 +760,7 @@ def _hybrid_variant() -> EvaluationVariantV2:
         model_specialists_enabled=True,
         model_synthesis_enabled=True,
         enabled_agents=("product_agent", "review_agent", "trust_agent"),
-        embedding_backend="openai",
+        embedding_backend="hashed_token_cosine_v1",
         model_bindings=(
             ModelBindingV2(
                 stage=ModelStage.ROUTING,
@@ -738,9 +805,21 @@ def _protocol(*, case_order: tuple[str, ...] | None = None) -> EvaluationProtoco
         bootstrap_samples=1_000,
         case_order=case_order or ("case_a", "case_b", "case_c", "case_d"),
         variants=(_deterministic_variant(), _hybrid_variant()),
+        model_runtime_policy=_runtime_policy(),
         git_revision="abcdef1",
         git_dirty=False,
         network_allowed=True,
+    )
+
+
+def _runtime_policy() -> ModelRuntimePolicyV2:
+    return ModelRuntimePolicyV2(
+        request_timeout_seconds=18,
+        max_retries=2,
+        max_output_tokens=1_200,
+        max_concurrency=8,
+        circuit_failure_threshold=4,
+        circuit_recovery_seconds=30,
     )
 
 

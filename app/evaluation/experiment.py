@@ -79,7 +79,7 @@ def _validate_asset_compatibility(
                 f"variant {variant.variant_id!r} contains unsupported agents: "
                 f"{sorted(unknown_agents)}"
             )
-        if variant.embedding_backend != "hashing":
+        if variant.embedding_backend != "hashed_token_cosine_v1":
             raise ValueError(
                 f"variant {variant.variant_id!r} uses an unsupported embedding backend"
             )

@@ -100,6 +100,14 @@ def build_evaluation_protocol_v2(
         latency_case_order=latency_case_order,
         warmup_case_id=config.warmup_case_id,
         variants=selected_variants,
+        model_runtime_policy=(
+            config.model_runtime_policy
+            if any(
+                variant.runtime_mode == RuntimeMode.HYBRID
+                for variant in selected_variants
+            )
+            else None
+        ),
         pricing_sha256=assets.pricing_sha256,
         git_revision=state.revision,
         git_dirty=state.dirty,
