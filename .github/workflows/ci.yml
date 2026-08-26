@@ -89,6 +89,39 @@ jobs:
           print(f"WHEEL_FRONTEND_STATUS=PASS file={wheel.name}")
           PY
 
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.19.0
+
+      - name: Lint and render deployment profiles
+        run: |
+          helm lint deploy/helm/ecommerce-multi-agent \
+            --set existingSecret=ci-runtime \
+            --set config.qdrantUrl=https://qdrant.example.test
+          helm template kind deploy/helm/ecommerce-multi-agent \
+            -f deploy/helm/ecommerce-multi-agent/values-kind.yaml \
+            > /tmp/ecommerce-kind.yaml
+          helm template production deploy/helm/ecommerce-multi-agent \
+            --set existingSecret=ci-runtime \
+            --set config.qdrantUrl=https://qdrant.example.test \
+            --set monitoring.serviceMonitor.enabled=true \
+            --set monitoring.prometheusRule.enabled=true \
+            --set monitoring.grafanaDashboard.enabled=true \
+            > /tmp/ecommerce-production.yaml
+
+      - name: Validate rendered Kubernetes resources
+        run: |
+          docker run --rm \
+            -v /tmp:/manifests:ro \
+            ghcr.io/yannh/kubeconform@sha256:85dbef6b4b312b99133decc9c6fc9495e9fc5f92293d4ff3b7e1b30f5611823c \
+            -strict -summary /manifests/ecommerce-kind.yaml
+          docker run --rm \
+            -v /tmp:/manifests:ro \
+            ghcr.io/yannh/kubeconform@sha256:85dbef6b4b312b99133decc9c6fc9495e9fc5f92293d4ff3b7e1b30f5611823c \
+            -strict -summary -ignore-missing-schemas \
+            /manifests/ecommerce-production.yaml
+
       - name: Validate Compose model
         env:
           POSTGRES_PASSWORD: ci-postgres-password
