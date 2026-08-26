@@ -57,6 +57,12 @@ async def ready(request: Request) -> JSONResponse:
         except Exception:
             checks["qdrant"] = "failed"
 
+    for dependency, outcome in checks.items():
+        runtime.telemetry.metrics.increment(
+            "dependency_readiness_checks_total",
+            labels={"dependency": dependency, "outcome": outcome},
+        )
+
     if "failed" in checks.values():
         return JSONResponse(
             status_code=503,
@@ -150,6 +156,10 @@ def _authorize_operations(request: Request) -> None:
     if not expected and runtime.config.app_env != "production":
         return
     provided = request.headers.get("X-Operations-Key", "")
+    authorization = request.headers.get("Authorization", "")
+    scheme, _, bearer_token = authorization.partition(" ")
+    if not provided and scheme.casefold() == "bearer":
+        provided = bearer_token.strip()
     if not provided or not hmac.compare_digest(provided, expected):
         raise GatewayAPIError(
             status_code=401,

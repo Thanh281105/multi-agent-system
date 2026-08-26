@@ -258,8 +258,8 @@ def _record_http_metric(
     }
     runtime.telemetry.metrics.increment("http_requests_total", labels=labels)
     runtime.telemetry.metrics.observe_duration(
-        "http_request_duration_ms",
-        duration_ms,
+        "http_request_duration_seconds",
+        duration_ms / 1_000,
         labels={"method": request.method, "path": path},
     )
 

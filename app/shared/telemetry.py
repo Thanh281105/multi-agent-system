@@ -7,6 +7,7 @@ from collections import Counter, deque
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
+from math import isfinite
 from threading import RLock
 from time import perf_counter
 
@@ -16,6 +17,21 @@ from app.contracts.a2a import utc_now
 from app.shared.context import ExecutionContext
 
 _METRIC_NAME = re.compile(r"^[a-zA-Z_:][a-zA-Z0-9_:]*$")
+_DURATION_BUCKETS_SECONDS = (
+    0.005,
+    0.01,
+    0.025,
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    1.0,
+    2.5,
+    5.0,
+    10.0,
+    30.0,
+    60.0,
+)
 
 
 class TraceEvent(BaseModel):
@@ -37,12 +53,13 @@ class TraceEvent(BaseModel):
 
 
 class MetricRegistry:
-    """Thread-safe counters and aggregate durations with Prometheus export."""
+    """Thread-safe counters and bounded Prometheus duration histograms."""
 
     def __init__(self) -> None:
         self._counters: Counter[tuple[str, tuple[tuple[str, str], ...]]] = Counter()
-        self._durations: dict[
-            tuple[str, tuple[tuple[str, str], ...]], tuple[int, float]
+        self._duration_histograms: dict[
+            tuple[str, tuple[tuple[str, str], ...]],
+            tuple[int, float, tuple[int, ...]],
         ] = {}
         self._lock = RLock()
 
@@ -63,24 +80,64 @@ class MetricRegistry:
     def observe_duration(
         self,
         name: str,
-        duration_ms: float,
+        duration_seconds: float,
         *,
         labels: Mapping[str, str] | None = None,
     ) -> None:
         self._validate_name(name)
-        if duration_ms < 0:
-            raise ValueError("duration must be non-negative")
+        if not isfinite(duration_seconds) or duration_seconds < 0:
+            raise ValueError("duration must be finite and non-negative")
         key = (name, self._labels(labels))
         with self._lock:
-            count, total = self._durations.get(key, (0, 0.0))
-            self._durations[key] = (count + 1, total + duration_ms)
+            count, total, bucket_counts = self._duration_histograms.get(
+                key,
+                (0, 0.0, (0,) * len(_DURATION_BUCKETS_SECONDS)),
+            )
+            self._duration_histograms[key] = (
+                count + 1,
+                total + duration_seconds,
+                tuple(
+                    bucket_count + int(duration_seconds <= boundary)
+                    for bucket_count, boundary in zip(
+                        bucket_counts,
+                        _DURATION_BUCKETS_SECONDS,
+                        strict=True,
+                    )
+                ),
+            )
 
     def render_prometheus(self) -> str:
         lines: list[str] = []
         with self._lock:
+            previous_name: str | None = None
             for (name, labels), value in sorted(self._counters.items()):
+                if name != previous_name:
+                    lines.append(f"# TYPE {name} counter")
+                    previous_name = name
                 lines.append(f"{name}{self._format_labels(labels)} {value}")
-            for (name, labels), (count, total) in sorted(self._durations.items()):
+            previous_name = None
+            for (name, labels), (count, total, buckets) in sorted(
+                self._duration_histograms.items()
+            ):
+                if name != previous_name:
+                    lines.append(f"# TYPE {name} histogram")
+                    previous_name = name
+                for boundary, bucket_count in zip(
+                    _DURATION_BUCKETS_SECONDS,
+                    buckets,
+                    strict=True,
+                ):
+                    bucket_labels = self._labels(
+                        {**dict(labels), "le": f"{boundary:g}"}
+                    )
+                    lines.append(
+                        f"{name}_bucket{self._format_labels(bucket_labels)} "
+                        f"{bucket_count}"
+                    )
+                infinite_labels = self._labels({**dict(labels), "le": "+Inf"})
+                lines.append(
+                    f"{name}_bucket{self._format_labels(infinite_labels)} {count}"
+                )
                 lines.append(f"{name}_count{self._format_labels(labels)} {count}")
                 lines.append(f"{name}_sum{self._format_labels(labels)} {total:.6f}")
         return "\n".join(lines) + ("\n" if lines else "")
@@ -177,8 +234,8 @@ class Telemetry:
         labels = {"component": component, "operation": operation, "outcome": outcome}
         self.metrics.increment("agent_operations_total", labels=labels)
         self.metrics.observe_duration(
-            "agent_operation_duration_ms",
-            duration_ms,
+            "agent_operation_duration_seconds",
+            duration_ms / 1_000,
             labels={"component": component, "operation": operation},
         )
 

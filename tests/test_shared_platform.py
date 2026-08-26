@@ -119,5 +119,31 @@ def test_telemetry_propagates_ids_and_does_not_capture_unlisted_values() -> None
     assert event.attributes == {"result_count": 2}
     metrics = telemetry.metrics.render_prometheus()
     assert "agent_operations_total" in metrics
-    assert "agent_operation_duration_ms_count" in metrics
+    assert "# TYPE agent_operation_duration_seconds histogram" in metrics
+    assert (
+        'agent_operation_duration_seconds_bucket{component="product_agent",le="+Inf"'
+        in metrics
+    )
     assert "user-a" not in event.model_dump_json()
+
+
+def test_duration_histogram_exports_cumulative_finite_buckets() -> None:
+    telemetry = Telemetry()
+    telemetry.metrics.observe_duration("work_duration_seconds", 0.02)
+    telemetry.metrics.observe_duration("work_duration_seconds", 0.2)
+
+    metrics = telemetry.metrics.render_prometheus()
+
+    assert "# TYPE work_duration_seconds histogram" in metrics
+    assert 'work_duration_seconds_bucket{le="0.01"} 0' in metrics
+    assert 'work_duration_seconds_bucket{le="0.025"} 1' in metrics
+    assert 'work_duration_seconds_bucket{le="0.25"} 2' in metrics
+    assert 'work_duration_seconds_bucket{le="+Inf"} 2' in metrics
+    assert "work_duration_seconds_count 2" in metrics
+    assert "work_duration_seconds_sum 0.220000" in metrics
+
+
+@pytest.mark.parametrize("value", [-1.0, float("inf"), float("nan")])
+def test_duration_histogram_rejects_invalid_observations(value: float) -> None:
+    with pytest.raises(ValueError, match="finite and non-negative"):
+        Telemetry().metrics.observe_duration("work_duration_seconds", value)

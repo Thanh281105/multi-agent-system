@@ -31,6 +31,16 @@ def test_configured_operations_plane_rejects_missing_or_wrong_key() -> None:
         assert response.headers["cache-control"] == "no-store"
 
 
+def test_operations_plane_accepts_bearer_auth_for_prometheus_scraping() -> None:
+    response = operations_client().get(
+        "/metrics",
+        headers={"Authorization": "Bearer strong-operations-key"},
+    )
+
+    assert response.status_code == 200
+    assert "strong-operations-key" not in response.text
+
+
 def test_operations_plane_exposes_only_redacted_execution_metadata() -> None:
     client = operations_client()
     chat = client.post(
@@ -42,6 +52,7 @@ def test_operations_plane_exposes_only_redacted_execution_metadata() -> None:
     trace_id = chat.json()["trace_id"]
     operations_headers = {"X-Operations-Key": "strong-operations-key"}
 
+    ready = client.get("/readyz")
     metrics = client.get("/metrics", headers=operations_headers)
     trace = client.get(
         f"/api/v1/operations/traces/{trace_id}",
@@ -50,8 +61,11 @@ def test_operations_plane_exposes_only_redacted_execution_metadata() -> None:
     audit = client.get("/api/v1/operations/audit?limit=20", headers=operations_headers)
     agents = client.get("/api/v1/operations/agents", headers=operations_headers)
 
+    assert ready.status_code == 200
     assert metrics.status_code == 200
     assert "http_requests_total" in metrics.text
+    assert "# TYPE http_request_duration_seconds histogram" in metrics.text
+    assert "dependency_readiness_checks_total" in metrics.text
     assert metrics.headers["cache-control"] == "no-store"
     assert trace.status_code == 200
     assert trace.json()["trace_id"] == trace_id
