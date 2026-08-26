@@ -143,10 +143,10 @@ python -m app.evaluation.v2_runner run `
   --variant hybrid_full `
   --max-cases 1 `
   --allow-network `
-  --run-id run_live_pilot_grounded_20260826_v2
+  --run-id run_live_pilot_release_20260826_v2
 
 python -m app.evaluation.v2_runner validate `
-  --bundle output/evaluation-v2/run_live_pilot_grounded_20260826_v2
+  --bundle output/evaluation-v2/run_live_pilot_release_20260826_v2
 ```
 
 Kết quả đã validate:
@@ -155,19 +155,22 @@ Kết quả đã validate:
 | --- | ---: |
 | Observation / comparison / omission | 2 / 7 / 0 |
 | Completion status | `complete` |
-| Hybrid model stages thành công | 4/4 |
+| Hybrid model calls / outputs được chấp nhận | 4 / 3 |
+| Guarded fallback | Routing: `ungrounded_routing_entities` |
 | Model snapshots | `gpt-5.4-nano-2026-03-17`, `gpt-5.4-mini-2026-03-17` |
-| Total tokens | 2.525 |
-| Estimated cost | USD 0.00112025 |
-| Hybrid end-to-end latency | 11.507,9348 ms |
+| Total tokens | 2.572 |
+| Estimated cost | USD 0.00117795 |
+| Hybrid end-to-end latency | 9.138,9194 ms |
 | Task/routing/plan/assertion/retrieval | 1.0 ở cả hai variant |
-| Protocol SHA-256 | `45863629402d4661443697724b693bf0adacdabf1973046031a9f74d8fda9e39` |
+| Protocol SHA-256 | `b6be64a16fd8e86eac12c65d6d7decac615edbdd920e18a154cec922488f93cf` |
 
 Một case chỉ chứng minh wiring thật, structured stage execution, usage/cost
-capture và artifact integrity. Năm quality metrics hòa `1–1`; token/cost cao hơn
-deterministic là expected. Không suy diễn confidence interval một-case thành
-độ ổn định hoặc superiority. Full 1.002-observation live experiment chưa được
-chạy và không chạy trong CI vì tốn network, tiền và thời gian.
+capture, guarded fallback và artifact integrity. Model routing đã trả thêm entity
+không extractive; server từ chối output đó rồi định tuyến bằng đường deterministic
+đã kiểm chứng. Năm quality metrics hòa `1–1`; token/cost cao hơn deterministic là
+expected. Không suy diễn confidence interval một-case thành độ ổn định hoặc
+superiority. Full 1.002-observation live experiment chưa được chạy và không chạy
+trong CI vì tốn network, tiền và thời gian.
 
 ## 7. Chạy và kiểm tra v2
 

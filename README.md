@@ -287,10 +287,12 @@ python -m app.evaluation.v2_runner compare `
 ```
 
 Live pilot có giới hạn đã chạy trên đúng provider path với một clean case, hai
-variant và không có omission: hybrid thực hiện đủ 4 stage model, dùng
-`2.525` token, chi phí ước tính `$0.00112025`, end-to-end latency khoảng
-`11.508 ms`, không fallback; task/routing/plan/retrieval/assertion đều `1.0` ở
-cả baseline và candidate. Bundle được xác minh là `complete` theo ma trận mới.
+variant và không có omission: hybrid gọi đủ 4 stage model, dùng `2.572` token,
+chi phí ước tính `$0.00117795`, end-to-end latency khoảng `9.139 ms`.
+Planning, specialist và synthesis thành công; routing output chứa entity không
+extractive nên bị guard từ chối và chuyển sang deterministic fallback an toàn.
+Task/routing/plan/retrieval/assertion vẫn đều `1.0` ở cả baseline và candidate.
+Bundle được xác minh là `complete` theo ma trận mới.
 Đây là **integration smoke**, không phải bằng chứng
 superiority hay ước lượng latency đại diện. Bundle local bị ignore; protocol và
 lệnh tái tạo được freeze tại
