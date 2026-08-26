@@ -288,9 +288,10 @@ python -m app.evaluation.v2_runner compare `
 
 Live pilot có giới hạn đã chạy trên đúng provider path với một clean case, hai
 variant và không có omission: hybrid thực hiện đủ 4 stage model, dùng
-`2.645` token, chi phí ước tính `$0.00236865`, end-to-end latency khoảng
-`16.326 ms`, không fallback; task/routing/plan/retrieval/assertion đều `1.0` ở
-cả baseline và candidate. Đây là **integration smoke**, không phải bằng chứng
+`2.525` token, chi phí ước tính `$0.00112025`, end-to-end latency khoảng
+`11.508 ms`, không fallback; task/routing/plan/retrieval/assertion đều `1.0` ở
+cả baseline và candidate. Bundle được xác minh là `complete` theo ma trận mới.
+Đây là **integration smoke**, không phải bằng chứng
 superiority hay ước lượng latency đại diện. Bundle local bị ignore; protocol và
 lệnh tái tạo được freeze tại
 [`evaluation/experiment.live-pilot.v2.json`](evaluation/experiment.live-pilot.v2.json).

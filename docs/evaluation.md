@@ -143,10 +143,10 @@ python -m app.evaluation.v2_runner run `
   --variant hybrid_full `
   --max-cases 1 `
   --allow-network `
-  --run-id run_live_pilot_20260826_v2
+  --run-id run_live_pilot_grounded_20260826_v2
 
 python -m app.evaluation.v2_runner validate `
-  --bundle output/evaluation-v2/run_live_pilot_20260826_v2
+  --bundle output/evaluation-v2/run_live_pilot_grounded_20260826_v2
 ```
 
 Kết quả đã validate:
@@ -154,13 +154,14 @@ Kết quả đã validate:
 | Quan sát | Giá trị |
 | --- | ---: |
 | Observation / comparison / omission | 2 / 7 / 0 |
+| Completion status | `complete` |
 | Hybrid model stages thành công | 4/4 |
 | Model snapshots | `gpt-5.4-nano-2026-03-17`, `gpt-5.4-mini-2026-03-17` |
-| Total tokens | 2.645 |
-| Estimated cost | USD 0.00236865 |
-| Hybrid end-to-end latency | 16.326,4788 ms |
+| Total tokens | 2.525 |
+| Estimated cost | USD 0.00112025 |
+| Hybrid end-to-end latency | 11.507,9348 ms |
 | Task/routing/plan/assertion/retrieval | 1.0 ở cả hai variant |
-| Protocol SHA-256 | `01c6597ef20a94e24739803e06186e0bfb073da1157a520e6ba957c154cf9dbe` |
+| Protocol SHA-256 | `45863629402d4661443697724b693bf0adacdabf1973046031a9f74d8fda9e39` |
 
 Một case chỉ chứng minh wiring thật, structured stage execution, usage/cost
 capture và artifact integrity. Năm quality metrics hòa `1–1`; token/cost cao hơn
