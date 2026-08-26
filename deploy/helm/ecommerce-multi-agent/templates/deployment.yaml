@@ -1,0 +1,205 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ecommerce-multi-agent.fullname" . }}
+  labels:
+    {{- include "ecommerce-multi-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 3
+  progressDeadlineSeconds: 600
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "ecommerce-multi-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "ecommerce-multi-agent.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "ecommerce-multi-agent.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if eq .Values.profile "kind" }}
+      initContainers:
+        {{- if .Values.bootstrap.waitForDependencies.enabled }}
+        - name: wait-for-dependencies
+          image: {{ include "ecommerce-multi-agent.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-c"]
+          args:
+            - |
+              import os
+              import socket
+              import time
+              from urllib.parse import urlsplit
+
+              timeout = {{ .Values.bootstrap.waitForDependencies.timeoutSeconds }}
+              targets = (
+                  ("postgres", os.environ["DATABASE_URL"], 5432),
+                  ("redis", os.environ["REDIS_URL"], 6379),
+                  ("qdrant", os.environ["QDRANT_URL"], 6333),
+              )
+              deadline = time.monotonic() + timeout
+              for name, raw_url, default_port in targets:
+                  parsed = urlsplit(raw_url)
+                  while True:
+                      try:
+                          with socket.create_connection(
+                              (parsed.hostname or "", parsed.port or default_port),
+                              timeout=2,
+                          ):
+                              break
+                      except OSError as exc:
+                          if time.monotonic() >= deadline:
+                              raise RuntimeError(
+                                  f"dependency {name} was unavailable before timeout"
+                              ) from exc
+                          time.sleep(2)
+          envFrom:
+            - configMapRef:
+                name: {{ include "ecommerce-multi-agent.fullname" . }}
+          env:
+            {{- include "ecommerce-multi-agent.runtimeSecretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.bootstrap.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+        {{- end }}
+        {{- if .Values.bootstrap.migrate.enabled }}
+        - name: migrate
+          image: {{ include "ecommerce-multi-agent.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["ecommerce-migrate"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "ecommerce-multi-agent.fullname" . }}
+          env:
+            {{- include "ecommerce-multi-agent.runtimeSecretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.bootstrap.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+        {{- end }}
+        {{- if .Values.bootstrap.seedData.enabled }}
+        - name: seed-data
+          image: {{ include "ecommerce-multi-agent.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["ecommerce-seed"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "ecommerce-multi-agent.fullname" . }}
+          env:
+            {{- include "ecommerce-multi-agent.runtimeSecretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.bootstrap.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+        {{- end }}
+        {{- if .Values.bootstrap.seedKnowledge.enabled }}
+        - name: seed-knowledge
+          image: {{ include "ecommerce-multi-agent.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - ecommerce-seed-knowledge
+            - --wait-seconds
+            - {{ .Values.bootstrap.seedKnowledge.waitSeconds | quote }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "ecommerce-multi-agent.fullname" . }}
+          env:
+            {{- include "ecommerce-multi-agent.runtimeSecretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.bootstrap.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: gateway
+          image: {{ include "ecommerce-multi-agent.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "ecommerce-multi-agent.fullname" . }}
+          env:
+            {{- include "ecommerce-multi-agent.runtimeSecretEnv" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /livez
+              port: http
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

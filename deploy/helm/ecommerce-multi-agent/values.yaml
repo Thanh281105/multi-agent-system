@@ -1,0 +1,192 @@
+replicaCount: 1
+profile: production
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: ecommerce-multi-agent
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  privileged: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+
+existingSecret: ""
+secretKeys:
+  databaseUrl: DATABASE_URL
+  redisUrl: REDIS_URL
+  gatewayApiKeys: GATEWAY_API_KEYS
+  operationsApiKey: OPERATIONS_API_KEY
+  qdrantApiKey: QDRANT_API_KEY
+  openaiApiKey: OPENAI_API_KEY
+  postgresPassword: POSTGRES_PASSWORD
+  redisPassword: REDIS_PASSWORD
+
+config:
+  qdrantUrl: ""
+  qdrantCollection: sample_market_knowledge
+  modelRuntimeMode: hybrid
+  embeddingBackend: auto
+  redisKeyPrefix: ecommerce_agents
+  sessionTtlSeconds: 3600
+  gatewayRateLimitRequests: 60
+  gatewayRateLimitWindowSeconds: 60
+  gatewayAuthAttemptRequests: 120
+  redisSocketTimeoutSeconds: 2
+  qdrantTimeoutSeconds: 3
+  orchestrationTimeoutSeconds: 30
+  openaiRoutingModel: gpt-5.4-nano
+  openaiPlanningModel: gpt-5.4-mini
+  openaiSpecialistModel: gpt-5.4-nano
+  openaiSynthesisModel: gpt-5.4-mini
+  openaiReasoningEffort: low
+  openaiRequestTimeoutSeconds: 18
+  openaiMaxRetries: 2
+  openaiMaxOutputTokens: 1200
+  openaiMaxConcurrency: 8
+  openaiCircuitFailureThreshold: 4
+  openaiCircuitRecoverySeconds: 30
+  openaiEmbeddingModel: text-embedding-3-small
+  openaiEmbeddingDimensions: 1536
+  logLevel: INFO
+
+bootstrap:
+  waitForDependencies:
+    enabled: true
+    timeoutSeconds: 120
+  migrate:
+    enabled: true
+  seedData:
+    enabled: false
+  seedKnowledge:
+    enabled: false
+    waitSeconds: 90
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: ecommerce-multi-agent.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 384Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+probes:
+  startup:
+    failureThreshold: 30
+    periodSeconds: 5
+  liveness:
+    periodSeconds: 15
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readiness:
+    periodSeconds: 10
+    timeoutSeconds: 8
+    failureThreshold: 3
+
+terminationGracePeriodSeconds: 30
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+networkPolicy:
+  enabled: true
+  extraEgress: []
+
+monitoring:
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+    additionalLabels: {}
+  prometheusRule:
+    enabled: false
+    additionalLabels: {}
+  grafanaDashboard:
+    enabled: false
+    additionalLabels:
+      grafana_dashboard: "1"
+
+internalDependencies:
+  enabled: false
+  storageClassName: ""
+  postgres:
+    image: postgres:16.15-alpine3.24
+    storage: 4Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+  redis:
+    image: redis:8.10.0-alpine3.23
+    storage: 1Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  qdrant:
+    image: qdrant/qdrant:v1.18.2
+    storage: 4Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
