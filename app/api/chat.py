@@ -1,10 +1,9 @@
-"""FastAPI endpoints for health and agent chat."""
+"""Backward-compatible Phase 1 endpoint for baseline evaluation only."""
 
 from __future__ import annotations
 
 import logging
 from time import perf_counter
-from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
 
@@ -15,13 +14,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/health")
-async def health() -> dict[str, str]:
-    """Liveness endpoint that does not require an LLM or database call."""
-
-    return {"status": "ok"}
-
-
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     payload: ChatRequest,
@@ -30,15 +22,14 @@ async def chat(
 ) -> ChatResponse:
     """Run a Vietnamese user message through the single OpenAI agent."""
 
-    request_id = request.headers.get("X-Request-ID") or f"req_{uuid4().hex[:12]}"
-    session_id = payload.session_id or f"sess_{uuid4().hex}"
+    request_id = request.state.request_id
+    session_id = payload.session_id or f"sess_{request_id.removeprefix('req_')}"
     started_at = perf_counter()
     response.headers["X-Request-ID"] = request_id
     logger.info(
-        "REQUEST request_id=%s session_id=%s message=%r",
+        "LEGACY_REQUEST request_id=%s message_length=%d",
         request_id,
-        session_id,
-        payload.message,
+        len(payload.message),
     )
 
     try:
@@ -48,10 +39,9 @@ async def chat(
             request_id=request_id,
         )
     except AgentRunError:
-        logger.exception(
-            "CHAT ERROR request_id=%s session_id=%s latency_ms=%d",
+        logger.error(
+            "LEGACY_CHAT_ERROR request_id=%s latency_ms=%d",
             request_id,
-            session_id,
             int((perf_counter() - started_at) * 1000),
         )
         raise HTTPException(
@@ -59,10 +49,9 @@ async def chat(
             detail="Không thể xử lý yêu cầu lúc này.",
         ) from None
     except Exception:
-        logger.exception(
-            "CHAT UNEXPECTED ERROR request_id=%s session_id=%s latency_ms=%d",
+        logger.error(
+            "LEGACY_CHAT_UNEXPECTED request_id=%s latency_ms=%d",
             request_id,
-            session_id,
             int((perf_counter() - started_at) * 1000),
         )
         raise HTTPException(
@@ -71,9 +60,8 @@ async def chat(
         ) from None
 
     logger.info(
-        "CHAT COMPLETE request_id=%s session_id=%s latency_ms=%d",
+        "LEGACY_CHAT_COMPLETE request_id=%s latency_ms=%d",
         request_id,
-        session_id,
         int((perf_counter() - started_at) * 1000),
     )
     return ChatResponse(

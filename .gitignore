@@ -8,3 +8,14 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 *.egg-info/
+build/
+dist/
+data/raw/
+data/cache/
+*.db
+*.sqlite
+*.sqlite3
+.codegraph/
+.ai-router/
+output/playwright/
+output/evaluation-v2/

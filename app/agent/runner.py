@@ -18,8 +18,10 @@ from app.schemas.chat import ToolCallInfo
 logger = logging.getLogger(__name__)
 
 MAX_TOOL_ROUNDS = 8
+MAX_HISTORY_ITEMS = 40
+MAX_HISTORY_SESSIONS = 1_024
 openai_client: AsyncOpenAI | None = None
-session_response_ids: dict[str, str] = {}
+session_histories: dict[str, list[dict[str, Any]]] = {}
 runner_lock = asyncio.Lock()
 
 
@@ -47,20 +49,21 @@ async def run_agent(
     del user_id
     started_at = perf_counter()
     logger.info(
-        "AGENT START request_id=%s session_id=%s model=%s",
+        "AGENT_START request_id=%s model=%s",
         request_id,
-        session_id,
         settings.openai_model,
     )
 
     async with runner_lock:
         try:
             client = _get_client()
-            previous_response_id = session_response_ids.get(session_id)
+            turn_input = [
+                *session_histories.get(session_id, []),
+                _message_item(role="user", content=message),
+            ]
             response = await _create_response(
                 client=client,
-                input_items=message,
-                previous_response_id=previous_response_id,
+                input_items=turn_input,
             )
             tool_calls: list[dict[str, Any]] = []
 
@@ -70,8 +73,11 @@ async def run_agent(
                     answer = str(getattr(response, "output_text", "") or "").strip()
                     if not answer:
                         raise AgentRunError("OpenAI returned no final text response")
-                    response_id = _get_response_id(response)
-                    session_response_ids[session_id] = response_id
+                    _remember_turn(
+                        session_id=session_id,
+                        message=message,
+                        answer=answer,
+                    )
                     result = AgentRunResult(
                         answer=answer,
                         tool_calls=[
@@ -79,16 +85,15 @@ async def run_agent(
                         ],
                     )
                     logger.info(
-                        "AGENT COMPLETE request_id=%s session_id=%s "
-                        "tool_calls=%d latency_ms=%d",
+                        "AGENT_COMPLETE request_id=%s tool_calls=%d latency_ms=%d",
                         request_id,
-                        session_id,
                         len(result.tool_calls),
                         int((perf_counter() - started_at) * 1000),
                     )
                     return result
 
                 tool_outputs: list[dict[str, Any]] = []
+                function_call_items: list[dict[str, Any]] = []
                 for function_call in function_calls:
                     name = str(getattr(function_call, "name", "unknown_tool"))
                     call_info: dict[str, Any] = {
@@ -98,9 +103,8 @@ async def run_agent(
                     }
                     tool_calls.append(call_info)
                     logger.info(
-                        "OPENAI TOOL CALL request_id=%s session_id=%s tool=%s",
+                        "OPENAI_TOOL_CALL request_id=%s tool=%s",
                         request_id,
-                        session_id,
                         name,
                     )
 
@@ -116,11 +120,9 @@ async def run_agent(
                             session_id=session_id,
                         )
                     except (TypeError, ValueError, json.JSONDecodeError):
-                        logger.exception(
-                            "OPENAI TOOL ARGUMENT ERROR request_id=%s "
-                            "session_id=%s tool=%s",
+                        logger.error(
+                            "OPENAI_TOOL_ARGUMENT_ERROR request_id=%s tool=%s",
                             request_id,
-                            session_id,
                             name,
                         )
                         tool_result = {"error": "Tool arguments không hợp lệ."}
@@ -131,6 +133,9 @@ async def run_agent(
                         raise AgentRunError(
                             "OpenAI returned a tool call without call_id"
                         )
+                    function_call_items.append(
+                        _function_call_item(function_call, name=name, call_id=call_id)
+                    )
                     tool_outputs.append(
                         {
                             "type": "function_call_output",
@@ -143,26 +148,22 @@ async def run_agent(
                         }
                     )
 
-                response = await _create_response(
-                    client=client,
-                    input_items=tool_outputs,
-                    previous_response_id=_get_response_id(response),
-                )
+                turn_input.extend(function_call_items)
+                turn_input.extend(tool_outputs)
+                response = await _create_response(client=client, input_items=turn_input)
 
             raise AgentRunError("OpenAI exceeded the maximum tool-call rounds")
         except AgentRunError:
-            logger.exception(
-                "AGENT ERROR request_id=%s session_id=%s latency_ms=%d",
+            logger.error(
+                "AGENT_ERROR request_id=%s latency_ms=%d",
                 request_id,
-                session_id,
                 int((perf_counter() - started_at) * 1000),
             )
             raise
         except Exception as exc:
-            logger.exception(
-                "AGENT ERROR request_id=%s session_id=%s latency_ms=%d",
+            logger.error(
+                "AGENT_ERROR request_id=%s latency_ms=%d",
                 request_id,
-                session_id,
                 int((perf_counter() - started_at) * 1000),
             )
             raise AgentRunError("OpenAI runtime failed") from exc
@@ -171,14 +172,14 @@ async def run_agent(
 def _get_client() -> AsyncOpenAI:
     if openai_client is not None:
         return openai_client
-    if not settings.openai_api_key:
+    if not settings.openai_api_key_value:
         raise AgentRunError("OPENAI_API_KEY is not configured")
     return _create_client()
 
 
 def _create_client() -> AsyncOpenAI:
     global openai_client
-    openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
+    openai_client = AsyncOpenAI(api_key=settings.openai_api_key_value)
     return openai_client
 
 
@@ -186,17 +187,14 @@ async def _create_response(
     *,
     client: AsyncOpenAI,
     input_items: Any,
-    previous_response_id: str | None,
 ) -> Any:
     request: dict[str, Any] = {
         "model": settings.openai_model,
         "instructions": root_agent.instructions,
         "input": input_items,
         "tools": list(root_agent.tools),
-        "store": True,
+        "store": False,
     }
-    if previous_response_id:
-        request["previous_response_id"] = previous_response_id
     return await client.responses.create(**request)
 
 
@@ -208,11 +206,44 @@ def _get_function_calls(response: Any) -> list[Any]:
     ]
 
 
-def _get_response_id(response: Any) -> str:
-    response_id = getattr(response, "id", None)
-    if not response_id:
-        raise AgentRunError("OpenAI returned a response without an id")
-    return str(response_id)
+def _message_item(*, role: str, content: str) -> dict[str, str]:
+    return {"role": role, "content": content}
+
+
+def _function_call_item(
+    function_call: Any,
+    *,
+    name: str,
+    call_id: str,
+) -> dict[str, str]:
+    raw_arguments = getattr(function_call, "arguments", "{}")
+    if isinstance(raw_arguments, dict):
+        raw_arguments = json.dumps(raw_arguments, ensure_ascii=False)
+    if not isinstance(raw_arguments, str):
+        raw_arguments = "{}"
+    return {
+        "type": "function_call",
+        "call_id": call_id,
+        "name": name,
+        "arguments": raw_arguments,
+    }
+
+
+def _remember_turn(*, session_id: str, message: str, answer: str) -> None:
+    if (
+        session_id not in session_histories
+        and len(session_histories) >= MAX_HISTORY_SESSIONS
+    ):
+        oldest_session_id = next(iter(session_histories))
+        del session_histories[oldest_session_id]
+    history = session_histories.setdefault(session_id, [])
+    history.extend(
+        (
+            _message_item(role="user", content=message),
+            _message_item(role="assistant", content=answer),
+        )
+    )
+    del history[:-MAX_HISTORY_ITEMS]
 
 
 def _parse_arguments(raw_arguments: Any) -> dict[str, Any]:
@@ -241,18 +272,16 @@ async def _execute_tool(
         if not isinstance(result, dict):
             raise TypeError("tool result must be a dictionary")
         logger.info(
-            "TOOL RESULT request_id=%s session_id=%s tool=%s summary=%s",
+            "TOOL_RESULT request_id=%s tool=%s summary=%s",
             request_id,
-            session_id,
             name,
             _summarize_tool_result(result),
         )
         return result
     except Exception:
-        logger.exception(
-            "TOOL ERROR request_id=%s session_id=%s tool=%s",
+        logger.error(
+            "TOOL_ERROR request_id=%s tool=%s",
             request_id,
-            session_id,
             name,
         )
         return {"error": "Không thể truy xuất dữ liệu từ tool."}

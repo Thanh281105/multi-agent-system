@@ -1,34 +1,191 @@
+x-app-environment: &app-environment
+  APP_ENV: production
+  DATABASE_URL: postgresql+psycopg://ecommerce:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/ecommerce
+  GATEWAY_API_KEYS: ${GATEWAY_API_KEYS:?set GATEWAY_API_KEYS}
+  GATEWAY_PRINCIPAL_POLICIES: ${GATEWAY_PRINCIPAL_POLICIES:?set GATEWAY_PRINCIPAL_POLICIES}
+  OPERATIONS_API_KEY: ${OPERATIONS_API_KEY:?set OPERATIONS_API_KEY}
+  GATEWAY_RATE_LIMIT_REQUESTS: ${GATEWAY_RATE_LIMIT_REQUESTS:-60}
+  GATEWAY_RATE_LIMIT_WINDOW_SECONDS: ${GATEWAY_RATE_LIMIT_WINDOW_SECONDS:-60}
+  GATEWAY_AUTH_ATTEMPT_REQUESTS: ${GATEWAY_AUTH_ATTEMPT_REQUESTS:-120}
+  SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-3600}
+  SHARED_STATE_BACKEND: redis
+  REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0
+  REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-ecommerce_agents}
+  REDIS_SOCKET_TIMEOUT_SECONDS: ${REDIS_SOCKET_TIMEOUT_SECONDS:-2}
+  KNOWLEDGE_BACKEND: qdrant
+  QDRANT_URL: http://qdrant:6333
+  QDRANT_API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
+  QDRANT_COLLECTION: ${QDRANT_COLLECTION:-sample_market_knowledge}
+  QDRANT_TIMEOUT_SECONDS: ${QDRANT_TIMEOUT_SECONDS:-3}
+  ORCHESTRATION_TIMEOUT_SECONDS: ${ORCHESTRATION_TIMEOUT_SECONDS:-30}
+  LEGACY_CHAT_ENABLED: "false"
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
+  MODEL_RUNTIME_MODE: ${MODEL_RUNTIME_MODE:-hybrid}
+  EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-auto}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+x-app-common: &app-common
+  image: ecommerce-multi-agent:${APP_IMAGE_TAG:-1.0.0}
+  build:
+    context: .
+    dockerfile: Dockerfile
+  environment: *app-environment
+  networks:
+    - data
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  init: true
+  cpus: 2.0
+  mem_limit: 2g
+  pids_limit: 256
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.15-alpine3.24
     environment:
       POSTGRES_DB: ecommerce
       POSTGRES_USER: ecommerce
-      POSTGRES_PASSWORD: ecommerce
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ecommerce -d ecommerce"]
       interval: 5s
       timeout: 5s
       retries: 12
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 256
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
 
-  backend:
-    build: .
+  redis:
+    image: redis:8.10.0-alpine3.23
     environment:
-      DATABASE_URL: postgresql+psycopg://ecommerce:ecommerce@postgres:5432/ecommerce
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 512m
+    pids_limit: 128
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  qdrant:
+    image: qdrant/qdrant:v1.18.2
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - data
+    restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 256
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  migrate:
+    <<: *app-common
+    command: ["ecommerce-migrate"]
     depends_on:
       postgres:
         condition: service_healthy
+    restart: "no"
+
+  seed-data:
+    <<: *app-common
+    command: ["ecommerce-seed"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
+  seed-knowledge:
+    <<: *app-common
+    command: ["ecommerce-seed-knowledge", "--wait-seconds", "90"]
+    depends_on:
+      qdrant:
+        condition: service_started
+    restart: "no"
+
+  backend:
+    <<: *app-common
     command:
-      ["sh", "-c", "python -m app.db.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --workers
+      - "1"
     ports:
-      - "8000:8000"
+      - ${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8000}:8000
+    networks:
+      - edge
+      - data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seed-data:
+        condition: service_completed_successfully
+      seed-knowledge:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=3).read()
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 4
+    restart: unless-stopped
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  edge:
+  data:
+    internal: true
 
 volumes:
   postgres_data:
+  redis_data:
+  qdrant_data:

@@ -1,0 +1,463 @@
+{
+  "schema_version": "1.0",
+  "dataset_id": "sample_ecommerce_vi_28_v1",
+  "sample_data": true,
+  "curation_note": "28 case được gắn nhãn thủ công theo workflow.md và snapshot dữ liệu mẫu 5 shop, 30 sản phẩm, 150 review; gold labels không được tính lại từ hệ thống khi chạy benchmark.",
+  "cases": [
+    {
+      "case_id": "simple_01_nova_search",
+      "category": "simple",
+      "message": "Tìm Nova Air S2.",
+      "accepted_intents": ["product.search"],
+      "expected_actions": [{"action": "product.search", "count": 1}],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [1],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Tai nghe Bluetooth Nova Air S2"},
+        {"kind": "contains", "value": "799.000₫"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "simple_02_voltpro_search",
+      "category": "simple",
+      "message": "Tìm VoltPro 65W.",
+      "accepted_intents": ["product.search"],
+      "expected_actions": [{"action": "product.search", "count": 1}],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [26],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Sạc nhanh VoltPro 65W"},
+        {"kind": "contains", "value": "449.000₫"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "simple_03_sunglow_search",
+      "category": "simple",
+      "message": "Tìm SunGlow SPF50.",
+      "accepted_intents": ["product.search"],
+      "expected_actions": [{"action": "product.search", "count": 1}],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [16],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Kem chống nắng SunGlow SPF50"},
+        {"kind": "contains", "value": "189.000₫"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "simple_04_review_by_id",
+      "category": "simple",
+      "message": "Review product_id: 1",
+      "accepted_intents": ["review.summary"],
+      "expected_actions": [{"action": "review.summarize", "count": 1}],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [1],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Tai nghe Bluetooth Nova Air S2"},
+        {"kind": "contains", "value": "review được phân loại tích cực"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "complex_01_compare_headphones",
+      "category": "complex",
+      "message": "So sánh Nova Air S2 với Sonic G5. Nếu ưu tiên giá và rating thì nên chọn sản phẩm nào?",
+      "accepted_intents": ["product.compare"],
+      "expected_actions": [
+        {"action": "product.search", "count": 2},
+        {"action": "product.compare", "count": 1}
+      ],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [1, 2],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Tai nghe Bluetooth Nova Air S2"},
+        {"kind": "contains", "value": "Tai nghe Gaming Sonic G5"},
+        {"kind": "contains", "value": "699.000₫"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "complex_02_compare_laptops",
+      "category": "complex",
+      "message": "So sánh NovaBook Air 14 với LazBook Student 13.",
+      "accepted_intents": ["product.compare"],
+      "expected_actions": [
+        {"action": "product.search", "count": 2},
+        {"action": "product.compare", "count": 1}
+      ],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [11, 13],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Laptop NovaBook Air 14"},
+        {"kind": "contains", "value": "LazBook Student 13"},
+        {"kind": "contains", "value": "11.990.000₫"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "complex_03_rank_laptops",
+      "category": "complex",
+      "message": "Gợi ý laptop dưới 20 triệu, rating ít nhất 4.4.",
+      "accepted_intents": ["product.rank"],
+      "expected_actions": [{"action": "product.rank", "count": 1}],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [11, 13],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Laptop NovaBook Air 14"},
+        {"kind": "contains", "value": "LazBook Student 13"},
+        {"kind": "excludes", "value": "Laptop GreenOffice 14"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "complex_04_market_headphones",
+      "category": "complex",
+      "message": "Phân tích phân khúc tai nghe trên thị trường trong dữ liệu mẫu.",
+      "accepted_intents": ["market.analyze"],
+      "expected_actions": [{"action": "market.analyze", "count": 1}],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": null,
+      "answer_assertions": [
+        {"kind": "contains", "value": "5 sản phẩm"},
+        {"kind": "contains", "value": "837.200₫"},
+        {"kind": "contains", "value": "không phải thống kê đại diện thị trường thật"},
+        {"kind": "provenance_at_least", "value": 2}
+      ]
+    },
+    {
+      "case_id": "multi_domain_01_headphones",
+      "category": "multi_domain",
+      "message": "Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn.",
+      "accepted_intents": ["multi.recommendation"],
+      "expected_actions": [
+        {"action": "product.rank", "count": 1},
+        {"action": "review.compare", "count": 1},
+        {"action": "trust.compare", "count": 1}
+      ],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [1, 2, 4, 5],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Đã so sánh 4 ứng viên"},
+        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "điểm đa agent"},
+        {"kind": "selected_product_id", "value": 2},
+        {"kind": "provenance_at_least", "value": 2}
+      ]
+    },
+    {
+      "case_id": "multi_domain_02_phones",
+      "category": "multi_domain",
+      "message": "Gợi ý điện thoại dưới 7 triệu, rating từ 4.3 và ít bị khách phàn nàn.",
+      "accepted_intents": ["multi.recommendation"],
+      "expected_actions": [
+        {"action": "product.rank", "count": 1},
+        {"action": "review.compare", "count": 1},
+        {"action": "trust.compare", "count": 1}
+      ],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [6, 7],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Đã so sánh 2 ứng viên"},
+        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "điểm đa agent"},
+        {"kind": "selected_product_id", "value": 6},
+        {"kind": "provenance_at_least", "value": 2}
+      ]
+    },
+    {
+      "case_id": "multi_domain_03_laptops",
+      "category": "multi_domain",
+      "message": "Tìm laptop dưới 20 triệu, bán tốt nhưng khách chê ít.",
+      "accepted_intents": ["multi.recommendation"],
+      "expected_actions": [
+        {"action": "product.rank", "count": 1},
+        {"action": "review.compare", "count": 1},
+        {"action": "trust.compare", "count": 1}
+      ],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [11, 13, 15],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Đã so sánh 3 ứng viên"},
+        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "điểm đa agent"},
+        {"kind": "selected_product_id", "value": 13},
+        {"kind": "provenance_at_least", "value": 2}
+      ]
+    },
+    {
+      "case_id": "multi_domain_04_accessories",
+      "category": "multi_domain",
+      "message": "Nên mua phụ kiện dưới 700 nghìn nào bán tốt và ít complaint?",
+      "accepted_intents": ["multi.recommendation"],
+      "expected_actions": [
+        {"action": "product.rank", "count": 1},
+        {"action": "review.compare", "count": 1},
+        {"action": "trust.compare", "count": 1}
+      ],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [26, 28, 29, 30],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Đã so sánh 4 ứng viên"},
+        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "điểm đa agent"},
+        {"kind": "selected_product_id", "value": 26},
+        {"kind": "provenance_at_least", "value": 2}
+      ]
+    },
+    {
+      "case_id": "missing_data_01_review",
+      "category": "missing_data",
+      "message": "Khách hàng đánh giá thế nào về SuperDragon X999?",
+      "accepted_intents": ["review.summary"],
+      "expected_actions": [
+        {"action": "product.search", "count": 1},
+        {"action": "review.summarize", "count": 1}
+      ],
+      "accepted_statuses": ["partial_success"],
+      "relevant_product_ids": [],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Không tìm thấy sản phẩm"},
+        {"kind": "excludes", "value": "SuperDragon"},
+        {"kind": "error_code_present", "value": "orchestrator.missing_dependency_data"}
+      ]
+    },
+    {
+      "case_id": "missing_data_02_complaint",
+      "category": "missing_data",
+      "message": "Khách phàn nàn gì về PhantomPhone Z99?",
+      "accepted_intents": ["trust.complaints"],
+      "expected_actions": [
+        {"action": "product.search", "count": 1},
+        {"action": "trust.complaints", "count": 1}
+      ],
+      "accepted_statuses": ["partial_success"],
+      "relevant_product_ids": [],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Không tìm thấy sản phẩm"},
+        {"kind": "excludes", "value": "PhantomPhone"},
+        {"kind": "error_code_present", "value": "orchestrator.missing_dependency_data"}
+      ]
+    },
+    {
+      "case_id": "missing_data_03_compare",
+      "category": "missing_data",
+      "message": "So sánh Nova Air S2 với SuperDragon X999.",
+      "accepted_intents": ["product.compare"],
+      "expected_actions": [
+        {"action": "product.search", "count": 2},
+        {"action": "product.compare", "count": 1}
+      ],
+      "accepted_statuses": ["partial_success"],
+      "relevant_product_ids": [1],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Không tìm thấy sản phẩm phù hợp"},
+        {"kind": "contains", "value": "Một phần dữ liệu không truy xuất được"},
+        {"kind": "excludes", "value": "SuperDragon"},
+        {"kind": "error_code_present", "value": "orchestrator.missing_dependency_data"}
+      ]
+    },
+    {
+      "case_id": "missing_data_04_filter",
+      "category": "missing_data",
+      "message": "Tìm laptop dưới 1 triệu, rating ít nhất 5 sao.",
+      "accepted_intents": ["product.search"],
+      "expected_actions": [{"action": "product.search", "count": 1}],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Không tìm thấy sản phẩm phù hợp"},
+        {"kind": "excludes", "value": "Laptop NovaBook Air 14"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "tool_failure_01_trust",
+      "category": "tool_failure",
+      "message": "Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn.",
+      "accepted_intents": ["multi.recommendation"],
+      "expected_actions": [
+        {"action": "product.rank", "count": 1},
+        {"action": "review.compare", "count": 1},
+        {"action": "trust.compare", "count": 1}
+      ],
+      "accepted_statuses": ["partial_success"],
+      "relevant_product_ids": [1, 2, 4, 5],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "Một phần dữ liệu không truy xuất được"},
+        {"kind": "selected_product_id", "value": 2},
+        {"kind": "error_code_present", "value": "trust.eval_injected"}
+      ],
+      "failure_injection": {
+        "agent_id": "trust_agent",
+        "action": "trust.compare",
+        "error_code": "trust.eval_injected",
+        "recoverable": true
+      }
+    },
+    {
+      "case_id": "tool_failure_02_review",
+      "category": "tool_failure",
+      "message": "Gợi ý điện thoại dưới 7 triệu, rating từ 4.3 và ít bị khách phàn nàn.",
+      "accepted_intents": ["multi.recommendation"],
+      "expected_actions": [
+        {"action": "product.rank", "count": 1},
+        {"action": "review.compare", "count": 1},
+        {"action": "trust.compare", "count": 1}
+      ],
+      "accepted_statuses": ["partial_success"],
+      "relevant_product_ids": [6, 7],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "Một phần dữ liệu không truy xuất được"},
+        {"kind": "selected_product_id", "value": 6},
+        {"kind": "error_code_present", "value": "review.eval_injected"}
+      ],
+      "failure_injection": {
+        "agent_id": "review_agent",
+        "action": "review.compare",
+        "error_code": "review.eval_injected",
+        "recoverable": true
+      }
+    },
+    {
+      "case_id": "tool_failure_03_review_summary",
+      "category": "tool_failure",
+      "message": "Khách hàng đánh giá thế nào về Tai nghe Bluetooth Nova Air S2?",
+      "accepted_intents": ["review.summary"],
+      "expected_actions": [
+        {"action": "product.search", "count": 1},
+        {"action": "review.summarize", "count": 1}
+      ],
+      "accepted_statuses": ["partial_success"],
+      "relevant_product_ids": [1],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Một phần dữ liệu không truy xuất được"},
+        {"kind": "error_code_present", "value": "review.eval_injected"}
+      ],
+      "failure_injection": {
+        "agent_id": "review_agent",
+        "action": "review.summarize",
+        "error_code": "review.eval_injected",
+        "recoverable": false
+      }
+    },
+    {
+      "case_id": "tool_failure_04_product",
+      "category": "tool_failure",
+      "message": "Tìm VoltPro 65W.",
+      "accepted_intents": ["product.search"],
+      "expected_actions": [{"action": "product.search", "count": 1}],
+      "accepted_statuses": ["failed"],
+      "relevant_product_ids": [],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Không thể hoàn tất yêu cầu"},
+        {"kind": "excludes", "value": "Sạc nhanh VoltPro 65W"},
+        {"kind": "error_code_present", "value": "product.eval_injected"}
+      ],
+      "failure_injection": {
+        "agent_id": "product_agent",
+        "action": "product.search",
+        "error_code": "product.eval_injected",
+        "recoverable": false
+      }
+    },
+    {
+      "case_id": "ambiguous_01_product",
+      "category": "ambiguous",
+      "message": "Sản phẩm đó thì sao?",
+      "accepted_intents": ["product.search"],
+      "expected_actions": [{"action": "product.search", "count": 1}],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": null,
+      "answer_assertions": [
+        {"kind": "contains", "value": "dữ liệu mẫu"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "ambiguous_02_price",
+      "category": "ambiguous",
+      "message": "Giá thế nào?",
+      "accepted_intents": ["product.search"],
+      "expected_actions": [{"action": "product.search", "count": 1}],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": null,
+      "answer_assertions": [
+        {"kind": "contains", "value": "dữ liệu mẫu"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "ambiguous_03_best",
+      "category": "ambiguous",
+      "message": "Tốt nhất?",
+      "accepted_intents": ["product.rank"],
+      "expected_actions": [{"action": "product.rank", "count": 1}],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": null,
+      "answer_assertions": [
+        {"kind": "contains", "value": "dữ liệu mẫu"},
+        {"kind": "provenance_at_least", "value": 1}
+      ]
+    },
+    {
+      "case_id": "ambiguous_04_complaint",
+      "category": "ambiguous",
+      "message": "Khách chê gì?",
+      "accepted_intents": ["trust.complaints"],
+      "expected_actions": [
+        {"action": "product.search", "count": 1},
+        {"action": "trust.complaints", "count": 1}
+      ],
+      "accepted_statuses": ["partial_success"],
+      "relevant_product_ids": [],
+      "answer_assertions": [
+        {"kind": "contains", "value": "Không tìm thấy sản phẩm"},
+        {"kind": "error_code_present", "value": "orchestrator.missing_dependency_data"}
+      ]
+    },
+    {
+      "case_id": "irrelevant_01_poem",
+      "category": "irrelevant",
+      "message": "Hãy viết một bài thơ về mặt trăng.",
+      "accepted_intents": ["general.unsupported"],
+      "expected_actions": [],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [],
+      "answer_assertions": [{"kind": "contains", "value": "chưa gọi tool"}]
+    },
+    {
+      "case_id": "irrelevant_02_weather",
+      "category": "irrelevant",
+      "message": "Dự báo thời tiết Hà Nội ngày mai.",
+      "accepted_intents": ["general.unsupported"],
+      "expected_actions": [],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [],
+      "answer_assertions": [{"kind": "contains", "value": "chưa gọi tool"}]
+    },
+    {
+      "case_id": "irrelevant_03_algebra",
+      "category": "irrelevant",
+      "message": "Giải phương trình x bình phương trừ năm x cộng sáu.",
+      "accepted_intents": ["general.unsupported"],
+      "expected_actions": [],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [],
+      "answer_assertions": [{"kind": "contains", "value": "chưa gọi tool"}]
+    },
+    {
+      "case_id": "irrelevant_04_translation",
+      "category": "irrelevant",
+      "message": "Dịch câu Tôi yêu Việt Nam sang tiếng Anh.",
+      "accepted_intents": ["general.unsupported"],
+      "expected_actions": [],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [],
+      "answer_assertions": [{"kind": "contains", "value": "chưa gọi tool"}]
+    }
+  ]
+}

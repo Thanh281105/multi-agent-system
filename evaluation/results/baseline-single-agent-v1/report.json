@@ -1,0 +1,1620 @@
+{
+  "schema_version": "1.0",
+  "system_id": "single_agent_real_main",
+  "baseline_id": "phase1_single_agent_v1",
+  "captured_at": "2026-08-24T04:33:19.460204+00:00",
+  "git_revision": "c7b17cf",
+  "model": "gpt-5.4-mini",
+  "dataset_id": "sample_ecommerce_vi_28_v1",
+  "dataset_sha256": "a34473eff4a6f7e87034b46c239833c852b12542ea4c0faea4b651ddb801671d",
+  "sample_counts": {
+    "shops": 5,
+    "products": 30,
+    "reviews": 150
+  },
+  "artifact_sha256": "1861359c2a3694cccb1d183d756fdd76d24acc299879b3ccec995b362c3d97de",
+  "case_count": 28,
+  "metrics": {
+    "api_turn_success_rate": {
+      "numerator": 28,
+      "denominator": 28,
+      "value": 1.0
+    },
+    "task_success_rate_with_frozen_assertions": {
+      "numerator": 0,
+      "denominator": 28,
+      "value": 0.0
+    },
+    "task_success_rate_without_provenance_assertions": {
+      "numerator": 2,
+      "denominator": 28,
+      "value": 0.07142857142857142
+    },
+    "answer_assertion_accuracy": {
+      "numerator": 11,
+      "denominator": 86,
+      "value": 0.12790697674418605
+    },
+    "tool_selection_precision": {
+      "numerator": 20,
+      "denominator": 42,
+      "value": 0.47619047619047616
+    },
+    "tool_selection_recall": {
+      "numerator": 20,
+      "denominator": 46,
+      "value": 0.43478260869565216
+    },
+    "exact_plan_rate": {
+      "numerator": 14,
+      "denominator": 28,
+      "value": 0.5
+    },
+    "no_tool_correctness": {
+      "numerator": 4,
+      "denominator": 4,
+      "value": 1.0
+    },
+    "retrieval_precision": {
+      "numerator": 27,
+      "denominator": 34,
+      "value": 0.7941176470588235
+    },
+    "retrieval_recall": {
+      "numerator": 27,
+      "denominator": 31,
+      "value": 0.8709677419354839
+    },
+    "provenance_case_coverage": {
+      "numerator": 0,
+      "denominator": 24,
+      "value": 0.0
+    },
+    "latency_p50_ms": {
+      "value": 3405.061,
+      "sample_size": 28
+    },
+    "latency_p95_ms": {
+      "value": 8474.648,
+      "sample_size": 28
+    },
+    "token_usage": {
+      "value": 58878,
+      "sample_size": 28
+    },
+    "llm_cost_usd": {
+      "value": null,
+      "unavailable_reason": "Provider pricing was not captured; no cost estimate is claimed."
+    }
+  },
+  "case_scores": [
+    {
+      "case_id": "simple_01_nova_search",
+      "category": "simple",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 1,
+      "assertion_count": 3,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Tai nghe Bluetooth Nova Air S2",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "799.000₫",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        }
+      ],
+      "exact_plan": true,
+      "action_true_positives": 1,
+      "predicted_action_count": 1,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [
+        1
+      ],
+      "relevant_product_ids": [
+        1
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 1,
+      "latency_ms": 7128.828,
+      "total_tokens": 1438
+    },
+    {
+      "case_id": "simple_02_voltpro_search",
+      "category": "simple",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": true,
+      "assertions_passed": 2,
+      "assertion_count": 3,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Sạc nhanh VoltPro 65W",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "449.000₫",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        }
+      ],
+      "exact_plan": true,
+      "action_true_positives": 1,
+      "predicted_action_count": 1,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [
+        26
+      ],
+      "relevant_product_ids": [
+        26
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 1,
+      "latency_ms": 3895.642,
+      "total_tokens": 1471
+    },
+    {
+      "case_id": "simple_03_sunglow_search",
+      "category": "simple",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 1,
+      "assertion_count": 3,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Kem chống nắng SunGlow SPF50",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "189.000₫",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        }
+      ],
+      "exact_plan": true,
+      "action_true_positives": 1,
+      "predicted_action_count": 1,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [
+        16
+      ],
+      "relevant_product_ids": [
+        16
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 1,
+      "latency_ms": 2736.108,
+      "total_tokens": 1472
+    },
+    {
+      "case_id": "simple_04_review_by_id",
+      "category": "simple",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 1,
+      "assertion_count": 3,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Tai nghe Bluetooth Nova Air S2",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "review được phân loại tích cực",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "review.summarize"
+      ],
+      "expected_actions": [
+        {
+          "action": "review.summarize",
+          "count": 1
+        }
+      ],
+      "exact_plan": true,
+      "action_true_positives": 1,
+      "predicted_action_count": 1,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [
+        1
+      ],
+      "relevant_product_ids": [
+        1
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 1,
+      "latency_ms": 3405.061,
+      "total_tokens": 1688
+    },
+    {
+      "case_id": "complex_01_compare_headphones",
+      "category": "complex",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 4,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Tai nghe Bluetooth Nova Air S2",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "Tai nghe Gaming Sonic G5",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "699.000₫",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "product.search",
+        "product.compare"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 2
+        },
+        {
+          "action": "product.compare",
+          "count": 1
+        }
+      ],
+      "exact_plan": true,
+      "action_true_positives": 3,
+      "predicted_action_count": 3,
+      "expected_action_count": 3,
+      "retrieved_product_ids": [
+        1,
+        2
+      ],
+      "relevant_product_ids": [
+        1,
+        2
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 2,
+      "latency_ms": 4555.453,
+      "total_tokens": 2901
+    },
+    {
+      "case_id": "complex_02_compare_laptops",
+      "category": "complex",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 1,
+      "assertion_count": 4,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Laptop NovaBook Air 14",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "LazBook Student 13",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "11.990.000₫",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "product.search",
+        "product.compare"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 2
+        },
+        {
+          "action": "product.compare",
+          "count": 1
+        }
+      ],
+      "exact_plan": true,
+      "action_true_positives": 3,
+      "predicted_action_count": 3,
+      "expected_action_count": 3,
+      "retrieved_product_ids": [
+        11,
+        13
+      ],
+      "relevant_product_ids": [
+        11,
+        13
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 2,
+      "latency_ms": 6029.26,
+      "total_tokens": 3655
+    },
+    {
+      "case_id": "complex_03_rank_laptops",
+      "category": "complex",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": true,
+      "assertions_passed": 3,
+      "assertion_count": 4,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Laptop NovaBook Air 14",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "LazBook Student 13",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "excludes",
+          "value": "Laptop GreenOffice 14",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.rank",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 1,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [
+        11,
+        13
+      ],
+      "relevant_product_ids": [
+        11,
+        13
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 2,
+      "latency_ms": 3200.987,
+      "total_tokens": 1659
+    },
+    {
+      "case_id": "complex_04_market_headphones",
+      "category": "complex",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 1,
+      "assertion_count": 4,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "5 sản phẩm",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "837.200₫",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "không phải thống kê đại diện thị trường thật",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 2,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "market.analyze",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 1,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": false,
+      "retrieval_true_positives": 0,
+      "latency_ms": 6100.645,
+      "total_tokens": 2355
+    },
+    {
+      "case_id": "multi_domain_01_headphones",
+      "category": "multi_domain",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 5,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Đã so sánh 4 ứng viên",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "Đề xuất đứng đầu",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "điểm đa agent",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "selected_product_id",
+          "value": 2,
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 2,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "review.summarize",
+        "review.summarize",
+        "review.summarize"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.rank",
+          "count": 1
+        },
+        {
+          "action": "review.compare",
+          "count": 1
+        },
+        {
+          "action": "trust.compare",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 4,
+      "expected_action_count": 3,
+      "retrieved_product_ids": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "relevant_product_ids": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 4,
+      "latency_ms": 8203.606,
+      "total_tokens": 6536
+    },
+    {
+      "case_id": "multi_domain_02_phones",
+      "category": "multi_domain",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 5,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Đã so sánh 2 ứng viên",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "Đề xuất đứng đầu",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "điểm đa agent",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "selected_product_id",
+          "value": 6,
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 2,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.rank",
+          "count": 1
+        },
+        {
+          "action": "review.compare",
+          "count": 1
+        },
+        {
+          "action": "trust.compare",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 2,
+      "expected_action_count": 3,
+      "retrieved_product_ids": [
+        26
+      ],
+      "relevant_product_ids": [
+        6,
+        7
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 5386.716,
+      "total_tokens": 2417
+    },
+    {
+      "case_id": "multi_domain_03_laptops",
+      "category": "multi_domain",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 5,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Đã so sánh 3 ứng viên",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "Đề xuất đứng đầu",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "điểm đa agent",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "selected_product_id",
+          "value": 13,
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 2,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "review.summarize",
+        "review.summarize",
+        "review.summarize"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.rank",
+          "count": 1
+        },
+        {
+          "action": "review.compare",
+          "count": 1
+        },
+        {
+          "action": "trust.compare",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 4,
+      "expected_action_count": 3,
+      "retrieved_product_ids": [
+        11,
+        13,
+        15
+      ],
+      "relevant_product_ids": [
+        11,
+        13,
+        15
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 3,
+      "latency_ms": 5607.503,
+      "total_tokens": 3648
+    },
+    {
+      "case_id": "multi_domain_04_accessories",
+      "category": "multi_domain",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 5,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Đã so sánh 4 ứng viên",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "Đề xuất đứng đầu",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "điểm đa agent",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "selected_product_id",
+          "value": 26,
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 2,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.rank",
+          "count": 1
+        },
+        {
+          "action": "review.compare",
+          "count": 1
+        },
+        {
+          "action": "trust.compare",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 2,
+      "expected_action_count": 3,
+      "retrieved_product_ids": [
+        26,
+        28,
+        29,
+        30
+      ],
+      "relevant_product_ids": [
+        26,
+        28,
+        29,
+        30
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 4,
+      "latency_ms": 4700.102,
+      "total_tokens": 2461
+    },
+    {
+      "case_id": "missing_data_01_review",
+      "category": "missing_data",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 3,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Không tìm thấy sản phẩm",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "excludes",
+          "value": "SuperDragon",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "error_code_present",
+          "value": "orchestrator.missing_dependency_data",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        },
+        {
+          "action": "review.summarize",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 1,
+      "predicted_action_count": 1,
+      "expected_action_count": 2,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 8474.648,
+      "total_tokens": 1361
+    },
+    {
+      "case_id": "missing_data_02_complaint",
+      "category": "missing_data",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 3,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Không tìm thấy sản phẩm",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "excludes",
+          "value": "PhantomPhone",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "error_code_present",
+          "value": "orchestrator.missing_dependency_data",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        },
+        {
+          "action": "trust.complaints",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 1,
+      "predicted_action_count": 1,
+      "expected_action_count": 2,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 2445.61,
+      "total_tokens": 1364
+    },
+    {
+      "case_id": "missing_data_03_compare",
+      "category": "missing_data",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 4,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Không tìm thấy sản phẩm phù hợp",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "Một phần dữ liệu không truy xuất được",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "excludes",
+          "value": "SuperDragon",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "error_code_present",
+          "value": "orchestrator.missing_dependency_data",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "product.search",
+        "product.compare"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 2
+        },
+        {
+          "action": "product.compare",
+          "count": 1
+        }
+      ],
+      "exact_plan": true,
+      "action_true_positives": 3,
+      "predicted_action_count": 3,
+      "expected_action_count": 3,
+      "retrieved_product_ids": [
+        1
+      ],
+      "relevant_product_ids": [
+        1
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 1,
+      "latency_ms": 5334.065,
+      "total_tokens": 2651
+    },
+    {
+      "case_id": "missing_data_04_filter",
+      "category": "missing_data",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 1,
+      "assertion_count": 3,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Không tìm thấy sản phẩm phù hợp",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "excludes",
+          "value": "Laptop NovaBook Air 14",
+          "passed": true,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        }
+      ],
+      "exact_plan": true,
+      "action_true_positives": 1,
+      "predicted_action_count": 1,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 2808.913,
+      "total_tokens": 1393
+    },
+    {
+      "case_id": "tool_failure_01_trust",
+      "category": "tool_failure",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 4,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Đề xuất đứng đầu",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "Một phần dữ liệu không truy xuất được",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "selected_product_id",
+          "value": 2,
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "error_code_present",
+          "value": "trust.eval_injected",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "review.summarize",
+        "review.summarize",
+        "review.summarize"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.rank",
+          "count": 1
+        },
+        {
+          "action": "review.compare",
+          "count": 1
+        },
+        {
+          "action": "trust.compare",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 4,
+      "expected_action_count": 3,
+      "retrieved_product_ids": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "relevant_product_ids": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 4,
+      "latency_ms": 8725.951,
+      "total_tokens": 6464
+    },
+    {
+      "case_id": "tool_failure_02_review",
+      "category": "tool_failure",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 4,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Đề xuất đứng đầu",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "contains",
+          "value": "Một phần dữ liệu không truy xuất được",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "selected_product_id",
+          "value": 6,
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "error_code_present",
+          "value": "review.eval_injected",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "product.search",
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.rank",
+          "count": 1
+        },
+        {
+          "action": "review.compare",
+          "count": 1
+        },
+        {
+          "action": "trust.compare",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 3,
+      "expected_action_count": 3,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [
+        6,
+        7
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 5214.097,
+      "total_tokens": 3193
+    },
+    {
+      "case_id": "tool_failure_03_review_summary",
+      "category": "tool_failure",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 2,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Một phần dữ liệu không truy xuất được",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "error_code_present",
+          "value": "review.eval_injected",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "review.summarize"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        },
+        {
+          "action": "review.summarize",
+          "count": 1
+        }
+      ],
+      "exact_plan": true,
+      "action_true_positives": 2,
+      "predicted_action_count": 2,
+      "expected_action_count": 2,
+      "retrieved_product_ids": [
+        1
+      ],
+      "relevant_product_ids": [
+        1
+      ],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 1,
+      "latency_ms": 4656.509,
+      "total_tokens": 2608
+    },
+    {
+      "case_id": "tool_failure_04_product",
+      "category": "tool_failure",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 3,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Không thể hoàn tất yêu cầu",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "excludes",
+          "value": "Sạc nhanh VoltPro 65W",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "error_code_present",
+          "value": "product.eval_injected",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        }
+      ],
+      "exact_plan": true,
+      "action_true_positives": 1,
+      "predicted_action_count": 1,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [
+        26
+      ],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 2959.809,
+      "total_tokens": 1460
+    },
+    {
+      "case_id": "ambiguous_01_product",
+      "category": "ambiguous",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 2,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "dữ liệu mẫu",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 0,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": false,
+      "retrieval_true_positives": 0,
+      "latency_ms": 1170.174,
+      "total_tokens": 651
+    },
+    {
+      "case_id": "ambiguous_02_price",
+      "category": "ambiguous",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 2,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "dữ liệu mẫu",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 0,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": false,
+      "retrieval_true_positives": 0,
+      "latency_ms": 1180.67,
+      "total_tokens": 639
+    },
+    {
+      "case_id": "ambiguous_03_best",
+      "category": "ambiguous",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 2,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "dữ liệu mẫu",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "provenance_at_least",
+          "value": 1,
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [],
+      "expected_actions": [
+        {
+          "action": "product.rank",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 0,
+      "predicted_action_count": 0,
+      "expected_action_count": 1,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": false,
+      "retrieval_true_positives": 0,
+      "latency_ms": 2928.775,
+      "total_tokens": 870
+    },
+    {
+      "case_id": "ambiguous_04_complaint",
+      "category": "ambiguous",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 2,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "Không tìm thấy sản phẩm",
+          "passed": false,
+          "critical": true
+        },
+        {
+          "kind": "error_code_present",
+          "value": "orchestrator.missing_dependency_data",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [
+        "product.search",
+        "product.search"
+      ],
+      "expected_actions": [
+        {
+          "action": "product.search",
+          "count": 1
+        },
+        {
+          "action": "trust.complaints",
+          "count": 1
+        }
+      ],
+      "exact_plan": false,
+      "action_true_positives": 1,
+      "predicted_action_count": 2,
+      "expected_action_count": 2,
+      "retrieved_product_ids": [
+        1,
+        11,
+        16,
+        21,
+        26
+      ],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 2445.98,
+      "total_tokens": 1742
+    },
+    {
+      "case_id": "irrelevant_01_poem",
+      "category": "irrelevant",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 1,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "chưa gọi tool",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [],
+      "expected_actions": [],
+      "exact_plan": true,
+      "action_true_positives": 0,
+      "predicted_action_count": 0,
+      "expected_action_count": 0,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 2453.192,
+      "total_tokens": 746
+    },
+    {
+      "case_id": "irrelevant_02_weather",
+      "category": "irrelevant",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 1,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "chưa gọi tool",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [],
+      "expected_actions": [],
+      "exact_plan": true,
+      "action_true_positives": 0,
+      "predicted_action_count": 0,
+      "expected_action_count": 0,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 1391.777,
+      "total_tokens": 682
+    },
+    {
+      "case_id": "irrelevant_03_algebra",
+      "category": "irrelevant",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 1,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "chưa gọi tool",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [],
+      "expected_actions": [],
+      "exact_plan": true,
+      "action_true_positives": 0,
+      "predicted_action_count": 0,
+      "expected_action_count": 0,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 1497.14,
+      "total_tokens": 720
+    },
+    {
+      "case_id": "irrelevant_04_translation",
+      "category": "irrelevant",
+      "api_status": "success",
+      "task_success": false,
+      "task_success_without_provenance": false,
+      "assertions_passed": 0,
+      "assertion_count": 1,
+      "assertions": [
+        {
+          "kind": "contains",
+          "value": "chưa gọi tool",
+          "passed": false,
+          "critical": true
+        }
+      ],
+      "actual_actions": [],
+      "expected_actions": [],
+      "exact_plan": true,
+      "action_true_positives": 0,
+      "predicted_action_count": 0,
+      "expected_action_count": 0,
+      "retrieved_product_ids": [],
+      "relevant_product_ids": [],
+      "retrieval_evaluated": true,
+      "retrieval_true_positives": 0,
+      "latency_ms": 1011.471,
+      "total_tokens": 633
+    }
+  ],
+  "limitations": [
+    "Đây là một lần chạy real-model trên sample data, không phải human semantic evaluation.",
+    "Single-agent main không phát provenance nên provenance coverage bằng 0 theo rubric Multi-Agent.",
+    "Failure-injection cases được gửi như prompt bình thường; không thể ép main single-agent vào cùng failure dispatcher.",
+    "Không ghi chi phí vì pricing/provider billing không được capture.",
+    "Không suy diễn routing intent ẩn từ tool calls."
+  ]
+}

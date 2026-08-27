@@ -1,0 +1,31 @@
+fullnameOverride: ecommerce-multi-agent
+existingSecret: ecommerce-multi-agent-runtime
+profile: kind
+
+image:
+  repository: ecommerce-multi-agent
+  tag: kind
+  pullPolicy: IfNotPresent
+
+config:
+  qdrantUrl: http://ecommerce-multi-agent-qdrant:6333
+  modelRuntimeMode: "off"
+  embeddingBackend: hashing
+  gatewayPrincipalPolicies: kind:default:ecommerce.read
+
+bootstrap:
+  seedData:
+    enabled: true
+  seedKnowledge:
+    enabled: true
+
+internalDependencies:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi

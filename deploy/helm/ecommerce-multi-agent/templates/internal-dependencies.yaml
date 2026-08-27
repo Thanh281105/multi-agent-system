@@ -1,0 +1,337 @@
+{{- if .Values.internalDependencies.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ecommerce-multi-agent.fullname" . }}-postgres
+  labels:
+    {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+  selector:
+    {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "ecommerce-multi-agent.fullname" . }}-postgres
+  labels:
+    {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  serviceName: {{ include "ecommerce-multi-agent.fullname" . }}-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 6 }}
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 8 }}
+        app.kubernetes.io/component: postgres
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: {{ .Values.internalDependencies.postgres.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: ecommerce
+            - name: POSTGRES_USER
+              value: ecommerce
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ecommerce-multi-agent.secretName" . }}
+                  key: {{ .Values.secretKeys.postgresPassword }}
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "ecommerce", "-d", "ecommerce"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "ecommerce", "-d", "ecommerce"]
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 4
+          resources:
+            {{- toYaml .Values.internalDependencies.postgres.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: run
+          emptyDir:
+            sizeLimit: 16Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.internalDependencies.storageClassName }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.internalDependencies.postgres.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ecommerce-multi-agent.fullname" . }}-redis
+  labels:
+    {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: redis
+  selector:
+    {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "ecommerce-multi-agent.fullname" . }}-redis
+  labels:
+    {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  serviceName: {{ include "ecommerce-multi-agent.fullname" . }}-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 6 }}
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 8 }}
+        app.kubernetes.io/component: redis
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: redis
+          image: {{ .Values.internalDependencies.redis.image }}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              printf 'appendonly yes\nrequirepass %s\n' "$REDIS_PASSWORD" > /tmp/redis.conf
+              exec redis-server /tmp/redis.conf
+          ports:
+            - name: redis
+              containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ecommerce-multi-agent.secretName" . }}
+                  key: {{ .Values.secretKeys.redisPassword }}
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ecommerce-multi-agent.secretName" . }}
+                  key: {{ .Values.secretKeys.redisPassword }}
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 4
+          resources:
+            {{- toYaml .Values.internalDependencies.redis.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 999
+            runAsGroup: 1000
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.internalDependencies.storageClassName }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.internalDependencies.redis.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ecommerce-multi-agent.fullname" . }}-qdrant
+  labels:
+    {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 4 }}
+    app.kubernetes.io/component: qdrant
+spec:
+  ports:
+    - name: http
+      port: 6333
+      targetPort: http
+  selector:
+    {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 4 }}
+    app.kubernetes.io/component: qdrant
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "ecommerce-multi-agent.fullname" . }}-qdrant
+  labels:
+    {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 4 }}
+    app.kubernetes.io/component: qdrant
+spec:
+  serviceName: {{ include "ecommerce-multi-agent.fullname" . }}-qdrant
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 6 }}
+      app.kubernetes.io/component: qdrant
+  template:
+    metadata:
+      labels:
+        {{- include "ecommerce-multi-agent.dependencyLabels" . | nindent 8 }}
+        app.kubernetes.io/component: qdrant
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: qdrant
+          image: {{ .Values.internalDependencies.qdrant.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 6333
+          env:
+            - name: QDRANT__SERVICE__API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ecommerce-multi-agent.secretName" . }}
+                  key: {{ .Values.secretKeys.qdrantApiKey }}
+            - name: QDRANT__TELEMETRY_DISABLED
+              value: "true"
+            - name: QDRANT_INIT_FILE_PATH
+              value: /qdrant/storage/.qdrant-initialized
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 4
+          resources:
+            {{- toYaml .Values.internalDependencies.qdrant.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+          volumeMounts:
+            - name: data
+              mountPath: /qdrant/storage
+            - name: snapshots
+              mountPath: /qdrant/snapshots
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: snapshots
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- with .Values.internalDependencies.storageClassName }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.internalDependencies.qdrant.storage }}
+{{- end }}

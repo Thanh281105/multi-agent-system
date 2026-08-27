@@ -1,0 +1,14 @@
+The {{ .Chart.Name }} release uses the existing Secret:
+  {{ include "ecommerce-multi-agent.secretName" . }}
+
+No credential was generated or stored in chart values.
+
+Check rollout:
+  kubectl rollout status deployment/{{ include "ecommerce-multi-agent.fullname" . }} -n {{ .Release.Namespace }} --timeout=5m
+
+Open a local tunnel:
+  kubectl port-forward service/{{ include "ecommerce-multi-agent.fullname" . }} 8000:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+
+Then verify:
+  http://127.0.0.1:8000/livez
+  http://127.0.0.1:8000/readyz

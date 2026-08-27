@@ -70,6 +70,7 @@ async def test_openai_runner_dispatches_tool_and_collects_metadata(
         ]
     )
     monkeypatch.setattr(runner_module, "openai_client", client)
+    monkeypatch.setattr(runner_module, "session_histories", {})
 
     result = await runner_module.run_agent(
         message="Tìm tai nghe dưới 1 triệu rating ít nhất 4.5",
@@ -86,8 +87,10 @@ async def test_openai_runner_dispatches_tool_and_collects_metadata(
         "products_count": 2,
     }
     assert client.responses.requests[0]["model"] == settings.openai_model
-    assert client.responses.requests[1]["previous_response_id"] == "resp-search-tool"
-    assert client.responses.requests[1]["input"][0]["call_id"] == "call-search"
+    assert all(request["store"] is False for request in client.responses.requests)
+    assert "previous_response_id" not in client.responses.requests[1]
+    assert client.responses.requests[1]["input"][1]["call_id"] == "call-search"
+    assert client.responses.requests[1]["input"][2]["call_id"] == "call-search"
 
 
 @pytest.mark.asyncio
@@ -119,6 +122,7 @@ async def test_openai_runner_exposes_multiple_tool_calls(
         ]
     )
     monkeypatch.setattr(runner_module, "openai_client", client)
+    monkeypatch.setattr(runner_module, "session_histories", {})
 
     result = await runner_module.run_agent(
         message="Đọc review của Nova Air S2",
@@ -137,9 +141,57 @@ async def test_openai_runner_exposes_multiple_tool_calls(
         "count": 5,
         "reviews_count": 5,
     }
-    assert [item["call_id"] for item in client.responses.requests[1]["input"]] == [
-        "call-product",
-        "call-reviews",
+    assert all(request["store"] is False for request in client.responses.requests)
+    assert "previous_response_id" not in client.responses.requests[1]
+    assert [
+        item["call_id"]
+        for item in client.responses.requests[1]["input"]
+        if item.get("type") == "function_call_output"
+    ] == ["call-product", "call-reviews"]
+
+
+@pytest.mark.asyncio
+async def test_openai_runner_reuses_local_history_without_response_ids(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = FakeOpenAIClient(
+        [
+            response(
+                response_id="resp-follow-up-one",
+                output=[],
+                output_text="Sản phẩm có pin 20 giờ.",
+            ),
+            response(
+                response_id="resp-follow-up-two",
+                output=[],
+                output_text="Mình vừa giữ ngữ cảnh của câu hỏi trước.",
+            ),
+        ]
+    )
+    monkeypatch.setattr(runner_module, "openai_client", client)
+    monkeypatch.setattr(runner_module, "session_histories", {})
+
+    first = await runner_module.run_agent(
+        message="Nova Air S2 có pin bao lâu?",
+        session_id="openai-local-history",
+        request_id="openai-local-history-one",
+    )
+    second = await runner_module.run_agent(
+        message="Ý mình là trong điều kiện dùng thực tế.",
+        session_id="openai-local-history",
+        request_id="openai-local-history-two",
+    )
+
+    assert first.answer == "Sản phẩm có pin 20 giờ."
+    assert second.answer == "Mình vừa giữ ngữ cảnh của câu hỏi trước."
+    assert all(request["store"] is False for request in client.responses.requests)
+    assert all(
+        "previous_response_id" not in request for request in client.responses.requests
+    )
+    assert client.responses.requests[1]["input"] == [
+        {"role": "user", "content": "Nova Air S2 có pin bao lâu?"},
+        {"role": "assistant", "content": "Sản phẩm có pin 20 giờ."},
+        {"role": "user", "content": "Ý mình là trong điều kiện dùng thực tế."},
     ]
 
 

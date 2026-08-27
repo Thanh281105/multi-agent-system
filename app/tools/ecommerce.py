@@ -4,7 +4,11 @@ import logging
 from typing import Any
 
 from app.db.session import session_scope
-from app.repositories.ecommerce import EcommerceRepository, product_comparison_fact
+from app.repositories.ecommerce import (
+    EcommerceRepository,
+    product_comparison_fact,
+    product_provenance,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,16 +39,22 @@ def search_products(
     if max_price is not None and min_price is not None and min_price > max_price:
         raise ValueError("min_price cannot exceed max_price")
 
-    arguments = {
-        "query": query,
-        "category": category,
-        "max_price": max_price,
-        "min_price": min_price,
-        "min_rating": min_rating,
-        "platform": platform,
-        "limit": limit,
-    }
-    logger.info("TOOL CALL tool=search_products arguments=%s", arguments)
+    active_filters = sum(
+        value is not None
+        for value in (
+            query,
+            category,
+            max_price,
+            min_price,
+            min_rating,
+            platform,
+        )
+    )
+    logger.info(
+        "TOOL_CALL tool=search_products active_filters=%d limit=%d",
+        active_filters,
+        limit,
+    )
     with session_scope() as session:
         products = EcommerceRepository(session).search_products(
             query=query,
@@ -56,7 +66,9 @@ def search_products(
             limit=limit,
         )
 
-    result = {"count": len(products), "products": products}
+    result: dict[str, Any] = {"count": len(products), "products": products}
+    if products:
+        result["provenance"] = _collect_provenance(products)
     logger.info("TOOL RESULT tool=search_products products=%d", len(products))
     return result
 
@@ -71,8 +83,8 @@ def get_product_reviews(product_id: int, limit: int = 20) -> dict[str, Any]:
     _validate_positive_id(product_id, "product_id")
     _validate_limit(limit, maximum=50)
     logger.info(
-        "TOOL CALL tool=get_product_reviews arguments=%s",
-        {"product_id": product_id, "limit": limit},
+        "TOOL_CALL tool=get_product_reviews limit=%d",
+        limit,
     )
     with session_scope() as session:
         product, reviews = EcommerceRepository(session).get_product_reviews(
@@ -89,13 +101,19 @@ def get_product_reviews(product_id: int, limit: int = 20) -> dict[str, Any]:
             "reviews": [],
         }
 
-    result = {
+    product_payload: dict[str, Any] = {
+        "id": product.id,
+        "name": product.name,
+        "rating": product.rating,
+        "provenance": product_provenance(
+            product,
+            fields=("rating", "content", "created_at"),
+            fallback_source_id="postgresql:reviews",
+        ),
+    }
+    result: dict[str, Any] = {
         "found": True,
-        "product": {
-            "id": product.id,
-            "name": product.name,
-            "rating": product.rating,
-        },
+        "product": product_payload,
         "count": len(reviews),
         "reviews": [
             {
@@ -107,6 +125,7 @@ def get_product_reviews(product_id: int, limit: int = 20) -> dict[str, Any]:
             for review in reviews
         ],
     }
+    result["provenance"] = [product_payload["provenance"]]
     logger.info(
         "TOOL RESULT tool=get_product_reviews products=1 reviews=%d",
         len(reviews),
@@ -132,22 +151,50 @@ def compare_products(product_ids: list[int]) -> dict[str, Any]:
         _validate_positive_id(product_id, "product_id")
 
     logger.info(
-        "TOOL CALL tool=compare_products arguments=%s",
-        {"product_ids": product_ids},
+        "TOOL_CALL tool=compare_products product_count=%d",
+        len(product_ids),
     )
     with session_scope() as session:
         products = EcommerceRepository(session).get_products_by_ids(product_ids)
 
     found_ids = {product.id for product in products}
-    result = {
+    comparison_products = [product_comparison_fact(product) for product in products]
+    result: dict[str, Any] = {
         "count": len(products),
         "requested_product_ids": product_ids,
         "missing_product_ids": [
             product_id for product_id in product_ids if product_id not in found_ids
         ],
-        "products": [product_comparison_fact(product) for product in products],
+        "products": comparison_products,
     }
+    if products:
+        result["provenance"] = _collect_provenance(comparison_products)
     logger.info("TOOL RESULT tool=compare_products products=%d", len(products))
+    return result
+
+
+def get_product_statistics(category: str | None = None) -> dict[str, Any]:
+    """Return aggregate facts for one category or the complete sample catalog."""
+
+    if category is not None:
+        category = category.strip()
+        if not category:
+            raise ValueError("category must not be blank")
+        if len(category) > 80:
+            raise ValueError("category must contain at most 80 characters")
+
+    logger.info(
+        "TOOL_CALL tool=get_product_statistics category_present=%s",
+        category is not None,
+    )
+    with session_scope() as session:
+        result = EcommerceRepository(session).get_product_statistics(
+            category=category,
+        )
+    logger.info(
+        "TOOL RESULT tool=get_product_statistics products=%d",
+        result["product_count"],
+    )
     return result
 
 
@@ -163,3 +210,25 @@ def _validate_limit(limit: int, *, maximum: int = 50) -> None:
 def _validate_positive_id(value: int, field_name: str) -> None:
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ValueError(f"{field_name} must be a positive integer")
+
+
+def _collect_provenance(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Collect unique provenance records from product fact rows."""
+
+    unique: dict[tuple[str, str, tuple[str, ...]], dict[str, Any]] = {}
+    for record in records:
+        provenance = record.get("provenance")
+        if not isinstance(provenance, dict):
+            continue
+        source_type = provenance.get("source_type")
+        source_id = provenance.get("source_id")
+        fields_value = provenance.get("fields", [])
+        if not isinstance(source_type, str) or not isinstance(source_id, str):
+            continue
+        if not isinstance(fields_value, list) or not all(
+            isinstance(field, str) for field in fields_value
+        ):
+            continue
+        key = (source_type, source_id, tuple(fields_value))
+        unique.setdefault(key, provenance)
+    return list(unique.values())

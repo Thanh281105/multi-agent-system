@@ -1,0 +1,7 @@
+Database schema revisions for the Vietnamese e-commerce multi-agent platform.
+
+Apply the latest schema with:
+
+    python -m app.db.migrate
+
+Sample data is intentionally managed by a separate, explicit seed command.

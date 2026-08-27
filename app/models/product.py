@@ -16,6 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, utc_now
+from app.models.dataset_source import DatasetSource
 
 if TYPE_CHECKING:
     from app.models.review import Review
@@ -45,9 +46,24 @@ class Product(Base):
             name="ck_products_platform",
         ),
         Index("ix_products_category_price_rating", "category", "price", "rating"),
+        Index(
+            "ux_products_source_external_id",
+            "source_id",
+            "external_id",
+            unique=True,
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    source_id: Mapped[int | None] = mapped_column(
+        ForeignKey("dataset_sources.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
+    external_id: Mapped[str | None] = mapped_column(
+        String(128),
+        nullable=True,
+    )
     shop_id: Mapped[int] = mapped_column(
         ForeignKey("shops.id", ondelete="CASCADE"),
         nullable=False,
@@ -74,6 +90,10 @@ class Product(Base):
     )
 
     shop: Mapped["Shop"] = relationship(back_populates="products")
+    dataset_source: Mapped["DatasetSource | None"] = relationship(
+        DatasetSource,
+        back_populates="products",
+    )
     reviews: Mapped[list["Review"]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",

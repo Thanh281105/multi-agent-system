@@ -1,0 +1,262 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ecommerce-multi-agent chart values",
+  "type": "object",
+  "required": [
+    "replicaCount",
+    "profile",
+    "image",
+    "existingSecret",
+    "secretKeys",
+    "config",
+    "bootstrap",
+    "resources",
+    "networkPolicy",
+    "monitoring",
+    "internalDependencies"
+  ],
+  "properties": {
+    "replicaCount": {"const": 1},
+    "profile": {"enum": ["production", "kind"]},
+    "nameOverride": {"type": "string", "maxLength": 63},
+    "fullnameOverride": {"type": "string", "maxLength": 63},
+    "existingSecret": {"type": "string", "minLength": 1, "maxLength": 253},
+    "secretKeys": {
+      "type": "object",
+      "required": [
+        "databaseUrl",
+        "redisUrl",
+        "gatewayApiKeys",
+        "operationsApiKey",
+        "qdrantApiKey",
+        "openaiApiKey",
+        "postgresPassword",
+        "redisPassword"
+      ],
+      "properties": {
+        "databaseUrl": {"$ref": "#/definitions/secretKey"},
+        "redisUrl": {"$ref": "#/definitions/secretKey"},
+        "gatewayApiKeys": {"$ref": "#/definitions/secretKey"},
+        "operationsApiKey": {"$ref": "#/definitions/secretKey"},
+        "qdrantApiKey": {"$ref": "#/definitions/secretKey"},
+        "openaiApiKey": {"$ref": "#/definitions/secretKey"},
+        "postgresPassword": {"$ref": "#/definitions/secretKey"},
+        "redisPassword": {"$ref": "#/definitions/secretKey"}
+      },
+      "additionalProperties": false
+    },
+    "image": {
+      "type": "object",
+      "required": ["repository", "pullPolicy", "tag"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "pullPolicy": {"enum": ["Always", "IfNotPresent", "Never"]},
+        "tag": {"type": "string", "not": {"const": "latest"}}
+      },
+      "additionalProperties": false
+    },
+    "config": {
+      "type": "object",
+      "required": [
+        "qdrantUrl",
+        "qdrantCollection",
+        "modelRuntimeMode",
+        "embeddingBackend",
+        "sessionTtlSeconds",
+        "orchestrationTimeoutSeconds",
+        "openaiRoutingModel",
+        "openaiPlanningModel",
+        "openaiSpecialistModel",
+        "openaiSynthesisModel"
+      ],
+      "properties": {
+        "qdrantUrl": {"type": "string", "pattern": "^https?://"},
+        "qdrantCollection": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,128}$"},
+        "modelRuntimeMode": {"enum": ["off", "shadow", "hybrid", "required"]},
+        "embeddingBackend": {"enum": ["auto", "hashing", "openai"]},
+        "gatewayPrincipalPolicies": {"type": "string", "minLength": 1},
+        "redisKeyPrefix": {"type": "string", "pattern": "^[A-Za-z0-9:_-]{1,64}$"},
+        "sessionTtlSeconds": {"type": "integer", "minimum": 60, "maximum": 2592000},
+        "gatewayRateLimitRequests": {"type": "integer", "minimum": 1, "maximum": 100000},
+        "gatewayRateLimitWindowSeconds": {"type": "integer", "minimum": 1, "maximum": 86400},
+        "gatewayAuthAttemptRequests": {"type": "integer", "minimum": 1, "maximum": 100000},
+        "redisSocketTimeoutSeconds": {"type": "number", "minimum": 0.1, "maximum": 30},
+        "qdrantTimeoutSeconds": {"type": "number", "minimum": 0.1, "maximum": 30},
+        "orchestrationTimeoutSeconds": {"type": "number", "minimum": 1, "maximum": 300},
+        "openaiRoutingModel": {"type": "string", "minLength": 1},
+        "openaiPlanningModel": {"type": "string", "minLength": 1},
+        "openaiSpecialistModel": {"type": "string", "minLength": 1},
+        "openaiSynthesisModel": {"type": "string", "minLength": 1},
+        "openaiReasoningEffort": {"enum": ["none", "low", "medium", "high", "xhigh"]},
+        "openaiRequestTimeoutSeconds": {"type": "number", "minimum": 1, "maximum": 120},
+        "openaiMaxRetries": {"type": "integer", "minimum": 0, "maximum": 5},
+        "openaiMaxOutputTokens": {"type": "integer", "minimum": 64, "maximum": 16384},
+        "openaiMaxConcurrency": {"type": "integer", "minimum": 1, "maximum": 64},
+        "openaiCircuitFailureThreshold": {"type": "integer", "minimum": 1, "maximum": 20},
+        "openaiCircuitRecoverySeconds": {"type": "number", "minimum": 1, "maximum": 600},
+        "openaiEmbeddingModel": {"type": "string", "minLength": 1},
+        "openaiEmbeddingDimensions": {"type": "integer", "minimum": 32, "maximum": 3072},
+        "logLevel": {"enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]}
+      },
+      "additionalProperties": false
+    },
+    "bootstrap": {
+      "type": "object",
+      "required": ["waitForDependencies", "migrate", "seedData", "seedKnowledge", "resources"],
+      "properties": {
+        "waitForDependencies": {
+          "type": "object",
+          "required": ["enabled", "timeoutSeconds"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "timeoutSeconds": {"type": "integer", "minimum": 10, "maximum": 300}
+          },
+          "additionalProperties": false
+        },
+        "migrate": {"$ref": "#/definitions/toggle"},
+        "seedData": {"$ref": "#/definitions/toggle"},
+        "seedKnowledge": {
+          "type": "object",
+          "required": ["enabled", "waitSeconds"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "waitSeconds": {"type": "integer", "minimum": 0, "maximum": 300}
+          },
+          "additionalProperties": false
+        },
+        "resources": {"$ref": "#/definitions/resources"}
+      },
+      "additionalProperties": false
+    },
+    "resources": {"$ref": "#/definitions/resources"},
+    "terminationGracePeriodSeconds": {"type": "integer", "minimum": 1, "maximum": 300},
+    "networkPolicy": {
+      "type": "object",
+      "required": ["enabled", "extraEgress"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "extraEgress": {"type": "array"}
+      },
+      "additionalProperties": false
+    },
+    "monitoring": {
+      "type": "object",
+      "required": ["serviceMonitor", "prometheusRule", "grafanaDashboard"],
+      "properties": {
+        "serviceMonitor": {"$ref": "#/definitions/monitorToggle"},
+        "prometheusRule": {"$ref": "#/definitions/labelToggle"},
+        "grafanaDashboard": {"$ref": "#/definitions/labelToggle"}
+      },
+      "additionalProperties": false
+    },
+    "internalDependencies": {
+      "type": "object",
+      "required": ["enabled", "storageClassName", "postgres", "redis", "qdrant"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "storageClassName": {"type": "string"},
+        "postgres": {"$ref": "#/definitions/dependency"},
+        "redis": {"$ref": "#/definitions/dependency"},
+        "qdrant": {"$ref": "#/definitions/dependency"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"profile": {"const": "production"}}},
+      "then": {
+        "properties": {
+          "bootstrap": {
+            "properties": {
+              "seedData": {"properties": {"enabled": {"const": false}}},
+              "seedKnowledge": {"properties": {"enabled": {"const": false}}}
+            }
+          },
+          "internalDependencies": {"properties": {"enabled": {"const": false}}}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"profile": {"const": "kind"}}},
+      "then": {
+        "properties": {
+          "config": {
+            "properties": {
+              "modelRuntimeMode": {"const": "off"},
+              "embeddingBackend": {"const": "hashing"}
+            }
+          },
+          "internalDependencies": {"properties": {"enabled": {"const": true}}}
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "secretKey": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,253}$"
+    },
+    "toggle": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {"enabled": {"type": "boolean"}},
+      "additionalProperties": false
+    },
+    "resources": {
+      "type": "object",
+      "required": ["requests", "limits"],
+      "properties": {
+        "requests": {
+          "type": "object",
+          "required": ["cpu", "memory"],
+          "properties": {
+            "cpu": {"type": ["string", "number"]},
+            "memory": {"type": "string", "minLength": 2}
+          },
+          "additionalProperties": false
+        },
+        "limits": {
+          "type": "object",
+          "required": ["cpu", "memory"],
+          "properties": {
+            "cpu": {"type": ["string", "number"]},
+            "memory": {"type": "string", "minLength": 2}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "labelToggle": {
+      "type": "object",
+      "required": ["enabled", "additionalLabels"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "additionalLabels": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "monitorToggle": {
+      "type": "object",
+      "required": ["enabled", "interval", "scrapeTimeout", "additionalLabels"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "interval": {"type": "string", "pattern": "^[1-9][0-9]*[smh]$"},
+        "scrapeTimeout": {"type": "string", "pattern": "^[1-9][0-9]*[smh]$"},
+        "additionalLabels": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "dependency": {
+      "type": "object",
+      "required": ["image", "storage", "resources"],
+      "properties": {
+        "image": {"type": "string", "minLength": 1, "not": {"pattern": ":latest$"}},
+        "storage": {"type": "string", "pattern": "^[1-9][0-9]*(Mi|Gi|Ti)$"},
+        "resources": {"$ref": "#/definitions/resources"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

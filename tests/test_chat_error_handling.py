@@ -2,7 +2,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.agent.runner import AgentRunError
-from app.main import app
+from app.core.config import Settings
+from app.main import create_app
 
 
 @pytest.mark.asyncio
@@ -15,7 +16,10 @@ async def test_chat_returns_stable_error_when_openai_fails(
     import app.api.chat as chat_api
 
     monkeypatch.setattr(chat_api, "run_agent", fail_run_agent)
-    response = TestClient(app).post("/chat", json={"message": "Xin chào"})
+    application = create_app(
+        Settings(_env_file=None, app_env="test", legacy_chat_enabled=True)
+    )
+    response = TestClient(application).post("/chat", json={"message": "Xin chào"})
 
     assert response.status_code == 503
     assert response.json() == {"detail": "Không thể xử lý yêu cầu lúc này."}
