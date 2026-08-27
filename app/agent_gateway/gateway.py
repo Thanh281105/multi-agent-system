@@ -12,7 +12,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.contracts.a2a import IDENTIFIER_PATTERN, AgentError
+from app.contracts.a2a import IDENTIFIER_PATTERN, AgentError, AuthorizationContext
 from app.mcp import MCPDispatchError, MCPRouter, MCPToolNotFoundError
 from app.registry import AgentNotFoundError, AgentRegistry, default_registry
 
@@ -26,6 +26,8 @@ class GatewayRequest(BaseModel):
     task_id: str = Field(pattern=IDENTIFIER_PATTERN)
     request_id: str = Field(pattern=IDENTIFIER_PATTERN)
     trace_id: str = Field(pattern=IDENTIFIER_PATTERN)
+    authorization: AuthorizationContext
+    action: str = Field(pattern=r"^[a-z][a-z0-9_.-]{1,127}$")
     server_id: str = Field(pattern=IDENTIFIER_PATTERN)
     tool_name: str = Field(pattern=r"^[a-z][a-z0-9_.-]{1,127}$")
     arguments: dict[str, Any] = Field(default_factory=dict)
@@ -55,6 +57,11 @@ class AuditRecord(BaseModel):
     trace_id: str
     server_id: str
     tool_name: str
+    agent_version: str | None = None
+    skill_id: str | None = None
+    skill_version: str | None = None
+    principal_ref: str | None = None
+    tenant_id: str | None = None
     argument_keys: tuple[str, ...]
     outcome: str
     error_code: str | None = None
@@ -97,6 +104,7 @@ class AgentGateway:
         *,
         router: MCPRouter,
         registry: AgentRegistry = default_registry,
+        skill_registry: Any | None = None,
         limiter: SlidingWindowRateLimiter | None = None,
         audit_capacity: int = 2_000,
     ) -> None:
@@ -104,6 +112,7 @@ class AgentGateway:
             raise ValueError("audit_capacity must be positive")
         self.router = router
         self.registry = registry
+        self.skill_registry = skill_registry or _default_skill_registry()
         self.limiter = limiter or SlidingWindowRateLimiter()
         self._audit: deque[AuditRecord] = deque(maxlen=audit_capacity)
         self._audit_lock = Lock()
@@ -113,6 +122,8 @@ class AgentGateway:
         audit_id = f"audit_{uuid4().hex}"
         error: AgentError | None = None
         data: dict[str, Any] = {}
+        bundle = None
+        selected_skill = None
 
         try:
             bundle = self.registry.get(request.agent_id)
@@ -133,23 +144,40 @@ class AgentGateway:
                     "Agent thiếu quyền thực thi tool.",
                 )
             else:
-                decision = self.limiter.check(
-                    key=request.agent_id,
-                    requests=bundle.rate_limit.requests,
-                    window_seconds=bundle.rate_limit.window_seconds,
+                selected_skill = self.skill_registry.select(
+                    agent_id=request.agent_id,
+                    action=request.action,
+                    server_id=request.server_id,
+                    tool_name=request.tool_name,
                 )
-                if not decision.allowed:
+                if selected_skill.skill_id != spec.skill_id:
                     error = self._error(
-                        "gateway.rate_limited",
-                        "Agent đã vượt quá giới hạn gọi tool.",
-                        retryable=True,
+                        "gateway.skill_contract_mismatch",
+                        "Skill đã chọn không khớp với MCP tool.",
+                    )
+                elif spec.required_user_scope not in request.authorization.scopes:
+                    error = self._error(
+                        "gateway.user_scope_denied",
+                        "Principal không có scope cần thiết để gọi tool.",
                     )
                 else:
-                    data = await self.router.call(
-                        server_id=request.server_id,
-                        tool_name=request.tool_name,
-                        arguments=request.arguments,
+                    decision = self.limiter.check(
+                        key=request.agent_id,
+                        requests=bundle.rate_limit.requests,
+                        window_seconds=bundle.rate_limit.window_seconds,
                     )
+                    if not decision.allowed:
+                        error = self._error(
+                            "gateway.rate_limited",
+                            "Agent đã vượt quá giới hạn gọi tool.",
+                            retryable=True,
+                        )
+                    else:
+                        data = await self.router.call(
+                            server_id=request.server_id,
+                            tool_name=request.tool_name,
+                            arguments=request.arguments,
+                        )
         except AgentNotFoundError:
             error = self._error(
                 "gateway.unknown_agent",
@@ -159,6 +187,11 @@ class AgentGateway:
             error = self._error(
                 "gateway.unknown_tool",
                 "MCP tool không tồn tại.",
+            )
+        except LookupError:
+            error = self._error(
+                "gateway.skill_not_selected",
+                "Action không được phép dùng tool này.",
             )
         except (MCPDispatchError, TypeError, ValueError):
             error = self._error(
@@ -182,6 +215,15 @@ class AgentGateway:
                 trace_id=request.trace_id,
                 server_id=request.server_id,
                 tool_name=request.tool_name,
+                agent_version=bundle.version if bundle is not None else None,
+                skill_id=selected_skill.skill_id
+                if selected_skill is not None
+                else None,
+                skill_version=(
+                    selected_skill.version if selected_skill is not None else None
+                ),
+                principal_ref=request.authorization.principal_id[:12],
+                tenant_id=request.authorization.tenant_id,
                 argument_keys=tuple(sorted(request.arguments)),
                 outcome="success" if error is None else "denied_or_failed",
                 error_code=error.code if error else None,
@@ -212,3 +254,11 @@ class AgentGateway:
             source="agent_gateway",
             retryable=retryable,
         )
+
+
+def _default_skill_registry() -> Any:
+    """Import after package initialization to avoid an AgentGateway import cycle."""
+
+    from app.agents.skill_manifest import default_skill_registry
+
+    return default_skill_registry

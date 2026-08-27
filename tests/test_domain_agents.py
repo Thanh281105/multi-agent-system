@@ -6,7 +6,7 @@ import pytest
 
 from app.agent_gateway import AgentGateway
 from app.agents import DEFAULT_AGENT_IDS, AgentDispatcher, build_default_dispatcher
-from app.contracts import AgentMessage, TaskStatus
+from app.contracts import AgentMessage, AuthorizationContext, TaskStatus
 from app.mcp.catalog import build_default_mcp_router
 
 
@@ -21,6 +21,7 @@ def message(
         session_id="sess_domain_123",
         request_id="req_domain_123",
         trace_id="trace_domain_123",
+        authorization=AuthorizationContext(principal_id="test-principal"),
         source="orchestrator",
         target=target,
         action=action,

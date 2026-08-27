@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.contracts import ExecutionStep
 from app.contracts.a2a import IDENTIFIER_PATTERN
+
+INTENT_PATTERN = r"^[a-z][a-z0-9_.-]{1,127}$"
 
 
 class AgentNotFoundError(LookupError):
@@ -35,12 +40,32 @@ class AgentBundle(BaseModel):
     permissions: frozenset[str] = frozenset()
     mcp_servers: frozenset[str] = frozenset()
     rate_limit: RateLimitPolicy = Field(default_factory=RateLimitPolicy)
+    follow_up_intent: str | None = Field(default=None, pattern=INTENT_PATTERN)
+
+
+PlanBuilder = Callable[[dict[str, Any]], tuple[ExecutionStep, ...]]
+CapabilityBuilder = Callable[[dict[str, Any]], tuple[str, ...]]
+
+
+@dataclass(frozen=True, slots=True)
+class IntentManifest:
+    """Domain-owned compiler hooks for one supported routed intent."""
+
+    intent: str
+    active_agent_id: str | None
+    build_steps: PlanBuilder
+    expected_capabilities: CapabilityBuilder
 
 
 class AgentRegistry:
     """In-memory registry with deterministic startup validation."""
 
-    def __init__(self, bundles: Iterable[AgentBundle]) -> None:
+    def __init__(
+        self,
+        bundles: Iterable[AgentBundle],
+        *,
+        intent_manifests: Iterable[IntentManifest] = (),
+    ) -> None:
         indexed: dict[str, AgentBundle] = {}
         for bundle in bundles:
             if bundle.agent_id in indexed:
@@ -53,6 +78,30 @@ class AgentRegistry:
         if not indexed:
             raise ValueError("registry must contain at least one agent")
         self._bundles = indexed
+
+        intents: dict[str, IntentManifest] = {}
+        for manifest in intent_manifests:
+            if manifest.intent in intents:
+                raise ValueError(f"duplicate intent manifest: {manifest.intent}")
+            if (
+                manifest.active_agent_id is not None
+                and manifest.active_agent_id not in indexed
+            ):
+                raise ValueError(
+                    "intent manifest references unknown agent: "
+                    f"{manifest.active_agent_id}"
+                )
+            intents[manifest.intent] = manifest
+        for bundle in indexed.values():
+            if (
+                bundle.follow_up_intent is not None
+                and bundle.follow_up_intent not in intents
+            ):
+                raise ValueError(
+                    "agent follow-up intent is not registered: "
+                    f"{bundle.follow_up_intent}"
+                )
+        self._intents = intents
 
     def get(self, agent_id: str) -> AgentBundle:
         try:
@@ -69,6 +118,18 @@ class AgentRegistry:
             for bundle in self._bundles.values()
             if capability in bundle.capabilities
         )
+
+    def intent_manifest(self, intent: str) -> IntentManifest | None:
+        """Return the registered domain plan compiler for an intent, if any."""
+
+        return self._intents.get(intent)
+
+    def active_agent_for_intent(self, intent: str) -> str | None:
+        manifest = self.intent_manifest(intent)
+        return manifest.active_agent_id if manifest is not None else None
+
+    def follow_up_intent(self, agent_id: str) -> str | None:
+        return self.get(agent_id).follow_up_intent
 
 
 def _default_bundles() -> tuple[AgentBundle, ...]:
@@ -92,6 +153,7 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
             ),
             permissions=frozenset({"product.read", "analytics.read"}),
             mcp_servers=frozenset({"product_db", "analytics"}),
+            follow_up_intent="product.follow_up",
         ),
         AgentBundle(
             agent_id="review_agent",
@@ -110,6 +172,7 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
             ),
             permissions=frozenset({"review.read", "analytics.read"}),
             mcp_servers=frozenset({"review_db", "analytics"}),
+            follow_up_intent="review.summary",
         ),
         AgentBundle(
             agent_id="trust_agent",
@@ -128,6 +191,7 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
             ),
             permissions=frozenset({"review.read", "trust.analyze"}),
             mcp_servers=frozenset({"review_db", "analytics"}),
+            follow_up_intent="trust.complaints",
         ),
         AgentBundle(
             agent_id="market_agent",
@@ -137,8 +201,20 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
             skills=("analyze_market", "search_market_knowledge"),
             permissions=frozenset({"analytics.read", "knowledge.read"}),
             mcp_servers=frozenset({"analytics", "knowledge"}),
+            follow_up_intent="market.search",
         ),
     )
 
 
-default_registry = AgentRegistry(_default_bundles())
+def _default_intent_manifests() -> tuple[IntentManifest, ...]:
+    # Import lazily so domain plan definitions can depend on registry contracts
+    # without coupling the registry module to the orchestrator implementation.
+    from app.registry.default_intents import build_default_intent_manifests
+
+    return build_default_intent_manifests()
+
+
+default_registry = AgentRegistry(
+    _default_bundles(),
+    intent_manifests=_default_intent_manifests(),
+)

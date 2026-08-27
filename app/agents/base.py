@@ -56,6 +56,8 @@ class DomainAgent(ABC):
                 task_id=message.task_id,
                 request_id=message.request_id,
                 trace_id=message.trace_id,
+                authorization=message.authorization,
+                action=message.action,
                 server_id=server_id,
                 tool_name=tool_name,
                 arguments=arguments,

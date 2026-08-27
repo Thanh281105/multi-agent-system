@@ -48,6 +48,7 @@ không vô tình thưởng cho ứng viên thiếu dữ liệu.
 | --- | --- | --- |
 | API Gateway | Auth, rate limit, correlation, timeout, JSON/SSE | Stable error envelope; owner-bound session |
 | Orchestrator | GPT-assisted route/plan/synthesis, execute DAG | Python sở hữu entity, claim text, citation và deterministic fallback |
+| Intent registry | Intent owner, session handoff, deterministic DAG template | Domain mới đăng ký manifest thay vì sửa router/planner/orchestrator core |
 | Domain Agents | Product, review, trust, market + GPT specialist selection | Model chỉ chọn fact ID trong catalog do server tạo |
 | Agent Gateway | Registry, permission, MCP routing, audit | Không log prompt hay raw tool arguments |
 | Shared Platform | Redis session/memory/turn lock, telemetry | TTL, optimistic update, bounded local traces |
@@ -363,7 +364,7 @@ app/
 ├── orchestrator/     # router, planner, DAG executor, aggregator, scoring
 ├── agents/           # Product, Review, Trust, Market
 ├── agent_gateway/    # permission/rate/audit boundary
-├── registry/         # immutable agent bundles
+├── registry/         # immutable bundles + intent/plan manifests
 ├── mcp/              # allowlisted tool catalog/router
 ├── shared/           # context, model/embedding runtime, Redis, telemetry
 ├── knowledge/        # Qdrant adapter, versioned embedding, sample notes

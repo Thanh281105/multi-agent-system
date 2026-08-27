@@ -33,6 +33,7 @@ class MCPToolSpec:
     required_permission: str
     description: str
     handler: ToolHandler
+    required_user_scope: str = "ecommerce.read"
 
 
 class MCPRouter:

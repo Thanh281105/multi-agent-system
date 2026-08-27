@@ -185,7 +185,7 @@ async def _create_response(
         "instructions": root_agent.instructions,
         "input": input_items,
         "tools": list(root_agent.tools),
-        "store": True,
+        "store": False,
     }
     if previous_response_id:
         request["previous_response_id"] = previous_response_id

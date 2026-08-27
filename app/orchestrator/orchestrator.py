@@ -16,6 +16,7 @@ from app.orchestrator.progress import (
 )
 from app.orchestrator.router import IntentRouter
 from app.orchestrator.schemas import OrchestrationResult
+from app.registry import AgentRegistry, default_registry
 from app.shared import (
     ExecutionContext,
     InMemoryMemoryStore,
@@ -40,6 +41,7 @@ class MultiAgentOrchestrator:
         sessions: SessionStore | None = None,
         memory: MemoryStore | None = None,
         telemetry: Telemetry | None = None,
+        registry: AgentRegistry = default_registry,
         router: IntentRouter | None = None,
         planner: ExecutionPlanner | None = None,
         aggregator: ResultAggregator | None = None,
@@ -47,8 +49,9 @@ class MultiAgentOrchestrator:
         self.sessions = sessions or InMemorySessionStore()
         self.memory = memory or InMemoryMemoryStore()
         self.telemetry = telemetry or Telemetry()
-        self.router = router or IntentRouter()
-        self.planner = planner or ExecutionPlanner()
+        self.registry = registry
+        self.router = router or IntentRouter(registry=registry)
+        self.planner = planner or ExecutionPlanner(registry=registry)
         self.aggregator = aggregator or ResultAggregator()
         self.executor = PlanExecutor(dispatcher, self.telemetry)
 
@@ -190,17 +193,8 @@ class MultiAgentOrchestrator:
             duration_ms=duration_ms,
         )
 
-    @staticmethod
-    def _active_agent(intent: str, previous: str | None) -> str | None:
-        if intent.startswith("product") or intent == "multi.recommendation":
-            return "product_agent"
-        if intent.startswith("review"):
-            return "review_agent"
-        if intent.startswith("trust"):
-            return "trust_agent"
-        if intent.startswith("market"):
-            return "market_agent"
-        return previous
+    def _active_agent(self, intent: str, previous: str | None) -> str | None:
+        return self.registry.active_agent_for_intent(intent) or previous
 
     @staticmethod
     def _last_product_id(agent_results: tuple[AgentResult, ...]) -> int | None:

@@ -107,7 +107,7 @@ class Settings(BaseSettings):
         validation_alias="ORCHESTRATION_TIMEOUT_SECONDS",
     )
     legacy_chat_enabled: bool = Field(
-        default=True,
+        default=False,
         validation_alias="LEGACY_CHAT_ENABLED",
     )
     openai_api_key: SecretStr | None = Field(

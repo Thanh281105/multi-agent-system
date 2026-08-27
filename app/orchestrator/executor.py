@@ -20,6 +20,7 @@ from app.orchestrator.progress import (
     ProgressCallback,
     emit_progress,
 )
+from app.registry import default_registry
 from app.shared import ExecutionContext, Telemetry
 
 
@@ -91,7 +92,10 @@ class PlanExecutor:
                 operation="dependency_binding",
                 outcome="failed",
                 duration_ms=0,
-                attributes={"target_agent": step.agent_id},
+                attributes={
+                    "target_agent": step.agent_id,
+                    "agent_version": default_registry.get(step.agent_id).version,
+                },
             )
             await self._emit_completion(progress, step, result)
             return result
@@ -102,6 +106,7 @@ class PlanExecutor:
                 "session_id": context.session_id,
                 "request_id": context.request_id,
                 "trace_id": context.trace_id,
+                "authorization": context.authorization.model_dump(mode="json"),
                 "source": "orchestrator",
                 "target": step.agent_id,
                 "action": step.action,
@@ -131,6 +136,7 @@ class PlanExecutor:
             operation=step.action,
             outcome=result.status.value,
             duration_ms=(perf_counter() - started_at) * 1_000,
+            attributes={"agent_version": default_registry.get(step.agent_id).version},
         )
         await self._emit_completion(progress, step, result)
         return result

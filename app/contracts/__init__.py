@@ -4,6 +4,7 @@ from app.contracts.a2a import (
     AgentError,
     AgentMessage,
     AgentResult,
+    AuthorizationContext,
     DataProvenance,
     ExecutionPlan,
     ExecutionStep,
@@ -11,6 +12,7 @@ from app.contracts.a2a import (
 )
 
 __all__ = [
+    "AuthorizationContext",
     "AgentError",
     "AgentMessage",
     "AgentResult",

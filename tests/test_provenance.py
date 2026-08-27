@@ -8,7 +8,7 @@ import pytest
 
 from app.agent_gateway import AgentGateway
 from app.agents import build_default_dispatcher
-from app.contracts import AgentMessage, TaskStatus
+from app.contracts import AgentMessage, AuthorizationContext, TaskStatus
 from app.db.public_import import import_public_snapshot
 from app.mcp.catalog import build_default_mcp_router
 
@@ -30,6 +30,7 @@ async def test_public_snapshot_provenance_reaches_product_agent() -> None:
             session_id="sess_public_provenance",
             request_id="req_public_provenance",
             trace_id="trace_public_provenance",
+            authorization=AuthorizationContext(principal_id="test-principal"),
             source="orchestrator",
             target="product_agent",
             action="product.search",

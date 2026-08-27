@@ -4,6 +4,7 @@ from app.registry.registry import (
     AgentBundle,
     AgentNotFoundError,
     AgentRegistry,
+    IntentManifest,
     RateLimitPolicy,
     default_registry,
 )
@@ -12,6 +13,7 @@ __all__ = [
     "AgentBundle",
     "AgentNotFoundError",
     "AgentRegistry",
+    "IntentManifest",
     "RateLimitPolicy",
     "default_registry",
 ]

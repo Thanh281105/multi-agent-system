@@ -56,6 +56,16 @@ class DataProvenance(BaseModel):
     observed_at: datetime = Field(default_factory=utc_now)
 
 
+class AuthorizationContext(BaseModel):
+    """End-user authority carried with every delegated tool request."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    principal_id: str = Field(min_length=1, max_length=160)
+    tenant_id: str = Field(default="default", pattern=IDENTIFIER_PATTERN)
+    scopes: frozenset[str] = frozenset({"ecommerce.read"})
+
+
 class AgentMessage(BaseModel):
     """One immutable task sent through the in-process A2A dispatcher."""
 
@@ -69,6 +79,7 @@ class AgentMessage(BaseModel):
     session_id: str = Field(pattern=IDENTIFIER_PATTERN)
     request_id: str = Field(pattern=IDENTIFIER_PATTERN)
     trace_id: str = Field(pattern=IDENTIFIER_PATTERN)
+    authorization: AuthorizationContext
     source: str = Field(pattern=IDENTIFIER_PATTERN)
     target: str = Field(pattern=IDENTIFIER_PATTERN)
     action: str = Field(pattern=ACTION_PATTERN)

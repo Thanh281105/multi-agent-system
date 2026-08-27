@@ -8,6 +8,7 @@ from typing import Any
 
 from app.orchestrator.model_schemas import RoutingDecision
 from app.orchestrator.schemas import RoutedIntent
+from app.registry import AgentRegistry, default_registry
 from app.shared import (
     ModelRuntime,
     ModelRuntimeError,
@@ -61,11 +62,13 @@ class IntentRouter:
     def __init__(
         self,
         *,
+        registry: AgentRegistry = default_registry,
         model_runtime: ModelRuntime | None = None,
         runtime_mode: ModelRuntimeMode = "off",
         model: str = "gpt-5.4-nano",
         reasoning_effort: ReasoningEffort = "low",
     ) -> None:
+        self.registry = registry
         self.model_runtime = model_runtime
         self.runtime_mode = runtime_mode
         self.model = model
@@ -80,12 +83,9 @@ class IntentRouter:
             product_id = session.state.get("last_product_id")
             if isinstance(product_id, int):
                 entities["product_id"] = product_id
-            follow_up_intent = {
-                "product_agent": "product.follow_up",
-                "review_agent": "review.summary",
-                "trust_agent": "trust.complaints",
-                "market_agent": "market.search",
-            }.get(session.active_agent, "general.help")
+            follow_up_intent = (
+                self.registry.follow_up_intent(session.active_agent) or "general.help"
+            )
             return RoutedIntent(
                 intent=follow_up_intent,
                 confidence=0.86,

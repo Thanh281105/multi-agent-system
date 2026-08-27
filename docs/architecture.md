@@ -87,7 +87,8 @@ khác `1` để giới hạn này không bị vô tình vi phạm.
 | --- | --- | --- | --- |
 | Gateway | Authenticated HTTP payload | Stable JSON/SSE contract | 401/404/409/422/429/503/504 envelope |
 | Intent Router | Message + bounded session state | `RoutedIntent` | Model intent; entity phải khớp extraction do Python sở hữu |
-| Planner | `RoutedIntent` | Authorized `ExecutionPlan` DAG | Model chỉ chọn capability; Python biên dịch/kiểm tra DAG |
+| Planner | `RoutedIntent` + intent manifest | Authorized `ExecutionPlan` DAG | Model chỉ chọn capability; template do domain đăng ký, Python biên dịch/kiểm tra DAG |
+| Intent registry | Agent bundles + intent manifests | Owner, session handoff, plan template | Manifest phải trỏ đến agent và follow-up intent đã đăng ký |
 | Executor | Plan + correlation context | Ordered `AgentResult` tuple | Exceptions sanitized to typed agent error |
 | Domain reasoner | Server-owned fact catalog | Evidence-linked fact selection | Model chỉ trả opaque fact ID + confidence |
 | Aggregator | Intent + agent results | Grounded answer/status/warnings | Model chỉ sắp xếp claim ID; Python render text/citation |

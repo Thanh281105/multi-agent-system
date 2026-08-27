@@ -8,6 +8,8 @@ from dataclasses import dataclass, replace
 from typing import Iterator
 from uuid import uuid4
 
+from app.contracts import AuthorizationContext
+
 
 def _new_id(prefix: str) -> str:
     return f"{prefix}_{uuid4().hex}"
@@ -22,6 +24,7 @@ class ExecutionContext:
     trace_id: str
     session_id: str
     task_id: str
+    authorization: AuthorizationContext
     agent_id: str = "orchestrator"
 
     @classmethod
@@ -30,6 +33,7 @@ class ExecutionContext:
         *,
         principal_id: str,
         session_id: str,
+        authorization: AuthorizationContext | None = None,
         request_id: str | None = None,
         trace_id: str | None = None,
     ) -> ExecutionContext:
@@ -39,6 +43,8 @@ class ExecutionContext:
             trace_id=trace_id or _new_id("trace"),
             session_id=session_id,
             task_id=_new_id("task"),
+            authorization=authorization
+            or AuthorizationContext(principal_id=principal_id),
         )
 
     def child(self, *, agent_id: str, task_id: str | None = None) -> ExecutionContext:
