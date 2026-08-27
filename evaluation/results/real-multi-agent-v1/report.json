@@ -2901,6 +2901,6 @@
     "app/tools/__init__.py",
     "app/tools/ecommerce.py"
   ],
-  "sut_source_sha256": "36492d8635b523a0d6824ac975b84474da4608afecf527ee38062916f1292a79",
+  "sut_source_sha256": "57b0b51c94191b17d82bbd2de349cd6c53696c870de662ae3d61e737093cfa37",
   "system_id": "multi_agent_real"
 }
