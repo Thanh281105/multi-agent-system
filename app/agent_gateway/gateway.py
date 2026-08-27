@@ -110,6 +110,10 @@ class AgentGateway:
     ) -> None:
         if audit_capacity < 1:
             raise ValueError("audit_capacity must be positive")
+        if skill_registry is None and registry is not default_registry:
+            raise ValueError(
+                "custom AgentRegistry requires an explicit SkillRegistry"
+            )
         self.router = router
         self.registry = registry
         self.skill_registry = skill_registry or _default_skill_registry()

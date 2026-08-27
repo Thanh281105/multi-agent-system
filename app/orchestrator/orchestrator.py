@@ -53,7 +53,11 @@ class MultiAgentOrchestrator:
         self.router = router or IntentRouter(registry=registry)
         self.planner = planner or ExecutionPlanner(registry=registry)
         self.aggregator = aggregator or ResultAggregator()
-        self.executor = PlanExecutor(dispatcher, self.telemetry)
+        self.executor = PlanExecutor(
+            dispatcher,
+            self.telemetry,
+            registry=registry,
+        )
 
     async def run(
         self,

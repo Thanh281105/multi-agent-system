@@ -15,12 +15,15 @@ from app.agent_gateway import (
 from app.agents.skill_manifest import SkillManifest, SkillRegistry
 from app.contracts import (
     AgentMessage,
+    AgentResult,
     AuthorizationContext,
     ExecutionPlan,
     ExecutionStep,
+    TaskStatus,
 )
 from app.core.config import Settings
 from app.mcp import MCPRouter, MCPToolSpec
+from app.orchestrator.executor import PlanExecutor
 from app.orchestrator.planner import ExecutionPlanner
 from app.orchestrator.schemas import RoutedIntent
 from app.registry import (
@@ -30,6 +33,7 @@ from app.registry import (
     RateLimitPolicy,
     default_registry,
 )
+from app.shared import ExecutionContext, Telemetry
 
 
 def gateway_request(**overrides: Any) -> GatewayRequest:
@@ -162,6 +166,69 @@ def test_planner_compiles_a_registered_domain_without_core_branch() -> None:
     assert plan.intent == "support.answer"
     assert plan.steps[0].agent_id == "support_agent"
     assert registry.active_agent_for_intent(plan.intent) == "support_agent"
+
+
+@pytest.mark.asyncio
+async def test_plan_executor_uses_the_injected_registry_for_custom_agents() -> None:
+    bundle = AgentBundle(
+        agent_id="support_agent",
+        version="2.3.4",
+        description="Test-only support agent.",
+        capabilities=("support.answer",),
+    )
+    registry = AgentRegistry((bundle,))
+
+    class Dispatcher:
+        async def dispatch(self, message: AgentMessage) -> AgentResult:
+            return AgentResult(
+                task_id=message.task_id,
+                agent_id=message.target,
+                status=TaskStatus.SUCCESS,
+            )
+
+    executor = PlanExecutor(
+        Dispatcher(),
+        Telemetry(),
+        registry=registry,
+    )  # type: ignore[arg-type]
+    context = ExecutionContext.create(
+        principal_id="test-principal",
+        session_id="sess_executor_123",
+    )
+    plan = ExecutionPlan(
+        plan_id="plan_executor_123",
+        intent="support.answer",
+        steps=(
+            ExecutionStep(
+                step_id="step_support",
+                agent_id="support_agent",
+                action="support.answer",
+            ),
+        ),
+    )
+
+    results = await executor.execute(plan, context)
+
+    assert results[0].status == TaskStatus.SUCCESS
+
+
+def test_custom_agent_gateway_requires_matching_skill_registry() -> None:
+    registry = AgentRegistry(
+        (
+            AgentBundle(
+                agent_id="support_agent",
+                version="1.0.0",
+                description="Test-only support agent.",
+                capabilities=("support.answer",),
+                skills=("support_answer",),
+                permissions=frozenset({"support.read"}),
+                mcp_servers=frozenset({"support_db"}),
+            ),
+        )
+    )
+
+    with pytest.raises(ValueError, match="requires an explicit SkillRegistry"):
+        AgentGateway(router=MCPRouter(), registry=registry)
 
 
 @pytest.mark.asyncio

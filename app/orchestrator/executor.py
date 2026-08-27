@@ -20,16 +20,23 @@ from app.orchestrator.progress import (
     ProgressCallback,
     emit_progress,
 )
-from app.registry import default_registry
+from app.registry import AgentRegistry, default_registry
 from app.shared import ExecutionContext, Telemetry
 
 
 class PlanExecutor:
     """Execute ready DAG steps concurrently and bind upstream product IDs."""
 
-    def __init__(self, dispatcher: AgentDispatcher, telemetry: Telemetry) -> None:
+    def __init__(
+        self,
+        dispatcher: AgentDispatcher,
+        telemetry: Telemetry,
+        *,
+        registry: AgentRegistry = default_registry,
+    ) -> None:
         self.dispatcher = dispatcher
         self.telemetry = telemetry
+        self.registry = registry
 
     async def execute(
         self,
@@ -94,7 +101,7 @@ class PlanExecutor:
                 duration_ms=0,
                 attributes={
                     "target_agent": step.agent_id,
-                    "agent_version": default_registry.get(step.agent_id).version,
+                    "agent_version": self.registry.get(step.agent_id).version,
                 },
             )
             await self._emit_completion(progress, step, result)
@@ -136,7 +143,7 @@ class PlanExecutor:
             operation=step.action,
             outcome=result.status.value,
             duration_ms=(perf_counter() - started_at) * 1_000,
-            attributes={"agent_version": default_registry.get(step.agent_id).version},
+            attributes={"agent_version": self.registry.get(step.agent_id).version},
         )
         await self._emit_completion(progress, step, result)
         return result
