@@ -21,6 +21,8 @@ x-app-environment: &app-environment
   LEGACY_CHAT_ENABLED: "false"
   OPENAI_API_KEY: ${OPENAI_API_KEY:-}
   OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
+  MODEL_RUNTIME_MODE: ${MODEL_RUNTIME_MODE:-hybrid}
+  EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-auto}
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
 
 x-app-common: &app-common

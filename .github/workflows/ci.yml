@@ -146,6 +146,8 @@ jobs:
       GATEWAY_PRINCIPAL_POLICIES: ci:default:ecommerce.read
       OPERATIONS_API_KEY: ci-operations-secret-123456
       QDRANT_API_KEY: ci-qdrant-secret-123456
+      MODEL_RUNTIME_MODE: off
+      EMBEDDING_BACKEND: hashing
       APP_IMAGE_TAG: ci
       CI_BASE_URL: http://127.0.0.1:8000
       CI_GATEWAY_KEY: ci-gateway-secret-123456
