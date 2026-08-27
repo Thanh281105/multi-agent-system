@@ -167,6 +167,9 @@ export function useChatController(
         onStatus: (status) => {
           dispatch({ type: "request.status", generation, status })
         },
+        onToken: (token) => {
+          dispatch({ type: "request.token", generation, token })
+        },
       })
       if (generation !== generationRef.current) return "cancelled"
       dispatch({

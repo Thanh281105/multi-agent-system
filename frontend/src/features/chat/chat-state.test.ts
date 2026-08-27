@@ -7,7 +7,7 @@ import {
   selectWorkspaceState,
   type ChatFailure,
 } from "@/features/chat/chat-state"
-import { completedResponse, statusEvent } from "@/test/fixtures"
+import { completedResponse, statusEvent, tokenEvent } from "@/test/fixtures"
 
 const userMessage = {
   id: "message-user-1",
@@ -73,6 +73,40 @@ describe("chatReducer", () => {
       text: completedResponse.answer,
     })
     expect(lateFailure).toBe(completed)
+  })
+
+  it("appends ordered answer deltas and ignores stale generations", () => {
+    const started = chatReducer(createReadyState(), {
+      type: "request.started",
+      generation: 2,
+      message: userMessage,
+    })
+    const firstDelta = chatReducer(started, {
+      type: "request.token",
+      generation: 2,
+      token: tokenEvent,
+    })
+    const staleDelta = chatReducer(firstDelta, {
+      type: "request.token",
+      generation: 1,
+      token: { ...tokenEvent, sequence: 3, delta: "stale" },
+    })
+    const secondDelta = chatReducer(firstDelta, {
+      type: "request.token",
+      generation: 2,
+      token: { ...tokenEvent, sequence: 3, delta: "phù hợp." },
+    })
+
+    expect(firstDelta.request).toMatchObject({
+      phase: "streaming",
+      answer: "Tai nghe ",
+      lastSequence: 2,
+    })
+    expect(staleDelta).toBe(firstDelta)
+    expect(secondDelta.request).toMatchObject({
+      answer: "Tai nghe phù hợp.",
+      lastSequence: 3,
+    })
   })
 
   it("increments the generation on cancellation so late work is stale", () => {

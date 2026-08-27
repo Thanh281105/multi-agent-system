@@ -3,13 +3,14 @@ import { describe, expect, it, vi } from "vitest"
 
 import { useChatController } from "@/features/chat/use-chat-controller"
 import { GatewayClientError } from "@/lib/gateway-stream"
-import { completedResponse, statusEvent } from "@/test/fixtures"
+import { completedResponse, statusEvent, tokenEvent } from "@/test/fixtures"
 
 describe("useChatController", () => {
   it("keeps credentials in memory while persisting only session and history", async () => {
     const storage = createStorage()
     const send = vi.fn(async (request) => {
       request.onStatus?.(statusEvent)
+      request.onToken?.(tokenEvent)
       return completedResponse
     })
     const ids = createIds()
@@ -31,6 +32,7 @@ describe("useChatController", () => {
         apiKey: "gateway-secret",
         message: "Tìm tai nghe",
         sessionId: null,
+        onToken: expect.any(Function),
       }),
     )
     expect(result.current.state.request.phase).toBe("completed")

@@ -103,6 +103,7 @@ describe("EvidenceAtlas", () => {
         phase: "streaming",
         generation: 2,
         statuses: [statusEvent],
+        answer: "Tai nghe ",
         lastSequence: 1,
       },
     }
@@ -111,6 +112,7 @@ describe("EvidenceAtlas", () => {
     )
 
     expect(screen.getByText("Đã tiếp nhận")).toBeInTheDocument()
+    expect(screen.getByText(/Tai nghe/)).toBeInTheDocument()
     fireEvent.click(
       screen.getByRole("button", { name: "Dừng yêu cầu đang chạy" }),
     )
@@ -210,6 +212,7 @@ describe("EvidenceAtlas", () => {
         phase: "streaming",
         generation: 1,
         statuses: [statusEvent],
+        answer: "",
         lastSequence: 1,
       },
     }

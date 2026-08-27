@@ -70,8 +70,10 @@ Chi tiết: [kiến trúc](docs/architecture.md), [API](docs/api.md),
   còn Python render fact, claim text và citation.
 - Market Agent dùng thống kê PostgreSQL và market notes mẫu qua Qdrant.
 - Session/follow-up có ownership theo principal, TTL và khóa lượt phân tán Redis.
-- Streaming SSE có progress thật, heartbeat, terminal `completed`/`error` duy
-  nhất và hỗ trợ client cancellation.
+- Streaming SSE có progress thật, delta câu trả lời theo từng token-like chunk,
+  heartbeat, terminal `completed`/`error` duy nhất và hỗ trợ client
+  cancellation. Delta chỉ được phát sau khi câu trả lời grounded đã hoàn tất
+  để giữ nguyên ranh giới bằng chứng.
 - Web client responsive, CSP chặt, DOM rendering an toàn, API key chỉ giữ trong
   memory của trang và evidence rail hiển thị executions/provenance.
 - `/livez`; production `/readyz` kiểm tra migration hiện hành, Redis và

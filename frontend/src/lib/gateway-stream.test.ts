@@ -14,6 +14,7 @@ import {
   encodeTestEvent,
   errorResponse,
   statusEvent,
+  tokenEvent,
 } from "@/test/fixtures"
 
 describe("SseFrameDecoder", () => {
@@ -139,15 +140,32 @@ describe("gateway stream client", () => {
 
   it("delivers ordered status and returns a completed payload", async () => {
     const onStatus = vi.fn()
+    const onToken = vi.fn()
     const response = textStreamResponse(
       encodeTestEvent("status", statusEvent) +
+        encodeTestEvent("token", tokenEvent) +
         encodeTestEvent("completed", completedResponse),
     )
 
-    const result = await readGatewayStream(response, onStatus)
+    const result = await readGatewayStream(response, onStatus, onToken)
 
     expect(onStatus).toHaveBeenCalledWith(statusEvent)
+    expect(onToken).toHaveBeenCalledWith(tokenEvent)
     expect(result).toEqual(completedResponse)
+  })
+
+  it("rejects non-increasing token sequences", async () => {
+    const duplicateToken = { ...tokenEvent, delta: "again" }
+
+    await expect(
+      readGatewayStream(
+        textStreamResponse(
+          encodeTestEvent("status", statusEvent) +
+            encodeTestEvent("token", tokenEvent) +
+            encodeTestEvent("token", duplicateToken),
+        ),
+      ),
+    ).rejects.toMatchObject({ code: "gateway.invalid_token_sequence" })
   })
 
   it("converts a streamed error into a correlated client error", async () => {

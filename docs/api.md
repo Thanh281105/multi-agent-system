@@ -102,13 +102,17 @@ status: routing.completed
 status: planning.completed
 status: agent.started / agent.completed (0..n)
 status: aggregation.completed
+token: {"sequence":...,"delta":"...","request_id":"...","trace_id":"..."} (0..n)
 completed: GatewayChatResponse
 ```
 
 Khi lỗi sau lúc stream đã mở, terminal event là `error` chứa cùng error envelope
 v1. Idle stream gửi comment `: heartbeat` mỗi 10 giây. Mỗi status event có
 `sequence`, correlation IDs và, nếu có, step/agent/status. Server gửi đúng một
-terminal event; client nên ngừng đọc ngay sau `completed` hoặc `error`.
+terminal event; client nên ngừng đọc ngay sau `completed` hoặc `error`. Các
+`token` event mang delta nhỏ của câu trả lời đã được grounded, được phát sau
+khi orchestration hoàn tất để giao diện hiển thị dần mà không tạo thêm nội dung
+ngoài bằng chứng.
 
 Ví dụ:
 
@@ -117,6 +121,9 @@ id: req_abc:1
 retry: 3000
 event: status
 data: {"sequence":1,"phase":"request.accepted",...}
+
+event: token
+data: {"sequence":8,"delta":"Tai ","request_id":"req_abc",...}
 
 event: completed
 data: {"api_version":"v1",...}

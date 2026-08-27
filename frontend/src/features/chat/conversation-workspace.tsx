@@ -82,6 +82,8 @@ export function ConversationWorkspace({
   const wasStreaming = useRef(streaming)
   const statuses =
     state.request.phase === "streaming" ? state.request.statuses : []
+  const streamingAnswer =
+    state.request.phase === "streaming" ? state.request.answer : ""
   const result =
     state.request.phase === "completed" ? state.request.result : undefined
 
@@ -215,7 +217,9 @@ export function ConversationWorkspace({
                 />
               )}
 
-              {streaming ? <StreamingMessage statuses={statuses} /> : null}
+              {streaming ? (
+                <StreamingMessage answer={streamingAnswer} statuses={statuses} />
+              ) : null}
 
               {result ? (
                 <ResultNotice
@@ -501,8 +505,13 @@ function MessageList({
 }
 
 function StreamingMessage({
+  answer,
   statuses,
 }: {
+  answer: Extract<
+    ChatController["state"]["request"],
+    { phase: "streaming" }
+  >["answer"]
   statuses: Extract<
     ChatController["state"]["request"],
     { phase: "streaming" }
@@ -542,6 +551,15 @@ function StreamingMessage({
                   ? friendlyAgent(current.agent_id)
                   : current?.message}
               </p>
+              {answer ? (
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-7">
+                  {answer}
+                  <span
+                    aria-hidden="true"
+                    className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-primary align-[-0.15em]"
+                  />
+                </p>
+              ) : null}
               {statuses.length ? (
                 <ol className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
                   {statuses.map((status) => (

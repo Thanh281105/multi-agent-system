@@ -1,6 +1,7 @@
 import type {
   GatewayChatResponse,
   GatewayStatusEvent,
+  GatewayTokenEvent,
 } from "@/lib/contracts"
 
 export interface ChatMessage {
@@ -24,6 +25,7 @@ export type ChatRequestState =
       phase: "streaming"
       generation: number
       statuses: GatewayStatusEvent[]
+      answer: string
       lastSequence: number
     }
   | {
@@ -74,6 +76,11 @@ export type ChatAction =
       type: "request.status"
       generation: number
       status: GatewayStatusEvent
+    }
+  | {
+      type: "request.token"
+      generation: number
+      token: GatewayTokenEvent
     }
   | {
       type: "request.completed"
@@ -131,6 +138,7 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         phase: "streaming",
         generation: action.generation,
         statuses: [],
+        answer: "",
         lastSequence: 0,
       },
       messages: [...state.messages, action.message],
@@ -162,6 +170,23 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...state.request,
         statuses: [...state.request.statuses, action.status],
         lastSequence: action.status.sequence,
+      },
+    }
+  }
+
+  if (action.type === "request.token") {
+    if (
+      state.request.phase !== "streaming" ||
+      action.token.sequence <= state.request.lastSequence
+    ) {
+      return state
+    }
+    return {
+      ...state,
+      request: {
+        ...state.request,
+        answer: state.request.answer + action.token.delta,
+        lastSequence: action.token.sequence,
       },
     }
   }

@@ -2,6 +2,7 @@ import type {
   GatewayChatResponse,
   GatewayErrorResponse,
   GatewayStatusEvent,
+  GatewayTokenEvent,
 } from "@/lib/contracts"
 
 export const statusEvent: GatewayStatusEvent = {
@@ -13,6 +14,13 @@ export const statusEvent: GatewayStatusEvent = {
   step_id: null,
   agent_id: null,
   status: "running",
+}
+
+export const tokenEvent: GatewayTokenEvent = {
+  sequence: 2,
+  delta: "Tai nghe ",
+  request_id: "req_test_123",
+  trace_id: "trace_test_123",
 }
 
 export const completedResponse: GatewayChatResponse = {
@@ -92,7 +100,7 @@ export const errorResponse: GatewayErrorResponse = {
 }
 
 export function encodeTestEvent(
-  event: "status" | "completed" | "error",
+  event: "status" | "token" | "completed" | "error",
   data: unknown,
   options: { id?: string; retry?: number; newline?: "\n" | "\r\n" } = {},
 ): string {

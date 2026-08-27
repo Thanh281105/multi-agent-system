@@ -2,9 +2,11 @@ import {
   gatewayChatResponseSchema,
   gatewayErrorResponseSchema,
   gatewayStatusEventSchema,
+  gatewayTokenEventSchema,
   type GatewayChatResponse,
   type GatewayErrorDetail,
   type GatewayStatusEvent,
+  type GatewayTokenEvent,
   type GatewayStreamEvent,
 } from "@/lib/contracts"
 
@@ -17,6 +19,7 @@ export interface GatewayRequest {
   apiKey: string
   signal: AbortSignal
   onStatus?: (event: GatewayStatusEvent) => void
+  onToken?: (event: GatewayTokenEvent) => void
   fetchImpl?: typeof fetch
 }
 
@@ -185,6 +188,12 @@ export function parseGatewayFrame(frame: RawSseFrame): GatewayStreamEvent | null
     return { type: "completed", data: parsed.data, ...metadata }
   }
 
+  if (frame.event === "token") {
+    const parsed = gatewayTokenEventSchema.safeParse(payload)
+    if (!parsed.success) throw protocolError("gateway.invalid_token_event")
+    return { type: "token", data: parsed.data, ...metadata }
+  }
+
   if (frame.event === "error") {
     const parsed = gatewayErrorResponseSchema.safeParse(payload)
     if (!parsed.success) throw protocolError("gateway.invalid_error_event")
@@ -233,12 +242,13 @@ export async function sendGatewayMessage(
   }
 
   if (!response.ok) throw await parseHttpError(response)
-  return readGatewayStream(response, request.onStatus)
+  return readGatewayStream(response, request.onStatus, request.onToken)
 }
 
 export async function readGatewayStream(
   response: Response,
   onStatus?: (event: GatewayStatusEvent) => void,
+  onToken?: (event: GatewayTokenEvent) => void,
 ): Promise<GatewayChatResponse> {
   const contentType = response.headers.get("content-type") ?? ""
   if (!contentType.toLowerCase().startsWith("text/event-stream")) {
@@ -281,12 +291,17 @@ export async function readGatewayStream(
         correlation.trace_id,
       )
 
-      if (event.type === "status") {
+      if (event.type === "status" || event.type === "token") {
         if (event.data.sequence <= lastSequence) {
-          throw protocolError("gateway.invalid_status_sequence")
+          throw protocolError(
+            event.type === "status"
+              ? "gateway.invalid_status_sequence"
+              : "gateway.invalid_token_sequence",
+          )
         }
         lastSequence = event.data.sequence
-        onStatus?.(event.data)
+        if (event.type === "status") onStatus?.(event.data)
+        else onToken?.(event.data)
         continue
       }
 

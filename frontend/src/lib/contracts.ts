@@ -102,6 +102,15 @@ export const gatewayStatusEventSchema = z
   })
   .strict()
 
+export const gatewayTokenEventSchema = z
+  .object({
+    sequence: z.number().int().positive(),
+    delta: z.string().min(1),
+    request_id: z.string().min(1),
+    trace_id: z.string().min(1),
+  })
+  .strict()
+
 export type TaskStatus = z.infer<typeof taskStatusSchema>
 export type AgentExecution = z.infer<typeof agentExecutionSchema>
 export type Provenance = z.infer<typeof provenanceSchema>
@@ -110,6 +119,7 @@ export type GatewayChatResponse = z.infer<typeof gatewayChatResponseSchema>
 export type GatewayErrorDetail = z.infer<typeof gatewayErrorDetailSchema>
 export type GatewayErrorResponse = z.infer<typeof gatewayErrorResponseSchema>
 export type GatewayStatusEvent = z.infer<typeof gatewayStatusEventSchema>
+export type GatewayTokenEvent = z.infer<typeof gatewayTokenEventSchema>
 
 export type GatewayStreamEvent =
   | {
@@ -117,6 +127,12 @@ export type GatewayStreamEvent =
       id?: string
       retry?: number
       data: GatewayStatusEvent
+    }
+  | {
+      type: "token"
+      id?: string
+      retry?: number
+      data: GatewayTokenEvent
     }
   | {
       type: "completed"

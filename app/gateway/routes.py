@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from contextlib import suppress
 from typing import Annotated
 
@@ -25,6 +25,7 @@ from app.gateway.schemas import (
     GatewayErrorDetail,
     GatewayErrorResponse,
     GatewayStatusEvent,
+    GatewayTokenEvent,
     build_chat_response,
 )
 from app.gateway.sse import encode_sse, heartbeat
@@ -219,10 +220,24 @@ async def _stream_turn(
 
         try:
             result = await task
+            response = build_chat_response(result)
+            for delta in _answer_chunks(response.answer):
+                sequence += 1
+                yield encode_sse(
+                    "token",
+                    GatewayTokenEvent(
+                        sequence=sequence,
+                        delta=delta,
+                        request_id=request_id,
+                        trace_id=trace_id,
+                    ),
+                    event_id=f"{request_id}:{sequence}",
+                )
+                await asyncio.sleep(0.008)
             sequence += 1
             yield encode_sse(
                 "completed",
-                build_chat_response(result),
+                response,
                 event_id=f"{request_id}:{sequence}",
             )
         except GatewayAPIError as exc:
@@ -259,6 +274,13 @@ async def _stream_turn(
             task.cancel()
             with suppress(asyncio.CancelledError):
                 await task
+
+
+def _answer_chunks(answer: str, *, chunk_size: int = 4) -> Iterator[str]:
+    """Split the already-grounded answer into small UTF-8-safe UI deltas."""
+
+    for start in range(0, len(answer), chunk_size):
+        yield answer[start : start + chunk_size]
 
 
 def _validate_existing_session(

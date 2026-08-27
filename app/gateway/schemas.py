@@ -136,6 +136,17 @@ class GatewayStatusEvent(BaseModel):
     status: TaskStatus | None = None
 
 
+class GatewayTokenEvent(BaseModel):
+    """One ordered answer delta emitted after grounded orchestration."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    sequence: int = Field(ge=1)
+    delta: str = Field(min_length=1)
+    request_id: str
+    trace_id: str
+
+
 def build_chat_response(result: OrchestrationResult) -> GatewayChatResponse:
     """Project internal orchestration details onto a stable public contract."""
 

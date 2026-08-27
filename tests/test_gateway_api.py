@@ -281,6 +281,7 @@ def test_sse_streams_real_progress_and_exactly_one_terminal_event() -> None:
     events = parse_sse(stream_text)
     event_names = [event["event"] for event in events]
     status_payloads = [event["data"] for event in events if event["event"] == "status"]
+    token_payloads = [event["data"] for event in events if event["event"] == "token"]
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
@@ -288,6 +289,7 @@ def test_sse_streams_real_progress_and_exactly_one_terminal_event() -> None:
     assert response.headers["x-accel-buffering"] == "no"
     assert event_names[-1] == "completed"
     assert sum(name in {"completed", "error"} for name in event_names) == 1
+    assert token_payloads
     assert {payload["phase"] for payload in status_payloads} >= {
         "request.accepted",
         "routing.completed",
@@ -298,10 +300,21 @@ def test_sse_streams_real_progress_and_exactly_one_terminal_event() -> None:
     }
     sequences = [payload["sequence"] for payload in status_payloads]
     assert sequences == sorted(sequences)
+    token_sequences = [payload["sequence"] for payload in token_payloads]
+    assert token_sequences == sorted(token_sequences)
+    assert min(token_sequences) > max(sequences)
     completed = events[-1]["data"]
     assert completed["status"] == "success"
     assert completed["request_id"] == response.headers["X-Request-ID"]
     assert completed["trace_id"] == response.headers["X-Trace-ID"]
+    assert (
+        "".join(payload["delta"] for payload in token_payloads) == completed["answer"]
+    )
+    assert all(
+        payload["request_id"] == response.headers["X-Request-ID"]
+        and payload["trace_id"] == response.headers["X-Trace-ID"]
+        for payload in token_payloads
+    )
     assert "agent_results" not in stream_text
 
 
