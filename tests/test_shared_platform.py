@@ -88,6 +88,7 @@ def test_execution_context_binding_is_scoped() -> None:
         principal_id="user-a",
         session_id="sess_context_123",
     )
+    assert context.authorization.scopes == frozenset()
     assert current_execution_context() is None
 
     with bind_execution_context(context):

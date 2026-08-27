@@ -5,6 +5,10 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
+from app.gateway.authorization import (
+    PrincipalAuthorizationNotFoundError,
+    PrincipalAuthorizationRegistry,
+)
 from app.gateway.errors import GatewayAPIError
 from app.gateway.rate_limit import InboundRateLimiter
 from app.gateway.security import APIKeyAuthenticator
@@ -32,6 +36,37 @@ def test_api_key_authenticator_rejects_invalid_startup_configuration(
 ) -> None:
     with pytest.raises(ValueError):
         APIKeyAuthenticator(configuration)
+
+
+def test_principal_authorization_registry_resolves_explicit_tenant_and_scopes() -> None:
+    registry = PrincipalAuthorizationRegistry.from_configuration(
+        "alice:tenant-a:ecommerce.read|analytics.read,bob:tenant-b:"
+    )
+
+    alice = registry.resolve("alice")
+    bob = registry.resolve("bob")
+
+    assert alice.tenant_id == "tenant-a"
+    assert alice.scopes == frozenset({"ecommerce.read", "analytics.read"})
+    assert bob.tenant_id == "tenant-b"
+    assert bob.scopes == frozenset()
+    with pytest.raises(PrincipalAuthorizationNotFoundError):
+        registry.resolve("unknown")
+
+
+@pytest.mark.parametrize(
+    "configuration",
+    [
+        "alice:tenant-a",
+        "alice:tenant-a:not a scope",
+        "alice:tenant-a:ecommerce.read,alice:tenant-b:ecommerce.read",
+    ],
+)
+def test_principal_authorization_registry_rejects_invalid_configuration(
+    configuration: str,
+) -> None:
+    with pytest.raises(ValueError):
+        PrincipalAuthorizationRegistry.from_configuration(configuration)
 
 
 def test_rate_limiter_is_atomic_per_principal_and_resets() -> None:

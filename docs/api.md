@@ -12,6 +12,11 @@ X-API-Key: <secret>
 không được gửi từ client. Gateway ánh xạ secret sang principal bằng
 constant-time comparison, sau đó áp dụng per-principal rate limit.
 
+Quyền không suy ra từ `principal_id`. `GATEWAY_PRINCIPAL_POLICIES` phải khai báo
+policy tin cậy theo format `principal:tenant:scope1|scope2`; principal đã xác
+thực nhưng chưa có policy bị từ chối với HTTP 403. Tenant và scope trong policy
+được truyền nguyên vẹn qua A2A tới Agent Gateway để kiểm tra `required_user_scope`.
+
 Client có thể gửi `X-Request-ID` theo pattern
 `req_[a-zA-Z0-9_-]{3,120}`. Giá trị sai pattern bị thay bằng ID server sinh.
 `X-Trace-ID` luôn do server sinh. Cả hai được trả ở response headers và body.
@@ -141,6 +146,7 @@ data: {"api_version":"v1",...}
 | HTTP | Code điển hình | Retry |
 | ---: | --- | --- |
 | 401 | `gateway.authentication_failed` | Không, sửa credential |
+| 403 | `gateway.authorization_not_configured` | Không, cấp policy cho principal |
 | 404 | `gateway.session_not_found` | Không, tạo session mới |
 | 409 | `gateway.session_busy` | Có, backoff |
 | 422 | `gateway.validation_failed` | Không, sửa payload |

@@ -42,7 +42,10 @@ def gateway_request(**overrides: Any) -> GatewayRequest:
         "task_id": "task_platform",
         "request_id": "req_platform",
         "trace_id": "trace_platform",
-        "authorization": {"principal_id": "test-principal"},
+        "authorization": {
+            "principal_id": "test-principal",
+            "scopes": ["ecommerce.read"],
+        },
         "action": "product.search",
         "server_id": "product_db",
         "tool_name": "search_products",
@@ -352,7 +355,10 @@ async def test_agent_gateway_enforces_atomic_per_agent_rate_limit() -> None:
     )
     request = gateway_request(
         agent_id="limited_agent",
-        authorization=AuthorizationContext(principal_id="test-principal"),
+        authorization=AuthorizationContext(
+            principal_id="test-principal",
+            scopes=frozenset({"ecommerce.read"}),
+        ),
         arguments={},
     )
 

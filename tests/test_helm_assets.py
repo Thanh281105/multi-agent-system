@@ -44,6 +44,7 @@ def test_chart_profiles_are_explicit_and_never_contain_plaintext_secrets() -> No
         "qdrantUrl": "http://ecommerce-multi-agent-qdrant:6333",
         "modelRuntimeMode": "off",
         "embeddingBackend": "hashing",
+        "gatewayPrincipalPolicies": "kind:default:ecommerce.read",
     }
     assert "kind: Secret" not in templates
     assert "stringData:" not in templates

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 from fastapi import Header, Request
 
+from app.contracts import AuthorizationContext
+from app.gateway.authorization import PrincipalAuthorizationNotFoundError
 from app.gateway.errors import GatewayAPIError
 from app.gateway.rate_limit import RateLimitDecision
 from app.gateway.runtime import GatewayRuntime
@@ -15,6 +17,7 @@ from app.gateway.runtime import GatewayRuntime
 class PrincipalContext:
     principal_id: str
     rate_limit: RateLimitDecision
+    authorization: AuthorizationContext
 
 
 def get_runtime(request: Request) -> GatewayRuntime:
@@ -54,4 +57,17 @@ async def authorize_request(
             retryable=True,
             retry_after_seconds=decision.retry_after_seconds,
         )
-    return PrincipalContext(principal_id=principal_id, rate_limit=decision)
+    try:
+        authorization = runtime.authorization_registry.resolve(principal_id)
+    except PrincipalAuthorizationNotFoundError:
+        raise GatewayAPIError(
+            status_code=403,
+            code="gateway.authorization_not_configured",
+            message="Principal chưa được cấp policy truy cập.",
+        ) from None
+    request.state.authorization = authorization
+    return PrincipalContext(
+        principal_id=principal_id,
+        rate_limit=decision,
+        authorization=authorization,
+    )

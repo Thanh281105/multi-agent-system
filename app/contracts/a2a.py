@@ -63,7 +63,7 @@ class AuthorizationContext(BaseModel):
 
     principal_id: str = Field(min_length=1, max_length=160)
     tenant_id: str = Field(default="default", pattern=IDENTIFIER_PATTERN)
-    scopes: frozenset[str] = frozenset({"ecommerce.read"})
+    scopes: frozenset[str] = frozenset()
 
 
 class AgentMessage(BaseModel):

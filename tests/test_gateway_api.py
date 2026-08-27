@@ -70,6 +70,34 @@ def test_gateway_rejects_missing_or_invalid_credentials_without_state(
     assert runtime.orchestrator.sessions.count() == 0
 
 
+def test_gateway_uses_external_principal_policy_and_fails_closed_when_missing() -> None:
+    application = create_app(
+        build_test_settings(gateway_principal_policies="alice:tenant-a:ecommerce.read")
+    )
+    client = TestClient(application)
+
+    allowed = client.post(
+        "/api/v1/chat",
+        headers=ALICE_HEADERS,
+        json={"message": "Tìm tai nghe dưới 1 triệu"},
+    )
+    missing_policy = client.post(
+        "/api/v1/chat",
+        headers=BOB_HEADERS,
+        json={"message": "Tìm tai nghe dưới 1 triệu"},
+    )
+
+    assert allowed.status_code == 200
+    assert {
+        record.tenant_id
+        for record in application.state.gateway_runtime.agent_gateway.audit_records()
+    } == {"tenant-a"}
+    assert missing_policy.status_code == 403
+    assert missing_policy.json()["error"]["code"] == (
+        "gateway.authorization_not_configured"
+    )
+
+
 def test_gateway_throttles_repeated_authentication_failures() -> None:
     application = create_app(build_test_settings(gateway_auth_attempt_requests=1))
     client = TestClient(application)
@@ -431,6 +459,9 @@ def build_test_settings(**overrides: object) -> Settings:
     values: dict[str, object] = {
         "app_env": "test",
         "gateway_api_keys": ("alice:alice-secret-key,bob:bob-secret-key"),
+        "gateway_principal_policies": (
+            "alice:tenant-alice:ecommerce.read,bob:tenant-bob:ecommerce.read"
+        ),
         "gateway_rate_limit_requests": 10,
         "gateway_rate_limit_window_seconds": 60,
         "legacy_chat_enabled": True,

@@ -74,6 +74,7 @@
         "qdrantCollection": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,128}$"},
         "modelRuntimeMode": {"enum": ["off", "shadow", "hybrid", "required"]},
         "embeddingBackend": {"enum": ["auto", "hashing", "openai"]},
+        "gatewayPrincipalPolicies": {"type": "string", "minLength": 1},
         "redisKeyPrefix": {"type": "string", "pattern": "^[A-Za-z0-9:_-]{1,64}$"},
         "sessionTtlSeconds": {"type": "integer", "minimum": 60, "maximum": 2592000},
         "gatewayRateLimitRequests": {"type": "integer", "minimum": 1, "maximum": 100000},

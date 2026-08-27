@@ -30,7 +30,10 @@ async def test_public_snapshot_provenance_reaches_product_agent() -> None:
             session_id="sess_public_provenance",
             request_id="req_public_provenance",
             trace_id="trace_public_provenance",
-            authorization=AuthorizationContext(principal_id="test-principal"),
+            authorization=AuthorizationContext(
+                principal_id="test-principal",
+                scopes=frozenset({"ecommerce.read"}),
+            ),
             source="orchestrator",
             target="product_agent",
             action="product.search",

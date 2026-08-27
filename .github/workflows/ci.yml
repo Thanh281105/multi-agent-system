@@ -127,6 +127,7 @@ jobs:
           POSTGRES_PASSWORD: ci-postgres-password
           REDIS_PASSWORD: ci-redis-password
           GATEWAY_API_KEYS: ci:ci-gateway-secret-123456
+          GATEWAY_PRINCIPAL_POLICIES: ci:default:ecommerce.read
           OPERATIONS_API_KEY: ci-operations-secret-123456
           QDRANT_API_KEY: ci-qdrant-secret-123456
         run: docker compose -f compose.yaml config --quiet
@@ -142,6 +143,7 @@ jobs:
       POSTGRES_PASSWORD: ci-postgres-password
       REDIS_PASSWORD: ci-redis-password
       GATEWAY_API_KEYS: ci:ci-gateway-secret-123456
+      GATEWAY_PRINCIPAL_POLICIES: ci:default:ecommerce.read
       OPERATIONS_API_KEY: ci-operations-secret-123456
       QDRANT_API_KEY: ci-qdrant-secret-123456
       APP_IMAGE_TAG: ci

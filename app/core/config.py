@@ -30,6 +30,10 @@ class Settings(BaseSettings):
         default=SecretStr("demo:demo-local-key"),
         validation_alias="GATEWAY_API_KEYS",
     )
+    gateway_principal_policies: str = Field(
+        default="demo:default:ecommerce.read",
+        validation_alias="GATEWAY_PRINCIPAL_POLICIES",
+    )
     operations_api_key: SecretStr = Field(
         default=SecretStr(""),
         validation_alias="OPERATIONS_API_KEY",

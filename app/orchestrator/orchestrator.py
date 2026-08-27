@@ -5,7 +5,7 @@ from __future__ import annotations
 from time import perf_counter
 
 from app.agents import AgentDispatcher
-from app.contracts import AgentResult
+from app.contracts import AgentResult, AuthorizationContext
 from app.orchestrator.aggregator import ResultAggregator
 from app.orchestrator.executor import PlanExecutor
 from app.orchestrator.planner import ExecutionPlanner
@@ -67,13 +67,19 @@ class MultiAgentOrchestrator:
         session_id: str | None = None,
         request_id: str | None = None,
         trace_id: str | None = None,
+        authorization: AuthorizationContext | None = None,
         progress: ProgressCallback | None = None,
     ) -> OrchestrationResult:
         started_at = perf_counter()
         session = self.sessions.create(owner_id=principal_id, session_id=session_id)
+        effective_authorization = authorization or AuthorizationContext(
+            principal_id=principal_id,
+            scopes=frozenset({"ecommerce.read"}),
+        )
         context = ExecutionContext.create(
             principal_id=principal_id,
             session_id=session.session_id,
+            authorization=effective_authorization,
             request_id=request_id,
             trace_id=trace_id,
         )

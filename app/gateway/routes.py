@@ -11,7 +11,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 
-from app.contracts import TaskStatus
+from app.contracts import AuthorizationContext, TaskStatus
 from app.gateway.dependencies import (
     PrincipalContext,
     authorize_request,
@@ -56,6 +56,7 @@ async def multi_agent_chat(
         runtime=runtime,
         payload=payload,
         principal_id=principal.principal_id,
+        authorization=principal.authorization,
         request_id=request.state.request_id,
         trace_id=request.state.trace_id,
     )
@@ -77,6 +78,7 @@ async def multi_agent_chat_stream(
             runtime=runtime,
             payload=payload,
             principal_id=principal.principal_id,
+            authorization=principal.authorization,
             request_id=request.state.request_id,
             trace_id=request.state.trace_id,
         ),
@@ -93,6 +95,7 @@ async def _execute_turn(
     runtime: GatewayRuntime,
     payload: GatewayChatRequest,
     principal_id: str,
+    authorization: AuthorizationContext,
     request_id: str,
     trace_id: str,
     progress: ProgressCallback | None = None,
@@ -104,6 +107,7 @@ async def _execute_turn(
                 result = await runtime.orchestrator.run(
                     message=payload.message,
                     principal_id=principal_id,
+                    authorization=authorization,
                     session_id=payload.session_id,
                     request_id=request_id,
                     trace_id=trace_id,
@@ -148,6 +152,7 @@ async def _stream_turn(
     runtime: GatewayRuntime,
     payload: GatewayChatRequest,
     principal_id: str,
+    authorization: AuthorizationContext,
     request_id: str,
     trace_id: str,
 ) -> AsyncIterator[str]:
@@ -163,6 +168,7 @@ async def _stream_turn(
                 runtime=runtime,
                 payload=payload,
                 principal_id=principal_id,
+                authorization=authorization,
                 request_id=request_id,
                 trace_id=trace_id,
                 progress=on_progress,

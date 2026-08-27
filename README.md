@@ -100,6 +100,8 @@ Các giá trị tối thiểu phải thay:
   connection URL.
 - `GATEWAY_API_KEYS`: `principal:secret[,principal:secret]`; client chỉ gửi phần
   `secret` trong `X-API-Key`.
+- `GATEWAY_PRINCIPAL_POLICIES`: policy quyền tin cậy theo format
+  `principal:tenant:scope1|scope2`; không cấu hình mặc định scope cho mọi principal.
 - `OPERATIONS_API_KEY`: secret riêng cho metrics/traces/audit, tối thiểu 16 ký tự.
 - `QDRANT_API_KEY`: secret không phải placeholder, tối thiểu 16 ký tự.
 
@@ -162,6 +164,7 @@ Pop-Location
 $env:APP_ENV = "development"
 $env:DATABASE_URL = "sqlite+pysqlite:///./local-sample.db"
 $env:GATEWAY_API_KEYS = "demo:demo-local-key"
+$env:GATEWAY_PRINCIPAL_POLICIES = "demo:default:ecommerce.read"
 $env:SHARED_STATE_BACKEND = "memory"
 $env:KNOWLEDGE_BACKEND = "static"
 $env:LEGACY_CHAT_ENABLED = "true"

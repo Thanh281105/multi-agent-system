@@ -37,14 +37,21 @@ class ExecutionContext:
         request_id: str | None = None,
         trace_id: str | None = None,
     ) -> ExecutionContext:
+        effective_authorization = authorization or AuthorizationContext(
+            principal_id=principal_id,
+            scopes=frozenset(),
+        )
+        if effective_authorization.principal_id != principal_id:
+            raise ValueError(
+                "authorization principal does not match execution principal"
+            )
         return cls(
             principal_id=principal_id,
             request_id=request_id or _new_id("req"),
             trace_id=trace_id or _new_id("trace"),
             session_id=session_id,
             task_id=_new_id("task"),
-            authorization=authorization
-            or AuthorizationContext(principal_id=principal_id),
+            authorization=effective_authorization,
         )
 
     def child(self, *, agent_id: str, task_id: str | None = None) -> ExecutionContext:

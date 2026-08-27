@@ -21,7 +21,10 @@ def message(
         session_id="sess_domain_123",
         request_id="req_domain_123",
         trace_id="trace_domain_123",
-        authorization=AuthorizationContext(principal_id="test-principal"),
+        authorization=AuthorizationContext(
+            principal_id="test-principal",
+            scopes=frozenset({"ecommerce.read"}),
+        ),
         source="orchestrator",
         target=target,
         action=action,

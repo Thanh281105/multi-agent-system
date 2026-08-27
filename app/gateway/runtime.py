@@ -10,6 +10,7 @@ from redis import Redis
 from app.agent_gateway import AgentGateway
 from app.agents import build_default_dispatcher
 from app.core.config import Settings
+from app.gateway.authorization import PrincipalAuthorizationRegistry
 from app.gateway.rate_limit import InboundRateLimiter
 from app.gateway.security import APIKeyAuthenticator
 from app.gateway.turns import (
@@ -48,6 +49,7 @@ class GatewayRuntime:
     orchestrator: MultiAgentOrchestrator
     agent_gateway: AgentGateway
     authenticator: APIKeyAuthenticator
+    authorization_registry: PrincipalAuthorizationRegistry
     authentication_limiter: InboundRateLimiter
     rate_limiter: InboundRateLimiter
     telemetry: Telemetry
@@ -124,6 +126,10 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
             )
         )
     )
+    authenticator = APIKeyAuthenticator(config.gateway_api_keys.get_secret_value())
+    authorization_registry = PrincipalAuthorizationRegistry.from_configuration(
+        config.gateway_principal_policies
+    )
     orchestrator = MultiAgentOrchestrator(
         dispatcher=build_default_dispatcher(
             agent_gateway,
@@ -157,7 +163,8 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
     return GatewayRuntime(
         orchestrator=orchestrator,
         agent_gateway=agent_gateway,
-        authenticator=APIKeyAuthenticator(config.gateway_api_keys.get_secret_value()),
+        authenticator=authenticator,
+        authorization_registry=authorization_registry,
         authentication_limiter=InboundRateLimiter(
             requests=config.gateway_auth_attempt_requests,
             window_seconds=config.gateway_rate_limit_window_seconds,

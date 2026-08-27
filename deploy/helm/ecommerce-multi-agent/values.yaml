@@ -55,6 +55,7 @@ config:
   qdrantCollection: sample_market_knowledge
   modelRuntimeMode: hybrid
   embeddingBackend: auto
+  gatewayPrincipalPolicies: demo:default:ecommerce.read
   redisKeyPrefix: ecommerce_agents
   sessionTtlSeconds: 3600
   gatewayRateLimitRequests: 60

@@ -20,6 +20,7 @@ Container tags trong `compose.yaml` được pin theo version thay vì floating
 | `APP_ENV` | `production` | Compose đặt cố định |
 | `DATABASE_URL` | PostgreSQL authenticated | Compose dựng từ `POSTGRES_PASSWORD` |
 | `GATEWAY_API_KEYS` | Bắt buộc, không demo | `principal:secret[,principal:secret]` |
+| `GATEWAY_PRINCIPAL_POLICIES` | Bắt buộc | `principal:tenant:scope1|scope2[,principal:tenant:scope]` |
 | `OPERATIONS_API_KEY` | Bắt buộc, ≥16 chars | Không dùng chung user API key |
 | `SHARED_STATE_BACKEND` | `redis` | Production validator bắt buộc |
 | `REDIS_URL` | Authenticated `redis[s]://` | Compose dựng từ `REDIS_PASSWORD` |
