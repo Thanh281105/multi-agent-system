@@ -2,7 +2,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.agent.runner import AgentRunResult
-from app.main import app
+from app.core.config import Settings
+from app.main import create_app
 from app.schemas.chat import ToolCallInfo
 
 
@@ -25,7 +26,10 @@ async def test_chat_exposes_runner_tool_calls(
     import app.api.chat as chat_api
 
     monkeypatch.setattr(chat_api, "run_agent", fake_run_agent)
-    response = TestClient(app).post(
+    application = create_app(
+        Settings(_env_file=None, app_env="test", legacy_chat_enabled=True)
+    )
+    response = TestClient(application).post(
         "/chat",
         json={"message": "Tìm tai nghe dưới 1 triệu"},
     )
