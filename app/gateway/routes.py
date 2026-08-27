@@ -222,6 +222,7 @@ async def _stream_turn(
             result = await task
             response = build_chat_response(result)
             for delta in _answer_chunks(response.answer):
+                await asyncio.sleep(0.02)
                 sequence += 1
                 yield encode_sse(
                     "token",
@@ -233,7 +234,6 @@ async def _stream_turn(
                     ),
                     event_id=f"{request_id}:{sequence}",
                 )
-                await asyncio.sleep(0.008)
             sequence += 1
             yield encode_sse(
                 "completed",
