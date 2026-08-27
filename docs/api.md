@@ -180,7 +180,9 @@ schema fixture cô lập.
 
 `POST /chat` là đường Phase 1 single-agent tương thích ngược. Nó chỉ được mount
 khi `LEGACY_CHAT_ENABLED=true` và production validation bắt buộc giá trị này là
-`false`. Client mới phải dùng `/api/v1`.
+`false`. Legacy runner dùng `store=false`; follow-up dựa trên transcript ngắn
+hạn trong memory của process, không dùng `previous_response_id`. Client mới phải
+dùng `/api/v1`.
 
 ## 7. Browser client
 

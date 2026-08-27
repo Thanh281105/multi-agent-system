@@ -187,7 +187,8 @@ uvicorn app.main:app --reload
 Mặc định là `hybrid`: routing/specialist dùng `gpt-5.4-nano`, planning/synthesis
 dùng `gpt-5.4-mini`. Production yêu cầu `OPENAI_API_KEY` khi runtime khác `off`.
 Provider call dùng structured output, `store=false`, timeout/retry/concurrency
-budget, circuit breaker và chỉ xuất metadata usage đã làm sạch vào trace. Mọi
+budget, circuit breaker; legacy runner giữ transcript follow-up giới hạn trong
+memory process thay vì `previous_response_id`. Mọi
 lỗi provider/parser được ánh xạ sang allowlisted error code, không sao chép
 payload lỗi vào API hoặc telemetry.
 
