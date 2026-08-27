@@ -150,6 +150,7 @@ def operations_client() -> TestClient:
                 _env_file=None,
                 app_env="test",
                 gateway_api_keys="test:test-secret-key",
+                gateway_principal_policies="test:default:ecommerce.read",
                 operations_api_key="strong-operations-key",
             )
         )

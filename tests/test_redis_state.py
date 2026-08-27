@@ -127,6 +127,7 @@ def test_redis_failure_is_sanitized_and_reported_by_readiness() -> None:
         _env_file=None,
         app_env="test",
         gateway_api_keys="test:test-secret-key",
+        gateway_principal_policies="test:default:ecommerce.read",
     )
     application = create_app(config)
     server = fakeredis.FakeServer()
