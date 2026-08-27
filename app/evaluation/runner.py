@@ -444,7 +444,7 @@ def _seed_sha256() -> str:
 
 
 def _sut_source_manifest() -> tuple[str, tuple[str, ...]]:
-    """Hash ordered app Python paths and contents to bind a report to its SUT."""
+    """Hash ordered app Python paths and contents with stable line endings."""
 
     project_root = _default_project_root()
     source_root = project_root / "app"
@@ -459,7 +459,8 @@ def _sut_source_manifest() -> tuple[str, tuple[str, ...]]:
     relative_paths: list[str] = []
     for source_path in source_paths:
         relative_path = source_path.relative_to(project_root).as_posix()
-        content_digest = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        source_bytes = source_path.read_bytes().replace(b"\r\n", b"\n")
+        content_digest = hashlib.sha256(source_bytes).hexdigest()
         manifest_digest.update(f"{relative_path}\0{content_digest}\n".encode("utf-8"))
         relative_paths.append(relative_path)
     return manifest_digest.hexdigest(), tuple(relative_paths)

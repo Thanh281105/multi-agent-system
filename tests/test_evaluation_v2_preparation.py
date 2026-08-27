@@ -88,6 +88,18 @@ def test_source_manifest_hash_changes_with_source_content(tmp_path: Path) -> Non
     assert source_manifest_sha256_v2(tmp_path) != before
 
 
+def test_source_manifest_hash_is_line_ending_stable(tmp_path: Path) -> None:
+    source = tmp_path / "app"
+    source.mkdir()
+    module = source / "module.py"
+    module.write_bytes(b"VALUE = 1\n")
+    lf_hash = source_manifest_sha256_v2(tmp_path)
+
+    module.write_bytes(b"VALUE = 1\r\n")
+
+    assert source_manifest_sha256_v2(tmp_path) == lf_hash
+
+
 def _assets():
     return load_evaluation_experiment_v2(
         PROJECT_ROOT / "evaluation" / "experiment.v2.json",

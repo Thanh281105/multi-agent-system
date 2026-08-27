@@ -67,6 +67,24 @@ def test_artifact_hash_is_line_ending_stable(tmp_path: Path) -> None:
     assert canonical_sha256(lf) == canonical_sha256(crlf)
 
 
+def test_sut_source_manifest_is_line_ending_stable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "app"
+    source.mkdir()
+    module = source / "module.py"
+    module.write_bytes(b"VALUE = 1\n")
+    monkeypatch.setattr("app.evaluation.runner._default_project_root", lambda: tmp_path)
+
+    lf_hash, lf_files = _sut_source_manifest()
+
+    module.write_bytes(b"VALUE = 1\r\n")
+    crlf_hash, crlf_files = _sut_source_manifest()
+
+    assert crlf_hash == lf_hash
+    assert crlf_files == lf_files == ("app/module.py",)
+
+
 def test_frozen_corpus_is_balanced_and_real_baseline_is_bound() -> None:
     corpus = load_corpus(CASES_PATH)
     baseline = load_baseline_manifest(BASELINE_PATH)

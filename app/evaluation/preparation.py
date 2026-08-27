@@ -47,7 +47,8 @@ def source_manifest_sha256_v2(project_root: Path) -> str:
     digest = hashlib.sha256()
     for source_path in source_paths:
         relative_path = source_path.relative_to(project_root).as_posix()
-        content_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        source_bytes = source_path.read_bytes().replace(b"\r\n", b"\n")
+        content_hash = hashlib.sha256(source_bytes).hexdigest()
         digest.update(f"{relative_path}\0{content_hash}\n".encode("utf-8"))
     return digest.hexdigest()
 
