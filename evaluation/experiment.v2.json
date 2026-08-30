@@ -1,20 +1,20 @@
 {
   "schema_version": "2.0",
   "experiment_id": "thesis_paired_ablation_v2",
-  "baseline_variant_id": "deterministic_v2",
+  "baseline_variant_id": "deterministic_book_catalog_v2",
   "random_seed": 42,
   "correctness_repeats": 3,
   "warmup_repeats": 1,
   "latency_repeats": 5,
   "bootstrap_samples": 10000,
-  "warmup_case_id": "simple_01_nova_search",
+  "warmup_case_id": "simple_01_tarot_search",
   "latency_case_ids": [
-    "simple_01_nova_search",
-    "complex_01_compare_headphones",
-    "multi_domain_01_headphones",
+    "simple_01_tarot_search",
+    "complex_01_compare_history",
+    "multi_domain_01_budget_books",
     "missing_data_01_review",
     "tool_failure_01_trust",
-    "ambiguous_01_product",
+    "ambiguous_01_reference",
     "irrelevant_01_poem"
   ],
   "model_runtime_policy": {
@@ -28,8 +28,20 @@
   },
   "variants": [
     {
+      "variant_id": "deterministic_book_catalog_v2",
+      "description": "Deterministic book catalog baseline with routing, planning, product retrieval, and grounded synthesis but no review, trust, or market specialists.",
+      "runtime_mode": "deterministic",
+      "enabled_agents": [
+        "product_agent"
+      ],
+      "embedding_backend": "hashed_token_cosine_v1",
+      "max_model_calls": 0,
+      "fallback_policy": "deterministic_fallback",
+      "hypothesis": "A product-only book assistant establishes a meaningful lower bound for the specialist multi-agent system."
+    },
+    {
       "variant_id": "deterministic_v2",
-      "description": "Deterministic router, planner, four domain agents, and grounded synthesis.",
+      "description": "Deterministic router, planner, four Tiki Books specialists, and grounded synthesis.",
       "runtime_mode": "deterministic",
       "enabled_agents": [
         "product_agent",
@@ -40,7 +52,8 @@
       "embedding_backend": "hashed_token_cosine_v1",
       "max_model_calls": 0,
       "fallback_policy": "deterministic_fallback",
-      "hypothesis": "A zero-LLM baseline establishes the quality, latency, token, and cost floor."
+      "parent_variant_id": "deterministic_book_catalog_v2",
+      "hypothesis": "Adding review, trust, and market specialists improves book-task quality over the product-only deterministic baseline."
     },
     {
       "variant_id": "hybrid_full",

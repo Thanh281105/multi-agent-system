@@ -10,7 +10,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from app.evaluation.models import EvalCase, EvaluationCorpus
+from app.evaluation.models import BaselineManifest, EvalCase, EvaluationCorpus
 
 ACTION_MAP = {
     "search_products": "product.search",
@@ -137,7 +137,25 @@ def build_report(
     corpus: EvaluationCorpus,
     artifact: dict[str, Any],
     artifact_path: Path,
+    corpus_path: Path,
+    baseline: BaselineManifest,
 ) -> dict[str, Any]:
+    if artifact.get("dataset_id") != corpus.dataset_id:
+        raise ValueError("baseline artifact dataset ID does not match corpus")
+    artifact_dataset_hash = artifact.get("dataset_sha256")
+    corpus_hash = _sha256(corpus_path)
+    if artifact_dataset_hash is not None and artifact_dataset_hash != corpus_hash:
+        raise ValueError("baseline artifact dataset hash does not match corpus")
+    if baseline.status != "real_model_captured":
+        raise ValueError(
+            "legacy baseline manifest must describe captured model evidence"
+        )
+    if baseline.dataset_sha256 != corpus_hash:
+        raise ValueError("legacy baseline manifest dataset hash does not match corpus")
+    if baseline.artifact_sha256 != _sha256(artifact_path):
+        raise ValueError(
+            "legacy baseline manifest artifact hash does not match artifact"
+        )
     results = {item["case_id"]: item for item in artifact["results"]}
     if len(results) != len(corpus.cases) or set(results) != {
         case.case_id for case in corpus.cases
@@ -260,9 +278,7 @@ def build_report(
         "git_revision": artifact["git_revision"],
         "model": artifact["model"],
         "dataset_id": artifact["dataset_id"],
-        "dataset_sha256": _sha256(
-            Path(__file__).resolve().parents[1] / "evaluation" / "cases.v1.json"
-        ),
+        "dataset_sha256": corpus_hash,
         "sample_counts": artifact["sample_counts"],
         "artifact_sha256": _sha256(artifact_path),
         "case_count": len(case_scores),
@@ -331,7 +347,7 @@ def render_markdown(report: dict[str, Any]) -> str:
 def main() -> None:
     project_root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(
-        description="Score a captured single-agent real-model artifact."
+        description="Score the legacy captured single-agent real-model artifact."
     )
     parser.add_argument(
         "--artifact",
@@ -345,7 +361,16 @@ def main() -> None:
     parser.add_argument(
         "--cases",
         type=Path,
-        default=project_root / "evaluation" / "cases.v1.json",
+        default=(
+            project_root / "evaluation" / "legacy" / "cases.sample-ecommerce.v1.json"
+        ),
+    )
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=(
+            project_root / "evaluation" / "baselines" / "legacy-single-agent.v1.json"
+        ),
     )
     parser.add_argument(
         "--output",
@@ -357,10 +382,15 @@ def main() -> None:
         arguments.cases.read_text(encoding="utf-8")
     )
     artifact = json.loads(arguments.artifact.read_text(encoding="utf-8"))
+    baseline = BaselineManifest.model_validate_json(
+        arguments.manifest.read_text(encoding="utf-8")
+    )
     report = build_report(
         corpus=corpus,
         artifact=artifact,
         artifact_path=arguments.artifact,
+        corpus_path=arguments.cases,
+        baseline=baseline,
     )
     arguments.output.mkdir(parents=True, exist_ok=True)
     (arguments.output / "report.json").write_text(

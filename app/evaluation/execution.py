@@ -114,6 +114,10 @@ def _validate_protocol_assets(
         raise ValueError("protocol corpus hash does not match loaded assets")
     if protocol.dataset_sha256 != assets.corpus.dataset_sha256:
         raise ValueError("protocol dataset hash does not match loaded assets")
+    if protocol.source_snapshot != assets.corpus.source_snapshot:
+        raise ValueError("protocol snapshot lineage does not match loaded assets")
+    if protocol.sample_seed_sha256 != assets.corpus.source_snapshot.snapshot_sha256:
+        raise ValueError("protocol compatibility seed hash does not match snapshot")
     if protocol.pricing_sha256 != canonical_sha256(assets.pricing):
         raise ValueError("protocol pricing hash does not match loaded assets")
     known_case_ids = {case.case_id for case in assets.corpus.cases}

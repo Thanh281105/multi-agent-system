@@ -58,12 +58,12 @@ jobs:
       - name: Run offline test suite
         run: pytest -m "not integration" -q
 
-      - name: Re-score captured real-model baseline
+      - name: Re-score legacy captured real-model baseline
         run: |
           python scripts/score_real_baseline.py
           git diff --exit-code -- evaluation/results/baseline-single-agent-v1
 
-      - name: Re-score captured real Multi-Agent artifact
+      - name: Re-score legacy captured real Multi-Agent artifact
         run: |
           python scripts/run_real_multi_agent_benchmark.py --score-only
           git diff --exit-code -- evaluation/results/real-multi-agent-v1
@@ -188,7 +188,7 @@ jobs:
           products="$(docker compose -f compose.yaml exec -T postgres \
             psql -U ecommerce -d ecommerce_restore_check -tAc \
             'SELECT count(*) FROM products;')"
-          test "$(echo "$products" | tr -d '[:space:]')" = "30"
+          test "$(echo "$products" | tr -d '[:space:]')" = "200"
           rm -f "$backup_path"
 
       - name: Dump service logs on failure

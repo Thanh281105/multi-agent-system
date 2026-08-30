@@ -245,6 +245,7 @@ def _observation(
 async def capture_artifact(
     *,
     corpus: EvaluationCorpus,
+    corpus_path: Path,
     repeats: int,
     max_cases: int | None,
 ) -> dict[str, Any]:
@@ -348,9 +349,7 @@ async def capture_artifact(
         "model": settings.openai_model,
         "prompt_sha256": _sha256_bytes(REAL_MODEL_INSTRUCTIONS.encode("utf-8")),
         "dataset_id": corpus.dataset_id,
-        "dataset_sha256": _sha256(
-            Path(__file__).resolve().parents[1] / "evaluation" / "cases.v1.json"
-        ),
+        "dataset_sha256": _sha256(corpus_path),
         "sample_data": True,
         "sample_counts": sample_counts,
         "repeats": repeats,
@@ -392,6 +391,8 @@ def _comparison_payload(
     metrics: dict[str, MetricSummary],
     *,
     project_root: Path,
+    dataset_id: str,
+    dataset_sha256: str,
 ) -> dict[str, Any]:
     baseline_path = (
         project_root
@@ -401,6 +402,11 @@ def _comparison_payload(
         / "report.json"
     )
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    if (
+        baseline.get("dataset_id") != dataset_id
+        or baseline.get("dataset_sha256") != dataset_sha256
+    ):
+        raise ValueError("legacy comparison baseline does not match artifact corpus")
     baseline_metrics = baseline["metrics"]
     rows: list[dict[str, Any]] = []
     for label, multi_key, baseline_key in COMPARISON_ROWS:
@@ -443,7 +449,12 @@ def score_artifact(
     corpus: EvaluationCorpus,
     artifact: dict[str, Any],
     artifact_path: Path,
+    corpus_path: Path,
 ) -> dict[str, Any]:
+    if artifact.get("dataset_id") != corpus.dataset_id:
+        raise ValueError("real artifact dataset ID does not match corpus")
+    if artifact.get("dataset_sha256") != _sha256(corpus_path):
+        raise ValueError("real artifact dataset hash does not match corpus")
     raw_case_ids = artifact.get("case_ids")
     if raw_case_ids is None:
         expected_ids = {case.case_id for case in corpus.cases}
@@ -570,7 +581,12 @@ def score_artifact(
         "baseline_report": ("evaluation/results/baseline-single-agent-v1/report.md"),
         "metrics": _metric_payload(metrics),
         "metrics_by_category": metrics_by_category,
-        "comparison": _comparison_payload(metrics, project_root=project_root),
+        "comparison": _comparison_payload(
+            metrics,
+            project_root=project_root,
+            dataset_id=artifact["dataset_id"],
+            dataset_sha256=artifact["dataset_sha256"],
+        ),
         "case_scores": [item.model_dump(mode="json") for item in scores],
         "observations": [item.model_dump(mode="json") for item in observations],
         "limitations": [
@@ -641,6 +657,7 @@ def _render_report(report: dict[str, Any]) -> str:
 def _write_outputs(
     *,
     artifact: dict[str, Any],
+    corpus_path: Path,
     output_directory: Path,
 ) -> None:
     output_directory.mkdir(parents=True, exist_ok=True)
@@ -649,13 +666,12 @@ def _write_outputs(
         json.dumps(artifact, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    corpus = load_corpus(
-        Path(__file__).resolve().parents[1] / "evaluation" / "cases.v1.json"
-    )
+    corpus = load_corpus(corpus_path)
     report = score_artifact(
         corpus=corpus,
         artifact=artifact,
         artifact_path=artifact_path,
+        corpus_path=corpus_path,
     )
     (output_directory / "report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -677,20 +693,32 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--max-cases", type=int, default=None)
     parser.add_argument("--score-only", action="store_true")
+    parser.add_argument(
+        "--cases",
+        type=Path,
+        default=(
+            project_root / "evaluation" / "legacy" / "cases.sample-ecommerce.v1.json"
+        ),
+    )
     parser.add_argument("--output", type=Path, default=default_output)
     arguments = parser.parse_args()
     if arguments.score_only:
         artifact = _load_artifact(arguments.output / "observations.json")
     else:
-        corpus = load_corpus(project_root / "evaluation" / "cases.v1.json")
+        corpus = load_corpus(arguments.cases)
         artifact = asyncio.run(
             capture_artifact(
                 corpus=corpus,
+                corpus_path=arguments.cases,
                 repeats=arguments.repeats,
                 max_cases=arguments.max_cases,
             )
         )
-    _write_outputs(artifact=artifact, output_directory=arguments.output)
+    _write_outputs(
+        artifact=artifact,
+        corpus_path=arguments.cases,
+        output_directory=arguments.output,
+    )
 
 
 if __name__ == "__main__":

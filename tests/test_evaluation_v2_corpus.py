@@ -43,6 +43,13 @@ def test_v2_corpus_binds_clean_gold_and_balanced_robustness() -> None:
         if case.robustness_policy != RobustnessPolicy.CLEAN
     ]
     assert len(transformed) == 16
+    assert corpus.manifest.corpus_id == "tiki_books_robustness_v2"
+    assert corpus.manifest.base_dataset_id == "tiki_books_vi_28_v1"
+    assert corpus.source_snapshot.snapshot_sha256 == (
+        "986803ba95d268cf158f36103efa2e1ce00c6134b0e03b67d96c7058f019d66d"
+    )
+    assert corpus.source_snapshot.product_count == 200
+    assert corpus.source_snapshot.review_count == 1773
     assert Counter(case.transform_id for case in transformed) == {
         "typo_noise": 4,
         "polite_paraphrase": 4,
@@ -133,9 +140,13 @@ def test_experiment_manifest_binds_paired_baseline_and_stage_ablations() -> None
         PRICING_PATH,
     )
 
-    assert len(experiment.config.variants) == 6
-    assert experiment.config.baseline_variant_id == "deterministic_v2"
+    assert len(experiment.config.variants) == 7
+    assert experiment.config.baseline_variant_id == "deterministic_book_catalog_v2"
     assert experiment.config.variants[0].runtime_mode == RuntimeMode.DETERMINISTIC
+    assert experiment.config.variants[0].enabled_agents == ("product_agent",)
+    deterministic = experiment.config.variants[1]
+    assert deterministic.variant_id == "deterministic_v2"
+    assert deterministic.parent_variant_id == "deterministic_book_catalog_v2"
     assert len(experiment.config.latency_case_ids) == len(EvaluationCategory)
     full = next(
         variant
@@ -163,6 +174,7 @@ def test_experiment_manifest_binds_paired_baseline_and_stage_ablations() -> None
         ModelStage.SYNTHESIS,
     }
     assert enabled_stages == {
+        "deterministic_book_catalog_v2": set(),
         "deterministic_v2": set(),
         "hybrid_full": all_stages,
         "hybrid_no_router": all_stages - {ModelStage.ROUTING},
@@ -202,6 +214,7 @@ def test_live_pilot_is_explicitly_bounded_to_one_paired_repeat() -> None:
     assert pilot.config.warmup_repeats == 0
     assert pilot.config.latency_repeats == 0
     assert tuple(variant.variant_id for variant in pilot.config.variants) == (
+        "deterministic_book_catalog_v2",
         "deterministic_v2",
         "hybrid_full",
     )

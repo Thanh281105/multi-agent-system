@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.evaluation.models import EvaluationSnapshotBinding
 from app.evaluation.protocol import canonical_sha256
 from app.evaluation.runner import load_corpus
 from app.evaluation.v2_models import (
@@ -20,6 +21,7 @@ class LoadedEvaluationCorpusV2:
     cases: tuple[EvaluationCaseSpecV2, ...]
     corpus_sha256: str
     dataset_sha256: str
+    source_snapshot: EvaluationSnapshotBinding
 
 
 def load_evaluation_corpus_v2(
@@ -30,6 +32,8 @@ def load_evaluation_corpus_v2(
         manifest_path.read_text(encoding="utf-8")
     )
     base_corpus = load_corpus(base_corpus_path)
+    if base_corpus.source_snapshot is None:
+        raise ValueError("v2 evaluation corpus requires snapshot lineage")
     dataset_hash = canonical_sha256(base_corpus)
     if manifest.base_dataset_id != base_corpus.dataset_id:
         raise ValueError("v2 corpus references a different base dataset ID")
@@ -84,4 +88,5 @@ def load_evaluation_corpus_v2(
         cases=tuple(cases),
         corpus_sha256=composite_hash,
         dataset_sha256=dataset_hash,
+        source_snapshot=base_corpus.source_snapshot,
     )

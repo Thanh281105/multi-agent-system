@@ -11,7 +11,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.contracts import TaskStatus
-from app.evaluation.models import EvalCase
+from app.evaluation.models import EvalCase, EvaluationSnapshotBinding
 
 _IDENTIFIER = r"^[a-z][a-z0-9_.-]{2,127}$"
 _SHA256 = r"^[a-f0-9]{64}$"
@@ -169,7 +169,10 @@ class EvaluationProtocolV2(BaseModel):
     corpus_sha256: str = Field(pattern=_SHA256)
     dataset_id: str = Field(pattern=_IDENTIFIER)
     dataset_sha256: str = Field(pattern=_SHA256)
+    # Compatibility key retained for existing bundle readers. Current book
+    # protocols bind it to the immutable snapshot hash, not seed source code.
     sample_seed_sha256: str = Field(pattern=_SHA256)
+    source_snapshot: EvaluationSnapshotBinding | None = None
     evaluator_sha256: str = Field(pattern=_SHA256)
     sample_data: Literal[True] = True
     random_seed: int = Field(default=42, ge=0, le=2**32 - 1)
@@ -191,6 +194,13 @@ class EvaluationProtocolV2(BaseModel):
 
     @model_validator(mode="after")
     def validate_protocol(self) -> EvaluationProtocolV2:
+        if self.dataset_id == "tiki_books_vi_28_v1" and self.source_snapshot is None:
+            raise ValueError("Tiki Books protocols require snapshot lineage")
+        if (
+            self.source_snapshot is not None
+            and self.sample_seed_sha256 != self.source_snapshot.snapshot_sha256
+        ):
+            raise ValueError("compatibility seed hash must match snapshot hash")
         if self.correctness_repeats + self.latency_repeats < 1:
             raise ValueError("protocol requires correctness or latency observations")
         if len(self.case_order) != len(set(self.case_order)):
