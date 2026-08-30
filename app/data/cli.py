@@ -63,9 +63,15 @@ def main() -> None:
             )
             return
         if arguments.command == "import":
-            from app.db.public_import import import_public_snapshot
+            from app.db.public_import import (
+                PublicImportConflictError,
+                import_public_snapshot,
+            )
 
-            counts = import_public_snapshot(snapshot_dir=arguments.snapshot)
+            try:
+                counts = import_public_snapshot(snapshot_dir=arguments.snapshot)
+            except PublicImportConflictError as exc:
+                parser.error(str(exc))
             print(
                 "Imported snapshot: "
                 f"source_id={counts['source_id']} products={counts['products']} "

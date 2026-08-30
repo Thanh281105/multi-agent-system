@@ -44,6 +44,7 @@ class EcommerceRepository:
                         Product.name.ilike(pattern),
                         Product.category.ilike(pattern),
                         Product.description.ilike(pattern),
+                        Product.seller_name.ilike(pattern),
                         Shop.name.ilike(pattern),
                     )
                 )
@@ -60,15 +61,15 @@ class EcommerceRepository:
 
             return (
                 select(Product)
-                .join(Product.shop)
+                .outerjoin(Product.shop)
                 .where(*filters)
                 .options(
                     joinedload(Product.shop),
                     joinedload(Product.dataset_source),
                 )
                 .order_by(
-                    Product.rating.desc(),
-                    Product.sold_count.desc(),
+                    Product.rating.desc().nullslast(),
+                    Product.sold_count.desc().nullslast(),
                     Product.price.asc(),
                     Product.id.asc(),
                 )
@@ -111,7 +112,7 @@ class EcommerceRepository:
         statement = (
             select(Review)
             .where(Review.product_id == product_id)
-            .order_by(Review.created_at.desc(), Review.id.desc())
+            .order_by(Review.created_at.desc().nullslast(), Review.id.desc())
             .limit(limit)
         )
         reviews = list(self.session.scalars(statement).all())
@@ -172,6 +173,7 @@ class EcommerceRepository:
                 Product.source_id,
                 DatasetSource.dataset_id,
                 DatasetSource.dataset_version,
+                DatasetSource.profile,
             )
             .outerjoin(DatasetSource, Product.source_id == DatasetSource.id)
             .where(*filters)
@@ -202,9 +204,15 @@ class EcommerceRepository:
                     source_id=source_id,
                     dataset_id=dataset_id,
                     dataset_version=dataset_version,
+                    dataset_profile=dataset_profile,
                     fields=("price", "rating", "sold_count"),
                 )
-                for source_id, dataset_id, dataset_version in source_rows
+                for (
+                    source_id,
+                    dataset_id,
+                    dataset_version,
+                    dataset_profile,
+                ) in source_rows
             ],
         }
 
@@ -219,7 +227,7 @@ def _product_summary(product: Product) -> dict[str, object]:
         "price": product.price,
         "rating": product.rating,
         "sold_count": product.sold_count,
-        "shop": product.shop.name,
+        "shop": product.shop.name if product.shop is not None else product.seller_name,
         "platform": product.platform,
         "provenance": product_provenance(product),
     }
@@ -248,6 +256,7 @@ def product_provenance(
         source_id=product.source_id,
         dataset_id=source.dataset_id if source is not None else None,
         dataset_version=source.dataset_version if source is not None else None,
+        dataset_profile=source.profile if source is not None else None,
         fields=fields,
         fallback_source_id=fallback_source_id,
     )
@@ -258,13 +267,14 @@ def _source_provenance(
     source_id: int | None,
     dataset_id: str | None,
     dataset_version: str | None,
+    dataset_profile: str | None,
     fields: tuple[str, ...],
     fallback_source_id: str = "postgresql:products",
 ) -> dict[str, object]:
-    if source_id is not None and dataset_id and dataset_version:
+    if source_id is not None and dataset_id and dataset_version and dataset_profile:
         return {
             "source_type": "sample.public_dataset",
-            "source_id": f"{dataset_id}:{dataset_version}",
+            "source_id": f"{dataset_id}:{dataset_version}:{dataset_profile}",
             "fields": list(fields),
             "sample_data": True,
         }

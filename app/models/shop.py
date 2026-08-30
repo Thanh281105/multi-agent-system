@@ -39,5 +39,4 @@ class Shop(Base):
 
     products: Mapped[list["Product"]] = relationship(
         back_populates="shop",
-        cascade="all, delete-orphan",
     )

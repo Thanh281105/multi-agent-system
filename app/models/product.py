@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     Float,
     ForeignKey,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,6 +44,14 @@ class Product(Base):
             name="ck_products_sold_count_non_negative",
         ),
         CheckConstraint(
+            "page_count IS NULL OR (page_count >= 1 AND page_count <= 20000)",
+            name="ck_products_page_count_range",
+        ),
+        CheckConstraint(
+            "source_review_count >= 0",
+            name="ck_products_source_review_count_non_negative",
+        ),
+        CheckConstraint(
             "platform IN ('Shopee', 'Tiki', 'Lazada')",
             name="ck_products_platform",
         ),
@@ -64,19 +74,41 @@ class Product(Base):
         String(128),
         nullable=True,
     )
-    shop_id: Mapped[int] = mapped_column(
-        ForeignKey("shops.id", ondelete="CASCADE"),
-        nullable=False,
+    shop_id: Mapped[int | None] = mapped_column(
+        ForeignKey("shops.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
     name: Mapped[str] = mapped_column(String(220), nullable=False, index=True)
-    category: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    authors: Mapped[list[str]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
+        server_default=text("'[]'"),
+    )
+    publisher: Mapped[str | None] = mapped_column(String(220), nullable=True)
+    category: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     price: Mapped[int] = mapped_column(Integer, nullable=False)
-    original_price: Mapped[int] = mapped_column(Integer, nullable=False)
-    rating: Mapped[float] = mapped_column(Float, nullable=False, index=True)
-    sold_count: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    original_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    rating: Mapped[float | None] = mapped_column(Float, nullable=True, index=True)
+    sold_count: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    source_review_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    cover_url: Mapped[str | None] = mapped_column(String(2_000), nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     platform: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    seller_name: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    source_metadata: Mapped[dict[str, str | int | float | bool | None]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+        server_default=text("'{}'"),
+    )
     created_at: Mapped[datetime] = mapped_column(
         nullable=False,
         default=utc_now,
@@ -89,7 +121,7 @@ class Product(Base):
         server_default=func.now(),
     )
 
-    shop: Mapped["Shop"] = relationship(back_populates="products")
+    shop: Mapped["Shop | None"] = relationship(back_populates="products")
     dataset_source: Mapped["DatasetSource | None"] = relationship(
         DatasetSource,
         back_populates="products",
