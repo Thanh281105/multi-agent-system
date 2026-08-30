@@ -11,13 +11,23 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.knowledge import (
-    SAMPLE_MARKET_DOCUMENTS,
+    DisabledKnowledgeStore,
     HashingTextEmbedder,
     KnowledgeStoreContractError,
     KnowledgeStoreUnavailableError,
     QdrantKnowledgeStore,
 )
 from app.main import create_app
+
+TEST_DOCUMENTS: tuple[dict[str, object], ...] = (
+    {
+        "id": "book-selection-guide",
+        "title": "Cách chọn sách phù hợp",
+        "content": "Chọn sách theo tác giả, chủ đề và nhu cầu đọc.",
+        "source": "test_fixture",
+        "sample_data": False,
+    },
+)
 
 
 class ScriptedTransport:
@@ -40,8 +50,8 @@ class ScriptedTransport:
 def test_hashing_embedder_is_deterministic_and_normalized() -> None:
     embedder = HashingTextEmbedder(dimensions=64)
 
-    first = embedder.embed("tai nghe pin tốt")
-    second = embedder.embed("tai nghe pin tốt")
+    first = embedder.embed("sách lịch sử Việt Nam")
+    second = embedder.embed("sách lịch sử Việt Nam")
 
     assert first == second
     assert len(first) == 64
@@ -50,7 +60,7 @@ def test_hashing_embedder_is_deterministic_and_normalized() -> None:
         embedder.embed("---")
 
 
-def test_qdrant_seed_and_query_follow_versioned_rest_contract() -> None:
+def test_qdrant_upsert_and_query_follow_versioned_rest_contract() -> None:
     transport = ScriptedTransport(
         [
             (404, {"status": "error"}),
@@ -65,11 +75,11 @@ def test_qdrant_seed_and_query_follow_versioned_rest_contract() -> None:
                             {
                                 "score": 0.81234567,
                                 "payload": {
-                                    "document_id": "sample_market_audio_2026",
-                                    "title": "Tín hiệu tai nghe",
-                                    "content": "Dữ liệu mẫu về âm thanh và pin.",
-                                    "source": "sample_thesis_dataset",
-                                    "sample_data": True,
+                                    "document_id": "book-selection-guide",
+                                    "title": "Cách chọn sách phù hợp",
+                                    "content": "Chọn theo tác giả và chủ đề.",
+                                    "source": "test_fixture",
+                                    "sample_data": False,
                                 },
                             }
                         ]
@@ -80,7 +90,7 @@ def test_qdrant_seed_and_query_follow_versioned_rest_contract() -> None:
     )
     store = QdrantKnowledgeStore(
         "http://qdrant:6333",
-        collection="sample_market_knowledge",
+        collection="knowledge",
         api_key="secret-not-logged",
         embedder=HashingTextEmbedder(dimensions=64),
         transport=transport,
@@ -88,37 +98,37 @@ def test_qdrant_seed_and_query_follow_versioned_rest_contract() -> None:
     )
 
     store.ensure_collection()
-    inserted = store.upsert_documents(SAMPLE_MARKET_DOCUMENTS)
-    result = store.search("tai nghe pin", limit=2)
+    inserted = store.upsert_documents(TEST_DOCUMENTS)
+    result = store.search("sách theo tác giả", limit=2)
 
-    assert inserted == 3
+    assert inserted == 1
     assert result == {
         "count": 1,
         "documents": [
             {
-                "id": "sample_market_audio_2026",
-                "title": "Tín hiệu tai nghe",
-                "content": "Dữ liệu mẫu về âm thanh và pin.",
+                "id": "book-selection-guide",
+                "title": "Cách chọn sách phù hợp",
+                "content": "Chọn theo tác giả và chủ đề.",
                 "score": 0.812346,
-                "source": "sample_thesis_dataset",
-                "sample_data": True,
+                "source": "test_fixture",
+                "sample_data": False,
             }
         ],
-        "query": "tai nghe pin",
+        "query": "sách theo tác giả",
         "method": "qdrant_hashed_token_cosine_v1",
     }
     assert [(method, path) for method, path, _ in transport.calls] == [
-        ("GET", "/collections/sample_market_knowledge"),
-        ("PUT", "/collections/sample_market_knowledge"),
-        ("PUT", "/collections/sample_market_knowledge/points?wait=true"),
-        ("POST", "/collections/sample_market_knowledge/points/query"),
+        ("GET", "/collections/knowledge"),
+        ("PUT", "/collections/knowledge"),
+        ("PUT", "/collections/knowledge/points?wait=true"),
+        ("POST", "/collections/knowledge/points/query"),
     ]
     create_payload = transport.calls[1][2]
     assert create_payload == {"vectors": {"size": 64, "distance": "Cosine"}}
     points = transport.calls[2][2]["points"]
-    assert len(points) == 3
+    assert len(points) == 1
     assert len(points[0]["vector"]) == 64
-    assert points[0]["payload"]["sample_data"] is True
+    assert points[0]["payload"]["sample_data"] is False
 
 
 def test_existing_collection_dimension_mismatch_fails_closed() -> None:
@@ -148,12 +158,12 @@ def test_existing_collection_dimension_mismatch_fails_closed() -> None:
         store.ensure_collection()
 
 
-def test_qdrant_readiness_requires_compatible_seeded_collection() -> None:
+def test_qdrant_readiness_requires_compatible_non_empty_collection() -> None:
     compatible_collection = {
         "status": "ok",
         "result": {
             "config": {"params": {"vectors": {"size": 64, "distance": "Cosine"}}},
-            "points_count": 3,
+            "points_count": 1,
         },
     }
     transport = ScriptedTransport(
@@ -161,7 +171,7 @@ def test_qdrant_readiness_requires_compatible_seeded_collection() -> None:
     )
     store = QdrantKnowledgeStore(
         "http://qdrant:6333",
-        collection="sample_market_knowledge",
+        collection="knowledge",
         embedder=HashingTextEmbedder(dimensions=64),
         transport=transport,
         request_retries=0,
@@ -170,7 +180,7 @@ def test_qdrant_readiness_requires_compatible_seeded_collection() -> None:
     assert store.ready() is True
     assert [(method, path) for method, path, _ in transport.calls] == [
         ("GET", "/readyz"),
-        ("GET", "/collections/sample_market_knowledge"),
+        ("GET", "/collections/knowledge"),
     ]
 
 
@@ -198,7 +208,7 @@ def test_qdrant_readiness_rejects_empty_collection() -> None:
         request_retries=0,
     )
 
-    with pytest.raises(KnowledgeStoreContractError, match="seeded knowledge"):
+    with pytest.raises(KnowledgeStoreContractError, match="knowledge points"):
         store.ready()
 
 
@@ -210,7 +220,7 @@ def test_qdrant_transient_failure_is_bounded_and_readiness_reports_it() -> None:
         request_retries=1,
     )
     with pytest.raises(KnowledgeStoreUnavailableError, match="HTTP status 503"):
-        unavailable.search("tai nghe")
+        unavailable.search("sách")
     assert len(transport.calls) == 2
 
     application = create_app(
@@ -236,11 +246,11 @@ def test_qdrant_transient_failure_is_bounded_and_readiness_reports_it() -> None:
     assert readiness.json()["checks"] == {
         "runtime": "ok",
         "database": "ok",
-        "qdrant": "failed",
+        "knowledge": "failed",
     }
 
 
-def test_production_requires_authenticated_qdrant() -> None:
+def test_disabled_is_default_and_production_qdrant_remains_authenticated() -> None:
     base = {
         "_env_file": None,
         "app_env": "production",
@@ -255,8 +265,15 @@ def test_production_requires_authenticated_qdrant() -> None:
         "model_runtime_mode": "off",
         "embedding_backend": "hashing",
     }
-    with pytest.raises(ValueError, match="KNOWLEDGE_BACKEND=qdrant"):
-        Settings(**base)
+    disabled = Settings(**base)
+    legacy_static = Settings.model_validate({"knowledge_backend": "static"})
+    disabled_runtime = create_app(disabled).state.gateway_runtime
+
+    assert disabled.knowledge_backend == "disabled"
+    assert legacy_static.knowledge_backend == "disabled"
+    assert isinstance(disabled_runtime.knowledge_store, DisabledKnowledgeStore)
+    assert disabled_runtime.embedding_runtime is None
+
     with pytest.raises(ValueError, match="QDRANT_API_KEY"):
         Settings(**base, knowledge_backend="qdrant")
 
@@ -266,4 +283,57 @@ def test_production_requires_authenticated_qdrant() -> None:
         qdrant_api_key="strong-qdrant-key",
     )
     runtime = create_app(configured).state.gateway_runtime
-    assert runtime.knowledge_store is not None
+    assert isinstance(runtime.knowledge_store, QdrantKnowledgeStore)
+    assert runtime.embedding_runtime is not None
+
+
+def test_create_app_accepts_a_narrow_future_knowledge_adapter() -> None:
+    class ReadyKnowledgeStore:
+        backend = "rag_test"
+
+        def __bool__(self) -> bool:
+            return False
+
+        def ready(self) -> bool:
+            return True
+
+    injected = ReadyKnowledgeStore()
+    application = create_app(
+        Settings(
+            _env_file=None,
+            app_env="test",
+            gateway_api_keys="test:test-secret-key",
+        ),
+        knowledge_store=injected,
+    )
+
+    assert application.state.gateway_runtime.knowledge_store is injected
+    readiness = TestClient(application).get("/readyz")
+    assert readiness.status_code == 200
+    assert readiness.json()["checks"]["knowledge"] == "ok"
+
+
+def test_knowledge_readiness_rejects_false_without_overwriting_core_checks() -> None:
+    class NotReadyKnowledgeStore:
+        backend = "database"
+
+        def ready(self) -> bool:
+            return False
+
+    application = create_app(
+        Settings(
+            _env_file=None,
+            app_env="test",
+            gateway_api_keys="test:test-secret-key",
+        ),
+        knowledge_store=NotReadyKnowledgeStore(),
+    )
+
+    readiness = TestClient(application).get("/readyz")
+
+    assert readiness.status_code == 503
+    assert readiness.json()["checks"] == {
+        "runtime": "ok",
+        "database": "ok",
+        "knowledge": "failed",
+    }

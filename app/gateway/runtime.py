@@ -18,7 +18,11 @@ from app.gateway.turns import (
     SessionTurnCoordinator,
     TurnCoordinator,
 )
-from app.knowledge import QdrantKnowledgeStore
+from app.knowledge import (
+    DisabledKnowledgeStore,
+    KnowledgeStore,
+    QdrantKnowledgeStore,
+)
 from app.knowledge.runtime import (
     build_knowledge_embedder,
     versioned_knowledge_collection,
@@ -56,12 +60,16 @@ class GatewayRuntime:
     config: Settings
     turns: TurnCoordinator
     redis_client: Any | None = None
-    knowledge_store: QdrantKnowledgeStore | None = None
+    knowledge_store: KnowledgeStore = DisabledKnowledgeStore()
     model_runtime: ModelRuntime | None = None
     embedding_runtime: EmbeddingRuntime | None = None
 
 
-def build_gateway_runtime(config: Settings) -> GatewayRuntime:
+def build_gateway_runtime(
+    config: Settings,
+    *,
+    knowledge_store: KnowledgeStore | None = None,
+) -> GatewayRuntime:
     """Build one coherent runtime without module-global mutable agent state."""
 
     telemetry = Telemetry()
@@ -78,14 +86,16 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
             circuit_failure_threshold=config.openai_circuit_failure_threshold,
             circuit_recovery_seconds=config.openai_circuit_recovery_seconds,
         )
-    embedding_runtime = build_knowledge_embedder(config)
+    embedding_runtime: EmbeddingRuntime | None = None
     redis_client: Any | None = None
     sessions: SessionStore = InMemorySessionStore(
         ttl_seconds=config.session_ttl_seconds
     )
     memory: MemoryStore = InMemoryMemoryStore()
     turns: TurnCoordinator = SessionTurnCoordinator()
-    knowledge_store: QdrantKnowledgeStore | None = None
+    configured_knowledge_store = (
+        knowledge_store if knowledge_store is not None else DisabledKnowledgeStore()
+    )
     if config.shared_state_backend == "redis":
         redis_client = Redis.from_url(
             config.redis_url.get_secret_value(),
@@ -108,8 +118,9 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
             key_prefix=config.redis_key_prefix,
             lease_seconds=config.orchestration_timeout_seconds + 10,
         )
-    if config.knowledge_backend == "qdrant":
-        knowledge_store = QdrantKnowledgeStore(
+    if knowledge_store is None and config.knowledge_backend == "qdrant":
+        embedding_runtime = build_knowledge_embedder(config)
+        configured_knowledge_store = QdrantKnowledgeStore(
             config.qdrant_url,
             collection=versioned_knowledge_collection(
                 config.qdrant_collection,
@@ -119,13 +130,7 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
             timeout_seconds=config.qdrant_timeout_seconds,
             embedder=embedding_runtime,
         )
-    agent_gateway = AgentGateway(
-        router=build_default_mcp_router(
-            knowledge_search=(
-                knowledge_store.search if knowledge_store is not None else None
-            )
-        )
-    )
+    agent_gateway = AgentGateway(router=build_default_mcp_router())
     authenticator = APIKeyAuthenticator(config.gateway_api_keys.get_secret_value())
     authorization_registry = PrincipalAuthorizationRegistry.from_configuration(
         config.gateway_principal_policies
@@ -177,7 +182,7 @@ def build_gateway_runtime(config: Settings) -> GatewayRuntime:
         config=config,
         turns=turns,
         redis_client=redis_client,
-        knowledge_store=knowledge_store,
+        knowledge_store=configured_knowledge_store,
         model_runtime=model_runtime,
         embedding_runtime=embedding_runtime,
     )

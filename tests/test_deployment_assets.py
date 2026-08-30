@@ -6,8 +6,12 @@ import yaml
 
 from app.core.config import Settings
 from app.db.migrate import _migration_root
-from app.knowledge import seed as knowledge_seed
-from app.knowledge.qdrant import KnowledgeStoreUnavailableError
+from scripts.ci_live_smoke import (
+    BOOK_COMPARE_QUERY,
+    BOOK_SEARCH_QUERY,
+    _book_concurrency_query,
+    _readiness_checks_pass,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -63,7 +67,6 @@ def test_compose_separates_bootstrap_jobs_and_private_data_services() -> None:
         "  qdrant:",
         "  migrate:",
         "  seed-data:",
-        "  seed-knowledge:",
         "  backend:",
     ):
         assert service in compose
@@ -80,6 +83,11 @@ def test_compose_separates_bootstrap_jobs_and_private_data_services() -> None:
     assert parsed["x-app-environment"]["PUBLIC_SNAPSHOT_DIR"] == (
         "/app/data/snapshots/tiki-books-v4-eval"
     )
+    assert parsed["x-app-environment"]["KNOWLEDGE_BACKEND"] == (
+        "${KNOWLEDGE_BACKEND:-disabled}"
+    )
+    assert parsed["services"]["qdrant"]["profiles"] == ["knowledge"]
+    assert "seed-knowledge" not in parsed["services"]
     assert parsed["services"]["seed-data"]["depends_on"] == {
         "migrate": {"condition": "service_completed_successfully"}
     }
@@ -101,7 +109,6 @@ def test_package_exposes_operational_entry_points() -> None:
         "ecommerce-migrate": "app.db.migrate:main",
         "ecommerce-reset-legacy-seed": "app.db.reset_legacy_seed:main",
         "ecommerce-seed": "app.db.seed:main",
-        "ecommerce-seed-knowledge": "app.knowledge.seed:main",
     }
 
 
@@ -122,32 +129,22 @@ def test_migration_root_is_discovered_from_runtime_assets() -> None:
     assert _migration_root() == PROJECT_ROOT
 
 
-def test_knowledge_seed_retries_only_until_success(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    attempts = 0
-
-    def transient_seed() -> int:
-        nonlocal attempts
-        attempts += 1
-        if attempts == 1:
-            raise KnowledgeStoreUnavailableError("starting")
-        return 7
-
-    monotonic_values = iter((10.0, 10.0))
-    monkeypatch.setattr(knowledge_seed, "seed_sample_knowledge", transient_seed)
-    monkeypatch.setattr(
-        knowledge_seed.time,
-        "monotonic",
-        lambda: next(monotonic_values),
+def test_live_smoke_accepts_only_the_explicitly_disabled_knowledge_check() -> None:
+    assert _readiness_checks_pass(
+        {"runtime": "ok", "database": "ok", "knowledge": "disabled"}
     )
-    monkeypatch.setattr(knowledge_seed.time, "sleep", lambda _seconds: None)
+    assert not _readiness_checks_pass(
+        {"runtime": "ok", "database": "disabled", "knowledge": "disabled"}
+    )
+    assert not _readiness_checks_pass(
+        {"runtime": "ok", "database": "ok", "knowledge": "failed"}
+    )
 
-    assert knowledge_seed.wait_and_seed_sample_knowledge(wait_seconds=5) == 7
-    assert attempts == 2
 
-
-@pytest.mark.parametrize("wait_seconds", [-0.1, 301])
-def test_knowledge_seed_rejects_unbounded_waits(wait_seconds: float) -> None:
-    with pytest.raises(ValueError, match="between 0 and 300"):
-        knowledge_seed.wait_and_seed_sample_knowledge(wait_seconds=wait_seconds)
+def test_live_smoke_uses_book_queries_backed_by_the_runtime_snapshot() -> None:
+    assert BOOK_SEARCH_QUERY == "Tìm sách Nhật Ký Tarot"
+    assert BOOK_COMPARE_QUERY == ("So sánh sách Nhật Ký Tarot với Ông Nội Vượt Ngục.")
+    assert _book_concurrency_query(0) == (
+        "Tìm sách dưới 150 nghìn, bán tốt và ít bị khách phàn nàn."
+    )
+    assert _book_concurrency_query(7).startswith("Tìm sách dưới 157 nghìn")

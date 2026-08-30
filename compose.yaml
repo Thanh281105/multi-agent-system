@@ -13,10 +13,10 @@ x-app-environment: &app-environment
   REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0
   REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-ecommerce_agents}
   REDIS_SOCKET_TIMEOUT_SECONDS: ${REDIS_SOCKET_TIMEOUT_SECONDS:-2}
-  KNOWLEDGE_BACKEND: qdrant
-  QDRANT_URL: http://qdrant:6333
-  QDRANT_API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
-  QDRANT_COLLECTION: ${QDRANT_COLLECTION:-sample_market_knowledge}
+  KNOWLEDGE_BACKEND: ${KNOWLEDGE_BACKEND:-disabled}
+  QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+  QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+  QDRANT_COLLECTION: ${QDRANT_COLLECTION:-knowledge}
   QDRANT_TIMEOUT_SECONDS: ${QDRANT_TIMEOUT_SECONDS:-3}
   ORCHESTRATION_TIMEOUT_SECONDS: ${ORCHESTRATION_TIMEOUT_SECONDS:-30}
   LEGACY_CHAT_ENABLED: "false"
@@ -101,8 +101,9 @@ services:
 
   qdrant:
     image: qdrant/qdrant:v1.18.2
+    profiles: ["knowledge"]
     environment:
-      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY}
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-}
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
@@ -132,14 +133,6 @@ services:
         condition: service_completed_successfully
     restart: "no"
 
-  seed-knowledge:
-    <<: *app-common
-    command: ["ecommerce-seed-knowledge", "--wait-seconds", "90"]
-    depends_on:
-      qdrant:
-        condition: service_started
-    restart: "no"
-
   backend:
     <<: *app-common
     command:
@@ -162,8 +155,6 @@ services:
       redis:
         condition: service_healthy
       seed-data:
-        condition: service_completed_successfully
-      seed-knowledge:
         condition: service_completed_successfully
     healthcheck:
       test:

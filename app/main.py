@@ -11,6 +11,7 @@ from app.gateway.frontend import install_frontend
 from app.gateway.middleware import install_gateway_middleware
 from app.gateway.operations import router as operations_router
 from app.gateway.routes import router as gateway_router
+from app.knowledge import KnowledgeStore
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
@@ -18,7 +19,11 @@ logging.basicConfig(
 )
 
 
-def create_app(config: Settings = settings) -> FastAPI:
+def create_app(
+    config: Settings = settings,
+    *,
+    knowledge_store: KnowledgeStore | None = None,
+) -> FastAPI:
     """Build one production-guarded modular monolith application instance."""
 
     application = FastAPI(
@@ -32,7 +37,10 @@ def create_app(config: Settings = settings) -> FastAPI:
         redoc_url=None if config.app_env == "production" else "/redoc",
         openapi_url=None if config.app_env == "production" else "/openapi.json",
     )
-    application.state.gateway_runtime = build_gateway_runtime(config)
+    application.state.gateway_runtime = build_gateway_runtime(
+        config,
+        knowledge_store=knowledge_store,
+    )
     install_gateway_middleware(application)
     application.include_router(operations_router)
     application.include_router(gateway_router)

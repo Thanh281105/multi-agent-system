@@ -1,4 +1,4 @@
-"""Replaceable knowledge retrieval adapters and sample documents."""
+"""Replaceable optional knowledge adapters without bundled knowledge content."""
 
 from app.knowledge.embedding import HashingTextEmbedder
 from app.knowledge.qdrant import (
@@ -6,12 +6,13 @@ from app.knowledge.qdrant import (
     KnowledgeStoreUnavailableError,
     QdrantKnowledgeStore,
 )
-from app.knowledge.sample import SAMPLE_MARKET_DOCUMENTS
+from app.knowledge.store import DisabledKnowledgeStore, KnowledgeStore
 
 __all__ = [
+    "DisabledKnowledgeStore",
     "HashingTextEmbedder",
+    "KnowledgeStore",
     "KnowledgeStoreContractError",
     "KnowledgeStoreUnavailableError",
     "QdrantKnowledgeStore",
-    "SAMPLE_MARKET_DOCUMENTS",
 ]

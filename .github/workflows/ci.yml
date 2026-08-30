@@ -97,18 +97,21 @@ jobs:
       - name: Lint and render deployment profiles
         run: |
           helm lint deploy/helm/ecommerce-multi-agent \
-            --set existingSecret=ci-runtime \
-            --set config.qdrantUrl=https://qdrant.example.test
+            --set existingSecret=ci-runtime
           helm template kind deploy/helm/ecommerce-multi-agent \
             -f deploy/helm/ecommerce-multi-agent/values-kind.yaml \
             > /tmp/ecommerce-kind.yaml
           helm template production deploy/helm/ecommerce-multi-agent \
             --set existingSecret=ci-runtime \
-            --set config.qdrantUrl=https://qdrant.example.test \
             --set monitoring.serviceMonitor.enabled=true \
             --set monitoring.prometheusRule.enabled=true \
             --set monitoring.grafanaDashboard.enabled=true \
             > /tmp/ecommerce-production.yaml
+          helm template qdrant deploy/helm/ecommerce-multi-agent \
+            --set existingSecret=ci-runtime \
+            --set config.knowledgeBackend=qdrant \
+            --set config.qdrantUrl=https://qdrant.example.test \
+            > /tmp/ecommerce-qdrant.yaml
 
       - name: Validate rendered Kubernetes resources
         run: |
@@ -121,6 +124,10 @@ jobs:
             ghcr.io/yannh/kubeconform@sha256:85dbef6b4b312b99133decc9c6fc9495e9fc5f92293d4ff3b7e1b30f5611823c \
             -strict -summary -ignore-missing-schemas \
             /manifests/ecommerce-production.yaml
+          docker run --rm \
+            -v /tmp:/manifests:ro \
+            ghcr.io/yannh/kubeconform@sha256:85dbef6b4b312b99133decc9c6fc9495e9fc5f92293d4ff3b7e1b30f5611823c \
+            -strict -summary /manifests/ecommerce-qdrant.yaml
 
       - name: Validate Compose model
         env:
@@ -129,7 +136,6 @@ jobs:
           GATEWAY_API_KEYS: ci:ci-gateway-secret-123456
           GATEWAY_PRINCIPAL_POLICIES: ci:default:ecommerce.read
           OPERATIONS_API_KEY: ci-operations-secret-123456
-          QDRANT_API_KEY: ci-qdrant-secret-123456
         run: docker compose -f compose.yaml config --quiet
 
       - name: Build hardened application image
@@ -145,7 +151,6 @@ jobs:
       GATEWAY_API_KEYS: ci:ci-gateway-secret-123456
       GATEWAY_PRINCIPAL_POLICIES: ci:default:ecommerce.read
       OPERATIONS_API_KEY: ci-operations-secret-123456
-      QDRANT_API_KEY: ci-qdrant-secret-123456
       MODEL_RUNTIME_MODE: off
       EMBEDDING_BACKEND: hashing
       APP_IMAGE_TAG: ci
@@ -188,7 +193,7 @@ jobs:
 
       - name: Dump service logs on failure
         if: ${{ failure() }}
-        run: docker compose -f compose.yaml logs --no-color --tail=200 migrate seed-data seed-knowledge backend
+        run: docker compose -f compose.yaml logs --no-color --tail=200 migrate seed-data backend
 
       - name: Tear down live stack
         if: ${{ always() }}

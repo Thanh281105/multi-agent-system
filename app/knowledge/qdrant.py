@@ -1,4 +1,4 @@
-"""Minimal authenticated Qdrant REST adapter for sample knowledge retrieval."""
+"""Minimal authenticated Qdrant REST adapter for optional knowledge retrieval."""
 
 from __future__ import annotations
 
@@ -26,13 +26,15 @@ class KnowledgeStoreContractError(RuntimeError):
 
 
 class QdrantKnowledgeStore:
-    """Versioned vector knowledge adapter with explicit sample-data metadata."""
+    """Versioned vector adapter kept dormant until a real RAG module is injected."""
+
+    backend = "qdrant"
 
     def __init__(
         self,
         base_url: str,
         *,
-        collection: str = "sample_market_knowledge",
+        collection: str = "knowledge",
         api_key: str = "",
         timeout_seconds: float = 3,
         embedder: EmbeddingRuntime | None = None,
@@ -65,7 +67,7 @@ class QdrantKnowledgeStore:
         self._request_retries = request_retries
 
     def ready(self) -> bool:
-        """Verify service health and the usable seeded collection contract."""
+        """Verify service health and a compatible, non-empty collection."""
 
         self._call("GET", "/readyz", accepted_statuses=(200,))
         path = f"/collections/{quote(self.collection, safe='')}"
@@ -101,14 +103,31 @@ class QdrantKnowledgeStore:
             return
         self._require_ok(body)
 
-    def upsert_documents(self, documents: Iterable[Mapping[str, str]]) -> int:
+    def upsert_documents(self, documents: Iterable[Mapping[str, Any]]) -> int:
         points: list[dict[str, Any]] = []
         for document in documents:
-            document_id = document.get("id", "").strip()
-            title = document.get("title", "").strip()
-            content = document.get("content", "").strip()
+            document_id = document.get("id")
+            title = document.get("title")
+            content = document.get("content")
+            source = document.get("source", "external_knowledge")
+            sample_data = document.get("sample_data", False)
+            if (
+                not isinstance(document_id, str)
+                or not isinstance(title, str)
+                or not isinstance(content, str)
+            ):
+                raise ValueError(
+                    "knowledge documents require string id, title and content"
+                )
+            document_id = document_id.strip()
+            title = title.strip()
+            content = content.strip()
             if not document_id or not title or not content:
                 raise ValueError("knowledge documents require id, title and content")
+            if not isinstance(source, str) or not source.strip():
+                raise ValueError("knowledge documents require a non-blank source")
+            if not isinstance(sample_data, bool):
+                raise ValueError("knowledge document sample_data must be boolean")
             points.append(
                 {
                     "id": str(
@@ -122,8 +141,8 @@ class QdrantKnowledgeStore:
                         "document_id": document_id,
                         "title": title,
                         "content": content,
-                        "source": "sample_thesis_dataset",
-                        "sample_data": True,
+                        "source": source.strip(),
+                        "sample_data": sample_data,
                         "embedding_method": self.embedder.method,
                     },
                 }
@@ -181,8 +200,8 @@ class QdrantKnowledgeStore:
                     "title": title,
                     "content": content,
                     "score": round(float(score), 6),
-                    "source": str(payload.get("source", "sample_thesis_dataset")),
-                    "sample_data": bool(payload.get("sample_data", True)),
+                    "source": str(payload.get("source", "external_knowledge")),
+                    "sample_data": bool(payload.get("sample_data", False)),
                 }
             )
         return {
@@ -219,7 +238,7 @@ class QdrantKnowledgeStore:
                 or points_count < 1
             ):
                 raise KnowledgeStoreContractError(
-                    "qdrant collection must contain seeded knowledge points"
+                    "qdrant collection must contain knowledge points"
                 )
 
     @staticmethod

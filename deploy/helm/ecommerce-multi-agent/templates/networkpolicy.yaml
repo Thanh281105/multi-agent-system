@@ -28,8 +28,10 @@ spec:
           port: 5432
         - protocol: TCP
           port: 6379
+        {{- if eq .Values.config.knowledgeBackend "qdrant" }}
         - protocol: TCP
           port: 6333
+        {{- end }}
     {{- with .Values.networkPolicy.extraEgress }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -46,7 +48,12 @@ spec:
     matchExpressions:
       - key: app.kubernetes.io/component
         operator: In
-        values: [postgres, redis, qdrant]
+        values:
+          - postgres
+          - redis
+          {{- if .Values.internalDependencies.qdrant.enabled }}
+          - qdrant
+          {{- end }}
   policyTypes:
     - Ingress
   ingress:
@@ -59,7 +66,9 @@ spec:
           port: 5432
         - protocol: TCP
           port: 6379
+        {{- if .Values.internalDependencies.qdrant.enabled }}
         - protocol: TCP
           port: 6333
+        {{- end }}
 {{- end }}
 {{- end }}

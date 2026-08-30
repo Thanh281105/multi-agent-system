@@ -206,9 +206,9 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
                 "trong snapshot sách."
             ),
             capabilities=("market.category", "market.price", "market.research"),
-            skills=("analyze_market", "search_market_knowledge"),
-            permissions=frozenset({"analytics.read", "knowledge.read"}),
-            mcp_servers=frozenset({"analytics", "knowledge"}),
+            skills=("analyze_market",),
+            permissions=frozenset({"analytics.read"}),
+            mcp_servers=frozenset({"analytics"}),
             follow_up_intent="market.analyze",
         ),
     )

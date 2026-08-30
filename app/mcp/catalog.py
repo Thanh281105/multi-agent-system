@@ -1,10 +1,10 @@
 """Default in-process MCP server catalog for sample-backed skills."""
 
-from app.agents.market.skills import analyze_market, search_market_knowledge
+from app.agents.market.skills import analyze_market
 from app.agents.product.skills import rank_products
 from app.agents.review.skills import analyze_review_sentiment, extract_review_aspects
 from app.agents.trust.skills import analyze_review_trust, detect_complaints
-from app.mcp.router import MCPRouter, MCPToolSpec, ToolHandler
+from app.mcp.router import MCPRouter, MCPToolSpec
 from app.tools.ecommerce import (
     compare_products,
     get_product_reviews,
@@ -13,10 +13,7 @@ from app.tools.ecommerce import (
 )
 
 
-def build_default_mcp_router(
-    *,
-    knowledge_search: ToolHandler | None = None,
-) -> MCPRouter:
+def build_default_mcp_router() -> MCPRouter:
     """Build the historical Tiki Books tool router with isolated mutable state."""
 
     router = MCPRouter()
@@ -100,14 +97,6 @@ def build_default_mcp_router(
             "analytics.read",
             "Analyze cross-sectional aggregates over the historical book snapshot.",
             analyze_market,
-        ),
-        MCPToolSpec(
-            "knowledge",
-            "search_market_knowledge",
-            "search_market_knowledge",
-            "knowledge.read",
-            "Retrieve clearly labeled sample market notes.",
-            knowledge_search or search_market_knowledge,
         ),
     )
     for spec in specs:

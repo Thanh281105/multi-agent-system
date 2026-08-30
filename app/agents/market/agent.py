@@ -20,7 +20,7 @@ class MarketAgent(DomainAgent):
     """Answer cross-sectional snapshot questions without trend claims."""
 
     agent_id = "market_agent"
-    supported_actions = frozenset({"market.analyze", "market.search"})
+    supported_actions = frozenset({"market.analyze"})
 
     def __init__(self, gateway: AgentGateway) -> None:
         super().__init__(gateway)
@@ -30,21 +30,6 @@ class MarketAgent(DomainAgent):
         validation_error = self.validate_message(message)
         if validation_error:
             return self.failed(message, validation_error, started_at=started_at)
-
-        if message.action == "market.search":
-            query = str(message.payload.get("query", "sách Tiki"))
-            knowledge = await self.call_tool(
-                message,
-                server_id="knowledge",
-                tool_name="search_market_knowledge",
-                arguments={"query": query, "limit": message.payload.get("limit", 3)},
-            )
-            return self._complete(
-                message,
-                {"knowledge": knowledge.data} if knowledge.ok else {},
-                started_at,
-                errors=(() if knowledge.ok else (self.gateway_error(knowledge),)),
-            )
 
         allowed_filters = {
             "category",
@@ -107,15 +92,6 @@ class MarketAgent(DomainAgent):
                         ),
                         sample_data=True,
                     ),
-                )
-            )
-        if "knowledge" in data:
-            provenance.append(
-                DataProvenance(
-                    source_type="sample.document",
-                    source_id="sample_thesis_market_notes",
-                    fields=("title", "content"),
-                    sample_data=True,
                 )
             )
         return AgentResult(

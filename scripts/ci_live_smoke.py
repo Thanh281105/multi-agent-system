@@ -20,6 +20,8 @@ class HttpResult:
 BASE_URL = os.getenv("CI_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 GATEWAY_KEY = os.getenv("CI_GATEWAY_KEY", "")
 OPERATIONS_KEY = os.getenv("CI_OPERATIONS_KEY", "")
+BOOK_SEARCH_QUERY = "Tìm sách Nhật Ký Tarot"
+BOOK_COMPARE_QUERY = "So sánh sách Nhật Ký Tarot với Ông Nội Vượt Ngục."
 
 
 def main() -> None:
@@ -47,8 +49,7 @@ def _wait_until_ready() -> None:
             if (
                 result.status == 200
                 and payload.get("status") == "ready"
-                and checks
-                and all(value == "ok" for value in checks.values())
+                and _readiness_checks_pass(checks)
             ):
                 return
             last_error = f"status={result.status} body={payload}"
@@ -56,6 +57,15 @@ def _wait_until_ready() -> None:
             last_error = f"{type(exc).__name__}: {exc}"
         time.sleep(5)
     raise SystemExit(f"stack did not become ready: {last_error}")
+
+
+def _readiness_checks_pass(checks: object) -> bool:
+    if not isinstance(checks, dict) or not checks:
+        return False
+    return all(
+        outcome == "ok" or (dependency == "knowledge" and outcome == "disabled")
+        for dependency, outcome in checks.items()
+    )
 
 
 def _assert_liveness() -> None:
@@ -69,17 +79,15 @@ def _assert_json_chat() -> None:
         "POST",
         "/api/v1/chat",
         headers={"X-API-Key": GATEWAY_KEY, "Content-Type": "application/json"},
-        body=json.dumps(
-            {"message": "Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn."}
-        ).encode("utf-8"),
+        body=json.dumps({"message": BOOK_SEARCH_QUERY}).encode("utf-8"),
     )
     payload = _json(result)
     _require(
         result.status == 200
         and payload.get("status") in {"success", "partial_success"}
-        and payload.get("request_id")
-        and payload.get("trace_id")
-        and payload.get("provenance"),
+        and all(
+            payload.get(field) for field in ("request_id", "trace_id", "provenance")
+        ),
         "JSON chat",
     )
 
@@ -93,9 +101,7 @@ def _assert_sse_chat() -> None:
             "X-API-Key": GATEWAY_KEY,
             "Content-Type": "application/json",
         },
-        body=json.dumps({"message": "So sánh Nova Air S2 với Sonic G5."}).encode(
-            "utf-8"
-        ),
+        body=json.dumps({"message": BOOK_COMPARE_QUERY}).encode("utf-8"),
         timeout=60,
     )
     _require(result.status == 200, "SSE status")
@@ -116,9 +122,9 @@ def _assert_bounded_concurrency() -> None:
             "POST",
             "/api/v1/chat",
             headers={"X-API-Key": GATEWAY_KEY, "Content-Type": "application/json"},
-            body=json.dumps(
-                {"message": f"Tìm sản phẩm mẫu số {index} dưới 1 triệu."}
-            ).encode("utf-8"),
+            body=json.dumps({"message": _book_concurrency_query(index)}).encode(
+                "utf-8"
+            ),
             timeout=60,
         )
 
@@ -132,6 +138,10 @@ def _assert_bounded_concurrency() -> None:
         ),
         "bounded concurrency",
     )
+
+
+def _book_concurrency_query(index: int) -> str:
+    return f"Tìm sách dưới {150 + index} nghìn, bán tốt và ít bị khách phàn nàn."
 
 
 def _assert_operations_authentication() -> None:

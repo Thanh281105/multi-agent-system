@@ -23,6 +23,7 @@ from app.contracts import (
 )
 from app.core.config import Settings
 from app.mcp import MCPRouter, MCPToolSpec
+from app.mcp.catalog import build_default_mcp_router
 from app.orchestrator.executor import PlanExecutor
 from app.orchestrator.planner import ExecutionPlanner
 from app.orchestrator.schemas import RoutedIntent
@@ -127,6 +128,13 @@ def test_default_registry_exposes_all_workflow_agents() -> None:
     assert default_registry.active_agent_for_intent("review.summary") == "review_agent"
     assert default_registry.follow_up_intent("market_agent") == "market.analyze"
     assert default_registry.intent_manifest("multi.recommendation") is not None
+    assert default_registry.intent_manifest("market.search") is None
+    market = default_registry.get("market_agent")
+    assert market.skills == ("analyze_market",)
+    assert market.mcp_servers == frozenset({"analytics"})
+
+    tools = build_default_mcp_router().list_tools()
+    assert all(spec.server_id != "knowledge" for spec in tools)
 
 
 def test_planner_compiles_a_registered_domain_without_core_branch() -> None:

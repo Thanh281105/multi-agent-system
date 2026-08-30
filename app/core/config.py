@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlsplit
 
-from pydantic import AliasChoices, Field, SecretStr, model_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -83,8 +83,8 @@ class Settings(BaseSettings):
         le=30,
         validation_alias="REDIS_SOCKET_TIMEOUT_SECONDS",
     )
-    knowledge_backend: Literal["static", "qdrant"] = Field(
-        default="static",
+    knowledge_backend: Literal["disabled", "qdrant"] = Field(
+        default="disabled",
         validation_alias="KNOWLEDGE_BACKEND",
     )
     qdrant_url: str = Field(
@@ -96,7 +96,7 @@ class Settings(BaseSettings):
         validation_alias="QDRANT_API_KEY",
     )
     qdrant_collection: str = Field(
-        default="sample_market_knowledge",
+        default="knowledge",
         pattern=r"^[a-zA-Z0-9_-]{1,128}$",
         validation_alias="QDRANT_COLLECTION",
     )
@@ -200,6 +200,15 @@ class Settings(BaseSettings):
     )
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
 
+    @field_validator("knowledge_backend", mode="before")
+    @classmethod
+    def normalize_legacy_static_knowledge_backend(cls, value: Any) -> Any:
+        """Map the removed static backend to the safe disabled state."""
+
+        if isinstance(value, str) and value.casefold() == "static":
+            return "disabled"
+        return value
+
     @model_validator(mode="after")
     def validate_production_secrets(self) -> Settings:
         configured_keys = self.gateway_api_keys.get_secret_value().strip()
@@ -251,11 +260,11 @@ class Settings(BaseSettings):
                     "production requires an authenticated REDIS_URL without "
                     "placeholder credentials"
                 )
-        if self.app_env == "production" and self.knowledge_backend != "qdrant":
-            raise ValueError("production requires KNOWLEDGE_BACKEND=qdrant")
         qdrant_key = self.qdrant_api_key.get_secret_value().strip()
-        if self.app_env == "production" and (
-            len(qdrant_key) < 16 or "replace-with-" in qdrant_key.casefold()
+        if (
+            self.app_env == "production"
+            and self.knowledge_backend == "qdrant"
+            and (len(qdrant_key) < 16 or "replace-with-" in qdrant_key.casefold())
         ):
             raise ValueError(
                 "production requires a strong non-placeholder QDRANT_API_KEY"

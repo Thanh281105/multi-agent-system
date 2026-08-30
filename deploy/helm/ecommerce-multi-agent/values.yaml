@@ -52,8 +52,9 @@ secretKeys:
 
 config:
   snapshotDir: /app/data/snapshots/tiki-books-v4-eval
+  knowledgeBackend: disabled
   qdrantUrl: ""
-  qdrantCollection: sample_market_knowledge
+  qdrantCollection: knowledge
   modelRuntimeMode: hybrid
   embeddingBackend: auto
   gatewayPrincipalPolicies: demo:default:ecommerce.read
@@ -88,9 +89,6 @@ bootstrap:
     enabled: true
   seedData:
     enabled: false
-  seedKnowledge:
-    enabled: false
-    waitSeconds: 90
   resources:
     requests:
       cpu: 50m
@@ -183,6 +181,7 @@ internalDependencies:
         cpu: 500m
         memory: 512Mi
   qdrant:
+    enabled: false
     image: qdrant/qdrant:v1.18.2
     storage: 4Gi
     resources:

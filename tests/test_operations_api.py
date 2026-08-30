@@ -46,7 +46,7 @@ def test_operations_plane_exposes_only_redacted_execution_metadata() -> None:
     chat = client.post(
         "/api/v1/chat",
         headers={"X-API-Key": "test-secret-key"},
-        json={"message": "Tìm tai nghe dưới 1 triệu, bán tốt và ít complaint"},
+        json={"message": "Tìm sách dưới 150 nghìn, bán tốt và ít complaint"},
     )
     assert chat.status_code == 200
     trace_id = chat.json()["trace_id"]
@@ -62,6 +62,7 @@ def test_operations_plane_exposes_only_redacted_execution_metadata() -> None:
     agents = client.get("/api/v1/operations/agents", headers=operations_headers)
 
     assert ready.status_code == 200
+    assert ready.json()["checks"]["knowledge"] == "disabled"
     assert metrics.status_code == 200
     assert "http_requests_total" in metrics.text
     assert "# TYPE http_request_duration_seconds histogram" in metrics.text
@@ -81,7 +82,7 @@ def test_operations_plane_exposes_only_redacted_execution_metadata() -> None:
     combined = trace.text + audit.text + agents.text
     assert "test-secret-key" not in combined
     assert "strong-operations-key" not in combined
-    assert "Tìm tai nghe" not in combined
+    assert "Tìm sách" not in combined
 
 
 def test_unknown_trace_has_stable_not_found_envelope() -> None:

@@ -49,7 +49,6 @@ from app.orchestrator import MultiAgentOrchestrator
 ALLOWED_ACTIONS = frozenset(
     {
         "market.analyze",
-        "market.search",
         "product.compare",
         "product.rank",
         "product.search",
@@ -64,7 +63,6 @@ ALLOWED_INTENTS = frozenset(
         "general.help",
         "general.unsupported",
         "market.analyze",
-        "market.search",
         "multi.recommendation",
         "product.compare",
         "product.follow_up",

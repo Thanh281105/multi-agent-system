@@ -16,7 +16,6 @@ SupportedIntent = Literal[
     "review.summary",
     "trust.complaints",
     "market.analyze",
-    "market.search",
     "multi.recommendation",
 ]
 
@@ -29,7 +28,6 @@ CapabilityName = Literal[
     "trust.complaints",
     "trust.compare",
     "market.analyze",
-    "market.search",
 ]
 
 

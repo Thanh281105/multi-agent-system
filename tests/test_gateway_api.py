@@ -372,7 +372,11 @@ def test_readiness_and_metrics_use_runtime_adapters() -> None:
     metrics = client.get("/metrics")
 
     assert ready.status_code == 200
-    assert ready.json()["checks"] == {"runtime": "ok", "database": "ok"}
+    assert ready.json()["checks"] == {
+        "runtime": "ok",
+        "database": "ok",
+        "knowledge": "disabled",
+    }
     assert metrics.status_code == 200
     assert "http_requests_total" in metrics.text
     assert "agent_operations_total" in metrics.text
@@ -410,13 +414,12 @@ def test_settings_reject_insecure_production_gateway() -> None:
         legacy_chat_enabled=False,
         shared_state_backend="redis",
         redis_url="redis://:strong-redis-password@localhost:6379/0",
-        knowledge_backend="qdrant",
-        qdrant_api_key="strong-qdrant-key",
         operations_api_key="strong-operations-key",
         model_runtime_mode="off",
         embedding_backend="hashing",
     )
     assert production.app_env == "production"
+    assert production.knowledge_backend == "disabled"
     production_app = create_app(production)
     assert (
         TestClient(production_app)

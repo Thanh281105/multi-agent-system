@@ -223,6 +223,7 @@ spec:
         resources:
           requests:
             storage: {{ .Values.internalDependencies.redis.storage }}
+{{- if .Values.internalDependencies.qdrant.enabled }}
 ---
 apiVersion: v1
 kind: Service
@@ -334,4 +335,5 @@ spec:
         resources:
           requests:
             storage: {{ .Values.internalDependencies.qdrant.storage }}
+{{- end }}
 {{- end }}

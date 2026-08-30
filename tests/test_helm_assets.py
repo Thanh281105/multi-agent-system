@@ -38,13 +38,15 @@ def test_chart_profiles_are_explicit_and_never_contain_plaintext_secrets() -> No
         "/app/data/snapshots/tiki-books-v4-eval"
     )
     assert production["internalDependencies"]["enabled"] is False
+    assert production["internalDependencies"]["qdrant"]["enabled"] is False
     assert production["bootstrap"]["seedData"]["enabled"] is False
-    assert production["bootstrap"]["seedKnowledge"]["enabled"] is False
+    assert "seedKnowledge" not in production["bootstrap"]
+    assert production["config"]["knowledgeBackend"] == "disabled"
     assert kind["profile"] == "kind"
     assert kind["existingSecret"] == "ecommerce-multi-agent-runtime"
     assert kind["internalDependencies"]["enabled"] is True
     assert kind["config"] == {
-        "qdrantUrl": "http://ecommerce-multi-agent-qdrant:6333",
+        "knowledgeBackend": "disabled",
         "modelRuntimeMode": "off",
         "embeddingBackend": "hashing",
         "gatewayPrincipalPolicies": "kind:default:ecommerce.read",
@@ -56,7 +58,7 @@ def test_chart_profiles_are_explicit_and_never_contain_plaintext_secrets() -> No
     assert "privileged: true" not in templates
 
 
-def test_chart_schema_guards_single_replica_profiles_and_sample_seeding() -> None:
+def test_chart_schema_guards_single_replica_profiles_and_optional_knowledge() -> None:
     schema = json.loads((CHART_ROOT / "values.schema.json").read_text("utf-8"))
 
     assert schema["properties"]["replicaCount"] == {"const": 1}
@@ -65,13 +67,23 @@ def test_chart_schema_guards_single_replica_profiles_and_sample_seeding() -> Non
     assert production_rule["bootstrap"]["properties"]["seedData"]["properties"][
         "enabled"
     ] == {"const": False}
-    assert production_rule["bootstrap"]["properties"]["seedKnowledge"]["properties"][
-        "enabled"
-    ] == {"const": False}
+    assert "seedKnowledge" not in schema["properties"]["bootstrap"]["properties"]
     assert production_rule["internalDependencies"]["properties"]["enabled"] == {
         "const": False
     }
     assert "snapshotDir" in schema["properties"]["config"]["required"]
+    assert schema["properties"]["config"]["properties"]["knowledgeBackend"] == {
+        "enum": ["disabled", "qdrant"]
+    }
+    assert (
+        schema["allOf"][3]["then"]["properties"]["config"]["properties"]["qdrantUrl"][
+            "pattern"
+        ]
+        == "^https?://"
+    )
+    assert schema["allOf"][4]["then"]["properties"]["config"]["properties"][
+        "knowledgeBackend"
+    ] == {"const": "qdrant"}
     assert schema["allOf"][2]["then"]["properties"]["bootstrap"]["properties"][
         "migrate"
     ]["properties"]["enabled"] == {"const": True}
@@ -102,9 +114,8 @@ def test_application_workloads_are_bounded_and_fail_closed() -> None:
     assert "path: /livez" in deployment
     assert "path: /readyz" in deployment
     assert deployment.index("name: migrate") < deployment.index("name: seed-data")
-    assert deployment.index("name: seed-data") < deployment.index(
-        "name: seed-knowledge"
-    )
+    assert "name: seed-knowledge" not in deployment
+    assert "ecommerce-seed-knowledge" not in deployment
     assert "helm.sh/hook: pre-install,pre-upgrade" in migration
     assert "hook-delete-policy: before-hook-creation,hook-succeeded" in migration
     assert "automountServiceAccountToken: false" in service_account
@@ -127,9 +138,7 @@ def test_monitoring_reads_bearer_token_from_existing_secret() -> None:
     assert "dependency_readiness_checks_total" in monitoring
 
 
-def test_kind_dependency_images_use_verified_non_root_ids_and_persistent_paths() -> (
-    None
-):
+def test_optional_dependency_images_and_persistent_paths() -> None:
     dependencies = (TEMPLATES / "internal-dependencies.yaml").read_text(
         encoding="utf-8"
     )
@@ -148,6 +157,7 @@ def test_kind_dependency_images_use_verified_non_root_ids_and_persistent_paths()
     assert "REDISCLI_AUTH" in dependencies
     assert "QDRANT__TELEMETRY_DISABLED" in dependencies
     assert "QDRANT_INIT_FILE_PATH" in dependencies
+    assert ".Values.internalDependencies.qdrant.enabled" in dependencies
 
 
 def test_kind_and_production_settings_satisfy_runtime_validation() -> None:
@@ -162,8 +172,6 @@ def test_kind_and_production_settings_satisfy_runtime_validation() -> None:
         "legacy_chat_enabled": False,
         "shared_state_backend": "redis",
         "redis_url": "redis://:strong-redis-password@redis:6379/0",
-        "knowledge_backend": "qdrant",
-        "qdrant_api_key": "strong-qdrant-key",
     }
 
     kind = Settings(
@@ -177,10 +185,19 @@ def test_kind_and_production_settings_satisfy_runtime_validation() -> None:
         embedding_backend="auto",
         openai_api_key="test-provider-secret",
     )
+    qdrant = Settings(
+        **common,
+        knowledge_backend="qdrant",
+        qdrant_api_key="strong-qdrant-key",
+        model_runtime_mode="off",
+        embedding_backend="hashing",
+    )
 
     assert kind.model_runtime_mode == "off"
     assert kind.embedding_backend == "hashing"
+    assert kind.knowledge_backend == "disabled"
     assert production.openai_api_key_value == "test-provider-secret"
+    assert qdrant.knowledge_backend == "qdrant"
 
 
 def test_grafana_dashboard_is_valid_and_covers_core_signals() -> None:
@@ -210,5 +227,7 @@ def test_ci_lints_and_schema_validates_both_helm_profiles() -> None:
     assert "helm lint deploy/helm/ecommerce-multi-agent" in workflow
     assert "helm template kind" in workflow
     assert "helm template production" in workflow
+    assert "helm template qdrant" in workflow
+    assert "--set config.knowledgeBackend=qdrant" in workflow
     assert "kubeconform@sha256:" in workflow
     assert "-strict -summary /manifests/ecommerce-kind.yaml" in workflow

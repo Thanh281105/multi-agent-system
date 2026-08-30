@@ -196,10 +196,6 @@ def _market_analyze(entities: dict[str, Any]) -> tuple[ExecutionStep, ...]:
     return (_step("step_market", "market_agent", "market.analyze", entities),)
 
 
-def _market_search(entities: dict[str, Any]) -> tuple[ExecutionStep, ...]:
-    return (_step("step_market", "market_agent", "market.search", entities),)
-
-
 def _review_expected(entities: dict[str, Any]) -> tuple[str, ...]:
     if isinstance(entities.get("product_id"), int):
         return ("review.summarize",)
@@ -272,11 +268,5 @@ def build_default_intent_manifests() -> tuple[IntentManifest, ...]:
             "market_agent",
             _market_analyze,
             lambda _: ("market.analyze",),
-        ),
-        IntentManifest(
-            "market.search",
-            "market_agent",
-            _market_search,
-            lambda _: ("market.search",),
         ),
     )
