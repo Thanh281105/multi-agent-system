@@ -12,7 +12,7 @@ import { completedResponse, statusEvent, tokenEvent } from "@/test/fixtures"
 const userMessage = {
   id: "message-user-1",
   role: "user" as const,
-  text: "Tìm tai nghe",
+  text: "Tìm sách chiêm tinh",
 }
 
 describe("chatReducer", () => {
@@ -99,12 +99,12 @@ describe("chatReducer", () => {
 
     expect(firstDelta.request).toMatchObject({
       phase: "streaming",
-      answer: "Tai nghe ",
+      answer: "Nhật Ký Tarot ",
       lastSequence: 2,
     })
     expect(staleDelta).toBe(firstDelta)
     expect(secondDelta.request).toMatchObject({
-      answer: "Tai nghe phù hợp.",
+      answer: "Nhật Ký Tarot phù hợp.",
       lastSequence: 3,
     })
   })

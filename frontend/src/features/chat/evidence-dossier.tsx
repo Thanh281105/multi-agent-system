@@ -77,7 +77,7 @@ export function EvidenceDossier({
             Hồ sơ thực thi
           </h2>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Chỉ dữ liệu public đã làm sạch
+            Snapshot Tiki Books đã làm sạch
           </p>
         </div>
         <DossierStatus state={state} />

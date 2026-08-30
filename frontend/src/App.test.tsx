@@ -23,7 +23,19 @@ describe("EvidenceAtlas", () => {
       }),
     ).toBeVisible()
     expect(screen.getByRole("note")).toHaveTextContent(
-      "không đại diện toàn bộ thị trường",
+      "không phản ánh danh mục, giá hay mức quan tâm hiện tại trên Tiki",
+    )
+    expect(screen.getByText("Evidence Atlas · Tiki Books")).toBeVisible()
+    expect(screen.getByText("Danh mục sách")).toBeVisible()
+    expect(
+      screen.getByText(/Hãy hỏi về sách trong snapshot Tiki Books/),
+    ).toBeVisible()
+    expect(
+      screen.getByRole("button", { name: /Tìm sách học tiếng Anh/ }),
+    ).toBeVisible()
+    expect(screen.getByLabelText("Câu hỏi cần điều phối")).toHaveAttribute(
+      "placeholder",
+      "Ví dụ: Tìm sách học tiếng Anh dưới 150.000đ, được đánh giá tốt…",
     )
     expect(screen.getByLabelText("Câu hỏi cần điều phối")).toBeEnabled()
     expect(screen.getByText("Action allowlist bật")).toBeInTheDocument()
@@ -67,7 +79,7 @@ describe("EvidenceAtlas", () => {
       ...createInitialChatState({ credentialConfigured: true }),
       sessionId: completedResponse.session_id,
       messages: [
-        { id: "user", role: "user", text: "Tìm tai nghe" },
+        { id: "user", role: "user", text: "Tìm sách chiêm tinh" },
         {
           id: "assistant",
           role: "assistant",
@@ -90,6 +102,7 @@ describe("EvidenceAtlas", () => {
     expect(screen.getByText("gpt-5.4-nano")).toBeInTheDocument()
     expect(screen.getByText("product:101")).toBeInTheDocument()
     expect(screen.getByText("từ · step_product")).toBeInTheDocument()
+    expect(screen.getByText(/Nhật Ký Tarot phù hợp/)).toBeInTheDocument()
     expect(screen.getByText(/Kết luận có nguồn/)).toBeInTheDocument()
     expect(screen.queryByText(/agent_results/i)).not.toBeInTheDocument()
   })
@@ -98,12 +111,14 @@ describe("EvidenceAtlas", () => {
     const cancelRequest = vi.fn()
     const state: ChatState = {
       ...createInitialChatState({ credentialConfigured: true }),
-      messages: [{ id: "user", role: "user", text: "Tìm laptop" }],
+      messages: [
+        { id: "user", role: "user", text: "Tìm sách học tiếng Anh" },
+      ],
       request: {
         phase: "streaming",
         generation: 2,
         statuses: [statusEvent],
-        answer: "Tai nghe ",
+        answer: "Nhật Ký Tarot ",
         lastSequence: 1,
       },
     }
@@ -112,7 +127,7 @@ describe("EvidenceAtlas", () => {
     )
 
     expect(screen.getByText("Đã tiếp nhận")).toBeInTheDocument()
-    expect(screen.getByText(/Tai nghe/)).toBeInTheDocument()
+    expect(screen.getByText(/Nhật Ký Tarot/)).toBeInTheDocument()
     fireEvent.click(
       screen.getByRole("button", { name: "Dừng yêu cầu đang chạy" }),
     )
@@ -142,7 +157,7 @@ describe("EvidenceAtlas", () => {
         result: failedResponse,
       },
       messages: [
-        { id: "user", role: "user", text: "Phân tích sản phẩm" },
+        { id: "user", role: "user", text: "Phân tích sách" },
         { id: "assistant", role: "assistant", text: failedResponse.answer },
       ],
     }
@@ -163,7 +178,7 @@ describe("EvidenceAtlas", () => {
       ...createInitialChatState({ credentialConfigured: true }),
       sessionId: completedResponse.session_id,
       messages: [
-        { id: "user", role: "user", text: "Tìm tai nghe" },
+        { id: "user", role: "user", text: "Tìm sách chiêm tinh" },
         { id: "assistant", role: "assistant", text: completedResponse.answer },
       ],
       request: {
@@ -207,7 +222,9 @@ describe("EvidenceAtlas", () => {
 
     const streamingState: ChatState = {
       ...idleState,
-      messages: [{ id: "user", role: "user", text: "Tìm laptop" }],
+      messages: [
+        { id: "user", role: "user", text: "Tìm sách học tiếng Anh" },
+      ],
       request: {
         phase: "streaming",
         generation: 1,

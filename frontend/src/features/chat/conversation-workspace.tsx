@@ -63,9 +63,9 @@ interface ConversationWorkspaceProps {
 }
 
 const prompts = [
-  "Tìm tai nghe dưới 1 triệu, bán tốt và ít bị phàn nàn.",
-  "So sánh đánh giá và rủi ro của các sách bán chạy.",
-  "Phân tích xu hướng phân khúc laptop trong dữ liệu hiện có.",
+  "Tìm sách học tiếng Anh dưới 150.000đ, được đánh giá tốt và ít bị phàn nàn.",
+  "So sánh đánh giá và rủi ro của các sách bán chạy trong snapshot.",
+  "Phân tích xu hướng giá theo thể loại sách trong dữ liệu hiện có.",
 ]
 
 export function ConversationWorkspace({
@@ -166,7 +166,7 @@ export function ConversationWorkspace({
           </div>
           <div className="min-w-0">
             <h1 id="conversation-title" className="truncate text-sm font-bold">
-              Bàn điều phối quyết định
+              Bàn điều phối sách
             </h1>
             <p className="truncate text-[0.7rem] text-muted-foreground">
               Hội thoại · tuyến thực thi · bằng chứng
@@ -177,7 +177,7 @@ export function ConversationWorkspace({
           variant="outline"
           className="border-accent/40 bg-accent/5 text-accent"
         >
-          Dữ liệu demo học thuật
+          Snapshot Tiki Books lịch sử
         </Badge>
       </header>
 
@@ -196,11 +196,11 @@ export function ConversationWorkspace({
                   className="border-accent/25 bg-accent/5 text-foreground"
                 >
                   <MapPinned aria-hidden="true" className="text-accent" />
-                  <AlertTitle>Phạm vi bằng chứng</AlertTitle>
+                  <AlertTitle>Phạm vi snapshot</AlertTitle>
                   <AlertDescription>
-                    Kho hiện tại phục vụ kiểm thử và trình diễn khóa luận; không
-                    đại diện toàn bộ thị trường. Mỗi nguồn trong kết quả đều ghi
-                    rõ Mẫu hoặc Thật.
+                    Snapshot Tiki Books lịch sử đã làm sạch để kiểm thử khóa
+                    luận; không phản ánh danh mục, giá hay mức quan tâm hiện tại
+                    trên Tiki. Mỗi nguồn được gắn nhãn Mẫu hoặc Thật.
                   </AlertDescription>
                 </Alert>
               </MessageScrollerItem>
@@ -315,7 +315,7 @@ export function ConversationWorkspace({
           </MessageScrollerViewport>
           <MessageScrollerButton
             size="icon"
-            className="size-10"
+            className="size-10 max-sm:start-auto max-sm:end-4 max-sm:translate-x-0"
             aria-label="Đi đến tin nhắn mới nhất"
           >
             <ArrowDown />
@@ -362,7 +362,7 @@ export function ConversationWorkspace({
                   disabled={streaming}
                   aria-invalid={Boolean(draftError)}
                   aria-describedby="composer-help composer-error"
-                  placeholder="Ví dụ: Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn…"
+                  placeholder="Ví dụ: Tìm sách học tiếng Anh dưới 150.000đ, được đánh giá tốt…"
                   className="max-h-40 min-h-20 py-3"
                 />
                 <InputGroupAddon align="inline-end" className="self-end pb-2">
@@ -426,9 +426,9 @@ function WelcomePanel({ onPrompt }: { onPrompt(prompt: string): void }) {
         <h2 className="max-w-xl font-display text-4xl leading-[1.08] font-semibold tracking-[-0.025em] text-balance sm:text-5xl">
           Mỗi kết luận đều có một đường về nguồn.
         </h2>
-        <p className="mt-4 max-w-xl text-[0.95rem] leading-7 text-muted-foreground">
-          Hãy đặt một câu hỏi thương mại điện tử bằng tiếng Việt. Router,
-          Planner và các agent miền sẽ để lại tuyến thực thi có thể kiểm tra.
+        <p className="mt-4 max-w-xl text-[0.95rem] leading-7 text-muted-foreground max-sm:pe-12">
+          Hãy hỏi về sách trong snapshot Tiki Books. Router, Planner và các agent
+          nghiệp vụ sẽ để lại tuyến thực thi có thể kiểm tra.
         </p>
       </div>
       <div className="mt-6 grid gap-2 sm:grid-cols-3">

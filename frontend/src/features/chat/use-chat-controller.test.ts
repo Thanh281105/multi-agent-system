@@ -23,14 +23,14 @@ describe("useChatController", () => {
     })
     let outcome: Awaited<ReturnType<typeof result.current.sendMessage>> | undefined
     await act(async () => {
-      outcome = await result.current.sendMessage("  Tìm tai nghe  ")
+      outcome = await result.current.sendMessage("  Tìm sách chiêm tinh  ")
     })
 
     expect(outcome).toBe("completed")
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
         apiKey: "gateway-secret",
-        message: "Tìm tai nghe",
+        message: "Tìm sách chiêm tinh",
         sessionId: null,
         onToken: expect.any(Function),
       }),
@@ -70,7 +70,7 @@ describe("useChatController", () => {
 
     let request: Promise<string>
     act(() => {
-      request = result.current.sendMessage("Tìm laptop")
+      request = result.current.sendMessage("Tìm sách học tiếng Anh")
     })
     await waitFor(() => {
       expect(result.current.state.request.phase).toBe("streaming")
@@ -104,7 +104,9 @@ describe("useChatController", () => {
     })
 
     await act(async () => {
-      expect(await result.current.sendMessage("Tìm laptop")).toBe("failed")
+      expect(await result.current.sendMessage("Tìm sách học tiếng Anh")).toBe(
+        "failed",
+      )
     })
 
     expect(result.current.state.credentialConfigured).toBe(false)
@@ -126,16 +128,16 @@ describe("useChatController", () => {
       useChatController({ storage: null, online: false }),
     )
 
-    await expect(result.current.sendMessage("Tìm laptop")).resolves.toBe(
-      "credential_required",
-    )
+    await expect(
+      result.current.sendMessage("Tìm sách học tiếng Anh"),
+    ).resolves.toBe("credential_required")
     act(() => {
       expect(result.current.configureCredential("short")).toBe(false)
       expect(result.current.configureCredential("gateway-secret")).toBe(true)
     })
-    await expect(result.current.sendMessage("Tìm laptop")).resolves.toBe(
-      "offline",
-    )
+    await expect(
+      result.current.sendMessage("Tìm sách học tiếng Anh"),
+    ).resolves.toBe("offline")
     expect(result.current.state.request.phase).toBe("idle")
   })
 

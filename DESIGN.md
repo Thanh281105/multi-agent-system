@@ -2,21 +2,22 @@
 
 ## Direction contract
 
-- **THESIS:** A cartographer's decision desk where every recommendation is a
-  route that can be retraced.
+- **THESIS:** A cartographer's decision desk for the historical Tiki Books
+  snapshot, where every recommendation is a route that can be retraced.
 - **OWN-WORLD:** Warm map-paper surfaces, midnight indigo ink, oxide-red route
   annotations, and muted sage completion marks. Newsreader is the scholarly
   display voice; Manrope carries interface copy; JetBrains Mono is reserved for
   trace IDs, tokens, and timings. Content lives in ledgers, folios, station
   rosters, route diagrams, and source indexes—not a wall of generic cards.
-- **STORY:** The user dispatches a question, watches it pass through Router and
-  Planner, follows the authorized agent route, then inspects each claim at its
+- **STORY:** The user dispatches a question about a title, category, price, or
+  reader feedback in the book snapshot; watches it pass through Router and
+  Planner; follows the authorized agent route; then inspects each claim at its
   evidence destination.
-- **FIRST VIEWPORT:** Product identity and sample-data boundary; agent station
-  roster; current conversation and composer; live progress; truthful execution
-  DAG; model-call ledger; provenance index; trace identity. The conversation is
-  dominant, while the execution dossier remains visible without scrolling at
-  a 1440px desktop viewport.
+- **FIRST VIEWPORT:** Product identity and historical-snapshot boundary; book
+  agent station roster; current conversation and composer; live progress;
+  truthful execution DAG; model-call ledger; provenance index; trace identity.
+  The conversation is dominant, while the execution dossier remains visible
+  without scrolling at a 1440px desktop viewport.
 - **FORM:** A clearly visible multi-line Vietnamese query composer with a named
   submit action, cancel state, keyboard hint, validation/error recovery, and a
   focused credential dialog that never persists the API key.
@@ -29,7 +30,22 @@
 The approved taste anchor is
 `docs/design/evidence-atlas-comp.png`. It governs density, hierarchy, linework,
 type contrast, and color weighting. Its illustrative answer, counts, latency,
-and token values are not product facts and must never be copied into runtime UI.
+token values, and consumer-electronics query are not product facts and must
+never be copied into runtime UI.
+
+## Tiki Books domain language
+
+- Visible prompts, placeholders, answers, and fixtures use books, authors,
+  categories, prices, publishers, or reader feedback from the Tiki Books
+  domain. Headphones, laptops, and generic marketplace examples do not belong
+  in the shipping workspace or its regression fixtures.
+- The interface names the fixed stations as Điều phối sách, Danh mục sách,
+  Đánh giá độc giả, Độ tin cậy, and Xu hướng sách. Contract identifiers such as
+  `product_agent`, `market_agent`, `selected_product_id`, `product.search`, and
+  `catalog.product` remain unchanged at the API and provenance boundaries.
+- Always describe the data as a cleaned historical Tiki Books snapshot. Never
+  imply that its catalog, prices, reviews, rankings, or popularity represent
+  current Tiki inventory or the broader Vietnamese book market.
 
 ## Semantic color tokens
 

@@ -184,7 +184,7 @@ function TopBar({
               Thương Trí
             </p>
             <p className="mt-1 hidden truncate text-[0.65rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase sm:block">
-              Evidence Atlas · Multi-Agent Commerce
+              Evidence Atlas · Tiki Books
             </p>
           </div>
         </div>
@@ -246,7 +246,7 @@ function TopBar({
               <SheetHeader className="sr-only">
                 <SheetTitle>Trạm chuyên gia</SheetTitle>
                 <SheetDescription>
-                  Danh sách agent miền và trạng thái thực thi hiện tại.
+                  Các agent nghiệp vụ sách và trạng thái thực thi hiện tại.
                 </SheetDescription>
               </SheetHeader>
               <AgentRoster

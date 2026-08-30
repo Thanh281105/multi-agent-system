@@ -18,7 +18,7 @@ export const statusEvent: GatewayStatusEvent = {
 
 export const tokenEvent: GatewayTokenEvent = {
   sequence: 2,
-  delta: "Tai nghe ",
+  delta: "Nhật Ký Tarot ",
   request_id: "req_test_123",
   trace_id: "trace_test_123",
 }
@@ -26,7 +26,7 @@ export const tokenEvent: GatewayTokenEvent = {
 export const completedResponse: GatewayChatResponse = {
   api_version: "v1",
   status: "success",
-  answer: "Tai nghe Atlas phù hợp với yêu cầu [product:101].",
+  answer: "Nhật Ký Tarot phù hợp với yêu cầu [product:101].",
   session_id: "sess_test_123",
   request_id: "req_test_123",
   trace_id: "trace_test_123",

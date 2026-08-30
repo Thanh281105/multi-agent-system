@@ -231,7 +231,7 @@ describe("gateway stream client", () => {
     const controller = new AbortController()
 
     await sendGatewayMessage({
-      message: "  Tìm tai nghe  ",
+      message: "  Tìm sách chiêm tinh  ",
       sessionId: "sess_test_123",
       apiKey: "memory-only-secret",
       signal: controller.signal,
@@ -247,7 +247,7 @@ describe("gateway stream client", () => {
       cache: "no-store",
       signal: controller.signal,
       body: JSON.stringify({
-        message: "Tìm tai nghe",
+        message: "Tìm sách chiêm tinh",
         session_id: "sess_test_123",
       }),
     })
@@ -270,7 +270,7 @@ describe("gateway stream client", () => {
 
     await expect(
       sendGatewayMessage({
-        message: "Tìm laptop",
+        message: "Tìm sách học tiếng Anh",
         apiKey: "secret",
         signal: controller.signal,
         fetchImpl: abortedFetch,
@@ -280,7 +280,7 @@ describe("gateway stream client", () => {
 
     await expect(
       sendGatewayMessage({
-        message: "Tìm laptop",
+        message: "Tìm sách học tiếng Anh",
         apiKey: "secret",
         signal: controller.signal,
         fetchImpl: failedFetch,

@@ -1,11 +1,11 @@
 import type { TaskStatus } from "@/lib/contracts"
 
 export const agentLabels: Record<string, string> = {
-  orchestrator: "Orchestrator",
-  product_agent: "Product Agent",
-  review_agent: "Review Agent",
-  trust_agent: "Trust Agent",
-  market_agent: "Market Agent",
+  orchestrator: "Điều phối sách",
+  product_agent: "Danh mục sách",
+  review_agent: "Đánh giá độc giả",
+  trust_agent: "Độ tin cậy",
+  market_agent: "Xu hướng sách",
 }
 
 export const phaseLabels: Record<string, string> = {
