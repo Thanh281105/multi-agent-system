@@ -1,6 +1,7 @@
 x-app-environment: &app-environment
   APP_ENV: production
   DATABASE_URL: postgresql+psycopg://ecommerce:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/ecommerce
+  PUBLIC_SNAPSHOT_DIR: /app/data/snapshots/tiki-books-v4-eval
   GATEWAY_API_KEYS: ${GATEWAY_API_KEYS:?set GATEWAY_API_KEYS}
   GATEWAY_PRINCIPAL_POLICIES: ${GATEWAY_PRINCIPAL_POLICIES:?set GATEWAY_PRINCIPAL_POLICIES}
   OPERATIONS_API_KEY: ${OPERATIONS_API_KEY:?set OPERATIONS_API_KEY}

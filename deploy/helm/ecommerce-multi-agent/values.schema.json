@@ -58,6 +58,7 @@
     "config": {
       "type": "object",
       "required": [
+        "snapshotDir",
         "qdrantUrl",
         "qdrantCollection",
         "modelRuntimeMode",
@@ -70,6 +71,7 @@
         "openaiSynthesisModel"
       ],
       "properties": {
+        "snapshotDir": {"type": "string", "pattern": "^/app/data/snapshots/[A-Za-z0-9._-]+$"},
         "qdrantUrl": {"type": "string", "pattern": "^https?://"},
         "qdrantCollection": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,128}$"},
         "modelRuntimeMode": {"enum": ["off", "shadow", "hybrid", "required"]},
@@ -188,6 +190,34 @@
             }
           },
           "internalDependencies": {"properties": {"enabled": {"const": true}}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "bootstrap": {
+            "properties": {
+              "seedData": {
+                "properties": {"enabled": {"const": true}},
+                "required": ["enabled"]
+              }
+            },
+            "required": ["seedData"]
+          }
+        },
+        "required": ["bootstrap"]
+      },
+      "then": {
+        "properties": {
+          "bootstrap": {
+            "properties": {
+              "migrate": {
+                "properties": {"enabled": {"const": true}},
+                "required": ["enabled"]
+              }
+            }
+          }
         }
       }
     }

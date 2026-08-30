@@ -49,6 +49,7 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 COPY --chown=10001:10001 alembic.ini ./alembic.ini
 COPY --chown=10001:10001 migrations ./migrations
+COPY --chown=10001:10001 data/snapshots/tiki-books-v4-eval ./data/snapshots/tiki-books-v4-eval
 
 EXPOSE 8000
 

@@ -51,6 +51,7 @@ secretKeys:
   redisPassword: REDIS_PASSWORD
 
 config:
+  snapshotDir: /app/data/snapshots/tiki-books-v4-eval
   qdrantUrl: ""
   qdrantCollection: sample_market_knowledge
   modelRuntimeMode: hybrid

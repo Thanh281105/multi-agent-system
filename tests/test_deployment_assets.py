@@ -2,7 +2,9 @@ import tomllib
 from pathlib import Path
 
 import pytest
+import yaml
 
+from app.core.config import Settings
 from app.db.migrate import _migration_root
 from app.knowledge import seed as knowledge_seed
 from app.knowledge.qdrant import KnowledgeStoreUnavailableError
@@ -24,6 +26,10 @@ def test_container_runs_as_non_root_with_healthcheck() -> None:
     assert "USER 10001:10001" in dockerfile
     assert "HEALTHCHECK" in dockerfile
     assert "python:3.12.14-slim-bookworm" in dockerfile
+    assert (
+        "COPY --chown=10001:10001 data/snapshots/tiki-books-v4-eval "
+        "./data/snapshots/tiki-books-v4-eval"
+    ) in dockerfile
 
 
 def test_container_context_excludes_secrets_dependencies_and_generated_assets() -> None:
@@ -31,10 +37,25 @@ def test_container_context_excludes_secrets_dependencies_and_generated_assets() 
 
     for ignored in (".env", ".env.*", "frontend/node_modules", "dist", "output"):
         assert ignored in dockerignore.splitlines()
+    assert "data/**" in dockerignore.splitlines()
+    assert "!data/snapshots/tiki-books-v4-eval/**" in dockerignore.splitlines()
+    assert "!data/snapshots/tiki-books-v4-test/**" not in dockerignore.splitlines()
+
+
+def test_runtime_snapshot_contains_every_quality_gated_artifact() -> None:
+    snapshot = PROJECT_ROOT / "data" / "snapshots" / "tiki-books-v4-eval"
+
+    assert {path.name for path in snapshot.iterdir() if path.is_file()} == {
+        "manifest.json",
+        "products.jsonl",
+        "quality-report.json",
+        "reviews.jsonl",
+    }
 
 
 def test_compose_separates_bootstrap_jobs_and_private_data_services() -> None:
     compose = (PROJECT_ROOT / "compose.yaml").read_text(encoding="utf-8")
+    parsed = yaml.safe_load(compose)
 
     for service in (
         "  postgres:",
@@ -56,6 +77,15 @@ def test_compose_separates_bootstrap_jobs_and_private_data_services() -> None:
     assert "5432:5432" not in compose
     assert "6379:6379" not in compose
     assert "6333:6333" not in compose
+    assert parsed["x-app-environment"]["PUBLIC_SNAPSHOT_DIR"] == (
+        "/app/data/snapshots/tiki-books-v4-eval"
+    )
+    assert parsed["services"]["seed-data"]["depends_on"] == {
+        "migrate": {"condition": "service_completed_successfully"}
+    }
+    assert parsed["services"]["backend"]["depends_on"]["seed-data"] == {
+        "condition": "service_completed_successfully"
+    }
 
 
 def test_package_exposes_operational_entry_points() -> None:
@@ -69,9 +99,23 @@ def test_package_exposes_operational_entry_points() -> None:
         "ecommerce-evaluate": "app.evaluation.runner:main",
         "ecommerce-evaluate-v2": "app.evaluation.v2_runner:main",
         "ecommerce-migrate": "app.db.migrate:main",
+        "ecommerce-reset-legacy-seed": "app.db.reset_legacy_seed:main",
         "ecommerce-seed": "app.db.seed:main",
         "ecommerce-seed-knowledge": "app.knowledge.seed:main",
     }
+
+
+def test_snapshot_directory_setting_has_a_deployable_default(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.delenv("PUBLIC_SNAPSHOT_DIR", raising=False)
+    assert Settings(_env_file=None).public_snapshot_dir == Path(
+        "data/snapshots/tiki-books-v4-eval"
+    )
+
+    monkeypatch.setenv("PUBLIC_SNAPSHOT_DIR", str(tmp_path))
+    assert Settings(_env_file=None).public_snapshot_dir == tmp_path
 
 
 def test_migration_root_is_discovered_from_runtime_assets() -> None:

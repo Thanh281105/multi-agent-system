@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlsplit
 
@@ -22,6 +23,7 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://ecommerce:ecommerce@localhost:5432/ecommerce"
     )
+    public_snapshot_dir: Path = Path("data/snapshots/tiki-books-v4-eval")
     app_env: Literal["development", "test", "production"] = Field(
         default="development",
         validation_alias="APP_ENV",

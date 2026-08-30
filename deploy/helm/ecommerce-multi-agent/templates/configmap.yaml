@@ -6,6 +6,7 @@ metadata:
     {{- include "ecommerce-multi-agent.labels" . | nindent 4 }}
 data:
   APP_ENV: production
+  PUBLIC_SNAPSHOT_DIR: {{ .Values.config.snapshotDir | quote }}
   SHARED_STATE_BACKEND: redis
   KNOWLEDGE_BACKEND: qdrant
   LEGACY_CHAT_ENABLED: "false"

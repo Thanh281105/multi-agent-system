@@ -22,3 +22,7 @@ commit.md
 *.db
 *.sqlite
 *.sqlite3
+data/**
+!data/snapshots/
+!data/snapshots/tiki-books-v4-eval/
+!data/snapshots/tiki-books-v4-eval/**

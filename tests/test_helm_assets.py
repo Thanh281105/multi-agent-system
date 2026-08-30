@@ -34,6 +34,9 @@ def test_chart_profiles_are_explicit_and_never_contain_plaintext_secrets() -> No
     assert production["profile"] == "production"
     assert production["replicaCount"] == 1
     assert production["existingSecret"] == ""
+    assert production["config"]["snapshotDir"] == (
+        "/app/data/snapshots/tiki-books-v4-eval"
+    )
     assert production["internalDependencies"]["enabled"] is False
     assert production["bootstrap"]["seedData"]["enabled"] is False
     assert production["bootstrap"]["seedKnowledge"]["enabled"] is False
@@ -68,11 +71,16 @@ def test_chart_schema_guards_single_replica_profiles_and_sample_seeding() -> Non
     assert production_rule["internalDependencies"]["properties"]["enabled"] == {
         "const": False
     }
+    assert "snapshotDir" in schema["properties"]["config"]["required"]
+    assert schema["allOf"][2]["then"]["properties"]["bootstrap"]["properties"][
+        "migrate"
+    ]["properties"]["enabled"] == {"const": True}
 
 
 def test_application_workloads_are_bounded_and_fail_closed() -> None:
     deployment = (TEMPLATES / "deployment.yaml").read_text(encoding="utf-8")
     migration = (TEMPLATES / "migration-job.yaml").read_text(encoding="utf-8")
+    configmap = (TEMPLATES / "configmap.yaml").read_text(encoding="utf-8")
     service_account = (TEMPLATES / "serviceaccount.yaml").read_text(encoding="utf-8")
     helpers = (TEMPLATES / "_helpers.tpl").read_text(encoding="utf-8")
     values = _yaml(CHART_ROOT / "values.yaml")
@@ -100,6 +108,8 @@ def test_application_workloads_are_bounded_and_fail_closed() -> None:
     assert "helm.sh/hook: pre-install,pre-upgrade" in migration
     assert "hook-delete-policy: before-hook-creation,hook-succeeded" in migration
     assert "automountServiceAccountToken: false" in service_account
+    assert "PUBLIC_SNAPSHOT_DIR:" in configmap
+    assert ".Values.config.snapshotDir" in configmap
 
 
 def test_monitoring_reads_bearer_token_from_existing_secret() -> None:
