@@ -1,0 +1,4 @@
+# Snapshot hashes are computed over canonical LF bytes on every platform.
+.gitattributes text eol=lf
+data/snapshots/**/*.json text eol=lf
+data/snapshots/**/*.jsonl text eol=lf
