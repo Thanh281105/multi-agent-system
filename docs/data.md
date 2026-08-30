@@ -1,40 +1,168 @@
-# Dữ liệu công khai và provenance
+# Vòng đời dữ liệu Tiki Books
 
-## Snapshot Tiki Books
+## 1. Phạm vi và nguồn dữ liệu
 
-Pipeline `ecommerce-data` tải version 4 của [Tiki Books Dataset](https://www.kaggle.com/datasets/biminhc/tiki-books-dataset),
-giấy phép CC0. Archive được kiểm tra SHA-256 trước khi đọc. Snapshot ứng dụng
-chỉ lấy tối đa 200 sản phẩm và 10 review cho mỗi sản phẩm bằng sampling ổn định
-theo seed; dữ liệu raw không được commit.
+Runtime hiện tại chỉ dùng snapshot sách lịch sử được làm sạch từ
+[Kaggle Tiki Books Dataset](https://www.kaggle.com/datasets/biminhc/tiki-books-dataset),
+version 4. Repository pin các thuộc tính sau trong code và manifest:
+
+| Thuộc tính | Giá trị đã pin |
+| --- | --- |
+| Dataset | `tiki-books` / `kaggle-v4` |
+| Source revision | `4` |
+| License được nguồn công bố | `CC0-1.0` |
+| Thời điểm truy xuất được ghi nhận | `2026-08-24T03:47:30.042026Z` |
+| Archive SHA-256 | `371a618ed66425f8f2738ab01514ab2f20ed1bed645258b509fcce443bd32bbb` |
+| Source members | `book_data.csv`, `comments.csv` |
+
+Đây là derivative deterministic của archive đã pin, **không phải feed Tiki
+trực tiếp**. Nó không phản ánh tồn kho, giá, người bán, review hoặc thị trường
+hiện tại. Hai snapshot đã commit đều không có coverage cho người bán và thời
+điểm review; không được suy diễn các trường thiếu đó.
+
+## 2. Luồng tái tạo
+
+Yêu cầu Python 3.12+ và package đã được cài từ repository. Verify fixture đã
+commit, rồi tái tạo vào thư mục ignored để không ghi đè evidence đang review:
+
+```powershell
+ecommerce-data validate --snapshot data/snapshots/tiki-books-v4-eval
+ecommerce-data download
+ecommerce-data prepare `
+  --profile eval `
+  --output data/cache/reproduced-tiki-books-v4-eval
+ecommerce-data validate `
+  --snapshot data/cache/reproduced-tiki-books-v4-eval
+```
+
+Giá trị mặc định là:
+
+- archive: `data/raw/tiki-books-v4.zip`;
+- output: `data/snapshots/tiki-books-v4-<profile>`;
+- sampling seed nội bộ: `42`.
+
+Có thể chỉ định đường dẫn rõ ràng:
 
 ```powershell
 ecommerce-data download --output data/raw/tiki-books-v4.zip
 ecommerce-data prepare `
   --archive data/raw/tiki-books-v4.zip `
-  --output data/snapshots/tiki-books-v4-sample `
-  --products 200 `
-  --reviews-per-product 10 `
-  --seed 42
+  --profile test `
+  --output data/cache/reproduced-tiki-books-v4-test
 ```
 
-Output gồm `products.jsonl`, `reviews.jsonl` và `manifest.json`. Manifest lưu
-source URL, license, source revision, raw archive hash, sampling policy, số dòng
-bị loại và snapshot hash. `customer_id` không được đưa vào normalized output vì
-không cần cho nghiệp vụ.
+`prepare` từ chối ghi đè thư mục output đã tồn tại. `--force` chỉ nên dùng khi
+chủ động tái tạo đúng snapshot từ archive đã kiểm tra; pipeline vẫn không được
+ghi vào thư mục ngoài output đã chỉ định.
 
-Snapshot đã chuẩn bị có thể import vào database sau khi chạy migration:
+Luồng thực thi là:
+
+```text
+download atomically
+  → verify archive SHA-256 và CSV contract
+  → clean/deduplicate toàn bộ source rows
+  → redact URL/email/phone và normalize schema
+  → chọn profile sau cleaning
+  → ghi bốn artifact
+  → quality gate
+  → revalidate schema/count/hash
+  → import transactionally
+```
+
+Archive mới được ghi qua file `.part` cùng thư mục rồi đổi tên sau khi checksum
+đúng. Archive đã tồn tại được tái sử dụng chỉ khi checksum khớp; checksum sai bị
+từ chối trước khi mở ZIP. Pipeline yêu cầu đúng một `book_data.csv` và một
+`comments.csv` với header contract đã pin.
+
+## 3. Profiles
+
+| Profile | Chính sách deterministic | Snapshot đã commit |
+| --- | --- | ---: |
+| `test` | 24 sách bắt buộc; tối đa 5 review/sách | 24 sách, 115 review |
+| `eval` | 200 sách; tối đa 10 review/sách; tổng 1.773 review | 200 sách, 1.773 review |
+| `full` | Toàn bộ record hợp lệ sau cleaning; không sampling | Không commit |
+
+Con số review theo sách là giới hạn trên, không phải quota phải lấp đầy; vì vậy
+profile `test` có 115 thay vì 120 review. Product selection dùng stable SHA-256
+ranking kết hợp category round-robin; review selection được phân tầng theo
+rating. Mọi profile đều được chọn **sau** khi cùng một nguồn đầy đủ đã được làm
+sạch, nên input/drop/redaction counters mô tả nguồn đầy đủ còn output coverage
+mô tả profile đã chọn.
+
+`data/raw/`, `data/cache/` và `data/snapshots/tiki-books-v4-full/` bị ignore.
+Profile `test` và `eval`, bao gồm manifest/quality report, được commit để test,
+evaluation và image build có đầu vào tái lập.
+
+## 4. Artifact contract
+
+Mỗi snapshot hợp lệ có đúng bốn artifact bắt buộc:
+
+| File | Nội dung |
+| --- | --- |
+| `products.jsonl` | Book facts đã normalize, một JSON object mỗi dòng |
+| `reviews.jsonl` | Review đã normalize/redact, một JSON object mỗi dòng |
+| `manifest.json` | Source/version/profile, policy, counts và artifact hashes |
+| `quality-report.json` | Input/output, correction/drop/redaction, coverage và gate result |
+
+`customer_id` không được đưa vào normalized review. URL, email và số điện thoại
+trong review được thay bằng token `[URL]`, `[EMAIL]`, `[PHONE]`. Manifest không
+chứa row content; quality report chỉ chứa aggregate counters.
+
+Quality gate fail closed khi phát hiện một trong các trạng thái như:
+
+- product/review external ID trùng hoặc review mồ côi;
+- record không thuộc platform Tiki;
+- pattern URL/email/phone còn sót trong review;
+- thiếu product ID bắt buộc của profile;
+- count, schema, profile target hoặc hash không khớp;
+- manifest và quality report không cùng provenance;
+- thiếu bất kỳ artifact nào hoặc report không có `status=pass`.
+
+`ecommerce-data validate` đọc lại toàn bộ schema, count và hash byte-for-byte;
+không chỉ tin vào cờ `status` trong report.
+
+## 5. Import và bootstrap
+
+Chạy migration rồi chọn **một** trong hai đường import:
 
 ```powershell
-ecommerce-data import `
-  --snapshot data/snapshots/tiki-books-v4-sample
+ecommerce-migrate
+
+# Bootstrap nghiêm ngặt cho database trống hoặc đã chứa đúng snapshot này.
+ecommerce-seed --snapshot data/snapshots/tiki-books-v4-eval
+
+# Hoặc import trực tiếp một profile đã validate.
+ecommerce-data import --snapshot data/snapshots/tiki-books-v4-eval
 ```
 
-Importer từ chối checksum/count không khớp, product/review ID trùng hoặc review
-mồ côi; cùng `dataset_id` + version có thể import lại idempotent nhưng không được
-thay bằng snapshot khác. Metadata nằm trong bảng `dataset_sources`, còn API/agent
-trả `source_id` dạng `tiki-books:kaggle-v4` để audit.
+`ecommerce-seed` mặc định đọc `PUBLIC_SNAPSHOT_DIR`, hiện là
+`data/snapshots/tiki-books-v4-eval`. Compose đóng gói đường dẫn tương ứng trong
+container và chạy `migrate → seed-data → backend`.
 
-Bộ synthetic 30 sản phẩm/150 review vẫn được giữ riêng cho regression test; nó
-không được trình bày là dữ liệu thị trường thật. Khi import snapshot công khai,
-UI/API phải hiển thị rõ dataset version và việc seller không có trong nguồn nếu
-trường này bị thiếu.
+Importer validate trước khi ghi, stream trong transaction và validate lại sau
+khi đọc để phát hiện artifact bị thay đổi giữa chừng. Identity bất biến là
+`(dataset_id, dataset_version, profile)`. Import lại đúng snapshot là
+idempotent; source metadata xung đột, rows khác hash/count, database trộn profile
+hoặc row không có provenance đều bị từ chối.
+
+Database lưu metadata ở `dataset_sources`; facts trả về dùng provenance dạng
+`tiki-books:kaggle-v4:<profile>`, ví dụ `tiki-books:kaggle-v4:eval`, và vẫn gắn
+`sample_data=true` vì đây là một mẫu lịch sử chứ không phải feed hiện tại.
+
+Migration schema hiện hành là `20260830_0003`.
+
+## 6. Dữ liệu legacy
+
+Seed tổng hợp cũ 5 shop/30 sản phẩm/150 review không còn là bootstrap runtime hay
+đầu vào test/evaluation hiện hành. Một số artifact evaluation v1 generic vẫn
+được giữ trong thư mục `legacy-*` để audit lịch sử. Chỉ xóa seed cũ khỏi một
+database disposable bằng lệnh guard riêng:
+
+```powershell
+ecommerce-reset-legacy-seed `
+  --confirm-disposable DELETE-LEGACY-SEED
+```
+
+Không dùng lệnh này để reset database có dữ liệu cần giữ. Snapshot public mới
+phải luôn đi qua download/prepare/validate/import ở trên; không chèn JSONL hoặc
+row SQL thủ công để bỏ qua quality gate.

@@ -1,4 +1,13 @@
-# Vietnamese E-commerce Multi-Agent Platform Architecture
+> [!WARNING]
+> **Tài liệu thiết kế lịch sử.** Nội dung bên dưới mô tả kiến trúc thương mại
+> điện tử tổng quát trước khi hệ thống được chuyên biệt hóa cho snapshot lịch sử
+> Tiki Books. Các ví dụ sản phẩm generic, RAG/Qdrant, knowledge seed và lộ trình
+> phân tán bên dưới **không mô tả runtime hiện tại**. Xem
+> [`README.md`](README.md), [`docs/architecture.md`](docs/architecture.md),
+> [`docs/data.md`](docs/data.md) và [`docs/operations.md`](docs/operations.md)
+> để biết source of truth có thể chạy/review.
+
+# Vietnamese E-commerce Multi-Agent Platform Architecture (historical)
 
 ## 1. Overview
 

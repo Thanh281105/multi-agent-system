@@ -1,8 +1,9 @@
 # Thương Trí frontend
 
-React/TypeScript workspace for the Evidence Atlas interface. Vite emits the
-production bundle into `app/frontend/dist`; FastAPI serves that directory from
-the same origin as the API.
+React/TypeScript workspace cho giao diện quyết định dựa trên snapshot lịch sử
+Tiki Books. Vite xuất production bundle vào `app/frontend/dist`; FastAPI phục vụ
+thư mục đó cùng origin với API. Mọi giá, rating, review và thống kê hiển thị đều
+là evidence lịch sử, không phải catalog hay thị trường Tiki hiện tại.
 
 ## Local workflow
 

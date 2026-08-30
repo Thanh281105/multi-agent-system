@@ -1,102 +1,96 @@
-# Kiến trúc hệ thống
+# Kiến trúc trợ lý sách
 
 ## 1. Mục tiêu và phạm vi
 
-Hệ thống hiện thực hóa workflow multi-agent dưới dạng **modular monolith**: các
-boundary được biểu diễn bằng contract và adapter rõ ràng nhưng vẫn chạy trong
-một process để phù hợp quy mô khóa luận, dữ liệu mẫu và khả năng vận hành của
-một nhóm nhỏ. Cách tiếp cận này giữ được khả năng kiểm thử end-to-end và tránh
-đưa độ phức tạp mạng/phân tán vào trước khi có tải thực tế.
+Hệ thống là **modular monolith** chuyên biệt cho câu hỏi sách tiếng Việt trên
+snapshot lịch sử Tiki Books. Boundary giữa Gateway, Orchestrator, Domain Agent,
+Agent Gateway, tools và shared state dùng typed contracts nhưng cùng chạy trong
+một process. Cấu trúc này đủ để kiểm thử end-to-end và chưa đưa độ phức tạp
+microservice vào khi chưa có tải thực tế chứng minh nhu cầu.
 
-Mục tiêu:
+Mục tiêu hiện tại:
 
-- trả lời tiếng Việt dựa trên facts/provenance thay vì tự tạo thông tin;
-- điều phối Product, Review, Trust và Market domain độc lập;
-- hỗ trợ partial success khi một miền phụ trợ lỗi;
-- dùng cùng typed contracts cho in-process A2A và transport tương lai;
-- tái lập được trên dữ liệu mẫu, kể cả evaluation và failure injection;
-- fail closed với production secrets/state/knowledge không an toàn.
+- trả lời từ book/review facts có provenance, không tự tạo catalog;
+- điều phối bốn specialist cố định với DAG có kiểm tra quyền/dependency;
+- hỗ trợ partial success và deterministic fallback có giới hạn;
+- tái lập test/evaluation trên snapshot đã qua quality gate;
+- giữ API v1 JSON/SSE ổn định và quan sát được mà không lộ nội dung nhạy cảm.
 
-Không thuộc phạm vi hiện tại:
+Ngoài phạm vi:
 
-- marketplace crawler và dữ liệu người dùng thật;
-- fine-tuning hoặc mô hình sentiment/trust được hiệu chỉnh trên dữ liệu thật;
-- long-term personalized memory cho preference, conversation summary và
-  historical artifacts;
-- microservice/service mesh và multi-region HA;
-- distributed tracing backend, distributed rate limiter và nhiều replica;
-- khẳng định superiority thống kê trước khi chạy trọn paired protocol v2 và
-  bổ sung semantic/human rubric độc lập.
+- crawl/feed Tiki trực tiếp hoặc dữ liệu người dùng thật;
+- current inventory, current price, seller, trend, demand hay market-share claim;
+- RAG corpus đang hoạt động, long-term personalization và semantic memory;
+- sentiment/trust model đã hiệu chỉnh hoặc xác minh review giả/gian lận;
+- nhiều replica, distributed rate limiter/tracing hoặc multi-region HA;
+- claim superiority ngoài frozen evaluation protocol và rubric đã công bố.
+
+[`workflow.md`](../workflow.md) là bản thiết kế generic lịch sử, không phải source
+of truth cho runtime hiện hành.
 
 ## 2. Deployment view
 
 ```mermaid
 flowchart TB
-    subgraph Edge
-        RP[Reverse proxy TLS - deployment responsibility]
-        API[FastAPI + static web client]
+    C[Web client / API consumer]
+    G[FastAPI Gateway + static UI]
+
+    subgraph APP[One non-root, read-only application replica]
+        O[Orchestrator]
+        D[Four book Domain Agents]
+        A[Agent Gateway + Registry]
+        T[MCP-style allowlisted tools]
+        L[Structured model runtime]
+        M[Bounded telemetry]
+        K[Knowledge boundary: disabled]
     end
 
-    subgraph Application[One non-root read-only application replica]
-        GW[HTTP Gateway]
-        ORCH[Orchestrator]
-        DOM[Four Domain Agents]
-        AG[Agent Gateway / Registry]
-        CAT[MCP-style Catalog]
-        MODEL[Schema-constrained model runtime]
-        TEL[In-memory bounded telemetry]
-    end
+    PG[(PostgreSQL: Tiki Books snapshot)]
+    R[(Redis: production session/state)]
+    OA[OpenAI Responses API: optional by mode]
+    Q[(Qdrant: opt-in dormant adapter)]
 
-    subgraph Data[Private data plane]
-        PG[(PostgreSQL)]
-        REDIS[(Redis)]
-        QD[(Qdrant)]
-    end
-
-    OA[OpenAI Responses / Embeddings API]
-
-    RP --> API --> GW --> ORCH --> DOM --> AG --> CAT
-    CAT --> PG
-    CAT --> QD
-    ORCH & DOM --> MODEL --> OA
-    ORCH <--> REDIS
-    GW & ORCH & AG --> TEL
+    C -->|X-API-Key; JSON/SSE| G --> O --> D --> A --> T --> PG
+    O <--> R
+    O & D -. model mode enabled .-> L -.-> OA
+    G & O & A --> M
+    G -. readiness composition .-> K
+    K -. only if explicitly injected/configured .-> Q
 ```
 
-Hai deployment profile dùng cùng image và runtime contract:
+Default Compose dùng PostgreSQL + Redis, rồi chạy:
 
-- Compose production-like chỉ publish backend vào `127.0.0.1`; ba data service
-  nằm trên internal network.
-- Helm `production` dùng PostgreSQL/Redis/Qdrant bên ngoài và một existing
-  Secret; Helm `kind` dựng dependency nội bộ cùng PVC để smoke hạ tầng.
+```text
+PostgreSQL healthy → migrate → quality-gated snapshot bootstrap → backend
+Redis healthy ────────────────────────────────────────────────────┘
+```
 
-Application chạy UID/GID `10001`, filesystem read-only, drop toàn bộ Linux
-capabilities, bật seccomp `RuntimeDefault`/`no-new-privileges` và không tự mount
-service-account token. NetworkPolicy giới hạn ingress/egress của workload.
+Qdrant nằm sau Compose profile `knowledge`, không phải dependency mặc định và
+không có `seed-knowledge`. Helm production mặc định dùng external
+PostgreSQL/Redis; kind dùng dependency nội bộ, model `off`, knowledge
+`disabled`, migration và snapshot bootstrap. Cả hai profile Helm giới hạn một
+application replica vì rate limiter, metric aggregation và trace ring còn nằm
+trong process.
 
-Một Uvicorn worker và một application replica là lựa chọn có chủ đích vì inbound
-rate limiter, metric aggregation và trace buffer hiện nằm trong process. Redis
-đã cung cấp shared session/memory/turn-lock để bước scale-out sau không phải đổi
-public contract, nhưng scale nhiều worker/replica chỉ hợp lệ sau khi chuyển rate
-limit và telemetry sang distributed backend. Helm schema chặn `replicaCount`
-khác `1` để giới hạn này không bị vô tình vi phạm.
+Container chạy UID/GID `10001`, read-only filesystem, drop capabilities và
+không publish data services ra edge. TLS/reverse proxy, secret manager, backup
+và external monitoring là trách nhiệm của deployment.
 
 ## 3. Logical components
 
-| Component | Input | Output | Failure boundary |
-| --- | --- | --- | --- |
-| Gateway | Authenticated HTTP payload | Stable JSON/SSE contract | 401/404/409/422/429/503/504 envelope |
-| Intent Router | Message + bounded session state | `RoutedIntent` | Model intent; entity phải khớp extraction do Python sở hữu |
-| Planner | `RoutedIntent` + intent manifest | Authorized `ExecutionPlan` DAG | Model chỉ chọn capability; template do domain đăng ký, Python biên dịch/kiểm tra DAG |
-| Intent registry | Agent bundles + intent manifests | Owner, session handoff, plan template | Manifest phải trỏ đến agent và follow-up intent đã đăng ký |
-| Executor | Plan + correlation context | Ordered `AgentResult` tuple | Exceptions sanitized to typed agent error |
-| Domain reasoner | Server-owned fact catalog | Evidence-linked fact selection | Model chỉ trả opaque fact ID + confidence |
-| Aggregator | Intent + agent results | Grounded answer/status/warnings | Model chỉ sắp xếp claim ID; Python render text/citation |
-| Model runtime | Bounded JSON + Pydantic schema | Validated structured object + redacted usage | Timeout/retry/concurrency/circuit breaker; no raw provider text |
-| Agent Gateway | Agent request + registry policy | MCP tool response + audit | Agent/server/tool/permission allowlists |
-| Repositories/tools | Validated arguments | JSON-friendly sample facts | Short DB sessions, rollback on exception |
-| Shared state | Principal/session/memory | TTL-bound context | Redis outage becomes readiness/API 503 |
-| Knowledge adapter | Sample note query | Qdrant matches + provenance | Bounded timeout/retry and contract checks |
+| Component | Trách nhiệm | Failure/grounding boundary |
+| --- | --- | --- |
+| HTTP Gateway | Auth, rate limit, correlation, JSON/SSE, timeout | Stable v1 error envelope; owner-bound session |
+| Intent Router | Book-only intent/entity extraction | Non-book request → `general.unsupported`; model entity phải extractive |
+| Planner | Biên dịch intent thành authorized DAG | Model chỉ đề xuất capability; Python kiểm tra policy/dependency |
+| Executor | Chạy ready steps đồng thời, bind upstream IDs | Exception thành typed safe error; giữ thứ tự candidate |
+| Domain Agents | Product, Review, Trust, Market | Chỉ gọi tool qua Agent Gateway và trả typed provenance |
+| Agent Gateway/Registry | Capability, permission, MCP routing, audit | Immutable allowlists; không log raw tool args/prompt |
+| PostgreSQL tools | Search/compare/review/cross-sectional aggregate | Chỉ đọc snapshot đã import và gắn source profile |
+| Model runtime | Routing/planning/fact selection/claim ordering | Structured schema, budget, circuit breaker, deterministic guard |
+| Shared state | Session, active agent, last book, turn lock | Redis production; TTL và ownership |
+| Knowledge boundary | No-op readiness seam | `disabled` mặc định; không có corpus/tool path RAG hiện tại |
+| Telemetry | Metrics + bounded redacted traces | Không ghi key, prompt, review text hoặc provider raw response |
 
 ## 4. Request lifecycle
 
@@ -105,93 +99,91 @@ sequenceDiagram
     participant C as Client
     participant G as Gateway
     participant O as Orchestrator
-    participant D as Domain Agents
+    participant D as Book Domain Agents
     participant A as Agent Gateway
-    participant S as PostgreSQL/Qdrant
+    participant P as PostgreSQL
     participant R as Redis
-    participant L as Structured GPT runtime
+    participant L as Structured model runtime
 
     C->>G: POST /api/v1/chat[/stream] + X-API-Key
-    G->>G: auth, peer/principal rate limit, correlation
-    G->>R: validate owner-bound session / acquire turn lock
-    G->>O: message + principal + session + trace
-    O->>L: routing schema (bounded message/state)
-    L-->>O: authorized intent/entities
-    O->>L: planning schema (route + capability policy)
-    L-->>O: capability proposal
-    O->>O: compile and validate DAG in Python
+    G->>G: authenticate, rate-limit, correlate
+    G->>R: validate session owner / acquire turn lock
+    G->>O: message + bounded session projection
+    O->>L: optional structured routing
+    L-->>O: intent + extractive entities
+    O->>O: compile/validate deterministic DAG
     par ready steps
-        O->>D: typed AgentMessage
-        D->>A: allowlisted tool call
-        A->>S: bounded read
-        S-->>A: structured sample facts
-        A-->>D: GatewayResponse + redacted audit
-        D->>L: specialist schema (server-owned fact catalog)
-        L-->>D: selected fact IDs + confidence
-        D->>D: render findings/citations from catalog
-        D-->>O: AgentResult + errors + provenance
+        O->>D: immutable AgentMessage
+        D->>A: allowlisted tool request
+        A->>P: bounded snapshot read
+        P-->>A: book/review facts + provenance
+        A-->>D: typed result
+        D->>L: optional bounded fact-ID selection
+        L-->>D: selected fact IDs
+        D-->>O: AgentResult + safe errors + provenance
     end
-    O->>O: deterministic status, score and provenance
-    O->>L: synthesis schema (server-owned claim catalog)
+    O->>O: deterministic status, score and claim catalog
+    O->>L: optional claim-ID ordering
     L-->>O: ordered claim IDs
-    O->>O: render deterministic text + provenance citations
-    O->>R: update state/memory with TTL
-    O-->>G: OrchestrationResult
-    G-->>C: response or terminal SSE event
+    O->>R: update bounded state/memory
+    O-->>G: grounded orchestration result
+    G-->>C: JSON or status/token/terminal SSE events
 ```
 
-Correlation IDs `request_id`, `trace_id`, `session_id`, `task_id`, `agent_id`
-được truyền xuyên suốt. `off` bỏ qua model, `shadow` gọi model nhưng giữ kết quả
-deterministic, `hybrid` dùng kết quả model hợp lệ và fallback an toàn,
-`required` fail closed khi model hoặc authorization check lỗi. Access log/trace
-chỉ ghi metadata model đã làm sạch (stage, snapshot, duration, token, fallback),
-không chứa prompt, raw tool arguments, API key, provider response text hay nội
-dung review.
+Correlation IDs được truyền xuyên suốt. Model modes:
 
-## 5. Agent-to-Agent contract
+| Mode | Semantics |
+| --- | --- |
+| `off` | Không gọi provider; deterministic pipeline |
+| `shadow` | Gọi provider để telemetry nhưng giữ quyết định deterministic |
+| `hybrid` | Dùng structured output hợp lệ; fallback deterministic khi được phép |
+| `required` | Fail closed nếu provider hoặc evidence authorization lỗi |
 
-`app/contracts/a2a.py` định nghĩa immutable Pydantic models:
+## 5. Domain agents
 
-- `AgentMessage`: source, target, action, correlation IDs và typed payload;
-- `AgentResult`: terminal status, structured data, safe errors, provenance và
-  duration;
-- `ExecutionStep`: agent/action/input/dependencies;
-- `ExecutionPlan`: DAG có step ID duy nhất và chỉ phụ thuộc step đã xuất hiện;
-- `TaskStatus`: `pending`, `running`, `success`, `partial_success`, `failed`.
+Bốn ID domain cố định là:
 
-Contract không chứa transport-specific fields. Khi tách agent thành service,
-adapter HTTP/message-bus có thể serialize cùng schema; planner/aggregator không
-cần đổi semantics.
-
-## 6. Domain agents và DAG
-
-| Agent | Actions chính | Sources |
+| Agent ID | Trách nhiệm hiện tại | Active source |
 | --- | --- | --- |
-| Product | search, rank, compare, statistics | PostgreSQL products/shops |
-| Review | retrieve, sentiment, aspect, summarize, compare batch | PostgreSQL reviews |
-| Trust | complaint, trust heuristic, compare batch | PostgreSQL reviews |
-| Market | category statistics, market-note retrieval | PostgreSQL + Qdrant |
+| `product_agent` | Search/filter, compare, rank book metadata | PostgreSQL products |
+| `review_agent` | Retrieve, sentiment/aspect heuristic, summarize/compare | PostgreSQL sampled reviews |
+| `trust_agent` | Complaint và text-quality heuristic | PostgreSQL sampled reviews |
+| `market_agent` | Aggregate cắt ngang theo category/author/publisher/price/rating | PostgreSQL products |
 
-Recommendation đa miền tạo ba step:
+Operations inventory còn liệt kê `orchestrator`, nên tổng registry inventory là
+năm entry. Market Agent không đọc market notes và không tạo trend: output chủ
+động đặt `representative_of_real_market=false`, `live_market_data=false` và
+`trend_analysis=false`.
+
+Product search hỗ trợ free text/title, author, publisher, category, min/max
+price, min rating và min/max page count. Không có platform filter vì toàn bộ
+normalized catalog thuộc một snapshot Tiki Books.
+
+Multi-domain recommendation tạo DAG:
 
 ```text
-product.rank
-   ├── review.compare(product_ids từ toàn bộ ranking)
-   └── trust.compare(product_ids từ toàn bộ ranking)
+product.rank (tối đa 5 candidates)
+   ├── review.compare(all ranked product IDs)
+   └── trust.compare(all ranked product IDs)
 ```
 
-Hai nhánh phụ trợ có thể chạy đồng thời sau Product step. Executor giữ nguyên
-thứ tự candidate và giới hạn tối đa 5 IDs.
+Hai nhánh sau Product có thể chạy đồng thời. Product failure làm request không
+có grounded candidate; một auxiliary branch lỗi có thể tạo `partial_success`
+với warning và không được thay bằng fact tự sinh.
 
-## 7. Scoring minh bạch
+## 6. Scoring và ranh giới claim
 
-Product ranking trong một candidate set:
+Ranking trong candidate set:
 
 ```text
 product_score = 0.45 × rating/5
-              + 0.35 × log(1 + sold)/log(1 + max_sold)
+              + 0.35 × log(1 + source_popularity)/log(1 + max_popularity)
               + 0.20 × (1 - price/max_price)
 ```
+
+Schema/tool compatibility vẫn xuất trường `sold_count`, nhưng nguồn thực là
+`source_popularity` lịch sử của archive. Không được gọi nó là doanh số hiện tại
+hoặc doanh số đã xác minh.
 
 Recommendation score:
 
@@ -199,129 +191,107 @@ Recommendation score:
 0.55 × product_fit
 + 0.15 × positive_sentiment
 + 0.20 × (1 - complaint_rate)
-+ 0.10 × review_trust
++ 0.10 × review_text_quality
 ```
 
-Nếu một auxiliary signal không phủ mọi candidate, signal đó bị bỏ cho **tất
-cả** candidate và phần trọng số còn lại được normalize. Tiebreak ổn định theo
-score, source rank, price và product ID. Response công khai method, score,
-coverage và nhãn heuristic/sample; trọng số là product policy phiên bản 1, chưa
-được hiệu chỉnh bằng dữ liệu marketplace thật.
+Nếu một auxiliary signal không phủ mọi candidate, signal đó bị bỏ cho toàn bộ
+nhóm rồi trọng số còn lại được normalize. Heuristic sentiment/complaint/trust
+chỉ mô tả text trong sampled reviews; không xác định gian lận, authenticity hoặc
+chất lượng khách quan của sách.
 
-## 8. Data và state
+Mọi answer đều nhắc snapshot lịch sử và không được diễn giải aggregate cắt
+ngang thành catalog, giá, inventory hoặc thị trường Tiki hiện tại.
+
+## 7. Grounded model boundary
+
+Python sở hữu entity extraction, capability policy, DAG, fact text, status,
+score, claim text và citation. Khi model bật:
+
+- router chỉ được chọn intent/entity có trong bounded input;
+- planner chỉ chọn capability đã đăng ký;
+- specialist chỉ chọn opaque fact IDs từ server-owned catalog;
+- synthesis chỉ sắp xếp claim IDs đã materialize;
+- unknown/duplicate/ungrounded IDs bị fallback hoặc fail closed theo mode.
+
+Provider calls dùng structured output, `store=false`, timeout/retry/concurrency
+budget và circuit breaker. API/trace không công khai prompt, chain-of-thought,
+raw provider payload hoặc raw tool arguments.
+
+## 8. Data, state và knowledge
 
 ### PostgreSQL
 
-Nguồn sự thật cho shops/products/reviews. Alembic quản lý schema. Sample seed:
+Alembic head hiện tại là `20260830_0003`. Bảng `dataset_sources` giữ provenance
+bất biến theo `(dataset_id, dataset_version, profile)`; product/review giữ
+`source_id` và `external_id` cùng metadata sách normalized.
 
-- idempotent khi DB khớp chính xác snapshot;
-- từ chối DB lẫn hoặc có dữ liệu ngoài snapshot;
-- reset cần hai flags và bị chặn ở production.
+`ecommerce-seed` không sinh dữ liệu. Nó validate bốn snapshot artifacts, từ
+chối database mixed/legacy/different-profile, import transactionally và kiểm tra
+lại exact counts/provenance. Default là evaluation snapshot 200 sách/1.773
+review. Xem [vòng đời dữ liệu](data.md).
 
-Schema `dataset_sources` lưu immutable dataset/version, license, source revision,
-raw/snapshot SHA-256, sampling seed và row counts. Product/review imported từ
-snapshot public giữ `source_id` + `external_id`; tool facts và AgentResult truyền
-provenance động. Dữ liệu synthetic cũ vẫn có fallback source IDs riêng để không
-trộn evidence giữa hai corpus.
+### Redis và memory
 
-### Redis
+Production dùng Redis cho owner-bound session, active agent, last product,
+bounded turn storage và distributed turn lock. Mặc định TTL 3.600 giây, tối đa
+40 user/assistant entries mỗi session. Router/model hiện chỉ nhận message hiện
+tại và structured projection (`active_agent`, `last_product_id`); free-text
+memory **chưa đưa vào routing hay aggregation**. Việc này tránh biến transcript
+chưa lọc thành prompt. Hệ thống **chưa có long-term user memory**.
 
-Lưu owner-bound session, active agent, last product, short-term memory và
-distributed turn lock. Memory giữ tối đa 40 user/assistant turn entries mỗi
-session, mỗi entry tối đa 2.000 ký tự; toàn bộ key hết hạn theo TTL mặc định
-3.600 giây. Optimistic atomic update ngăn lost update; chỉ một turn được xử lý
-trên một session tại một thời điểm.
+### Knowledge/RAG
 
-Router/model runtime chỉ nhận message hiện tại và structured session projection
-(`active_agent`, `last_product_id`); free-text memory được lưu cho lifecycle/audit
-mở rộng nhưng chưa đưa vào routing hay aggregation, cũng không đưa vào specialist
-reasoning. Thiết kế này tránh biến lịch sử hội thoại chưa được lọc thành prompt.
-Muốn sử dụng phần text đó về sau phải có projection có giới hạn, chống prompt
-injection và policy xóa/đồng ý riêng.
+`KNOWLEDGE_BACKEND=disabled` là mặc định cho local, Compose, Helm production và
+kind. `DisabledKnowledgeStore` trả readiness thành công nhưng không retrieval.
+Repository không bundle/seed knowledge documents và không có agent tool path
+RAG hiện hành.
 
-### Qdrant
+Qdrant adapter còn lại là seam opt-in cho một tích hợp tương lai. Chỉ khi chủ
+động chọn `qdrant`, cung cấp credential và inject một collection tương thích,
+readiness mới kiểm tra service, vector contract và collection không rỗng. Việc
+có adapter không đồng nghĩa RAG đã tích hợp hoặc dữ liệu Qdrant có thể làm bằng
+chứng cho answer hiện tại.
 
-Lưu market notes mẫu. Backend `hashing` dùng `hashed_token_cosine_v1` 128 chiều
-để tái lập offline. Backend `openai` dùng embedding có version theo model/kích
-thước; `auto` chọn OpenAI khi có key, nếu không dùng hashing ngoài production.
-Mỗi không gian vector nằm ở collection suffix riêng (`_openai_v1` cho OpenAI),
-không trộn vector không tương thích. Seed job kiểm tra schema trước upsert;
-production readiness kiểm tra vector size/distance và yêu cầu collection có ít
-nhất một point. API key không xuất hiện trong public settings/logs.
+## 9. Reliability và API compatibility
 
-## 9. Reliability semantics
+- `/livez` chỉ phản ánh process.
+- `/readyz` kiểm tra runtime, DB round-trip/current production revision, Redis
+  nếu cấu hình và knowledge boundary. Default trả `knowledge: "disabled"`.
+- Orchestration timeout trả 504 retryable; concurrent turn cùng session trả 409.
+- Shared-state failure và all-agents-failed trả 503, không tạo fallback facts.
+- SSE giữ ordered status, optional grounded token deltas, heartbeat và đúng một
+  terminal `completed` hoặc `error`.
+- Public request/response/event/error schema vẫn là API `v1`; việc chuyên biệt
+  domain không đổi endpoint hoặc field names.
 
-- Liveness chỉ phản ánh process. Production readiness yêu cầu DB đúng Alembic
-  revision hiện hành, Redis ping thành công và Qdrant sống với collection đúng
-  vector contract, không rỗng; development/test chỉ ping dependency đã cấu hình.
-- Mỗi orchestration có timeout cấu hình; timeout trả 504 retryable.
-- Concurrent turn cùng session trả 409 retryable thay vì ghi đè state.
-- Redis/Qdrant outage trả trạng thái failed/503 có error code ổn định.
-- Một agent phụ trợ lỗi có thể tạo `partial_success`; answer chỉ dùng phần dữ
-  liệu còn lại và luôn kèm warning.
-- Tất cả agents lỗi trả gateway 503; không có fallback tạo facts.
-- Model call bị giới hạn timeout, retry, concurrency và circuit breaker. Chế độ
-  `hybrid` fallback về kết quả deterministic đã tính; `required` dừng request.
-- Router/planner/specialist/synthesis model outputs đều schema-constrained.
-  Router entity phải khớp extraction Python, plan phải qua capability compiler,
-  còn specialist/synthesis chỉ được chọn ID trong catalog server-owned; unknown,
-  duplicate hoặc thiếu claim ID sẽ fallback/fail closed trước khi ảnh hưởng
-  response.
-- SSE luôn có `request.accepted`, progress có sequence và đúng một terminal
-  `completed` hoặc `error`; heartbeat 10 giây giữ connection.
+## 10. Security và observability
 
-## 10. Security model
+Trust boundaries gồm client API key, principal policy/tenant/scope, Agent
+Gateway permission allowlist, authenticated data plane và operations credential
+riêng. Production chặn demo/default credentials, memory shared state, legacy
+`/chat` và model runtime bật mà thiếu provider key. Legacy
+`KNOWLEDGE_BACKEND=static` được normalize thành `disabled`, không kích hoạt một
+knowledge base ẩn.
 
-Trust boundaries:
+Metrics dùng labels bounded; traces/audit là ring buffer redacted trong process.
+Operator endpoints cho metrics, trace, audit và inventory cần operations key ở
+production. Nhiều replica cần externalize limiter/telemetry trước khi bỏ giới
+hạn hiện tại.
 
-1. Client → Gateway: API key, bounded body, auth-attempt limiter, per-principal
-   limiter, constant-time compare.
-2. Gateway → Orchestrator: principal/session ownership và correlation đã xác
-   thực.
-3. Agent → Agent Gateway: immutable registry, MCP server/tool/permission
-   allowlists và outbound policy.
-4. Application → Data: internal network, authenticated Redis/Qdrant/PostgreSQL.
-5. Operator plane: `X-Operations-Key` hoặc `Authorization: Bearer` dùng cùng
-   operations secret, tách khỏi user API key.
+## 11. Trạng thái triển khai
 
-Production validation chặn demo/default/placeholder credentials, legacy route,
-memory state và static knowledge. HTTP responses có CSP, frame denial, nosniff,
-referrer/permissions policies, no-store cho API; docs/OpenAPI tắt ở production.
-TLS termination, rotation, secret manager và firewall là trách nhiệm deployment.
-
-## 11. Observability
-
-- Access log: method, safe path label, status, request/trace IDs, latency.
-- Trace ring: tối đa 5.000 redacted events/process.
-- Metrics: HTTP/agent/model counters, readiness dependency counters và latency
-  histograms với bucket cố định theo giây; labels được giới hạn, không chứa user
-  path/ID.
-- Operator endpoints: metrics, trace lookup, Agent Gateway audit và registry
-  inventory, đều bảo vệ bằng operations key trong production.
-- Helm có tùy chọn `ServiceMonitor`, `PrometheusRule` và Grafana dashboard;
-  ServiceMonitor đọc Bearer credential từ existing Secret, không nhúng secret
-  vào manifest.
-
-Telemetry hiện không bền và không phân tán; production nhiều instance cần
-Prometheus collector + OpenTelemetry/log backend bên ngoài.
-
-## 12. Workflow coverage và evolution
-
-| Workflow area | Trạng thái hiện tại |
+| Area | Trạng thái |
 | --- | --- |
-| Single-agent baseline | Legacy path còn giữ; frozen real-model baseline từ `main` đã capture |
-| Domain agents | Product, Review, Trust, Market đã triển khai |
-| Orchestrator | GPT-assisted routing/planning/claim ordering, authorized parallel DAG, deterministic fallback/failure semantics |
-| Specialist reasoning | GPT chọn fact ID theo từng AgentResult; Python sở hữu fact text và provenance |
-| Shared platform | Session, Redis short-term turn storage, correlation, tracing, metrics, evaluation; chưa có long-term user memory |
-| Agent Gateway/Registry | Capabilities, permissions, MCP allowlists, audit |
-| MCP | In-process typed catalog; chưa phải remote MCP transport |
-| RAG/vector DB | Qdrant adapter + versioned hashing/OpenAI embedding spaces |
-| API/UI | Authenticated v1 JSON/SSE + same-origin evidence-first client |
-| Deployment | Compose + Helm production/kind profiles, migration hook, NetworkPolicy, monitoring pack, CI gates |
-| Evaluation | Paired protocol v2: deterministic/full hybrid + four ablations, 28 clean + 16 robustness cases, pinned runtime/retrieval/pricing/hashes |
+| Book data | Test/eval snapshots đã clean, redact, quality-gate và hash |
+| Agents | Product/Review/Trust/Market chuyên biệt cho books |
+| Orchestrator | Authorized parallel DAG + deterministic/model-assisted modes |
+| API/UI | Authenticated v1 JSON/SSE + same-origin evidence workspace |
+| Deployment | Compose + Helm production/kind, migration/snapshot bootstrap |
+| Evaluation | 28 Tiki cases + 16 robustness transformations; paired v2 |
+| Knowledge/RAG | Disabled; dormant opt-in Qdrant adapter, không có corpus/tool path |
+| Memory | TTL short-term state; chưa có long-term preference/summary/artifact memory |
 
-Khi thay dữ liệu thật, thứ tự mở rộng an toàn là: data contract/quality gate →
-versioned embedding/index → shadow evaluation → chạy đủ paired protocol + human
-rubric → calibrated analytics/ranking → load/chaos tests → distributed rate
-limit/telemetry → cân nhắc tách service theo bottleneck đo được.
+Thứ tự mở rộng an toàn: định nghĩa licensed/versioned corpus RAG → quality gate
+và provenance → inject retrieval adapter → shadow evaluation → human/semantic
+rubric → load/chaos tests. Không bật Qdrant hoặc market claim chỉ vì adapter đã
+tồn tại.
