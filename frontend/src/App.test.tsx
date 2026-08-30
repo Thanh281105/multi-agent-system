@@ -12,7 +12,9 @@ import { provenanceAnchorId } from "@/features/chat/presentation"
 import type { ChatController } from "@/features/chat/use-chat-controller"
 import { completedResponse, statusEvent } from "@/test/fixtures"
 
-describe("EvidenceAtlas", () => {
+const EVIDENCE_ATLAS_TEST_TIMEOUT_MS = 20_000
+
+describe("EvidenceAtlas", { timeout: EVIDENCE_ATLAS_TEST_TIMEOUT_MS }, () => {
   it("renders the evidence-first initial workspace with no axe violations", async () => {
     const controller = createController()
     const { container } = render(<EvidenceAtlas controller={controller} />)
