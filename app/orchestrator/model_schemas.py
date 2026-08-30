@@ -42,7 +42,10 @@ class RoutingEntities(BaseModel):
     max_price: int | None = Field(default=None, ge=0, le=1_000_000_000)
     min_price: int | None = Field(default=None, ge=0, le=1_000_000_000)
     min_rating: float | None = Field(default=None, ge=0, le=5)
-    platform: str | None = Field(default=None, max_length=40)
+    author: str | None = Field(default=None, max_length=220)
+    publisher: str | None = Field(default=None, max_length=220)
+    min_page_count: int | None = Field(default=None, ge=1, le=20_000)
+    max_page_count: int | None = Field(default=None, ge=1, le=20_000)
     product_id: int | None = Field(default=None, ge=1)
     product_query: str | None = Field(default=None, max_length=220)
     product_queries: list[str] = Field(default_factory=list, max_length=5)
@@ -55,6 +58,12 @@ class RoutingEntities(BaseModel):
             and self.min_price > self.max_price
         ):
             raise ValueError("min_price must not exceed max_price")
+        if (
+            self.min_page_count is not None
+            and self.max_page_count is not None
+            and self.min_page_count > self.max_page_count
+        ):
+            raise ValueError("min_page_count must not exceed max_page_count")
         return self
 
 

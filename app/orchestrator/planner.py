@@ -64,8 +64,10 @@ class ExecutionPlanner:
                 agent_id="orchestrator",
                 model=self.model,
                 instructions=(
-                    "Bạn là planner cho hệ thống multi-agent. Chọn tập capability "
-                    "nhỏ nhất, đúng thứ tự phụ thuộc để xử lý intent. Chỉ dùng "
+                    "Bạn là planner cho trợ lý multi-agent sách trên snapshot lịch "
+                    "sử Tiki Books. Chọn tập capability nhỏ nhất, đúng thứ tự phụ "
+                    "thuộc để xử lý intent. Không suy rộng thành catalog hay thị "
+                    "trường hiện tại. Chỉ dùng "
                     "capability trong schema; không tạo MCP tool, server, action, "
                     "agent hay dữ liệu đầu vào mới. rationale là lý do ngắn, không "
                     "phải chuỗi suy luận."

@@ -29,7 +29,7 @@ def test_gateway_authenticates_and_returns_grounded_correlated_result() -> None:
             "X-Request-ID": "req_client_safe_123",
             "X-Trace-ID": "trace_client_must_not_win",
         },
-        json={"message": "Tìm tai nghe dưới 1 triệu"},
+        json={"message": "Tìm sách Sapiens"},
     )
 
     body = response.json()
@@ -79,12 +79,12 @@ def test_gateway_uses_external_principal_policy_and_fails_closed_when_missing() 
     allowed = client.post(
         "/api/v1/chat",
         headers=ALICE_HEADERS,
-        json={"message": "Tìm tai nghe dưới 1 triệu"},
+        json={"message": "Tìm sách Sapiens"},
     )
     missing_policy = client.post(
         "/api/v1/chat",
         headers=BOB_HEADERS,
-        json={"message": "Tìm tai nghe dưới 1 triệu"},
+        json={"message": "Tìm sách Sapiens"},
     )
 
     assert allowed.status_code == 200
@@ -149,18 +149,18 @@ def test_unknown_and_cross_principal_sessions_are_indistinguishable() -> None:
     first = client.post(
         "/api/v1/chat",
         headers=ALICE_HEADERS,
-        json={"message": "Tìm tai nghe dưới 1 triệu"},
+        json={"message": "Tìm sách Nhật Ký Tarot"},
     )
     session_id = first.json()["session_id"]
     continued = client.post(
         "/api/v1/chat",
         headers=ALICE_HEADERS,
-        json={"message": "Còn pin thì sao?", "session_id": session_id},
+        json={"message": "Còn nội dung thì sao?", "session_id": session_id},
     )
     foreign = client.post(
         "/api/v1/chat",
         headers=BOB_HEADERS,
-        json={"message": "Còn pin thì sao?", "session_id": session_id},
+        json={"message": "Còn nội dung thì sao?", "session_id": session_id},
     )
 
     assert unknown.status_code == 404
@@ -271,9 +271,7 @@ def test_sse_streams_real_progress_and_exactly_one_terminal_event() -> None:
         "POST",
         "/api/v1/chat/stream",
         headers=ALICE_HEADERS,
-        json={
-            "message": ("Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn.")
-        },
+        json={"message": ("Tìm sách dưới 150 nghìn, bán tốt và ít bị khách phàn nàn.")},
     ) as response:
         response.read()
         stream_text = response.text

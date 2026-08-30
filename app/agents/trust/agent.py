@@ -18,7 +18,7 @@ from app.contracts import (
 
 
 class TrustAgent(DomainAgent):
-    """Detect spam-like patterns and complaint signals over factual reviews."""
+    """Describe review-text quality and book complaint signals."""
 
     agent_id = "trust_agent"
     supported_actions = frozenset(

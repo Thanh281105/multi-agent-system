@@ -125,7 +125,7 @@ def test_default_registry_exposes_all_workflow_agents() -> None:
         "trust_agent"
     )
     assert default_registry.active_agent_for_intent("review.summary") == "review_agent"
-    assert default_registry.follow_up_intent("market_agent") == "market.search"
+    assert default_registry.follow_up_intent("market_agent") == "market.analyze"
     assert default_registry.intent_manifest("multi.recommendation") is not None
 
 

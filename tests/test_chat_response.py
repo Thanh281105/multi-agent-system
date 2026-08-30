@@ -17,8 +17,8 @@ async def test_chat_exposes_runner_tool_calls(
             tool_calls=[
                 ToolCallInfo(
                     name="search_products",
-                    arguments={"category": "Tai nghe", "max_price": 1_000_000},
-                    result_summary={"count": 2},
+                    arguments={"author": "Trang Anh", "max_page_count": 610},
+                    result_summary={"count": 1},
                 )
             ],
         )
@@ -31,12 +31,12 @@ async def test_chat_exposes_runner_tool_calls(
     )
     response = TestClient(application).post(
         "/chat",
-        json={"message": "Tìm tai nghe dưới 1 triệu"},
+        json={"message": "Tìm sách của Trang Anh"},
     )
 
     body = response.json()
     assert response.status_code == 200
     assert body["answer"] == "Em tìm thấy dữ liệu phù hợp."
     assert body["tool_calls"][0]["name"] == "search_products"
-    assert body["tool_calls"][0]["arguments"]["max_price"] == 1_000_000
+    assert body["tool_calls"][0]["arguments"]["max_page_count"] == 610
     assert body["session_id"].startswith("sess_")

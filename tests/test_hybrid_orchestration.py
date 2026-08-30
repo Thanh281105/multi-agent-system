@@ -36,16 +36,20 @@ class SchemaAwareResponses:
         invalid_entities: bool = False,
         invalid_specialist: bool = False,
         invalid_synthesis: bool = False,
+        fail_schema: type[Any] | None = None,
     ) -> None:
         self.invalid_plan = invalid_plan
         self.invalid_entities = invalid_entities
         self.invalid_specialist = invalid_specialist
         self.invalid_synthesis = invalid_synthesis
+        self.fail_schema = fail_schema
         self.requests: list[dict[str, Any]] = []
 
     async def parse(self, **request: Any) -> Any:
         self.requests.append(request)
         schema = request["text_format"]
+        if schema is self.fail_schema:
+            raise TimeoutError("forced model stage outage")
         if schema is RoutingDecision:
             value: Any = RoutingDecision(
                 intent="multi.recommendation",
@@ -54,8 +58,7 @@ class SchemaAwareResponses:
                     RoutingEntities(product_id=987_654_321)
                     if self.invalid_entities
                     else RoutingEntities(
-                        category="Tai nghe",
-                        max_price=1_000_000,
+                        max_price=150_000,
                     )
                 ),
                 rationale="recommendation_with_complaint_constraint",
@@ -100,8 +103,22 @@ class SchemaAwareResponses:
 
 
 class FakeClient:
-    def __init__(self, **failure_modes: bool) -> None:
-        self.responses = SchemaAwareResponses(**failure_modes)
+    def __init__(
+        self,
+        *,
+        invalid_plan: bool = False,
+        invalid_entities: bool = False,
+        invalid_specialist: bool = False,
+        invalid_synthesis: bool = False,
+        fail_schema: type[Any] | None = None,
+    ) -> None:
+        self.responses = SchemaAwareResponses(
+            invalid_plan=invalid_plan,
+            invalid_entities=invalid_entities,
+            invalid_specialist=invalid_specialist,
+            invalid_synthesis=invalid_synthesis,
+            fail_schema=fail_schema,
+        )
 
 
 def build_hybrid_orchestrator(
@@ -110,12 +127,14 @@ def build_hybrid_orchestrator(
     invalid_entities: bool = False,
     invalid_specialist: bool = False,
     invalid_synthesis: bool = False,
+    fail_schema: type[Any] | None = None,
 ) -> tuple[MultiAgentOrchestrator, SchemaAwareResponses]:
     client = FakeClient(
         invalid_plan=invalid_plan,
         invalid_entities=invalid_entities,
         invalid_specialist=invalid_specialist,
         invalid_synthesis=invalid_synthesis,
+        fail_schema=fail_schema,
     )
     runtime = OpenAIModelRuntime(
         "test-key",
@@ -150,7 +169,7 @@ async def test_hybrid_flow_runs_all_structured_reasoning_stages() -> None:
     orchestrator, responses = build_hybrid_orchestrator()
 
     result = await orchestrator.run(
-        message="Tìm tai nghe dưới 1 triệu, đáng mua và ít bị phàn nàn.",
+        message="Tìm sách dưới 150 nghìn, đáng mua và ít bị phàn nàn.",
         principal_id="user-a",
         session_id="sess_hybrid_123",
     )
@@ -172,7 +191,8 @@ async def test_hybrid_flow_runs_all_structured_reasoning_stages() -> None:
         "synthesis",
     ]
     assert all(item.status == "success" for item in result.model_calls)
-    assert "nguồn: postgresql:products" in result.answer
+    assert "nguồn: tiki-books:kaggle-v4:test" in result.answer
+    assert "snapshot lịch sử Tiki Books" in result.answer
     assert public.executions[1].depends_on == ("step_product",)
     assert len(public.model_calls) == 6
     assert all(request["store"] is False for request in responses.requests)
@@ -184,7 +204,7 @@ async def test_unauthorized_model_plan_falls_back_to_compiled_allowlist() -> Non
     orchestrator, _ = build_hybrid_orchestrator(invalid_plan=True)
 
     result = await orchestrator.run(
-        message="Tìm tai nghe dưới một triệu, đáng mua và ít bị phàn nàn.",
+        message="Tìm sách dưới 150 nghìn, đáng mua và ít bị phàn nàn.",
         principal_id="user-a",
         session_id="sess_hybrid_fallback_123",
     )
@@ -206,7 +226,7 @@ async def test_model_cannot_invent_routing_entities() -> None:
     orchestrator, _ = build_hybrid_orchestrator(invalid_entities=True)
 
     result = await orchestrator.run(
-        message="Tìm tai nghe dưới 1 triệu, đáng mua và ít bị phàn nàn.",
+        message="Tìm sách dưới 150 nghìn, đáng mua và ít bị phàn nàn.",
         principal_id="user-a",
         session_id="sess_hybrid_bad_entity_123",
     )
@@ -222,7 +242,7 @@ async def test_model_cannot_select_unknown_specialist_fact() -> None:
     orchestrator, _ = build_hybrid_orchestrator(invalid_specialist=True)
 
     result = await orchestrator.run(
-        message="Tìm tai nghe dưới 1 triệu, đáng mua và ít bị phàn nàn.",
+        message="Tìm sách dưới 150 nghìn, đáng mua và ít bị phàn nàn.",
         principal_id="user-a",
         session_id="sess_hybrid_bad_fact_123",
     )
@@ -242,7 +262,7 @@ async def test_model_cannot_select_unknown_synthesis_claim() -> None:
     orchestrator, _ = build_hybrid_orchestrator(invalid_synthesis=True)
 
     result = await orchestrator.run(
-        message="Tìm tai nghe dưới 1 triệu, đáng mua và ít bị phàn nàn.",
+        message="Tìm sách dưới 150 nghìn, đáng mua và ít bị phàn nàn.",
         principal_id="user-a",
         session_id="sess_hybrid_bad_claim_123",
     )
@@ -254,6 +274,54 @@ async def test_model_cannot_select_unknown_synthesis_claim() -> None:
     assert synthesis_call.fallback_reason == "ungrounded_synthesis"
     assert "claim_999" not in result.answer
     assert "(nguồn:" not in result.answer
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("schema", "stage", "fallback_reason"),
+    [
+        (RoutingDecision, "routing", "deterministic_routing"),
+        (PlanningDecision, "planning", "deterministic_planning"),
+        (SpecialistInsight, "specialist.analysis", "deterministic_agent_result"),
+        (GroundedSynthesis, "synthesis", "deterministic_synthesis"),
+    ],
+)
+async def test_model_stage_outage_preserves_deterministic_book_fallback(
+    schema: type[Any],
+    stage: str,
+    fallback_reason: str,
+) -> None:
+    orchestrator, _ = build_hybrid_orchestrator(fail_schema=schema)
+
+    result = await orchestrator.run(
+        message="Tìm sách dưới 150 nghìn, đáng mua và ít bị phàn nàn.",
+        principal_id="user-a",
+        session_id=f"sess_hybrid_outage_{stage.replace('.', '_')}",
+    )
+
+    matching_calls = [item for item in result.model_calls if item.stage == stage]
+    assert matching_calls
+    assert all(item.fallback_used for item in matching_calls)
+    assert all(item.fallback_reason == fallback_reason for item in matching_calls)
+    assert result.intent == "multi.recommendation"
+    assert result.selected_product_id is not None
+    assert "snapshot lịch sử Tiki Books" in result.answer
+
+
+@pytest.mark.asyncio
+async def test_hybrid_model_cannot_promote_non_book_request() -> None:
+    orchestrator, responses = build_hybrid_orchestrator()
+
+    result = await orchestrator.run(
+        message="Tìm tai nghe dưới 1 triệu",
+        principal_id="user-a",
+        session_id="sess_hybrid_non_book",
+    )
+
+    assert result.intent == "general.unsupported"
+    assert result.plan.steps == ()
+    assert result.model_calls == ()
+    assert responses.requests == []
 
 
 def test_grounded_claim_schema_rejects_model_authored_prose() -> None:

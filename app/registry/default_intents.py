@@ -31,7 +31,10 @@ def _product_filters(entities: dict[str, Any]) -> dict[str, Any]:
         "max_price",
         "min_price",
         "min_rating",
-        "platform",
+        "author",
+        "publisher",
+        "min_page_count",
+        "max_page_count",
         "limit",
     }
     return {
@@ -44,7 +47,12 @@ def _product_filters(entities: dict[str, Any]) -> dict[str, Any]:
 def _product_search_input(entities: dict[str, Any]) -> dict[str, Any]:
     payload = _product_filters(entities)
     product_query = entities.get("product_query")
-    if "category" not in payload and isinstance(product_query, str):
+    if (
+        "category" not in payload
+        and "author" not in payload
+        and "publisher" not in payload
+        and isinstance(product_query, str)
+    ):
         payload["query"] = product_query
     return payload
 

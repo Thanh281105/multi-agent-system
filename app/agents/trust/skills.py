@@ -1,4 +1,4 @@
-"""Explainable review-quality and complaint heuristics for sample data."""
+"""Explainable review-text-quality and complaint heuristics for books."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def _validated_rating(review: dict[str, Any]) -> int:
 
 
 def analyze_review_trust(reviews: list[dict[str, Any]]) -> dict[str, Any]:
-    """Estimate trust using duplicate/generic/length signals, never identity data."""
+    """Describe duplicate/generic/length signals without authenticity claims."""
 
     if len(reviews) > 200:
         raise ValueError("trust analysis accepts at most 200 reviews")
@@ -35,43 +35,51 @@ def analyze_review_trust(reviews: list[dict[str, Any]]) -> dict[str, Any]:
         token_count = len(content.split())
         duplicate = frequencies[content] > 1
         generic = content in {
+            "sách tốt",
+            "sách hay",
+            "sách đẹp",
             "sản phẩm tốt",
-            "hàng tốt",
             "ok",
             "good",
         }
-        spam_probability = 0.05
+        text_quality_penalty = 0.05
         reasons: list[str] = []
         if duplicate:
-            spam_probability += 0.65
+            text_quality_penalty += 0.65
             reasons.append("duplicate_text")
         if token_count < 4:
-            spam_probability += 0.20
+            text_quality_penalty += 0.20
             reasons.append("very_short")
         if generic:
-            spam_probability += 0.20
+            text_quality_penalty += 0.20
             reasons.append("generic_only")
-        spam_probability = min(spam_probability, 0.99)
+        text_quality_score = 1 - min(text_quality_penalty, 0.99)
         items.append(
             {
                 "review_id": int(review["id"]),
-                "spam_probability": round(spam_probability, 4),
-                "trust_score": round(1 - spam_probability, 4),
+                "text_quality_score": round(text_quality_score, 4),
                 "signals": reasons,
             }
         )
 
     average_trust = (
-        sum(float(item["trust_score"]) for item in items) / len(items) if items else 0.0
+        sum(float(item["text_quality_score"]) for item in items) / len(items)
+        if items
+        else 0.0
     )
     return {
         "count": len(items),
         "average_trust_score": round(average_trust, 4),
-        "suspected_spam_count": sum(
-            float(item["spam_probability"]) >= 0.5 for item in items
+        "flagged_text_quality_count": sum(
+            float(item["text_quality_score"]) < 0.5 for item in items
+        ),
+        "authenticity_assessed": False,
+        "limitation": (
+            "Các rule chỉ mô tả tín hiệu văn bản trong phần review lấy mẫu; "
+            "không xác định review giả, gian lận, uy tín người bán hay sách giả."
         ),
         "items": items,
-        "method": "duplicate_length_generic_rules_v1",
+        "method": "duplicate_length_generic_book_rules_v2",
     }
 
 
@@ -116,5 +124,5 @@ def detect_complaints(reviews: list[dict[str, Any]]) -> dict[str, Any]:
             for name, count in aspect_counts.most_common()
         ],
         "items": complaint_items,
-        "method": "rating_negative_keyword_rules_vi_v1",
+        "method": "book_rating_negative_keyword_rules_vi_v2",
     }

@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from app.agent import runner as runner_module
+from app.agent.agent import AGENT_INSTRUCTION, OPENAI_TOOLS
 from app.core.config import settings
 
 
@@ -54,9 +55,9 @@ async def test_openai_runner_dispatches_tool_and_collects_metadata(
                     function_call(
                         name="search_products",
                         arguments={
-                            "category": "Tai nghe",
-                            "max_price": 1_000_000,
-                            "min_rating": 4.5,
+                            "author": "Trang Anh",
+                            "min_page_count": 600,
+                            "max_page_count": 610,
                         },
                         call_id="call-search",
                     )
@@ -65,7 +66,7 @@ async def test_openai_runner_dispatches_tool_and_collects_metadata(
             response(
                 response_id="resp-search-final",
                 output=[],
-                output_text="Có 2 sản phẩm phù hợp từ dữ liệu database.",
+                output_text=("Có 1 sách phù hợp trong snapshot lịch sử Tiki Books."),
             ),
         ]
     )
@@ -73,18 +74,18 @@ async def test_openai_runner_dispatches_tool_and_collects_metadata(
     monkeypatch.setattr(runner_module, "session_histories", {})
 
     result = await runner_module.run_agent(
-        message="Tìm tai nghe dưới 1 triệu rating ít nhất 4.5",
+        message="Tìm sách của Trang Anh từ 600 đến 610 trang",
         session_id="openai-deterministic-search",
         request_id="openai-deterministic-search",
     )
 
-    assert result.answer == "Có 2 sản phẩm phù hợp từ dữ liệu database."
+    assert result.answer == "Có 1 sách phù hợp trong snapshot lịch sử Tiki Books."
     assert len(result.tool_calls) == 1
     assert result.tool_calls[0].name == "search_products"
-    assert result.tool_calls[0].arguments["max_price"] == 1_000_000
+    assert result.tool_calls[0].arguments["author"] == "Trang Anh"
     assert result.tool_calls[0].result_summary == {
-        "count": 2,
-        "products_count": 2,
+        "count": 1,
+        "products_count": 1,
     }
     assert client.responses.requests[0]["model"] == settings.openai_model
     assert all(request["store"] is False for request in client.responses.requests)
@@ -104,7 +105,7 @@ async def test_openai_runner_exposes_multiple_tool_calls(
                 output=[
                     function_call(
                         name="search_products",
-                        arguments={"query": "Nova Air S2"},
+                        arguments={"query": "Nhật Ký Tarot"},
                         call_id="call-product",
                     ),
                     function_call(
@@ -117,7 +118,7 @@ async def test_openai_runner_exposes_multiple_tool_calls(
             response(
                 response_id="resp-multi-final",
                 output=[],
-                output_text="Nova Air S2 có review tích cực nhưng có nhược điểm.",
+                output_text="Nhật Ký Tarot có review tích cực và complaint giao hàng.",
             ),
         ]
     )
@@ -125,12 +126,12 @@ async def test_openai_runner_exposes_multiple_tool_calls(
     monkeypatch.setattr(runner_module, "session_histories", {})
 
     result = await runner_module.run_agent(
-        message="Đọc review của Nova Air S2",
+        message="Đọc review sách Nhật Ký Tarot",
         session_id="openai-deterministic-multi",
         request_id="openai-deterministic-multi",
     )
 
-    assert result.answer == "Nova Air S2 có review tích cực nhưng có nhược điểm."
+    assert result.answer == ("Nhật Ký Tarot có review tích cực và complaint giao hàng.")
     assert [call.name for call in result.tool_calls] == [
         "search_products",
         "get_product_reviews",
@@ -159,7 +160,7 @@ async def test_openai_runner_reuses_local_history_without_response_ids(
             response(
                 response_id="resp-follow-up-one",
                 output=[],
-                output_text="Sản phẩm có pin 20 giờ.",
+                output_text="Sapiens có 600 trang trong snapshot.",
             ),
             response(
                 response_id="resp-follow-up-two",
@@ -172,7 +173,7 @@ async def test_openai_runner_reuses_local_history_without_response_ids(
     monkeypatch.setattr(runner_module, "session_histories", {})
 
     first = await runner_module.run_agent(
-        message="Nova Air S2 có pin bao lâu?",
+        message="Sách Sapiens có bao nhiêu trang?",
         session_id="openai-local-history",
         request_id="openai-local-history-one",
     )
@@ -182,15 +183,15 @@ async def test_openai_runner_reuses_local_history_without_response_ids(
         request_id="openai-local-history-two",
     )
 
-    assert first.answer == "Sản phẩm có pin 20 giờ."
+    assert first.answer == "Sapiens có 600 trang trong snapshot."
     assert second.answer == "Mình vừa giữ ngữ cảnh của câu hỏi trước."
     assert all(request["store"] is False for request in client.responses.requests)
     assert all(
         "previous_response_id" not in request for request in client.responses.requests
     )
     assert client.responses.requests[1]["input"] == [
-        {"role": "user", "content": "Nova Air S2 có pin bao lâu?"},
-        {"role": "assistant", "content": "Sản phẩm có pin 20 giờ."},
+        {"role": "user", "content": "Sách Sapiens có bao nhiêu trang?"},
+        {"role": "assistant", "content": "Sapiens có 600 trang trong snapshot."},
         {"role": "user", "content": "Ý mình là trong điều kiện dùng thực tế."},
     ]
 
@@ -208,3 +209,17 @@ async def test_openai_runner_requires_api_key_without_injected_client(
             session_id="openai-missing-key",
             request_id="openai-missing-key",
         )
+
+
+def test_legacy_agent_prompt_and_tool_schema_are_books_only() -> None:
+    search_tool = next(
+        tool for tool in OPENAI_TOOLS if tool["name"] == "search_products"
+    )
+    properties = search_tool["parameters"]["properties"]
+
+    assert "snapshot lịch sử Tiki" in AGENT_INSTRUCTION
+    assert "Chỉ hỗ trợ miền sách" in AGENT_INSTRUCTION
+    assert {"author", "publisher", "min_page_count", "max_page_count"}.issubset(
+        properties
+    )
+    assert "platform" not in properties

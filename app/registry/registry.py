@@ -137,13 +137,15 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
         AgentBundle(
             agent_id="orchestrator",
             version="1.0.0",
-            description="Phân tích ý định, lập kế hoạch và tổng hợp kết quả.",
+            description="Định tuyến, lập kế hoạch và tổng hợp trợ lý sách Tiki.",
             capabilities=("intent.routing", "task.planning", "result.aggregation"),
         ),
         AgentBundle(
             agent_id="product_agent",
             version="1.0.0",
-            description="Tìm kiếm, so sánh và xếp hạng sản phẩm.",
+            description=(
+                "Book Catalog Agent: tìm, so sánh và xếp hạng sách trong snapshot."
+            ),
             capabilities=("product.search", "product.compare", "product.rank"),
             skills=(
                 "search_products",
@@ -158,7 +160,7 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
         AgentBundle(
             agent_id="review_agent",
             version="1.0.0",
-            description="Phân tích cảm xúc, khía cạnh và tóm tắt review.",
+            description="Phân tích cảm xúc và khía cạnh review sách đã lấy mẫu.",
             capabilities=(
                 "review.retrieve",
                 "review.sentiment",
@@ -177,7 +179,10 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
         AgentBundle(
             agent_id="trust_agent",
             version="1.0.0",
-            description="Phát hiện complaint, spam và đánh giá độ tin cậy.",
+            description=(
+                "Mô tả complaint và tín hiệu chất lượng văn bản, "
+                "không kết luận giả mạo."
+            ),
             capabilities=(
                 "review.trust",
                 "review.complaint",
@@ -196,12 +201,15 @@ def _default_bundles() -> tuple[AgentBundle, ...]:
         AgentBundle(
             agent_id="market_agent",
             version="1.0.0",
-            description="Phân tích danh mục, giá và tín hiệu thị trường mẫu.",
+            description=(
+                "Thống kê cắt ngang category, author, publisher, giá và rating "
+                "trong snapshot sách."
+            ),
             capabilities=("market.category", "market.price", "market.research"),
             skills=("analyze_market", "search_market_knowledge"),
             permissions=frozenset({"analytics.read", "knowledge.read"}),
             mcp_servers=frozenset({"analytics", "knowledge"}),
-            follow_up_intent="market.search",
+            follow_up_intent="market.analyze",
         ),
     )
 
