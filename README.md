@@ -1,8 +1,8 @@
-# Thương Trí — trợ lý sách Multi-Agent tiếng Việt
+# Evidence Atlas — trợ lý sách Multi-Agent tiếng Việt
 
-Thương Trí là reference implementation **production-oriented** cho trợ lý quyết
-định sách dựa trên evidence. Runtime điều phối Product, Review, Trust và Market
-agents trên snapshot lịch sử Tiki Books đã làm sạch, rồi trả answer cùng
+Evidence Atlas là reference implementation **production-oriented** cho trợ lý
+quyết định sách dựa trên evidence. Runtime điều phối Product, Review, Trust và
+Market agents trên snapshot lịch sử Tiki Books đã làm sạch, rồi trả answer cùng
 execution metadata và provenance qua API v1 JSON/SSE.
 
 > **Ranh giới dữ liệu:** runtime mặc định dùng profile `eval` gồm 200 sách và

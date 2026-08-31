@@ -58,14 +58,14 @@ import type { Provenance } from "@/lib/contracts"
 
 interface ConversationWorkspaceProps {
   controller: ChatController
-  onCredentialRequest(): void
+  onCredentialRequest(returnFocus?: HTMLElement): void
   onProvenanceRequest(sourceId: string): void
 }
 
 const prompts = [
-  "Tìm sách học tiếng Anh dưới 150.000đ, được đánh giá tốt và ít bị phàn nàn.",
-  "So sánh đánh giá và rủi ro của các sách bán chạy trong snapshot.",
-  "Phân tích xu hướng giá theo thể loại sách trong dữ liệu hiện có.",
+  "Tìm sách học tiếng Anh dưới 150.000đ, có đánh giá tích cực và ít phản hồi tiêu cực.",
+  "So sánh nhận xét về các sách phổ biến trong dữ liệu lịch sử.",
+  "So sánh mức giá giữa các thể loại sách trong dữ liệu lịch sử.",
 ]
 
 export function ConversationWorkspace({
@@ -100,7 +100,7 @@ export function ConversationWorkspace({
     }
     const cleaned = value.trim()
     if (!cleaned) {
-      setDraftError("Hãy nhập câu hỏi cần điều phối.")
+      setDraftError("Hãy nhập câu hỏi về sách.")
       return
     }
     if (cleaned.length > 2_000) {
@@ -135,6 +135,12 @@ export function ConversationWorkspace({
     void send(draft)
   }
 
+  const selectPrompt = (prompt: string) => {
+    setDraft(prompt)
+    setDraftError("")
+    composerRef.current?.focus()
+  }
+
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (
       event.key === "Enter" &&
@@ -166,18 +172,15 @@ export function ConversationWorkspace({
           </div>
           <div className="min-w-0">
             <h1 id="conversation-title" className="truncate text-sm font-bold">
-              Bàn điều phối sách
+              Hỏi đáp về sách
             </h1>
             <p className="truncate text-[0.7rem] text-muted-foreground">
-              Hội thoại · tuyến thực thi · bằng chứng
+              Câu trả lời · bước thực thi · nguồn
             </p>
           </div>
         </div>
-        <Badge
-          variant="outline"
-          className="border-accent/40 bg-accent/5 text-accent"
-        >
-          Snapshot Tiki Books lịch sử
+        <Badge variant="accent">
+          Dữ liệu Tiki Books lịch sử
         </Badge>
       </header>
 
@@ -196,18 +199,18 @@ export function ConversationWorkspace({
                   className="border-accent/25 bg-accent/5 text-foreground"
                 >
                   <MapPinned aria-hidden="true" className="text-accent" />
-                  <AlertTitle>Phạm vi snapshot</AlertTitle>
+                  <AlertTitle>Giới hạn dữ liệu</AlertTitle>
                   <AlertDescription>
                     Snapshot Tiki Books lịch sử đã làm sạch để kiểm thử khóa
                     luận; không phản ánh danh mục, giá hay mức quan tâm hiện tại
-                    trên Tiki. Mỗi nguồn được gắn nhãn Mẫu hoặc Thật.
+                    trên Tiki. Mỗi nguồn ghi rõ Dữ liệu mẫu hoặc Nguồn khác.
                   </AlertDescription>
                 </Alert>
               </MessageScrollerItem>
 
               {state.messages.length === 0 ? (
                 <MessageScrollerItem messageId="welcome">
-                  <WelcomePanel onPrompt={(prompt) => setDraft(prompt)} />
+                  <WelcomePanel onPrompt={selectPrompt} />
                 </MessageScrollerItem>
               ) : (
                 <MessageList
@@ -237,7 +240,7 @@ export function ConversationWorkspace({
                     aria-live="assertive"
                   >
                     <AlertCircle aria-hidden="true" />
-                    <AlertTitle>Không thể hoàn tất tuyến này</AlertTitle>
+                    <AlertTitle>Không thể hoàn tất yêu cầu</AlertTitle>
                     <AlertDescription>
                       {state.request.failure.message}
                       {state.request.failure.traceId ? (
@@ -253,7 +256,8 @@ export function ConversationWorkspace({
                         onClick={
                           state.request.failure.code ===
                           "gateway.authentication_failed"
-                            ? onCredentialRequest
+                            ? (event) =>
+                              onCredentialRequest(event.currentTarget)
                             : retryLastMessage
                         }
                       >
@@ -265,7 +269,7 @@ export function ConversationWorkspace({
                         )}
                         {state.request.failure.code ===
                         "gateway.authentication_failed"
-                          ? "Thiết lập key"
+                          ? "Thiết lập API key"
                           : "Thử lại"}
                       </Button>
                     </AlertAction>
@@ -303,7 +307,7 @@ export function ConversationWorkspace({
                 <MessageScrollerItem messageId="storage-unavailable">
                   <Alert role="status">
                     <AlertCircle aria-hidden="true" />
-                    <AlertTitle>Session storage bị chặn</AlertTitle>
+                    <AlertTitle>Không thể lưu phiên trong tab</AlertTitle>
                     <AlertDescription>
                       Phiên và lịch sử chỉ tồn tại cho đến khi trang được đóng
                       hoặc tải lại.
@@ -315,7 +319,7 @@ export function ConversationWorkspace({
           </MessageScrollerViewport>
           <MessageScrollerButton
             size="icon"
-            className="size-10 max-sm:start-auto max-sm:end-4 max-sm:translate-x-0"
+            className="size-11 max-sm:start-auto max-sm:end-4 max-sm:translate-x-0 sm:size-10"
             aria-label="Đi đến tin nhắn mới nhất"
           >
             <ArrowDown />
@@ -336,7 +340,7 @@ export function ConversationWorkspace({
             >
               <div className="mb-1 flex items-end justify-between gap-4">
                 <FieldLabel htmlFor="chat-query">
-                  Câu hỏi cần điều phối
+                  Câu hỏi về sách
                 </FieldLabel>
                 <span
                   className={cn(
@@ -362,7 +366,7 @@ export function ConversationWorkspace({
                   disabled={streaming}
                   aria-invalid={Boolean(draftError)}
                   aria-describedby="composer-help composer-error"
-                  placeholder="Ví dụ: Tìm sách học tiếng Anh dưới 150.000đ, được đánh giá tốt…"
+                  placeholder="Ví dụ: Tìm sách học tiếng Anh dưới 150.000đ, có đánh giá tích cực…"
                   className="max-h-40 min-h-20 py-3"
                 />
                 <InputGroupAddon align="inline-end" className="self-end pb-2">
@@ -372,7 +376,7 @@ export function ConversationWorkspace({
                       type="button"
                       size="icon-sm"
                       variant="destructive"
-                      className="size-10"
+                      className="size-11 sm:size-10"
                       onClick={controller.cancelRequest}
                       aria-label="Dừng yêu cầu đang chạy"
                     >
@@ -383,12 +387,12 @@ export function ConversationWorkspace({
                       type="submit"
                       size="icon-sm"
                       variant="default"
-                      className="size-10 active:scale-[0.98]"
+                      className="size-11 active:scale-[0.98] sm:size-10"
                       disabled={!state.online}
                       aria-label={
                         state.credentialConfigured
                           ? "Gửi câu hỏi"
-                          : "Kết nối Gateway key để gửi"
+                          : "Thiết lập Gateway API key để gửi"
                       }
                     >
                       {state.credentialConfigured ? <ArrowUp /> : <KeyRound />}
@@ -401,13 +405,17 @@ export function ConversationWorkspace({
                   Enter để gửi · Shift + Enter để xuống dòng
                 </FieldDescription>
                 {!state.credentialConfigured ? (
-                  <button
+                  <Button
                     type="button"
-                    className="text-xs font-semibold text-accent underline underline-offset-4 focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
-                    onClick={onCredentialRequest}
+                    variant="link"
+                    size="xs"
+                    className="h-11 px-0 text-accent sm:h-8"
+                    onClick={(event) =>
+                      onCredentialRequest(event.currentTarget)
+                    }
                   >
-                    Cần Gateway key
-                  </button>
+                    Thiết lập Gateway API key
+                  </Button>
                 ) : null}
               </div>
               <FieldError id="composer-error">{draftError}</FieldError>
@@ -424,11 +432,11 @@ function WelcomePanel({ onPrompt }: { onPrompt(prompt: string): void }) {
     <section className="py-3 sm:py-8">
       <div className="max-w-2xl">
         <h2 className="max-w-xl font-display text-4xl leading-[1.08] font-semibold tracking-[-0.025em] text-balance sm:text-5xl">
-          Mỗi kết luận đều có một đường về nguồn.
+          Hỏi về sách. Kiểm tra từng nguồn.
         </h2>
         <p className="mt-4 max-w-xl text-[0.95rem] leading-7 text-muted-foreground max-sm:pe-12">
-          Hãy hỏi về sách trong snapshot Tiki Books. Router, Planner và các agent
-          nghiệp vụ sẽ để lại tuyến thực thi có thể kiểm tra.
+          Hỏi về sách trong dữ liệu Tiki Books lịch sử. Mỗi câu trả lời cho biết
+          các bước đã chạy và nguồn được sử dụng.
         </p>
       </div>
       <div className="mt-6 grid gap-2 sm:grid-cols-3">
@@ -469,14 +477,16 @@ function MessageList({
             align={message.role === "user" ? "end" : "start"}
             role="article"
             aria-label={
-              message.role === "user" ? "Yêu cầu của bạn" : "Kết luận có nguồn"
+              message.role === "user"
+                ? "Câu hỏi của bạn"
+                : "Câu trả lời có nguồn"
             }
           >
             <MessageContent>
               <MessageHeader>
                 {message.role === "user"
-                  ? "Bạn · Yêu cầu"
-                  : "Orchestrator · Kết luận có nguồn"}
+                  ? "Bạn"
+                  : "Evidence Atlas · Câu trả lời có nguồn"}
               </MessageHeader>
               <Bubble
                 align={message.role === "user" ? "end" : "start"}
@@ -522,7 +532,7 @@ function StreamingMessage({
     ? `${friendlyPhase(current.phase)}. ${
         current.agent_id ? friendlyAgent(current.agent_id) : current.message
       }`
-    : "Đang khởi tạo tuyến"
+    : "Đang chuẩn bị yêu cầu"
   return (
     <MessageScrollerItem messageId="streaming-status">
       <span
@@ -539,12 +549,14 @@ function StreamingMessage({
             <MarkerIcon>
               <LoaderCircle className="animate-spin text-accent" />
             </MarkerIcon>
-            <MarkerContent>Orchestrator · Đang lập tuyến</MarkerContent>
+            <MarkerContent>Evidence Atlas · Đang xử lý</MarkerContent>
           </Marker>
           <Bubble variant="outline" className="w-full max-w-full">
             <BubbleContent className="w-full px-4 py-3">
               <p className="text-sm font-semibold">
-                {current ? friendlyPhase(current.phase) : "Đang khởi tạo tuyến"}
+                {current
+                  ? friendlyPhase(current.phase)
+                  : "Đang chuẩn bị yêu cầu"}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {current?.agent_id
@@ -612,18 +624,18 @@ function ResultNotice({
         }
       : workspaceState === "empty"
         ? {
-            title: "Chưa có kết luận để hiển thị",
+            title: "Chưa có câu trả lời để hiển thị",
             detail:
               warnings ||
-              "Gateway đã hoàn tất nhưng không trả nội dung kết luận. Hãy thử diễn đạt câu hỏi cụ thể hơn.",
+              "Yêu cầu đã hoàn tất nhưng chưa có câu trả lời. Hãy hỏi cụ thể hơn.",
             destructive: false,
           }
         : workspaceState === "error"
           ? {
-              title: "Tuyến chưa đạt trạng thái hoàn tất",
+              title: "Yêu cầu chưa hoàn tất",
               detail:
                 warnings ||
-                `Gateway trả trạng thái ${result.status}; kết quả này chưa được xem là đã kiểm chứng.`,
+                `Gateway trả trạng thái ${result.status}; chỉ thông tin có nguồn hợp lệ mới được hiển thị.`,
               destructive: true,
             }
           : {

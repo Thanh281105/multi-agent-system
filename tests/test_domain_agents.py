@@ -179,6 +179,16 @@ def test_trust_rules_keep_duplicate_short_generic_signals_non_conclusive() -> No
     assert "không xác định review giả" in result["limitation"]
 
 
+def test_trust_rules_preserve_non_empty_symbol_only_reviews() -> None:
+    result = analyze_review_trust(
+        [{"id": 1, "rating": 5, "content": "😍😍"}],
+    )
+
+    assert result["count"] == 1
+    assert result["items"][0]["signals"] == ["very_short"]
+    assert result["authenticity_assessed"] is False
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("target", "action", "method"),

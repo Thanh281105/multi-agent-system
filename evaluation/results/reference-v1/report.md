@@ -1,6 +1,6 @@
 # Báo cáo benchmark offline multi-agent
 
-- SUT source manifest SHA-256: `c02f2550d867eaa30ad06750c8379a7a09733c61b945cf61de87708992ff5437` (120 files)
+- SUT source manifest SHA-256: `213c2b50d32ad42be33933fcb0d861f62d864e922226943d950e013bf6c2c0e0` (120 files)
 - Dataset: `tiki_books_vi_28_v1` (`1838b7c5f3d43ef07e3595fcc507f755668b6330ff2d18bf9d7a8902fd2a2650`)
 - Snapshot provenance: `data/snapshots/tiki-books-v4-eval` (`986803ba95d268cf158f36103efa2e1ce00c6134b0e03b67d96c7058f019d66d`)
 - Manifest SHA-256: `e4f6580e33aa458713842855a7bb58b0e9a73942d888ff124ba4d30fd6513e8e`
@@ -29,8 +29,8 @@
 | agent_failure_rate | 0.1702 | 28 | 8/47 ratio |
 | partial_recovery_rate | 1.0000 | 2 | 2/2 ratio |
 | provenance_case_coverage | 1.0000 | 23 | 23/23 ratio |
-| offline_latency_p50_ms | 3.4403 | 84 | ms |
-| offline_latency_p95_ms | 29.1319 | 84 | ms |
+| offline_latency_p50_ms | 3.8810 | 84 | ms |
+| offline_latency_p95_ms | 31.0626 | 84 | ms |
 | token_usage | N/A | 84 | offline deterministic runtime made zero observed model calls; production token usage was not measured |
 | llm_cost_usd | N/A | 84 | offline deterministic runtime made zero observed model calls; production provider cost was not measured |
 

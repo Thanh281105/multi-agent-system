@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vietnamese-ecommerce-agent"
 version = "1.0.0"
-description = "Production-oriented Vietnamese e-commerce multi-agent decision platform"
+description = "Evidence Atlas multi-agent platform for historical Tiki Books data"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.18,<2",

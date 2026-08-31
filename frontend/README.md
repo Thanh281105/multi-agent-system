@@ -1,4 +1,4 @@
-# Thương Trí frontend
+# Evidence Atlas frontend
 
 React/TypeScript workspace cho giao diện quyết định dựa trên snapshot lịch sử
 Tiki Books. Vite xuất production bundle vào `app/frontend/dist`; FastAPI phục vụ

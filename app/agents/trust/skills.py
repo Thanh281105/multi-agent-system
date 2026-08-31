@@ -10,7 +10,10 @@ from app.agents.review.skills import ASPECT_TERMS, NEGATIVE_TERMS
 
 
 def _normalize(content: str) -> str:
-    return " ".join(re.findall(r"\w+", content.casefold(), flags=re.UNICODE))
+    normalized_words = " ".join(
+        re.findall(r"\w+", content.casefold(), flags=re.UNICODE)
+    )
+    return normalized_words or " ".join(content.casefold().split())
 
 
 def _validated_rating(review: dict[str, Any]) -> int:

@@ -136,13 +136,18 @@ def _product_dependent(
     if isinstance(product_id, int):
         return (_step(f"step_{target}", target, action, {"product_id": product_id}),)
 
-    query = entities.get("product_query") or entities.get("query")
+    product_input = _product_search_input(entities)
+    if not product_input:
+        raw_query = entities.get("query")
+        if isinstance(raw_query, str) and raw_query.strip():
+            product_input["query"] = raw_query
+    product_input["limit"] = 1
     return (
         _step(
             "step_product",
             "product_agent",
             "product.search",
-            {"query": query, "limit": 1},
+            product_input,
         ),
         _step(
             f"step_{target}",
@@ -171,7 +176,7 @@ def _trust_complaints(entities: dict[str, Any]) -> tuple[ExecutionStep, ...]:
 
 
 def _multi_recommendation(entities: dict[str, Any]) -> tuple[ExecutionStep, ...]:
-    product_input = _product_filters(entities)
+    product_input = _product_search_input(entities)
     product_input.setdefault("limit", 5)
     return (
         _step("step_product", "product_agent", "product.rank", product_input),

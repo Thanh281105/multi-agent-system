@@ -69,12 +69,15 @@ class ExecutionPlanner:
                     "thuộc để xử lý intent. Không suy rộng thành catalog hay thị "
                     "trường hiện tại. Chỉ dùng "
                     "capability trong schema; không tạo MCP tool, server, action, "
-                    "agent hay dữ liệu đầu vào mới. rationale là lý do ngắn, không "
-                    "phải chuỗi suy luận."
+                    "agent hay dữ liệu đầu vào mới. Sao chép chính xác "
+                    "authorized_capability_sequence theo đúng thứ tự, không thêm, "
+                    "bớt hoặc sắp xếp lại. rationale là lý do ngắn, không phải "
+                    "chuỗi suy luận."
                 ),
                 input_text=json.dumps(
                     {
                         "route": routed.model_dump(mode="json"),
+                        "authorized_capability_sequence": list(expected),
                         "policy": {
                             "max_steps": 8,
                             "max_candidates": 5,

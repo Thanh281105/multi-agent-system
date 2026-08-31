@@ -1,6 +1,10 @@
-# Thương Trí — Product brief
+# Evidence Atlas — Product brief
 
 ## Platform
+
+web
+
+## Delivery
 
 Responsive web application được FastAPI phục vụ same-origin. Production UI dùng
 React, Vite, TypeScript, Tailwind CSS và local shadcn/ui primitives, sau đó được
@@ -8,7 +12,7 @@ React, Vite, TypeScript, Tailwind CSS và local shadcn/ui primitives, sau đó �
 
 ## Product summary
 
-Thương Trí là trợ lý quyết định sách tiếng Việt dựa trên **snapshot lịch sử
+Evidence Atlas là trợ lý quyết định sách tiếng Việt dựa trên **snapshot lịch sử
 Tiki Books đã làm sạch**. Một câu hỏi được chuyển thành routing, authorized DAG,
 domain-agent execution và grounded synthesis có provenance. Sản phẩm đồng thời
 là workspace sử dụng được và artifact khóa luận có thể audit.
@@ -67,7 +71,8 @@ page hoặc dashboard thị trường.
    hình giám sát.
 4. Honest resilience: loading, partial success, fallback, cancellation, empty,
    offline và error là first-class states.
-5. Vietnamese-first copy: ngắn, chuyên nghiệp, không phóng đại claim.
+5. Vietnamese-first copy: ngắn, chuyên nghiệp, không phóng đại claim. Giữ thuật
+   ngữ kỹ thuật bằng English khi bản dịch tiếng Việt trở nên gượng hoặc mơ hồ.
 
 ## Accessibility and interaction
 

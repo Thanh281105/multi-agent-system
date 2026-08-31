@@ -3,10 +3,11 @@
 from pathlib import Path, PurePosixPath
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 _FRONTEND_ROOT = Path(__file__).resolve().parents[1] / "frontend" / "dist"
+_CSP_NONCE_PLACEHOLDER = "__CSP_NONCE__"
 _RESERVED_ROOTS = frozenset(
     {
         "api",
@@ -43,9 +44,13 @@ def install_frontend(application: FastAPI) -> None:
         name="frontend-assets",
     )
 
+    index_template = index_path.read_text(encoding="utf-8")
+    if _CSP_NONCE_PLACEHOLDER not in index_template:
+        raise RuntimeError("packaged frontend CSP nonce placeholder is missing")
+
     @application.get("/", include_in_schema=False)
-    async def frontend_index() -> FileResponse:
-        return _index_response(index_path)
+    async def frontend_index(request: Request) -> HTMLResponse:
+        return _index_response(index_template, request)
 
     @application.get("/favicon.svg", include_in_schema=False)
     async def frontend_favicon() -> FileResponse:
@@ -66,20 +71,22 @@ def install_frontend(application: FastAPI) -> None:
         methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         include_in_schema=False,
     )
-    async def frontend_spa(request: Request, client_path: str) -> FileResponse:
+    async def frontend_spa(request: Request, client_path: str) -> HTMLResponse:
         """Return the SPA shell for safe client routes, never for server namespaces."""
 
         if request.method not in {"GET", "HEAD"} or not _is_safe_client_route(
             client_path
         ):
             raise HTTPException(status_code=404, detail="Not Found")
-        return _index_response(index_path)
+        return _index_response(index_template, request)
 
 
-def _index_response(index_path: Path) -> FileResponse:
-    return FileResponse(
-        index_path,
-        media_type="text/html",
+def _index_response(index_template: str, request: Request) -> HTMLResponse:
+    nonce = getattr(request.state, "csp_nonce", None)
+    if not isinstance(nonce, str) or not nonce:
+        raise RuntimeError("frontend CSP nonce is unavailable")
+    return HTMLResponse(
+        index_template.replace(_CSP_NONCE_PLACEHOLDER, nonce),
         headers={"Cache-Control": "no-cache"},
     )
 

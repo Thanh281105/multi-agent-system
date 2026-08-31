@@ -1,5 +1,6 @@
 import { useId, useMemo } from "react"
 import {
+  Ban,
   Check,
   CircleAlert,
   Clock3,
@@ -74,10 +75,10 @@ export function EvidenceDossier({
       <header className="flex items-end justify-between border-b px-4 py-4">
         <div>
           <h2 id={titleId} className="font-display text-xl font-semibold">
-            Hồ sơ thực thi
+            Chi tiết thực thi
           </h2>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Snapshot Tiki Books đã làm sạch
+            Dữ liệu Tiki Books lịch sử
           </p>
         </div>
         <DossierStatus state={state} />
@@ -87,7 +88,7 @@ export function EvidenceDossier({
         <div className="flex flex-col gap-5 px-4 py-4">
           <DossierSection
             icon={GitFork}
-            title="Tuyến DAG"
+            title="Kế hoạch thực thi (DAG)"
             count={result?.executions.length}
           >
             <ExecutionGraph executions={result?.executions ?? []} />
@@ -97,7 +98,7 @@ export function EvidenceDossier({
 
           <DossierSection
             icon={Microchip}
-            title="Sổ gọi model"
+            title="Lần gọi model"
             count={result?.model_calls.length}
           >
             <ModelLedger calls={result?.model_calls ?? []} />
@@ -107,7 +108,7 @@ export function EvidenceDossier({
 
           <DossierSection
             icon={Database}
-            title="Chỉ mục nguồn"
+            title="Nguồn bằng chứng"
             count={result?.provenance.length}
           >
             <ProvenanceIndex
@@ -119,16 +120,17 @@ export function EvidenceDossier({
 
           <Separator />
 
-          <DossierSection icon={Hash} title="Định danh tuyến">
+          <DossierSection icon={Hash} title="Request, trace, session IDs">
             <TraceLedger result={result} sessionId={state.sessionId} />
           </DossierSection>
         </div>
       </ScrollArea>
 
       <footer className="border-t bg-muted/40 px-4 py-3">
-        <div className="flex items-center gap-2 text-[0.68rem] leading-5 text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
           <FileSearch aria-hidden="true" className="size-3.5 shrink-0" />
-          Không hiển thị prompt, hidden reasoning, raw payload hay credential.
+          Không hiển thị nội dung gửi cho model, suy luận ẩn, payload thô hoặc
+          thông tin xác thực.
         </div>
       </footer>
     </section>
@@ -168,9 +170,9 @@ function DossierStatus({ state }: { state: ChatState }) {
   const phase = state.request.phase
   if (phase === "streaming") {
     return (
-      <Badge className="bg-accent text-accent-foreground">
+      <Badge variant="accent">
         <span className="size-1.5 animate-pulse rounded-full bg-current" />
-        Live
+        Đang chạy
       </Badge>
     )
   }
@@ -178,16 +180,16 @@ function DossierStatus({ state }: { state: ChatState }) {
     const resultStatus = state.request.result.status
     if (resultStatus === "success") {
       return (
-        <Badge variant="outline" className="border-success/40 text-success">
-          <Check />
-          Đã kiểm chứng
+        <Badge variant="success">
+          <Check data-icon="inline-start" />
+          Hoàn tất
         </Badge>
       )
     }
     if (resultStatus === "partial_success") {
       return (
-        <Badge variant="outline" className="border-accent/40 text-accent">
-          <CircleAlert />
+        <Badge variant="accent">
+          <CircleAlert data-icon="inline-start" />
           Một phần
         </Badge>
       )
@@ -196,14 +198,22 @@ function DossierStatus({ state }: { state: ChatState }) {
       return <Badge variant="destructive">Thất bại</Badge>
     }
     return (
-      <Badge variant="outline" className="border-accent/40 text-accent">
-        <CircleAlert />
+      <Badge variant="accent">
+        <CircleAlert data-icon="inline-start" />
         {resultStatus === "running" ? "Chưa hoàn tất" : "Đang chờ"}
       </Badge>
     )
   }
   if (phase === "failed") {
     return <Badge variant="destructive">Lỗi</Badge>
+  }
+  if (phase === "cancelled") {
+    return (
+      <Badge variant="destructive">
+        <Ban data-icon="inline-start" />
+        Đã dừng
+      </Badge>
+    )
   }
   return <Badge variant="outline">Chưa chạy</Badge>
 }
@@ -280,24 +290,24 @@ function ExecutionGraph({ executions }: { executions: AgentExecution[] }) {
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[0.72rem] font-bold">
+                <p className="truncate text-xs font-bold">
                   <span className="mr-1.5 font-mono text-accent">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   {friendlyAgent(execution.agent_id)}
                 </p>
-                <p className="mt-1 truncate font-mono text-[0.62rem] text-muted-foreground">
+                <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
                   {execution.action}
                 </p>
               </div>
               <StatusDot status={execution.status} />
             </div>
-            <div className="mt-2 flex items-center justify-between gap-2 text-[0.62rem] text-muted-foreground">
+            <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
               <span className="truncate">
-                từ ·{" "}
+                phụ thuộc ·{" "}
                 {execution.depends_on.length
                   ? execution.depends_on.join(", ")
-                  : "ROOT"}
+                  : "bắt đầu"}
               </span>
               <span className="shrink-0 font-mono tabular-nums">
                 {formatDuration(execution.duration_ms)}
@@ -315,8 +325,8 @@ function ModelLedger({ calls }: { calls: ModelCall[] }) {
     return (
       <EmptyDossier
         icon={Microchip}
-        title="Chưa có model call"
-        detail="Fallback deterministic có thể hoàn tất mà không gọi model."
+        title="Chưa gọi model"
+        detail="Luồng dự phòng theo quy tắc có thể hoàn tất mà không gọi model."
       />
     )
   }
@@ -325,9 +335,9 @@ function ModelLedger({ calls }: { calls: ModelCall[] }) {
       {calls.map((call) => {
         const failedRequired = Boolean(call.error_code && !call.fallback_used)
         const outcomeLabel = call.fallback_used
-          ? "Fallback an toàn"
+          ? "Fallback theo quy tắc"
           : failedRequired
-            ? "Lỗi bắt buộc"
+            ? "Lỗi không có fallback"
             : call.status === "success"
               ? "Thành công"
               : call.status
@@ -338,35 +348,33 @@ function ModelLedger({ calls }: { calls: ModelCall[] }) {
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="truncate text-[0.72rem] font-bold">
+                <p className="truncate text-xs font-bold">
                   {call.model}
                 </p>
-                <p className="mt-0.5 truncate font-mono text-[0.61rem] text-muted-foreground">
+                <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
                   {call.provider} / {call.stage} /{" "}
                   {friendlyAgent(call.agent_id)}
                 </p>
               </div>
               <Badge
-                variant="outline"
-                className={cn(
-                  "h-4 px-1.5 text-[0.58rem]",
+                variant={
                   failedRequired
-                    ? "border-destructive/40 text-destructive"
+                    ? "destructive"
                     : call.fallback_used
-                      ? "border-accent/40 text-accent"
-                      : "border-success/40 text-success",
-                )}
+                      ? "accent"
+                      : "success"
+                }
               >
                 {outcomeLabel}
               </Badge>
             </div>
-            <div className="mt-2 grid grid-cols-3 gap-2 border-t pt-2 font-mono text-[0.6rem] text-muted-foreground tabular-nums">
-              <span>{call.total_tokens.toLocaleString("vi-VN")} tok</span>
+            <div className="mt-2 grid grid-cols-3 gap-2 border-t pt-2 font-mono text-xs text-muted-foreground tabular-nums">
+              <span>{call.total_tokens.toLocaleString("vi-VN")} tokens</span>
               <span>{formatDuration(call.duration_ms)}</span>
               <span className="text-right">{call.attempts} lần</span>
             </div>
             {call.fallback_reason ? (
-              <p className="mt-2 text-[0.62rem] leading-5 text-accent">
+              <p className="mt-2 text-xs leading-5 text-accent">
                 {call.fallback_reason}
               </p>
             ) : null}
@@ -413,27 +421,19 @@ function ProvenanceIndex({
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="truncate font-mono text-[0.66rem] font-semibold">
+              <p className="truncate font-mono text-xs font-semibold">
                 {source.source_id}
               </p>
-              <p className="mt-0.5 truncate text-[0.65rem] text-muted-foreground">
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
                 {source.source_type}
               </p>
             </div>
-            <Badge
-              variant="outline"
-              className={cn(
-                "h-4 px-1.5 text-[0.56rem]",
-                source.sample_data
-                  ? "border-accent/40 text-accent"
-                  : "border-success/40 text-success",
-              )}
-            >
-              {source.sample_data ? "Mẫu" : "Thật"}
+            <Badge variant={source.sample_data ? "accent" : "outline"}>
+              {source.sample_data ? "Dữ liệu mẫu" : "Nguồn khác"}
             </Badge>
           </div>
           {source.fields.length ? (
-            <p className="mt-1 line-clamp-2 text-[0.6rem] leading-4 text-muted-foreground">
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
               trường · {source.fields.join(", ")}
             </p>
           ) : null}
@@ -460,13 +460,13 @@ function TraceLedger({
       {entries.map(([label, value]) => (
         <div
           key={label}
-          className="grid grid-cols-[3.4rem_minmax(0,1fr)_2rem] items-center gap-2"
+          className="grid grid-cols-[3.4rem_minmax(0,1fr)_2.75rem] items-center gap-2 xl:grid-cols-[3.4rem_minmax(0,1fr)_2rem]"
         >
-          <dt className="text-[0.62rem] font-semibold text-muted-foreground">
+          <dt className="text-xs font-semibold text-muted-foreground">
             {label}
           </dt>
           <dd
-            className="truncate font-mono text-[0.62rem]"
+            className="truncate font-mono text-xs"
             title={value ?? undefined}
           >
             {value ? shortenIdentifier(value) : "—"}
@@ -477,7 +477,7 @@ function TraceLedger({
         </div>
       ))}
       {result ? (
-        <div className="mt-3 flex items-center justify-between border-t pt-2 text-[0.62rem] text-muted-foreground">
+        <div className="mt-3 flex items-center justify-between border-t pt-2 text-xs text-muted-foreground">
           <dt className="flex items-center gap-1.5">
             <Clock3 aria-hidden="true" className="size-3" /> tổng thời gian
           </dt>
@@ -513,6 +513,7 @@ function CopyButton({
           type="button"
           size="icon-xs"
           variant="ghost"
+          className="size-11 xl:size-8"
           disabled={!value}
           onClick={() => void copy()}
           aria-label={`Sao chép ${label} ID`}
@@ -527,7 +528,7 @@ function CopyButton({
 
 function StatusDot({ status }: { status: TaskStatus }) {
   return (
-    <span className="flex shrink-0 items-center gap-1 text-[0.6rem] text-muted-foreground">
+    <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
       <span
         aria-hidden="true"
         className="size-1.5 rounded-full"
@@ -554,7 +555,7 @@ function EmptyDossier({
           <Icon aria-hidden="true" />
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
-        <EmptyDescription className="text-[0.65rem] leading-5">
+        <EmptyDescription className="text-xs leading-5">
           {detail}
         </EmptyDescription>
       </EmptyHeader>

@@ -238,6 +238,11 @@ class ResultAggregator:
     def _review_answer(self, results: tuple[AgentResult, ...]) -> str:
         review = self._agent_data(results, "review_agent")
         if review and isinstance(review.get("summary"), str):
+            searched_products = self._first_list(results, "products")
+            if searched_products:
+                return (
+                    f"{self._product_line(searched_products[0])}. {review['summary']}"
+                )
             product = self._retrieved_product(review)
             prefix = f"{product['name']}: " if product else ""
             return prefix + str(review["summary"])

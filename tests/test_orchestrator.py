@@ -43,6 +43,7 @@ def test_router_and_planner_build_multi_agent_dependency_graph() -> None:
     assert plan.steps[2].depends_on == ("step_product",)
     assert plan.steps[1].action == "review.compare"
     assert plan.steps[2].action == "trust.compare"
+    assert plan.steps[0].input == {"max_price": 150_000, "limit": 5}
     assert plan.steps[1].input == {"product_ids_all_from": "step_product"}
 
     formatted_price = IntentRouter().route(
@@ -72,6 +73,110 @@ def test_router_and_planner_build_multi_agent_dependency_graph() -> None:
     outside = IntentRouter().route("Tìm tai nghe dưới 1 triệu", session)
     assert outside.intent == "general.unsupported"
     assert ExecutionPlanner().build(outside).steps == ()
+
+
+def test_router_keeps_book_title_separate_from_trailing_detail_request() -> None:
+    sessions = InMemorySessionStore()
+    session = sessions.create(owner_id="user-a", session_id="sess_compound_123")
+
+    routed = IntentRouter().route(
+        "Tìm sách Nhật Ký Tarot và cho biết giá, đánh giá cùng nguồn dữ liệu.",
+        session,
+    )
+    plan = ExecutionPlanner().build(routed)
+
+    assert routed.intent == "review.summary"
+    assert routed.entities["product_query"] == "sách Nhật Ký Tarot"
+    assert [step.action for step in plan.steps] == [
+        "product.search",
+        "review.summarize",
+    ]
+    assert plan.steps[0].input == {"query": "sách Nhật Ký Tarot", "limit": 1}
+    assert plan.steps[1].depends_on == ("step_product",)
+
+    child_audience = IntentRouter().route("Tìm sách cho trẻ em", session)
+    assert child_audience.entities["product_query"] == "trẻ em"
+
+
+def test_ui_recommendation_prompt_preserves_query_price_and_trust_constraint() -> None:
+    session = InMemorySessionStore().create(
+        owner_id="user-a",
+        session_id="sess_ui_recommendation_123",
+    )
+
+    routed = IntentRouter().route(
+        (
+            "Tìm sách học tiếng Anh dưới 150.000đ, có đánh giá tích cực "
+            "và ít phản hồi tiêu cực."
+        ),
+        session,
+    )
+    plan = ExecutionPlanner().build(routed)
+
+    assert routed.intent == "multi.recommendation"
+    assert [step.action for step in plan.steps] == [
+        "product.rank",
+        "review.compare",
+        "trust.compare",
+    ]
+    assert plan.steps[0].input == {
+        "max_price": 150_000,
+        "limit": 5,
+        "query": "sách học tiếng Anh",
+    }
+
+
+def test_product_dependent_plan_preserves_search_filters() -> None:
+    session = InMemorySessionStore().create(
+        owner_id="user-a",
+        session_id="sess_filtered_review_123",
+    )
+
+    routed = IntentRouter().route(
+        "Tìm sách học tiếng Anh dưới 150.000đ, có đánh giá tích cực.",
+        session,
+    )
+    plan = ExecutionPlanner().build(routed)
+
+    assert routed.intent == "review.summary"
+    assert plan.steps[0].input == {
+        "max_price": 150_000,
+        "limit": 1,
+        "query": "sách học tiếng Anh",
+    }
+
+
+@pytest.mark.parametrize(
+    ("message", "intent", "actions"),
+    [
+        (
+            "So sánh nhận xét về các sách phổ biến trong dữ liệu lịch sử.",
+            "multi.recommendation",
+            ("product.rank", "review.compare", "trust.compare"),
+        ),
+        (
+            "So sánh mức giá giữa các thể loại sách trong dữ liệu lịch sử.",
+            "market.analyze",
+            ("market.analyze",),
+        ),
+    ],
+)
+def test_router_maps_broad_ui_prompts_to_executable_graphs(
+    message: str,
+    intent: str,
+    actions: tuple[str, ...],
+) -> None:
+    sessions = InMemorySessionStore()
+    session = sessions.create(owner_id="user-a", session_id="sess_ui_prompt_123")
+
+    routed = IntentRouter().route(message, session)
+    plan = ExecutionPlanner().build(routed)
+
+    assert routed.intent == intent
+    assert tuple(step.action for step in plan.steps) == actions
+    if intent == "multi.recommendation":
+        assert "product_query" not in routed.entities
+        assert plan.steps[0].input == {"limit": 5}
 
 
 @pytest.mark.asyncio
@@ -136,6 +241,37 @@ async def test_review_query_resolves_product_name_before_review_analysis() -> No
     assert "303 review" in result.answer
     assert "snapshot lịch sử Tiki Books" in result.answer
     assert result.active_agent == "review_agent"
+
+
+@pytest.mark.asyncio
+async def test_compound_review_query_returns_product_facts_and_review_evidence() -> (
+    None
+):
+    orchestrator, _ = build_orchestrator()
+
+    result = await orchestrator.run(
+        message=(
+            "Tìm sách Nhật Ký Tarot và cho biết giá, đánh giá cùng nguồn dữ liệu."
+        ),
+        principal_id="user-a",
+        session_id="sess_compound_review_123",
+    )
+
+    assert result.status == TaskStatus.SUCCESS
+    assert [step.action for step in result.plan.steps] == [
+        "product.search",
+        "review.summarize",
+    ]
+    assert result.plan.steps[0].input == {
+        "query": "sách Nhật Ký Tarot",
+        "limit": 1,
+    }
+    assert result.agent_results[-1].data["retrieval"]["product"]["id"] == 1
+    assert "Nhật Ký Tarot" in result.answer
+    assert "143.000₫" in result.answer
+    assert "rating 5" in result.answer
+    assert "303 review" in result.answer
+    assert "snapshot lịch sử Tiki Books" in result.answer
 
 
 @pytest.mark.asyncio

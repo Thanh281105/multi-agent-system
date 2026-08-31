@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   Compass,
   DatabaseZap,
@@ -40,6 +40,8 @@ import {
 } from "@/features/chat/presentation"
 import { cn } from "@/lib/utils"
 
+const XL_MEDIA_QUERY = "(min-width: 1280px)"
+
 function App() {
   const controller = useChatController()
   return <EvidenceAtlas controller={controller} />
@@ -47,7 +49,10 @@ function App() {
 
 export function EvidenceAtlas({ controller }: { controller: ChatController }) {
   const [credentialOpen, setCredentialOpen] = useState(false)
+  const credentialReturnFocus = useRef<HTMLElement | null>(null)
+  const [agentOpen, setAgentOpen] = useState(false)
   const [evidenceOpen, setEvidenceOpen] = useState(false)
+  const desktopRailsVisible = useMediaQuery(XL_MEDIA_QUERY, true)
   const [sourceTarget, setSourceTarget] = useState<{
     scope: ProvenanceAnchorScope
     sourceId: string
@@ -58,6 +63,18 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
   const executions = result?.executions ?? []
   const statuses =
     state.request.phase === "streaming" ? state.request.statuses : []
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return
+    const mediaQuery = window.matchMedia(XL_MEDIA_QUERY)
+    const closeMobileSheets = (event: MediaQueryListEvent) => {
+      if (!event.matches) return
+      setAgentOpen(false)
+      setEvidenceOpen(false)
+    }
+    mediaQuery.addEventListener("change", closeMobileSheets)
+    return () => mediaQuery.removeEventListener("change", closeMobileSheets)
+  }, [])
 
   useEffect(() => {
     if (!sourceTarget) return
@@ -84,15 +101,31 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
     if (scope === "mobile") setEvidenceOpen(true)
   }
 
+  const openCredentialDialog = (returnFocus?: HTMLElement) => {
+    credentialReturnFocus.current =
+      returnFocus ??
+      (document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null)
+    setCredentialOpen(true)
+  }
+
+  const handleCredentialOpenChange = (nextOpen: boolean) => {
+    setCredentialOpen(nextOpen)
+  }
+
   return (
     <TooltipProvider delayDuration={250}>
       <div className="min-h-svh bg-background">
         <a className="skip-link" href="#workspace">
-          Đi đến bàn điều phối
+          Đi đến phần hỏi đáp
         </a>
         <TopBar
           controller={controller}
-          onCredentialRequest={() => setCredentialOpen(true)}
+          onCredentialRequest={openCredentialDialog}
+          desktopRailsVisible={desktopRailsVisible}
+          agentOpen={agentOpen}
+          onAgentOpenChange={setAgentOpen}
           evidenceOpen={evidenceOpen}
           onEvidenceOpenChange={setEvidenceOpen}
           selectedSourceId={
@@ -103,46 +136,52 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
         <div className="mx-auto grid w-full max-w-[100rem] gap-2 px-2 pb-2 xl:grid-cols-[17.5rem_minmax(32rem,1fr)_23rem]">
           <main
             id="workspace"
+            tabIndex={-1}
             className="min-w-0 xl:col-start-2 xl:row-start-1"
           >
             <ConversationWorkspace
               controller={controller}
-              onCredentialRequest={() => setCredentialOpen(true)}
+              onCredentialRequest={openCredentialDialog}
               onProvenanceRequest={revealProvenance}
             />
           </main>
 
-          <aside
-            aria-label="Danh sách agent"
-            className="hidden min-w-0 xl:col-start-1 xl:row-start-1 xl:block"
-          >
-            <AgentRoster
-              executions={executions}
-              statuses={statuses}
-              requestPhase={state.request.phase}
-            />
-          </aside>
+          {desktopRailsVisible ? (
+            <>
+              <aside
+                aria-label="Danh sách agent"
+                className="hidden min-w-0 xl:col-start-1 xl:row-start-1 xl:block"
+              >
+                <AgentRoster
+                  executions={executions}
+                  statuses={statuses}
+                  requestPhase={state.request.phase}
+                />
+              </aside>
 
-          <aside
-            aria-label="Hồ sơ thực thi"
-            className="hidden min-w-0 xl:col-start-3 xl:row-start-1 xl:block"
-          >
-            <EvidenceDossier
-              state={state}
-              anchorScope="desktop"
-              selectedSourceId={
-                sourceTarget?.scope === "desktop"
-                  ? sourceTarget.sourceId
-                  : undefined
-              }
-            />
-          </aside>
+              <aside
+                aria-label="Chi tiết thực thi"
+                className="hidden min-w-0 xl:col-start-3 xl:row-start-1 xl:block"
+              >
+                <EvidenceDossier
+                  state={state}
+                  anchorScope="desktop"
+                  selectedSourceId={
+                    sourceTarget?.scope === "desktop"
+                      ? sourceTarget.sourceId
+                      : undefined
+                  }
+                />
+              </aside>
+            </>
+          ) : null}
         </div>
 
         <CredentialDialog
           open={credentialOpen}
           configured={state.credentialConfigured}
-          onOpenChange={setCredentialOpen}
+          returnFocusRef={credentialReturnFocus}
+          onOpenChange={handleCredentialOpenChange}
           onConfigure={controller.configureCredential}
           onClear={controller.clearCredential}
         />
@@ -152,15 +191,38 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
   )
 }
 
+function useMediaQuery(query: string, fallback: boolean) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window.matchMedia !== "function") return fallback
+    return window.matchMedia(query).matches
+  })
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return
+    const mediaQuery = window.matchMedia(query)
+    const handleChange = (event: MediaQueryListEvent) => setMatches(event.matches)
+    mediaQuery.addEventListener("change", handleChange)
+    return () => mediaQuery.removeEventListener("change", handleChange)
+  }, [query])
+
+  return matches
+}
+
 function TopBar({
   controller,
   onCredentialRequest,
+  desktopRailsVisible,
+  agentOpen,
+  onAgentOpenChange,
   evidenceOpen,
   onEvidenceOpenChange,
   selectedSourceId,
 }: {
   controller: ChatController
-  onCredentialRequest(): void
+  onCredentialRequest(returnFocus?: HTMLElement): void
+  desktopRailsVisible: boolean
+  agentOpen: boolean
+  onAgentOpenChange(open: boolean): void
   evidenceOpen: boolean
   onEvidenceOpenChange(open: boolean): void
   selectedSourceId?: string
@@ -171,6 +233,11 @@ function TopBar({
   const executions = result?.executions ?? []
   const statuses =
     state.request.phase === "streaming" ? state.request.statuses : []
+  const handleMobileSheetCloseAutoFocus = (event: Event) => {
+    if (!desktopRailsVisible) return
+    event.preventDefault()
+    document.getElementById("workspace")?.focus({ preventScroll: true })
+  }
 
   return (
     <header className="px-3 py-3 sm:px-4">
@@ -180,11 +247,12 @@ function TopBar({
             <Compass aria-hidden="true" className="size-5" />
           </span>
           <div className="min-w-0">
-            <p className="truncate font-display text-xl leading-none font-semibold tracking-[-0.02em]">
-              Thương Trí
+            <p className="truncate font-display text-lg leading-none font-semibold tracking-[-0.02em] sm:text-xl">
+              <span className="sm:hidden">Atlas</span>
+              <span className="hidden sm:inline">Evidence Atlas</span>
             </p>
-            <p className="mt-1 hidden truncate text-[0.65rem] font-semibold tracking-[0.08em] text-muted-foreground uppercase sm:block">
-              Evidence Atlas · Tiki Books
+            <p className="mt-1 hidden truncate text-xs font-semibold tracking-[0.06em] text-muted-foreground uppercase sm:block">
+              Tiki Books · Historical snapshot
             </p>
           </div>
         </div>
@@ -202,14 +270,14 @@ function TopBar({
             <span
               className={state.online ? "text-success" : "text-destructive"}
             >
-              {state.online ? "Trình duyệt online" : "Trình duyệt ngoại tuyến"}
+              {state.online ? "Có kết nối mạng" : "Mất kết nối mạng"}
             </span>
           </div>
           <span aria-hidden="true" className="h-5 w-px bg-border" />
           <div className="min-w-0 text-right">
-            <p className="text-[0.62rem] text-muted-foreground">session</p>
+            <p className="text-xs text-muted-foreground">Phiên</p>
             <p
-              className="max-w-44 truncate font-mono text-[0.65rem]"
+              className="max-w-44 truncate font-mono text-xs"
               title={state.sessionId ?? undefined}
             >
               {state.sessionId
@@ -223,28 +291,29 @@ function TopBar({
           aria-label="Điều khiển workspace"
           className="flex items-center gap-1.5"
         >
-          <Sheet>
+          <Sheet open={agentOpen} onOpenChange={onAgentOpenChange}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <SheetTrigger asChild>
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-10 xl:hidden"
+                    className="size-11 xl:hidden"
                     aria-label="Mở danh sách agent"
                   >
                     <Menu />
                   </Button>
                 </SheetTrigger>
               </TooltipTrigger>
-              <TooltipContent>Danh sách agent</TooltipContent>
+              <TooltipContent>Các agent</TooltipContent>
             </Tooltip>
             <SheetContent
               side="left"
-              className="w-[20rem] overflow-y-auto p-0 sm:max-w-sm"
+              className="overflow-y-auto p-0"
+              onCloseAutoFocus={handleMobileSheetCloseAutoFocus}
             >
               <SheetHeader className="sr-only">
-                <SheetTitle>Trạm chuyên gia</SheetTitle>
+                <SheetTitle>Các agent</SheetTitle>
                 <SheetDescription>
                   Các agent nghiệp vụ sách và trạng thái thực thi hiện tại.
                 </SheetDescription>
@@ -265,24 +334,25 @@ function TopBar({
                   <Button
                     variant="outline"
                     size="icon"
-                    className="size-10 xl:hidden"
-                    aria-label="Mở hồ sơ thực thi"
+                    className="size-11 xl:hidden"
+                    aria-label="Mở chi tiết thực thi"
                   >
                     <DatabaseZap />
                   </Button>
                 </SheetTrigger>
               </TooltipTrigger>
-              <TooltipContent>Hồ sơ thực thi</TooltipContent>
+              <TooltipContent>Chi tiết thực thi</TooltipContent>
             </Tooltip>
             <SheetContent
               side="right"
-              className="w-[22rem] overflow-y-auto p-0 sm:max-w-md"
+              className="overflow-y-auto p-0"
+              onCloseAutoFocus={handleMobileSheetCloseAutoFocus}
             >
               <SheetHeader className="sr-only">
-                <SheetTitle>Hồ sơ thực thi</SheetTitle>
+                <SheetTitle>Chi tiết thực thi</SheetTitle>
                 <SheetDescription>
-                  DAG, model call, provenance và định danh trace đã được làm
-                  sạch.
+                  Kế hoạch DAG, lần gọi model, nguồn bằng chứng và các ID của
+                  yêu cầu.
                 </SheetDescription>
               </SheetHeader>
               <EvidenceDossier
@@ -299,29 +369,29 @@ function TopBar({
               <Button
                 aria-label={
                   state.credentialConfigured
-                    ? "Thay Gateway key"
-                    : "Kết nối Gateway key"
+                    ? "Thay Gateway API key"
+                    : "Thiết lập Gateway API key"
                 }
                 variant={state.credentialConfigured ? "outline" : "secondary"}
                 size="sm"
                 className={cn(
-                  "h-10 min-w-10 gap-2",
+                  "h-11 min-w-11 gap-2",
                   state.credentialConfigured &&
                     "border-success/40 text-success",
                 )}
-                onClick={onCredentialRequest}
+                onClick={(event) => onCredentialRequest(event.currentTarget)}
               >
                 <KeyRound data-icon="inline-start" />
                 <span className="hidden sm:inline">
                   {state.credentialConfigured
-                    ? "Key trong bộ nhớ"
-                    : "Kết nối key"}
+                    ? "API key đã thiết lập"
+                    : "Thiết lập key"}
                 </span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               {state.credentialConfigured
-                ? "Gateway key chỉ tồn tại trong tab"
+                ? "Gateway API key chỉ tồn tại trong tab"
                 : "Thiết lập Gateway API key"}
             </TooltipContent>
           </Tooltip>
@@ -331,7 +401,7 @@ function TopBar({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-10"
+                className="size-11"
                 onClick={controller.resetSession}
                 aria-label="Tạo phiên mới"
               >

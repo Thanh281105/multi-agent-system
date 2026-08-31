@@ -1,4 +1,4 @@
-# Thương Trí design constitution
+# Evidence Atlas design constitution
 
 ## Direction contract
 
@@ -7,7 +7,7 @@
 - **OWN-WORLD:** Warm map-paper surfaces, midnight indigo ink, oxide-red route
   annotations, and muted sage completion marks. Newsreader is the scholarly
   display voice; Manrope carries interface copy; JetBrains Mono is reserved for
-  trace IDs, tokens, and timings. Content lives in ledgers, folios, station
+  trace IDs, tokens, and timings. Content lives in ledgers, folios, agent
   rosters, route diagrams, and source indexes—not a wall of generic cards.
 - **STORY:** The user dispatches a question about a title, category, price, or
   reader feedback in the book snapshot; watches it pass through Router and
@@ -35,14 +35,21 @@ never be copied into runtime UI.
 
 ## Tiki Books domain language
 
+- Visible product identity is **Evidence Atlas**, with the compact descriptor
+  **Tiki Books · Historical snapshot**. On narrow mobile headers, **Atlas** is
+  the approved short wordmark.
+- Copy is Vietnamese-first, but established technical terms such as agent,
+  Orchestrator, DAG, model, request, trace, session, fallback, and token stay in
+  English when translating them would sound invented or reduce precision.
 - Visible prompts, placeholders, answers, and fixtures use books, authors,
   categories, prices, publishers, or reader feedback from the Tiki Books
   domain. Headphones, laptops, and generic marketplace examples do not belong
   in the shipping workspace or its regression fixtures.
-- The interface names the fixed stations as Điều phối sách, Danh mục sách,
-  Đánh giá độc giả, Độ tin cậy, and Xu hướng sách. Contract identifiers such as
-  `product_agent`, `market_agent`, `selected_product_id`, `product.search`, and
-  `catalog.product` remain unchanged at the API and provenance boundaries.
+- The interface names the fixed agents as Orchestrator, Danh mục sách,
+  Đánh giá độc giả, Trust signals, and Snapshot stats. Contract identifiers
+  such as `product_agent`, `market_agent`, `selected_product_id`,
+  `product.search`, and `catalog.product` remain unchanged at the API and
+  provenance boundaries.
 - Always describe the data as a cleaned historical Tiki Books snapshot. Never
   imply that its catalog, prices, reviews, rankings, or popularity represent
   current Tiki inventory or the broader Vietnamese book market.
@@ -90,7 +97,8 @@ color alone; pair color with icon, label, line style, or shape.
 - Numerals in operational tables use `tabular-nums`.
 
 Fonts are self-hosted in the frontend bundle; production CSP does not gain
-third-party font origins.
+third-party font origins. Ship only Vietnamese, Latin Extended, and Latin
+subsets; add another script only when product copy demonstrably requires it.
 
 ## Layout and spacing
 
@@ -109,7 +117,8 @@ third-party font origins.
 
 ## Cartographic grammar
 
-- Agent nodes are “stations”; dependencies are route segments. Solid oxide is
+- Agent nodes are route stops; dependencies are route segments. Do not expose a
+  forced “trạm” metaphor in navigation copy. Solid oxide is
   active, solid sage is complete, dashed ink is waiting, and dotted destructive
   is failed.
 - Route geometry must come from `executions[].depends_on`; never infer edges.
@@ -159,5 +168,6 @@ blocked by missing credentials.
   regions side by side.
 - Live progress uses a polite live region; terminal errors use an assertive
   alert. Do not announce every animation frame.
-- Minimum practical pointer target is 40px; primary actions target 44px.
+- On touch layouts, primary and icon actions target at least 44px. Dense desktop
+  metadata controls may be smaller when they retain a clear focus ring.
 - Verify at 375, 768, 1024, and 1440px and at 200% zoom.

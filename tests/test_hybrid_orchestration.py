@@ -25,7 +25,7 @@ from app.orchestrator.model_schemas import (
 )
 from app.orchestrator.planner import ExecutionPlanner
 from app.orchestrator.router import IntentRouter
-from app.shared import OpenAIModelRuntime
+from app.shared import ModelRuntimeMode, OpenAIModelRuntime
 
 
 class SchemaAwareResponses:
@@ -33,12 +33,14 @@ class SchemaAwareResponses:
         self,
         *,
         invalid_plan: bool = False,
+        invalid_intent: bool = False,
         invalid_entities: bool = False,
         invalid_specialist: bool = False,
         invalid_synthesis: bool = False,
         fail_schema: type[Any] | None = None,
     ) -> None:
         self.invalid_plan = invalid_plan
+        self.invalid_intent = invalid_intent
         self.invalid_entities = invalid_entities
         self.invalid_specialist = invalid_specialist
         self.invalid_synthesis = invalid_synthesis
@@ -48,20 +50,32 @@ class SchemaAwareResponses:
     async def parse(self, **request: Any) -> Any:
         self.requests.append(request)
         schema = request["text_format"]
-        if schema is self.fail_schema:
+        is_routing_schema = isinstance(schema, type) and issubclass(
+            schema, RoutingDecision
+        )
+        if schema is self.fail_schema or (
+            self.fail_schema is RoutingDecision and is_routing_schema
+        ):
             raise TimeoutError("forced model stage outage")
-        if schema is RoutingDecision:
-            value: Any = RoutingDecision(
-                intent="multi.recommendation",
-                confidence=0.98,
-                entities=(
+        if is_routing_schema:
+            routing_payload = {
+                "intent": (
+                    "product.search" if self.invalid_intent else "multi.recommendation"
+                ),
+                "confidence": 0.98,
+                "entities": (
                     RoutingEntities(product_id=987_654_321)
                     if self.invalid_entities
                     else RoutingEntities(
                         max_price=150_000,
                     )
                 ),
-                rationale="recommendation_with_complaint_constraint",
+                "rationale": "recommendation_with_complaint_constraint",
+            }
+            value: Any = (
+                schema.model_construct(**routing_payload)
+                if self.invalid_intent
+                else schema(**routing_payload)
             )
         elif schema is PlanningDecision:
             value = PlanningDecision(
@@ -107,6 +121,7 @@ class FakeClient:
         self,
         *,
         invalid_plan: bool = False,
+        invalid_intent: bool = False,
         invalid_entities: bool = False,
         invalid_specialist: bool = False,
         invalid_synthesis: bool = False,
@@ -114,6 +129,7 @@ class FakeClient:
     ) -> None:
         self.responses = SchemaAwareResponses(
             invalid_plan=invalid_plan,
+            invalid_intent=invalid_intent,
             invalid_entities=invalid_entities,
             invalid_specialist=invalid_specialist,
             invalid_synthesis=invalid_synthesis,
@@ -123,7 +139,9 @@ class FakeClient:
 
 def build_hybrid_orchestrator(
     *,
+    runtime_mode: ModelRuntimeMode = "hybrid",
     invalid_plan: bool = False,
+    invalid_intent: bool = False,
     invalid_entities: bool = False,
     invalid_specialist: bool = False,
     invalid_synthesis: bool = False,
@@ -131,6 +149,7 @@ def build_hybrid_orchestrator(
 ) -> tuple[MultiAgentOrchestrator, SchemaAwareResponses]:
     client = FakeClient(
         invalid_plan=invalid_plan,
+        invalid_intent=invalid_intent,
         invalid_entities=invalid_entities,
         invalid_specialist=invalid_specialist,
         invalid_synthesis=invalid_synthesis,
@@ -146,19 +165,19 @@ def build_hybrid_orchestrator(
         dispatcher=build_default_dispatcher(
             gateway,
             model_runtime=runtime,
-            runtime_mode="hybrid",
+            runtime_mode=runtime_mode,
         ),
         router=IntentRouter(
             model_runtime=runtime,
-            runtime_mode="hybrid",
+            runtime_mode=runtime_mode,
         ),
         planner=ExecutionPlanner(
             model_runtime=runtime,
-            runtime_mode="hybrid",
+            runtime_mode=runtime_mode,
         ),
         aggregator=ResultAggregator(
             model_runtime=runtime,
-            runtime_mode="hybrid",
+            runtime_mode=runtime_mode,
         ),
     )
     return orchestrator, client.responses
@@ -198,6 +217,78 @@ async def test_hybrid_flow_runs_all_structured_reasoning_stages() -> None:
     assert all(request["store"] is False for request in responses.requests)
     assert "instructions" not in public.model_dump_json()
 
+    routing_request = next(
+        request
+        for request in responses.requests
+        if issubclass(request["text_format"], RoutingDecision)
+    )
+    routing_input = json.loads(routing_request["input"])
+    assert routing_input["authorized_intent"] == "multi.recommendation"
+    assert routing_input["authorized_entities"] == {"max_price": 150_000}
+    assert (
+        routing_request["text_format"].model_json_schema()["properties"]["intent"][
+            "const"
+        ]
+        == "multi.recommendation"
+    )
+
+    planning_request = next(
+        request
+        for request in responses.requests
+        if request["text_format"] is PlanningDecision
+    )
+    planning_input = json.loads(planning_request["input"])
+    assert planning_input["authorized_capability_sequence"] == [
+        "product.rank",
+        "review.compare",
+        "trust.compare",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_required_mode_accepts_exact_authorized_model_contract() -> None:
+    orchestrator, _ = build_hybrid_orchestrator(runtime_mode="required")
+
+    result = await orchestrator.run(
+        message="Tìm sách dưới 150 nghìn, đáng mua và ít bị phàn nàn.",
+        principal_id="user-a",
+        session_id="sess_required_authorized_123",
+    )
+
+    assert result.status == "success"
+    assert [step.action for step in result.plan.steps] == [
+        "product.rank",
+        "review.compare",
+        "trust.compare",
+    ]
+    assert all(not item.fallback_used for item in result.model_calls)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("runtime_overrides", "error"),
+    [
+        ({"invalid_intent": True}, "routing_intent_not_authorized"),
+        ({"invalid_entities": True}, "routing_entities_not_authorized"),
+        ({"invalid_plan": True}, "model_plan_not_authorized"),
+    ],
+)
+async def test_required_mode_rejects_model_output_outside_authorized_contract(
+    runtime_overrides: dict[str, bool],
+    error: str,
+) -> None:
+    orchestrator, _ = build_hybrid_orchestrator(
+        runtime_mode="required",
+        **runtime_overrides,
+    )
+
+    with pytest.raises(ValueError, match=error):
+        await orchestrator.run(
+            message="Tìm sách dưới 150 nghìn, đáng mua và ít bị phàn nàn.",
+            principal_id="user-a",
+            session_id=f"sess_required_rejected_{error}",
+        )
+
 
 @pytest.mark.asyncio
 async def test_unauthorized_model_plan_falls_back_to_compiled_allowlist() -> None:
@@ -219,6 +310,22 @@ async def test_unauthorized_model_plan_falls_back_to_compiled_allowlist() -> Non
     )
     assert planning_call.fallback_used is True
     assert planning_call.fallback_reason == "unauthorized_plan"
+
+
+@pytest.mark.asyncio
+async def test_unauthorized_model_intent_falls_back_to_deterministic_route() -> None:
+    orchestrator, _ = build_hybrid_orchestrator(invalid_intent=True)
+
+    result = await orchestrator.run(
+        message="Tìm sách dưới 150 nghìn, đáng mua và ít bị phàn nàn.",
+        principal_id="user-a",
+        session_id="sess_hybrid_intent_fallback_123",
+    )
+
+    assert result.intent == "multi.recommendation"
+    routing_call = next(item for item in result.model_calls if item.stage == "routing")
+    assert routing_call.fallback_used is True
+    assert routing_call.fallback_reason == "unauthorized_routing_intent"
 
 
 @pytest.mark.asyncio

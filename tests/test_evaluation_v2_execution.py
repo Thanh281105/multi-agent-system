@@ -217,8 +217,8 @@ class _SchemaAwareResponses:
     async def parse(self, **request: Any) -> Any:
         self.requests.append(request)
         schema = request["text_format"]
-        if schema is RoutingDecision:
-            value: Any = RoutingDecision(
+        if isinstance(schema, type) and issubclass(schema, RoutingDecision):
+            value: Any = schema(
                 intent="product.search",
                 confidence=0.99,
                 entities=RoutingEntities(product_query="Nhật Ký Tarot"),

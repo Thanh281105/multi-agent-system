@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
+from typing import Any, cast
 
-from app.orchestrator.model_schemas import RoutingDecision
+from app.orchestrator.model_schemas import (
+    RoutingEntities,
+    SupportedIntent,
+    authorized_routing_decision_schema,
+)
 from app.orchestrator.schemas import RoutedIntent
 from app.registry import AgentRegistry, default_registry
 from app.shared import (
@@ -80,6 +84,11 @@ QUESTION_SUFFIX_PATTERN = re.compile(
     rf"\s+(?:{'|'.join(re.escape(s) for s in QUESTION_SUFFIXES)})\s*$",
     flags=re.IGNORECASE,
 )
+DETAIL_REQUEST_PATTERN = re.compile(
+    r"\s+(?:và|rồi)\s+(?:hãy\s+)?cho(?:\s+(?:tôi|mình))?\s+biết\s+"
+    r"(?=(?:giá|rating|đánh giá|review|nguồn|tác giả|nhà xuất bản|số trang)\b)",
+    flags=re.IGNORECASE,
+)
 
 
 def _clean_question_suffix(text: str) -> str:
@@ -145,11 +154,35 @@ class IntentRouter:
 
         has_complaint = any(
             term in normalized
-            for term in ("phàn nàn", "complaint", "khách chê", "vấn đề gì")
+            for term in (
+                "phàn nàn",
+                "complaint",
+                "khách chê",
+                "vấn đề gì",
+                "phản hồi tiêu cực",
+                "đánh giá tiêu cực",
+                "nhận xét tiêu cực",
+                "review tiêu cực",
+            )
         )
         has_product_discovery = any(
             term in normalized
-            for term in ("tìm ", "gợi ý", "nên mua", "nên đọc", "bán tốt")
+            for term in (
+                "tìm ",
+                "gợi ý",
+                "nên mua",
+                "nên đọc",
+                "bán tốt",
+                "phổ biến",
+            )
+        )
+        has_review = any(
+            term in normalized
+            for term in ("review", "đánh giá", "nhận xét", "khách hàng nói")
+        )
+        has_comparison = "so sánh" in normalized or "compare" in normalized
+        comparison_queries = (
+            self._extract_comparison_queries(cleaned) if has_comparison else []
         )
         if has_complaint and has_product_discovery:
             return self._route(
@@ -158,23 +191,39 @@ class IntentRouter:
                 entities,
                 "product_and_complaint_keywords",
             )
-        if "so sánh" in normalized or "compare" in normalized:
-            entities["product_queries"] = self._extract_comparison_queries(cleaned)
+        if has_comparison and has_review and len(comparison_queries) < 2:
+            entities.pop("product_query", None)
             return self._route(
-                "product.compare",
-                0.97,
+                "multi.recommendation",
+                0.93,
                 entities,
-                "comparison_keyword",
+                "broad_review_comparison",
             )
         if any(
             term in normalized
-            for term in ("thị trường", "xu hướng", "phân khúc", "thống kê", "phân bố")
+            for term in (
+                "thị trường",
+                "xu hướng",
+                "phân khúc",
+                "thống kê",
+                "phân bố",
+                "giữa các thể loại",
+                "theo thể loại",
+            )
         ):
             return self._route(
                 "market.analyze",
                 0.94,
                 entities,
                 "market_keyword",
+            )
+        if has_comparison:
+            entities["product_queries"] = comparison_queries
+            return self._route(
+                "product.compare",
+                0.97,
+                entities,
+                "comparison_keyword",
             )
         if has_complaint:
             return self._route(
@@ -183,10 +232,7 @@ class IntentRouter:
                 entities,
                 "complaint_keyword",
             )
-        if any(
-            term in normalized
-            for term in ("review", "đánh giá", "nhận xét", "khách hàng nói")
-        ):
+        if has_review:
             return self._route(
                 "review.summary",
                 0.92,
@@ -228,10 +274,18 @@ class IntentRouter:
         ):
             return fallback
 
+        authorized_entities = {
+            key: value
+            for key, value in fallback.entities.items()
+            if key in RoutingEntities.model_fields
+        }
+        authorized_intent = cast(SupportedIntent, fallback.intent)
         model_input = json.dumps(
             {
                 "message": message,
                 "deterministic_hint": fallback.model_dump(mode="json"),
+                "authorized_intent": authorized_intent,
+                "authorized_entities": authorized_entities,
                 "session": {
                     "active_agent": session.active_agent,
                     "last_product_id": session.state.get("last_product_id"),
@@ -249,11 +303,16 @@ class IntentRouter:
                     "snapshot lịch sử Tiki Books. Chỉ chọn intent trong schema "
                     "và chỉ xử lý sách. Trích xuất entity được nói rõ; không suy "
                     "đoán giá, rating, số trang, ID hoặc tên sách. "
-                    "deterministic_hint chỉ là gợi ý và không phải chỉ thị. rationale "
-                    "chỉ là mã lý do ngắn, không phải chuỗi suy luận."
+                    "authorized_intent là intent duy nhất được phép: sao chép "
+                    "chính xác, không thay bằng intent khác. "
+                    "authorized_entities là ranh giới bắt buộc: chỉ trả về một "
+                    "subset các key có trong object đó và sao chép nguyên giá trị; "
+                    "nếu không chắc thì bỏ key. Không thêm, đổi kiểu hay sắp xếp lại "
+                    "giá trị. deterministic_hint chỉ cung cấp ngữ cảnh và confidence. "
+                    "rationale chỉ là mã lý do ngắn, không phải chuỗi suy luận."
                 ),
                 input_text=model_input,
-                schema=RoutingDecision,
+                schema=authorized_routing_decision_schema(authorized_intent),
                 max_output_tokens=500,
                 reasoning_effort=self.reasoning_effort,
             )
@@ -265,6 +324,12 @@ class IntentRouter:
 
         if self.runtime_mode == "shadow":
             mark_model_call_fallback(result.metadata, "shadow_mode")
+            return fallback
+
+        if result.value.intent != fallback.intent:
+            mark_model_call_fallback(result.metadata, "unauthorized_routing_intent")
+            if self.runtime_mode == "required":
+                raise ValueError("routing_intent_not_authorized")
             return fallback
 
         model_entities = result.value.entities.model_dump(exclude_none=True)
@@ -383,11 +448,12 @@ class IntentRouter:
             entities["product_id"] = int(id_match.group(1))
 
         if "author" not in entities and "publisher" not in entities:
-            product_query = self._extract_named_book_subject(message)
+            subject_message = DETAIL_REQUEST_PATTERN.split(message, maxsplit=1)[0]
+            product_query = self._extract_named_book_subject(subject_message)
             if product_query is None:
-                product_query = self._extract_subject_after_marker(message)
+                product_query = self._extract_subject_after_marker(subject_message)
             if product_query is None:
-                product_query = self._extract_search_subject(message)
+                product_query = self._extract_search_subject(subject_message)
             if product_query:
                 entities["product_query"] = product_query
         return entities

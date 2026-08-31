@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from functools import lru_cache
+from typing import Any, Literal, cast
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, create_model, model_validator
 
 SupportedIntent = Literal[
     "general.help",
@@ -74,6 +75,21 @@ class RoutingDecision(BaseModel):
     confidence: float = Field(ge=0, le=1)
     entities: RoutingEntities
     rationale: str = Field(min_length=1, max_length=160)
+
+
+@lru_cache(maxsize=None)
+def authorized_routing_decision_schema(
+    intent: SupportedIntent,
+) -> type[RoutingDecision]:
+    """Bind Structured Output to the one intent authorized by Python."""
+
+    intent_literal = cast(Any, Literal)[intent]
+    schema = create_model(
+        f"AuthorizedRoutingDecision_{intent.replace('.', '_')}",
+        __base__=RoutingDecision,
+        intent=(intent_literal, ...),
+    )
+    return schema
 
 
 class PlanningDecision(BaseModel):

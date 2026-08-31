@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import tomllib
 from html.parser import HTMLParser
 from pathlib import Path
@@ -38,7 +39,7 @@ def test_frontend_serves_vite_shell_with_discoverable_hashed_assets() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/html")
     assert response.headers["cache-control"] == "no-cache"
-    assert "Thương Trí — Evidence Atlas" in response.text
+    assert "Evidence Atlas — Tiki Books historical snapshot" in response.text
     assert 'lang="vi"' in response.text
     assert 'id="root"' in response.text
     assert 'src="/src/' not in response.text
@@ -92,7 +93,8 @@ def test_spa_fallback_handles_only_safe_extensionless_client_routes() -> None:
     deep_link = client.get("/sessions/demo-run")
 
     assert deep_link.status_code == 200
-    assert deep_link.content == index.content
+    assert _without_csp_nonce(deep_link.text) == _without_csp_nonce(index.text)
+    assert _csp_nonce(deep_link.text) != _csp_nonce(index.text)
     assert deep_link.headers["cache-control"] == "no-cache"
 
 
@@ -141,6 +143,19 @@ def test_frontend_and_api_receive_strict_security_headers() -> None:
         assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
         assert response.headers["Cross-Origin-Opener-Policy"] == "same-origin"
     assert "'unsafe-inline'" not in frontend.headers["Content-Security-Policy"]
+    nonce = _csp_nonce(frontend.text)
+    style_policy = frontend.headers["Content-Security-Policy"]
+    assert f"'nonce-{nonce}'" in style_policy
+    assert "font-src 'self'" in style_policy
+    assert all(
+        style_hash in style_policy
+        for style_hash in (
+            "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='",
+            "'sha256-StEaX+se6YS7pqjzrzMIA0KaX9zF/8zAhvQXZAe5epY='",
+        )
+    )
+    second_frontend = client.get("/")
+    assert _csp_nonce(second_frontend.text) != nonce
     assert unauthorized_api.headers["cache-control"] == "no-store"
 
 
@@ -189,6 +204,19 @@ def _asset_urls(document: str) -> tuple[str, ...]:
     collector = _AssetCollector()
     collector.feed(document)
     return tuple(collector.urls)
+
+
+def _csp_nonce(document: str) -> str:
+    match = re.search(
+        r'<meta name="csp-nonce" content="([A-Za-z0-9_-]+)"',
+        document,
+    )
+    assert match is not None
+    return match.group(1)
+
+
+def _without_csp_nonce(document: str) -> str:
+    return document.replace(_csp_nonce(document), "<nonce>")
 
 
 def frontend_settings() -> Settings:

@@ -12,11 +12,109 @@ from fastapi.testclient import TestClient
 
 from app.contracts import ExecutionPlan, TaskStatus
 from app.core.config import Settings
+from app.gateway.schemas import (
+    AgentExecutionInfo,
+    GatewayChatRequest,
+    GatewayChatResponse,
+    GatewayErrorDetail,
+    GatewayErrorResponse,
+    GatewayStatusEvent,
+    GatewayTokenEvent,
+    ModelCallInfo,
+    ProvenanceInfo,
+)
 from app.main import create_app
 from app.orchestrator import OrchestrationResult
 
 ALICE_HEADERS = {"X-API-Key": "alice-secret-key"}
 BOB_HEADERS = {"X-API-Key": "bob-secret-key"}
+
+
+def test_public_v1_contract_field_sets_are_stable() -> None:
+    expected_fields = {
+        GatewayChatRequest: ("message", "session_id"),
+        AgentExecutionInfo: (
+            "step_id",
+            "agent_id",
+            "action",
+            "depends_on",
+            "status",
+            "duration_ms",
+            "error_codes",
+        ),
+        ProvenanceInfo: (
+            "source_type",
+            "source_id",
+            "fields",
+            "sample_data",
+            "observed_at",
+        ),
+        ModelCallInfo: (
+            "call_id",
+            "stage",
+            "agent_id",
+            "provider",
+            "model",
+            "response_id",
+            "status",
+            "duration_ms",
+            "input_tokens",
+            "cached_input_tokens",
+            "output_tokens",
+            "reasoning_tokens",
+            "total_tokens",
+            "attempts",
+            "fallback_used",
+            "fallback_reason",
+            "error_code",
+        ),
+        GatewayChatResponse: (
+            "api_version",
+            "status",
+            "answer",
+            "session_id",
+            "request_id",
+            "trace_id",
+            "intent",
+            "active_agent",
+            "selected_product_id",
+            "executions",
+            "provenance",
+            "model_calls",
+            "warnings",
+            "sample_data",
+            "duration_ms",
+        ),
+        GatewayErrorDetail: (
+            "code",
+            "message",
+            "request_id",
+            "trace_id",
+            "retryable",
+            "validation_errors",
+        ),
+        GatewayErrorResponse: ("error",),
+        GatewayStatusEvent: (
+            "sequence",
+            "phase",
+            "message",
+            "request_id",
+            "trace_id",
+            "step_id",
+            "agent_id",
+            "status",
+        ),
+        GatewayTokenEvent: (
+            "sequence",
+            "delta",
+            "request_id",
+            "trace_id",
+        ),
+    }
+
+    for schema, field_names in expected_fields.items():
+        assert tuple(schema.model_fields) == field_names
+    assert GatewayChatResponse.model_fields["api_version"].default == "v1"
 
 
 def test_gateway_authenticates_and_returns_grounded_correlated_result() -> None:
