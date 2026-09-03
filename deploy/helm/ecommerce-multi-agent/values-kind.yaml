@@ -8,7 +8,7 @@ image:
   pullPolicy: IfNotPresent
 
 config:
-  qdrantUrl: http://ecommerce-multi-agent-qdrant:6333
+  knowledgeBackend: disabled
   modelRuntimeMode: "off"
   embeddingBackend: hashing
   gatewayPrincipalPolicies: kind:default:ecommerce.read
@@ -16,9 +16,6 @@ config:
 bootstrap:
   seedData:
     enabled: true
-  seedKnowledge:
-    enabled: true
-
 internalDependencies:
   enabled: true
 

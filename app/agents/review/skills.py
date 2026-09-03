@@ -7,43 +7,101 @@ from typing import Any
 
 POSITIVE_TERMS = (
     "tốt",
+    "hay",
     "đẹp",
     "nhanh",
     "ổn",
-    "mượt",
     "hợp lý",
     "hiệu quả",
-    "chắc chắn",
-    "êm",
     "rõ",
+    "dễ hiểu",
+    "cẩn thận",
+    "đáng tiền",
 )
 NEGATIVE_TERMS = (
-    "đau",
-    "yếu",
     "khó",
-    "nóng",
     "chậm",
     "móp",
     "cao",
-    "ồn",
     "nhỏ",
-    "nồng",
     "lỗi",
-    "kích ứng",
+    "sai",
+    "thiếu",
+    "nhầm",
+    "trễ",
+    "méo",
+    "cong",
+    "ướt",
+    "xước",
+    "bong",
+    "tróc",
+    "gãy",
+    "mờ",
+    "nhòe",
+    "phí",
+    "tệ",
     "chưa thật",
     "chưa đủ",
+    "chưa cẩn thận",
+    "không được cuốn hút",
     "không tốt",
     "không ổn",
 )
 ASPECT_TERMS: dict[str, tuple[str, ...]] = {
-    "âm thanh": ("âm thanh", "âm bass", "âm lượng", "chất âm", "micro"),
-    "pin": ("pin", "sạc"),
-    "kết nối": ("kết nối", "ứng dụng", "phần mềm"),
-    "thiết kế": ("thiết kế", "đẹp", "màn hình", "đèn"),
-    "thoải mái": ("đeo", "đệm tai", "đau tai", "bám tai"),
-    "giao hàng": ("giao hàng", "giao nhanh", "đóng gói", "móp hộp"),
-    "giá": ("giá", "tầm tiền"),
-    "hiệu năng": ("mượt", "nhanh", "quạt", "tác vụ"),
+    "nội dung": (
+        "nội dung",
+        "nội dụng",
+        "cốt truyện",
+        "kiến thức",
+        "bài tập",
+        "mẹo",
+        "trình bày",
+    ),
+    "dịch thuật/biên tập": (
+        "bản dịch",
+        "văn dịch",
+        "dịch thuật",
+        "biên tập",
+        "lỗi chính tả",
+    ),
+    "giấy/in": (
+        "giấy",
+        "trang giấy",
+        "mực in",
+        "in ấn",
+        "chữ in",
+    ),
+    "bìa/đóng gáy": (
+        "bìa",
+        "gáy",
+        "bung gáy",
+        "cong góc",
+        "móp",
+        "gãy",
+        "tróc",
+        "xước",
+    ),
+    "đóng gói/giao hàng": (
+        "đóng gói",
+        "gói hàng",
+        "bọc chống sốc",
+        "giao hàng",
+        "giao chậm",
+        "giao trễ",
+        "vận chuyển",
+        "hộp",
+    ),
+    "sai/thiếu sách hoặc tập": (
+        "giao nhầm",
+        "giao sai",
+        "giao hàng sai",
+        "thiếu sách",
+        "thiếu tập",
+        "sai tập",
+        "nhầm tập",
+        "thiếu bookcare",
+    ),
+    "giá": ("giá", "tầm tiền", "đắt", "rẻ", "đồng tiền"),
 }
 
 
@@ -109,13 +167,10 @@ def extract_review_aspects(reviews: list[dict[str, Any]]) -> dict[str, Any]:
     negative_mentions: Counter[str] = Counter()
     for review in validated:
         content = str(review["content"]).casefold()
-        negative_context = int(review["rating"]) <= 3 or any(
-            term in content for term in NEGATIVE_TERMS
-        )
         for aspect, terms in ASPECT_TERMS.items():
             if any(term in content for term in terms):
                 mentions[aspect] += 1
-                if negative_context:
+                if _has_local_negative_context(content, terms):
                     negative_mentions[aspect] += 1
 
     ordered = sorted(mentions, key=lambda item: (-mentions[item], item))
@@ -132,5 +187,23 @@ def extract_review_aspects(reviews: list[dict[str, Any]]) -> dict[str, Any]:
         "negative_aspects": [
             aspect for aspect in ordered if negative_mentions[aspect] > 0
         ],
-        "method": "keyword_aspects_vi_v1",
+        "method": "book_keyword_aspects_vi_v2",
     }
+
+
+def _has_local_negative_context(
+    content: str,
+    aspect_terms: tuple[str, ...],
+) -> bool:
+    """Keep aspect polarity local so mixed book feedback is not flattened."""
+
+    for aspect_term in aspect_terms:
+        start = content.find(aspect_term)
+        while start >= 0:
+            window_start = max(0, start - 28)
+            window_end = min(len(content), start + len(aspect_term) + 28)
+            window = content[window_start:window_end]
+            if any(term in window for term in NEGATIVE_TERMS):
+                return True
+            start = content.find(aspect_term, start + len(aspect_term))
+    return False

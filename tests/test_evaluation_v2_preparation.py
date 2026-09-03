@@ -12,6 +12,7 @@ from app.evaluation.preparation import (
     build_evaluation_protocol_v2,
     source_manifest_sha256_v2,
 )
+from app.evaluation.v2_models import EvaluationProtocolV2
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,20 +29,30 @@ def test_protocol_builder_closes_variant_parents_and_binds_sources() -> None:
     )
 
     assert tuple(variant.variant_id for variant in protocol.variants) == (
+        "deterministic_book_catalog_v2",
         "deterministic_v2",
         "hybrid_full",
         "hybrid_no_router",
     )
-    assert protocol.case_order == ("simple_01_nova_search",)
-    assert protocol.latency_case_order == ("simple_01_nova_search",)
-    assert protocol.warmup_case_id == "simple_01_nova_search"
+    assert protocol.case_order == ("simple_01_tarot_search",)
+    assert protocol.latency_case_order == ("simple_01_tarot_search",)
+    assert protocol.warmup_case_id == "simple_01_tarot_search"
     assert protocol.experiment_sha256 == assets.experiment_sha256
     assert protocol.pricing_sha256 == assets.pricing_sha256
     assert protocol.network_allowed is True
     assert protocol.model_runtime_policy == assets.config.model_runtime_policy
     assert "api_key" not in protocol.model_dump_json()
-    assert len(protocol.sample_seed_sha256) == 64
+    assert protocol.source_snapshot == assets.corpus.source_snapshot
+    assert protocol.sample_seed_sha256 == protocol.source_snapshot.snapshot_sha256
     assert len(protocol.evaluator_sha256) == 64
+
+    with pytest.raises(ValueError, match="seed hash must match snapshot hash"):
+        EvaluationProtocolV2.model_validate(
+            {
+                **protocol.model_dump(),
+                "sample_seed_sha256": "f" * 64,
+            }
+        )
 
 
 def test_protocol_builder_rejects_dirty_or_unknown_inputs() -> None:
@@ -66,6 +77,10 @@ def test_protocol_builder_rejects_dirty_or_unknown_inputs() -> None:
     assert allowed.git_dirty is True
     assert allowed.network_allowed is False
     assert allowed.model_runtime_policy is None
+    assert tuple(variant.variant_id for variant in allowed.variants) == (
+        "deterministic_book_catalog_v2",
+        "deterministic_v2",
+    )
     with pytest.raises(ValueError, match="unknown evaluation variants"):
         build_evaluation_protocol_v2(
             assets,

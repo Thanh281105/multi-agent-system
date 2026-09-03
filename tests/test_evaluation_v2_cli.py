@@ -78,8 +78,8 @@ def test_cli_runs_deterministic_without_key_then_validates_bundle(
 
     assert exit_code == 0
     assert run_payload["status"] == "complete"
-    assert run_payload["observations"] == 8
-    assert run_payload["comparisons"] == 0
+    assert run_payload["observations"] == 16
+    assert run_payload["comparisons"] == 8
     assert run_payload["omissions"] == 0
     assert output.is_dir()
 
@@ -139,8 +139,11 @@ def test_cli_recomputes_comparison_only_after_bundle_validation(
         .splitlines()
         if line
     )
+    baseline_observations = tuple(
+        item for item in source_observations if item.variant_id == baseline.variant_id
+    )
     paired_observations: list[EvaluationObservationV2] = []
-    for observation in source_observations:
+    for observation in baseline_observations:
         common = {
             "run_id": "run_cli_compare_v2",
             "protocol_sha256": protocol_sha256(protocol),
@@ -192,7 +195,7 @@ def test_cli_recomputes_comparison_only_after_bundle_validation(
         == 0
     )
     comparison = json.loads(capsys.readouterr().out)
-    assert comparison["baseline_variant_id"] == "deterministic_v2"
+    assert comparison["baseline_variant_id"] == "deterministic_book_catalog_v2"
     assert comparison["candidate_variant_id"] == "candidate_v2"
     assert comparison["metric"] == "task_success"
 

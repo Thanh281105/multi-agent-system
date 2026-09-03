@@ -24,6 +24,11 @@ from app import __version__
 from app.agent_gateway import AgentGateway
 from app.agents import AgentDispatcher, build_default_dispatcher
 from app.contracts import TaskStatus
+from app.data.quality import (
+    SnapshotQualityError,
+    sha256_file,
+    validate_quality_artifacts,
+)
 from app.db import session as db_session
 from app.db.base import Base
 from app.db.seed import seed_database
@@ -41,6 +46,7 @@ from app.evaluation.models import (
     EvaluationCorpus,
     EvaluationObservation,
     EvaluationReport,
+    EvaluationSnapshotBinding,
 )
 from app.evaluation.observation import retrieved_product_ids
 from app.mcp.catalog import build_default_mcp_router
@@ -49,7 +55,6 @@ from app.orchestrator import MultiAgentOrchestrator
 ALLOWED_ACTIONS = frozenset(
     {
         "market.analyze",
-        "market.search",
         "product.compare",
         "product.rank",
         "product.search",
@@ -64,7 +69,6 @@ ALLOWED_INTENTS = frozenset(
         "general.help",
         "general.unsupported",
         "market.analyze",
-        "market.search",
         "multi.recommendation",
         "product.compare",
         "product.follow_up",
@@ -77,10 +81,55 @@ ALLOWED_INTENTS = frozenset(
 REQUIRED_CATEGORY_COUNT = 4
 
 
-def load_corpus(path: Path) -> EvaluationCorpus:
+def load_corpus(
+    path: Path,
+    *,
+    project_root: Path | None = None,
+) -> EvaluationCorpus:
     corpus = EvaluationCorpus.model_validate_json(path.read_text(encoding="utf-8"))
     validate_corpus(corpus)
+    if corpus.source_snapshot is not None:
+        validate_snapshot_binding(
+            corpus.source_snapshot,
+            project_root=project_root or _default_project_root(),
+        )
     return corpus
+
+
+def validate_snapshot_binding(
+    binding: EvaluationSnapshotBinding,
+    *,
+    project_root: Path,
+) -> None:
+    """Verify that corpus lineage matches the committed quality-gated snapshot."""
+
+    resolved_root = project_root.resolve()
+    snapshot_dir = (resolved_root / Path(binding.snapshot_path)).resolve()
+    if snapshot_dir != resolved_root and resolved_root not in snapshot_dir.parents:
+        raise ValueError("evaluation snapshot path escapes the project root")
+    try:
+        manifest, _ = validate_quality_artifacts(snapshot_dir)
+    except SnapshotQualityError as exc:
+        raise ValueError("evaluation snapshot failed quality validation") from exc
+
+    actual = {
+        "dataset_id": manifest.dataset_id,
+        "dataset_version": manifest.dataset_version,
+        "profile": manifest.profile,
+        "snapshot_sha256": manifest.snapshot_sha256,
+        "manifest_sha256": sha256_file(snapshot_dir / "manifest.json"),
+        "quality_report_sha256": sha256_file(snapshot_dir / "quality-report.json"),
+        "product_count": manifest.product_count,
+        "review_count": manifest.review_count,
+    }
+    expected = binding.model_dump(mode="python", exclude={"snapshot_path"})
+    mismatches = sorted(
+        key for key, expected_value in expected.items() if actual[key] != expected_value
+    )
+    if mismatches:
+        raise ValueError(
+            "evaluation snapshot binding mismatch: " + ", ".join(mismatches)
+        )
 
 
 def load_baseline_manifest(path: Path) -> BaselineManifest:
@@ -166,6 +215,13 @@ async def run_evaluation(
         "real_model_captured",
     }:
         raise ValueError("unsupported baseline manifest status")
+    if (
+        baseline.dataset_sha256 is not None
+        and baseline.dataset_sha256 != dataset_sha256
+    ):
+        raise ValueError("baseline dataset hash does not match evaluation corpus")
+    if corpus.source_snapshot is None:
+        raise ValueError("evaluation requires snapshot lineage")
     cases = corpus.cases[:max_cases] if max_cases is not None else corpus.cases
     if not cases:
         raise ValueError("evaluation requires at least one case")
@@ -213,7 +269,7 @@ async def run_evaluation(
         sut_source_files=sut_source_files,
         dataset_id=corpus.dataset_id,
         dataset_sha256=dataset_sha256,
-        sample_seed_sha256=_seed_sha256(),
+        source_snapshot=corpus.source_snapshot,
         sample_counts=sample_counts,
         python_version=platform.python_version(),
         runtime_platform=platform.platform(),
@@ -225,7 +281,10 @@ async def run_evaluation(
         case_scores=tuple(scores),
         observations=tuple(observations),
         limitations=(
-            "Benchmark chỉ dùng 30 sản phẩm và 150 review tổng hợp có gắn nhãn mẫu.",
+            (
+                "Benchmark dùng snapshot lịch sử Tiki Books đã làm sạch gồm "
+                "200 sách và 1.773 review; đây không phải dữ liệu Tiki trực tiếp."
+            ),
             (
                 "Answer Accuracy là độ chính xác assertion có cấu trúc, "
                 "không phải đánh giá ngữ nghĩa tự do."
@@ -235,8 +294,8 @@ async def run_evaluation(
                 "LLM hay hạ tầng production."
             ),
             (
-                "Baseline real-model được capture riêng; runner offline chưa thực "
-                "hiện paired comparison vì không chạy cùng runtime/provider."
+                "Baseline v1 chỉ là scripted regression; so sánh cặp deterministic "
+                "được thực hiện trong protocol v2."
             ),
             (
                 "Failure injection đo khả năng cô lập lỗi có chủ đích, không mô "
@@ -340,10 +399,19 @@ def render_markdown_report(report: EvaluationReport) -> str:
             f"({len(report.sut_source_files)} files)"
         ),
         f"- Dataset: `{report.dataset_id}` (`{report.dataset_sha256}`)",
-        f"- Seed source SHA-256: `{report.sample_seed_sha256}`",
+        (
+            "- Snapshot provenance: "
+            f"`{report.source_snapshot.snapshot_path}` "
+            f"(`{report.source_snapshot.snapshot_sha256}`)"
+        ),
+        f"- Manifest SHA-256: `{report.source_snapshot.manifest_sha256}`",
+        (f"- Quality report SHA-256: `{report.source_snapshot.quality_report_sha256}`"),
         f"- Số case: {len(report.case_scores)}; số lần lặp: {report.repeats}",
         f"- Runtime: Python {report.python_version} trên `{report.runtime_platform}`",
-        "- Dữ liệu: **mẫu tổng hợp**, không đại diện thị trường thật",
+        (
+            "- Dữ liệu: **snapshot lịch sử Tiki Books đã làm sạch**, "
+            "không phải dữ liệu Tiki trực tiếp hay ảnh chụp thị trường hiện tại"
+        ),
         f"- Trạng thái so sánh baseline: `{report.comparison_status}`",
         "",
         "## Kết quả tổng hợp",
@@ -436,11 +504,9 @@ def _write_observations_csv(report: EvaluationReport, path: Path) -> None:
 
 
 def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    """Hash text inputs canonically so CRLF/LF checkouts bind identically."""
 
-
-def _seed_sha256() -> str:
-    return _sha256(Path(__file__).resolve().parents[1] / "db" / "seed.py")
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def _sut_source_manifest() -> tuple[str, tuple[str, ...]]:
@@ -477,7 +543,7 @@ def _default_project_root() -> Path:
 def main() -> None:
     project_root = _default_project_root()
     parser = argparse.ArgumentParser(
-        description="Run the deterministic sample multi-agent benchmark.",
+        description="Run the deterministic Tiki Books multi-agent benchmark.",
     )
     parser.add_argument(
         "--cases",
@@ -497,7 +563,7 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--max-cases", type=int, default=None)
     arguments = parser.parse_args()
-    corpus = load_corpus(arguments.cases)
+    corpus = load_corpus(arguments.cases, project_root=project_root)
     baseline = load_baseline_manifest(arguments.baseline)
     report = asyncio.run(
         run_evaluation(

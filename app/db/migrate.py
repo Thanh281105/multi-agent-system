@@ -10,7 +10,7 @@ from alembic.config import Config
 from app.core.config import settings
 from app.db.session import create_database_engine
 
-EXPECTED_DATABASE_REVISION = "20260824_0002"
+EXPECTED_DATABASE_REVISION = "20260830_0003"
 
 
 def _migration_root() -> Path:
@@ -33,15 +33,35 @@ def _migration_config() -> Config:
     return migration_config
 
 
-def upgrade_database(database_url: str | None = None) -> None:
-    """Upgrade a database transactionally to the single current head."""
+def upgrade_database(
+    database_url: str | None = None,
+    *,
+    revision: str = "head",
+) -> None:
+    """Upgrade to a revision and verify SQLite batch-migration foreign keys."""
 
     migration_engine = create_database_engine(database_url or settings.database_url)
     migration_config = _migration_config()
     try:
+        if migration_engine.dialect.name == "sqlite":
+            with migration_engine.connect() as connection:
+                connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+                connection.commit()
+                migration_config.attributes["connection"] = connection
+                command.upgrade(migration_config, revision)
+                connection.commit()
+                violations = connection.exec_driver_sql(
+                    "PRAGMA foreign_key_check"
+                ).fetchall()
+                connection.commit()
+                if violations:
+                    raise RuntimeError(
+                        "database migration introduced foreign key violations"
+                    )
+            return
         with migration_engine.begin() as connection:
             migration_config.attributes["connection"] = connection
-            command.upgrade(migration_config, "head")
+            command.upgrade(migration_config, revision)
     finally:
         migration_engine.dispose()
 

@@ -17,6 +17,7 @@ export default defineConfig({
   build: {
     outDir: "../app/frontend/dist",
     emptyOutDir: true,
+    assetsInlineLimit: 0,
   },
   server: {
     proxy: {

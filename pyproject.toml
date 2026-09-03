@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vietnamese-ecommerce-agent"
 version = "1.0.0"
-description = "Production-oriented Vietnamese e-commerce multi-agent decision platform"
+description = "Evidence Atlas multi-agent platform for historical Tiki Books data"
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.18,<2",
@@ -22,8 +22,8 @@ dependencies = [
 
 [project.scripts]
 ecommerce-migrate = "app.db.migrate:main"
+ecommerce-reset-legacy-seed = "app.db.reset_legacy_seed:main"
 ecommerce-seed = "app.db.seed:main"
-ecommerce-seed-knowledge = "app.knowledge.seed:main"
 ecommerce-evaluate = "app.evaluation.runner:main"
 ecommerce-evaluate-v2 = "app.evaluation.v2_runner:main"
 ecommerce-data = "app.data.cli:main"

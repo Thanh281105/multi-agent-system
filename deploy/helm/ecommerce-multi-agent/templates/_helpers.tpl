@@ -69,11 +69,13 @@ app.kubernetes.io/component: gateway
     secretKeyRef:
       name: {{ include "ecommerce-multi-agent.secretName" . }}
       key: {{ .Values.secretKeys.operationsApiKey }}
+{{ if eq .Values.config.knowledgeBackend "qdrant" }}
 - name: QDRANT_API_KEY
   valueFrom:
     secretKeyRef:
       name: {{ include "ecommerce-multi-agent.secretName" . }}
       key: {{ .Values.secretKeys.qdrantApiKey }}
+{{ end }}
 - name: OPENAI_API_KEY
   valueFrom:
     secretKeyRef:

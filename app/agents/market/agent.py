@@ -1,8 +1,7 @@
-"""Market intelligence agent over sample aggregates and knowledge notes."""
+"""Market intelligence agent over historical book-snapshot aggregates."""
 
 from __future__ import annotations
 
-import asyncio
 from time import perf_counter
 from typing import Any
 
@@ -18,10 +17,10 @@ from app.contracts import (
 
 
 class MarketAgent(DomainAgent):
-    """Answer market-level questions without overstating sample evidence."""
+    """Answer cross-sectional snapshot questions without trend claims."""
 
     agent_id = "market_agent"
-    supported_actions = frozenset({"market.analyze", "market.search"})
+    supported_actions = frozenset({"market.analyze"})
 
     def __init__(self, gateway: AgentGateway) -> None:
         super().__init__(gateway)
@@ -32,30 +31,23 @@ class MarketAgent(DomainAgent):
         if validation_error:
             return self.failed(message, validation_error, started_at=started_at)
 
-        query = str(message.payload.get("query", "thị trường ecommerce Việt Nam"))
-        knowledge_call = self.call_tool(
+        allowed_filters = {
+            "category",
+            "author",
+            "publisher",
+            "min_price",
+            "max_price",
+            "min_rating",
+        }
+        market = await self.call_tool(
             message,
-            server_id="knowledge",
-            tool_name="search_market_knowledge",
-            arguments={"query": query, "limit": message.payload.get("limit", 3)},
-        )
-        if message.action == "market.search":
-            knowledge = await knowledge_call
-            return self._complete(
-                message,
-                {"knowledge": knowledge.data} if knowledge.ok else {},
-                started_at,
-                errors=(() if knowledge.ok else (self.gateway_error(knowledge),)),
-            )
-
-        market, knowledge = await asyncio.gather(
-            self.call_tool(
-                message,
-                server_id="analytics",
-                tool_name="analyze_market",
-                arguments={"category": message.payload.get("category")},
-            ),
-            knowledge_call,
+            server_id="analytics",
+            tool_name="analyze_market",
+            arguments={
+                key: value
+                for key, value in message.payload.items()
+                if key in allowed_filters and value is not None
+            },
         )
         data: dict[str, Any] = {}
         errors: list[AgentError] = []
@@ -63,10 +55,6 @@ class MarketAgent(DomainAgent):
             data["market"] = market.data
         else:
             errors.append(self.gateway_error(market))
-        if knowledge.ok:
-            data["knowledge"] = knowledge.data
-        else:
-            errors.append(self.gateway_error(knowledge))
         return self._complete(
             message,
             data,
@@ -95,18 +83,15 @@ class MarketAgent(DomainAgent):
                     DataProvenance(
                         source_type="sample.database",
                         source_id="postgresql:products",
-                        fields=("price", "rating", "sold_count"),
+                        fields=(
+                            "category",
+                            "authors",
+                            "publisher",
+                            "price",
+                            "rating",
+                        ),
                         sample_data=True,
                     ),
-                )
-            )
-        if "knowledge" in data:
-            provenance.append(
-                DataProvenance(
-                    source_type="sample.document",
-                    source_id="sample_thesis_market_notes",
-                    fields=("title", "content"),
-                    sample_data=True,
                 )
             )
         return AgentResult(

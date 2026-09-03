@@ -1,7 +1,7 @@
 {
   "schema_version": "2.0",
   "experiment_id": "thesis_live_pilot_v2",
-  "baseline_variant_id": "deterministic_v2",
+  "baseline_variant_id": "deterministic_book_catalog_v2",
   "random_seed": 42,
   "correctness_repeats": 1,
   "warmup_repeats": 0,
@@ -19,8 +19,20 @@
   },
   "variants": [
     {
+      "variant_id": "deterministic_book_catalog_v2",
+      "description": "Deterministic product-only Tiki Books baseline for paired pilot comparisons.",
+      "runtime_mode": "deterministic",
+      "enabled_agents": [
+        "product_agent"
+      ],
+      "embedding_backend": "hashed_token_cosine_v1",
+      "max_model_calls": 0,
+      "fallback_policy": "deterministic_fallback",
+      "hypothesis": "A product-only book assistant provides the paired lower bound for the deterministic and hybrid systems."
+    },
+    {
       "variant_id": "deterministic_v2",
-      "description": "Deterministic router, planner, four domain agents, and grounded synthesis.",
+      "description": "Deterministic router, planner, four Tiki Books specialists, and grounded synthesis.",
       "runtime_mode": "deterministic",
       "enabled_agents": [
         "product_agent",
@@ -31,7 +43,8 @@
       "embedding_backend": "hashed_token_cosine_v1",
       "max_model_calls": 0,
       "fallback_policy": "deterministic_fallback",
-      "hypothesis": "A zero-LLM baseline establishes the quality, latency, token, and cost floor."
+      "parent_variant_id": "deterministic_book_catalog_v2",
+      "hypothesis": "Adding review, trust, and market specialists improves book-task quality over the product-only deterministic baseline."
     },
     {
       "variant_id": "hybrid_full",

@@ -31,7 +31,10 @@ def _product_filters(entities: dict[str, Any]) -> dict[str, Any]:
         "max_price",
         "min_price",
         "min_rating",
-        "platform",
+        "author",
+        "publisher",
+        "min_page_count",
+        "max_page_count",
         "limit",
     }
     return {
@@ -44,7 +47,12 @@ def _product_filters(entities: dict[str, Any]) -> dict[str, Any]:
 def _product_search_input(entities: dict[str, Any]) -> dict[str, Any]:
     payload = _product_filters(entities)
     product_query = entities.get("product_query")
-    if "category" not in payload and isinstance(product_query, str):
+    if (
+        "category" not in payload
+        and "author" not in payload
+        and "publisher" not in payload
+        and isinstance(product_query, str)
+    ):
         payload["query"] = product_query
     return payload
 
@@ -128,13 +136,18 @@ def _product_dependent(
     if isinstance(product_id, int):
         return (_step(f"step_{target}", target, action, {"product_id": product_id}),)
 
-    query = entities.get("product_query") or entities.get("query")
+    product_input = _product_search_input(entities)
+    if not product_input:
+        raw_query = entities.get("query")
+        if isinstance(raw_query, str) and raw_query.strip():
+            product_input["query"] = raw_query
+    product_input["limit"] = 1
     return (
         _step(
             "step_product",
             "product_agent",
             "product.search",
-            {"query": query, "limit": 1},
+            product_input,
         ),
         _step(
             f"step_{target}",
@@ -163,7 +176,7 @@ def _trust_complaints(entities: dict[str, Any]) -> tuple[ExecutionStep, ...]:
 
 
 def _multi_recommendation(entities: dict[str, Any]) -> tuple[ExecutionStep, ...]:
-    product_input = _product_filters(entities)
+    product_input = _product_search_input(entities)
     product_input.setdefault("limit", 5)
     return (
         _step("step_product", "product_agent", "product.rank", product_input),
@@ -186,10 +199,6 @@ def _multi_recommendation(entities: dict[str, Any]) -> tuple[ExecutionStep, ...]
 
 def _market_analyze(entities: dict[str, Any]) -> tuple[ExecutionStep, ...]:
     return (_step("step_market", "market_agent", "market.analyze", entities),)
-
-
-def _market_search(entities: dict[str, Any]) -> tuple[ExecutionStep, ...]:
-    return (_step("step_market", "market_agent", "market.search", entities),)
 
 
 def _review_expected(entities: dict[str, Any]) -> tuple[str, ...]:
@@ -264,11 +273,5 @@ def build_default_intent_manifests() -> tuple[IntentManifest, ...]:
             "market_agent",
             _market_analyze,
             lambda _: ("market.analyze",),
-        ),
-        IntentManifest(
-            "market.search",
-            "market_agent",
-            _market_search,
-            lambda _: ("market.search",),
         ),
     )

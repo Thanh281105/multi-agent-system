@@ -12,11 +12,109 @@ from fastapi.testclient import TestClient
 
 from app.contracts import ExecutionPlan, TaskStatus
 from app.core.config import Settings
+from app.gateway.schemas import (
+    AgentExecutionInfo,
+    GatewayChatRequest,
+    GatewayChatResponse,
+    GatewayErrorDetail,
+    GatewayErrorResponse,
+    GatewayStatusEvent,
+    GatewayTokenEvent,
+    ModelCallInfo,
+    ProvenanceInfo,
+)
 from app.main import create_app
 from app.orchestrator import OrchestrationResult
 
 ALICE_HEADERS = {"X-API-Key": "alice-secret-key"}
 BOB_HEADERS = {"X-API-Key": "bob-secret-key"}
+
+
+def test_public_v1_contract_field_sets_are_stable() -> None:
+    expected_fields = {
+        GatewayChatRequest: ("message", "session_id"),
+        AgentExecutionInfo: (
+            "step_id",
+            "agent_id",
+            "action",
+            "depends_on",
+            "status",
+            "duration_ms",
+            "error_codes",
+        ),
+        ProvenanceInfo: (
+            "source_type",
+            "source_id",
+            "fields",
+            "sample_data",
+            "observed_at",
+        ),
+        ModelCallInfo: (
+            "call_id",
+            "stage",
+            "agent_id",
+            "provider",
+            "model",
+            "response_id",
+            "status",
+            "duration_ms",
+            "input_tokens",
+            "cached_input_tokens",
+            "output_tokens",
+            "reasoning_tokens",
+            "total_tokens",
+            "attempts",
+            "fallback_used",
+            "fallback_reason",
+            "error_code",
+        ),
+        GatewayChatResponse: (
+            "api_version",
+            "status",
+            "answer",
+            "session_id",
+            "request_id",
+            "trace_id",
+            "intent",
+            "active_agent",
+            "selected_product_id",
+            "executions",
+            "provenance",
+            "model_calls",
+            "warnings",
+            "sample_data",
+            "duration_ms",
+        ),
+        GatewayErrorDetail: (
+            "code",
+            "message",
+            "request_id",
+            "trace_id",
+            "retryable",
+            "validation_errors",
+        ),
+        GatewayErrorResponse: ("error",),
+        GatewayStatusEvent: (
+            "sequence",
+            "phase",
+            "message",
+            "request_id",
+            "trace_id",
+            "step_id",
+            "agent_id",
+            "status",
+        ),
+        GatewayTokenEvent: (
+            "sequence",
+            "delta",
+            "request_id",
+            "trace_id",
+        ),
+    }
+
+    for schema, field_names in expected_fields.items():
+        assert tuple(schema.model_fields) == field_names
+    assert GatewayChatResponse.model_fields["api_version"].default == "v1"
 
 
 def test_gateway_authenticates_and_returns_grounded_correlated_result() -> None:
@@ -29,7 +127,7 @@ def test_gateway_authenticates_and_returns_grounded_correlated_result() -> None:
             "X-Request-ID": "req_client_safe_123",
             "X-Trace-ID": "trace_client_must_not_win",
         },
-        json={"message": "Tìm tai nghe dưới 1 triệu"},
+        json={"message": "Tìm sách Sapiens"},
     )
 
     body = response.json()
@@ -79,12 +177,12 @@ def test_gateway_uses_external_principal_policy_and_fails_closed_when_missing() 
     allowed = client.post(
         "/api/v1/chat",
         headers=ALICE_HEADERS,
-        json={"message": "Tìm tai nghe dưới 1 triệu"},
+        json={"message": "Tìm sách Sapiens"},
     )
     missing_policy = client.post(
         "/api/v1/chat",
         headers=BOB_HEADERS,
-        json={"message": "Tìm tai nghe dưới 1 triệu"},
+        json={"message": "Tìm sách Sapiens"},
     )
 
     assert allowed.status_code == 200
@@ -149,18 +247,18 @@ def test_unknown_and_cross_principal_sessions_are_indistinguishable() -> None:
     first = client.post(
         "/api/v1/chat",
         headers=ALICE_HEADERS,
-        json={"message": "Tìm tai nghe dưới 1 triệu"},
+        json={"message": "Tìm sách Nhật Ký Tarot"},
     )
     session_id = first.json()["session_id"]
     continued = client.post(
         "/api/v1/chat",
         headers=ALICE_HEADERS,
-        json={"message": "Còn pin thì sao?", "session_id": session_id},
+        json={"message": "Còn nội dung thì sao?", "session_id": session_id},
     )
     foreign = client.post(
         "/api/v1/chat",
         headers=BOB_HEADERS,
-        json={"message": "Còn pin thì sao?", "session_id": session_id},
+        json={"message": "Còn nội dung thì sao?", "session_id": session_id},
     )
 
     assert unknown.status_code == 404
@@ -271,9 +369,7 @@ def test_sse_streams_real_progress_and_exactly_one_terminal_event() -> None:
         "POST",
         "/api/v1/chat/stream",
         headers=ALICE_HEADERS,
-        json={
-            "message": ("Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn.")
-        },
+        json={"message": ("Tìm sách dưới 150 nghìn, bán tốt và ít bị khách phàn nàn.")},
     ) as response:
         response.read()
         stream_text = response.text
@@ -374,7 +470,11 @@ def test_readiness_and_metrics_use_runtime_adapters() -> None:
     metrics = client.get("/metrics")
 
     assert ready.status_code == 200
-    assert ready.json()["checks"] == {"runtime": "ok", "database": "ok"}
+    assert ready.json()["checks"] == {
+        "runtime": "ok",
+        "database": "ok",
+        "knowledge": "disabled",
+    }
     assert metrics.status_code == 200
     assert "http_requests_total" in metrics.text
     assert "agent_operations_total" in metrics.text
@@ -412,13 +512,12 @@ def test_settings_reject_insecure_production_gateway() -> None:
         legacy_chat_enabled=False,
         shared_state_backend="redis",
         redis_url="redis://:strong-redis-password@localhost:6379/0",
-        knowledge_backend="qdrant",
-        qdrant_api_key="strong-qdrant-key",
         operations_api_key="strong-operations-key",
         model_runtime_mode="off",
         embedding_backend="hashing",
     )
     assert production.app_env == "production"
+    assert production.knowledge_backend == "disabled"
     production_app = create_app(production)
     assert (
         TestClient(production_app)

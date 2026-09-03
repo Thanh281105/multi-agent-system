@@ -1,4 +1,4 @@
-"""Product domain agent backed exclusively by Agent Gateway skills."""
+"""Book catalog agent backed exclusively by Agent Gateway skills."""
 
 from __future__ import annotations
 
@@ -16,14 +16,17 @@ SEARCH_ARGUMENTS = frozenset(
         "max_price",
         "min_price",
         "min_rating",
-        "platform",
+        "author",
+        "publisher",
+        "min_page_count",
+        "max_page_count",
         "limit",
     }
 )
 
 
 class ProductAgent(DomainAgent):
-    """Search, compare, rank, and summarize product catalog facts."""
+    """Search, compare, and rank historical Tiki book facts."""
 
     agent_id = "product_agent"
     supported_actions = frozenset(
@@ -143,6 +146,15 @@ class ProductAgent(DomainAgent):
         return DataProvenance(
             source_type="sample.database",
             source_id="postgresql:products",
-            fields=("price", "rating", "sold_count", "shop", "platform"),
+            fields=(
+                "name",
+                "authors",
+                "publisher",
+                "category",
+                "page_count",
+                "price",
+                "rating",
+                "sold_count",
+            ),
             sample_data=True,
         )

@@ -11,7 +11,6 @@ from app.agent_gateway import AgentGateway
 from app.agents import build_default_dispatcher
 from app.evaluation.failure import FailureInjectingDispatcher
 from app.evaluation.models import FailureInjection
-from app.evaluation.retrieval import search_evaluation_sample_knowledge_v2
 from app.evaluation.v2_models import (
     EvaluationVariantV2,
     ModelBindingV2,
@@ -65,11 +64,7 @@ def build_variant_orchestrator_v2(
     runtime_mode: ModelRuntimeMode = (
         "required" if variant.fallback_policy == "fail_closed" else "hybrid"
     )
-    gateway = AgentGateway(
-        router=build_default_mcp_router(
-            knowledge_search=search_evaluation_sample_knowledge_v2
-        )
-    )
+    gateway = AgentGateway(router=build_default_mcp_router())
     specialist_binding = _binding(variant, ModelStage.SPECIALIST)
     dispatcher = build_default_dispatcher(
         gateway,

@@ -19,14 +19,16 @@ def search_products(
     max_price: int | None = None,
     min_price: int | None = None,
     min_rating: float | None = None,
-    platform: str | None = None,
+    author: str | None = None,
+    publisher: str | None = None,
+    min_page_count: int | None = None,
+    max_page_count: int | None = None,
     limit: int = 10,
 ) -> dict[str, Any]:
-    """Search Vietnamese e-commerce products using structured filters.
+    """Search the cleaned historical Tiki Books snapshot.
 
-    Use this tool for product discovery, price/rating constraints, category
-    searches, and resolving a product name to its database ID. Results contain
-    database facts only and are safe to pass back to an LLM for explanation.
+    Search by title/free text, author, publisher, category, price, rating, or
+    page count. Results are historical snapshot facts, not Tiki's live catalog.
     """
 
     _validate_limit(limit)
@@ -38,6 +40,16 @@ def search_products(
         raise ValueError("min_rating must be between 0 and 5")
     if max_price is not None and min_price is not None and min_price > max_price:
         raise ValueError("min_price cannot exceed max_price")
+    author = _validate_optional_text(author, "author", maximum=220)
+    publisher = _validate_optional_text(publisher, "publisher", maximum=220)
+    _validate_page_count(min_page_count, "min_page_count")
+    _validate_page_count(max_page_count, "max_page_count")
+    if (
+        min_page_count is not None
+        and max_page_count is not None
+        and min_page_count > max_page_count
+    ):
+        raise ValueError("min_page_count cannot exceed max_page_count")
 
     active_filters = sum(
         value is not None
@@ -47,7 +59,10 @@ def search_products(
             max_price,
             min_price,
             min_rating,
-            platform,
+            author,
+            publisher,
+            min_page_count,
+            max_page_count,
         )
     )
     logger.info(
@@ -62,7 +77,10 @@ def search_products(
             max_price=max_price,
             min_price=min_price,
             min_rating=min_rating,
-            platform=platform,
+            author=author,
+            publisher=publisher,
+            min_page_count=min_page_count,
+            max_page_count=max_page_count,
             limit=limit,
         )
 
@@ -104,10 +122,22 @@ def get_product_reviews(product_id: int, limit: int = 20) -> dict[str, Any]:
     product_payload: dict[str, Any] = {
         "id": product.id,
         "name": product.name,
+        "authors": list(product.authors),
+        "publisher": product.publisher,
+        "category": product.category,
+        "page_count": product.page_count,
         "rating": product.rating,
+        "source_review_count": product.source_review_count,
         "provenance": product_provenance(
             product,
-            fields=("rating", "content", "created_at"),
+            fields=(
+                "rating",
+                "title",
+                "content",
+                "helpful_count",
+                "created_at",
+                "source_review_count",
+            ),
             fallback_source_id="postgresql:reviews",
         ),
     }
@@ -120,7 +150,14 @@ def get_product_reviews(product_id: int, limit: int = 20) -> dict[str, Any]:
                 "id": review.id,
                 "product_id": review.product_id,
                 "rating": review.rating,
+                "title": review.title,
                 "content": review.content,
+                "helpful_count": review.helpful_count,
+                "created_at": (
+                    review.created_at.isoformat()
+                    if review.created_at is not None
+                    else None
+                ),
             }
             for review in reviews
         ],
@@ -173,8 +210,15 @@ def compare_products(product_ids: list[int]) -> dict[str, Any]:
     return result
 
 
-def get_product_statistics(category: str | None = None) -> dict[str, Any]:
-    """Return aggregate facts for one category or the complete sample catalog."""
+def get_product_statistics(
+    category: str | None = None,
+    author: str | None = None,
+    publisher: str | None = None,
+    min_price: int | None = None,
+    max_price: int | None = None,
+    min_rating: float | None = None,
+) -> dict[str, Any]:
+    """Return cross-sectional aggregates for the historical books snapshot."""
 
     if category is not None:
         category = category.strip()
@@ -182,6 +226,16 @@ def get_product_statistics(category: str | None = None) -> dict[str, Any]:
             raise ValueError("category must not be blank")
         if len(category) > 80:
             raise ValueError("category must contain at most 80 characters")
+    author = _validate_optional_text(author, "author", maximum=220)
+    publisher = _validate_optional_text(publisher, "publisher", maximum=220)
+    if min_price is not None and min_price < 0:
+        raise ValueError("min_price must be non-negative")
+    if max_price is not None and max_price < 0:
+        raise ValueError("max_price must be non-negative")
+    if min_price is not None and max_price is not None and min_price > max_price:
+        raise ValueError("min_price cannot exceed max_price")
+    if min_rating is not None and not 0 <= min_rating <= 5:
+        raise ValueError("min_rating must be between 0 and 5")
 
     logger.info(
         "TOOL_CALL tool=get_product_statistics category_present=%s",
@@ -190,6 +244,11 @@ def get_product_statistics(category: str | None = None) -> dict[str, Any]:
     with session_scope() as session:
         result = EcommerceRepository(session).get_product_statistics(
             category=category,
+            author=author,
+            publisher=publisher,
+            min_price=min_price,
+            max_price=max_price,
+            min_rating=min_rating,
         )
     logger.info(
         "TOOL RESULT tool=get_product_statistics products=%d",
@@ -210,6 +269,33 @@ def _validate_limit(limit: int, *, maximum: int = 50) -> None:
 def _validate_positive_id(value: int, field_name: str) -> None:
     if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ValueError(f"{field_name} must be a positive integer")
+
+
+def _validate_page_count(value: int | None, field_name: str) -> None:
+    if value is None:
+        return
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or not 1 <= value <= 20_000
+    ):
+        raise ValueError(f"{field_name} must be an integer between 1 and 20000")
+
+
+def _validate_optional_text(
+    value: str | None,
+    field_name: str,
+    *,
+    maximum: int,
+) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        raise ValueError(f"{field_name} must not be blank")
+    if len(cleaned) > maximum:
+        raise ValueError(f"{field_name} must contain at most {maximum} characters")
+    return cleaned
 
 
 def _collect_provenance(records: list[dict[str, Any]]) -> list[dict[str, Any]]:

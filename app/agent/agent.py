@@ -11,17 +11,17 @@ from app.tools.ecommerce import (
 )
 
 AGENT_INSTRUCTION = """
-Bạn là EcommerceAgent, trợ lý phân tích sản phẩm thương mại điện tử Việt Nam.
+Bạn là TikiBooksAgent, trợ lý phân tích sách tiếng Việt từ snapshot lịch sử Tiki.
 
 Quy tắc bắt buộc:
 
-1. Mọi dữ liệu về sản phẩm, giá, rating, lượng bán, shop, platform và review
+1. Mọi dữ liệu về sách, tác giả, nhà xuất bản, số trang, giá, rating, độ phổ
+   biến do nguồn ghi nhận và review
    phải lấy từ các tool được cung cấp. Không được tự tạo, đoán hoặc điền dữ
    liệu không tồn tại trong database.
-2. Khi người dùng yêu cầu tìm sản phẩm, hãy sử dụng search_products với các
-   bộ lọc mà người dùng nêu. Có thể dùng query để tìm tên sản phẩm hoặc từ
-   khóa tiếng Việt.
-3. Khi người dùng hỏi đánh giá/review của một sản phẩm, hãy xác định
+2. Khi người dùng yêu cầu tìm sách, hãy sử dụng search_products với title,
+   author, publisher, category, price, rating và page count mà họ nêu.
+3. Khi người dùng hỏi đánh giá/review của một cuốn sách, hãy xác định
    product_id bằng search_products nếu chỉ có tên, sau đó gọi
    get_product_reviews. Chỉ tóm tắt review thực tế mà tool trả về.
 4. Khi người dùng yêu cầu so sánh, hãy xác định product IDs bằng
@@ -31,9 +31,13 @@ Quy tắc bắt buộc:
    Nếu tool bị lỗi, nói rằng hiện không thể truy xuất dữ liệu; tuyệt đối không
    biến lỗi thành dữ liệu giả.
 6. Khi recommendation, phân biệt rõ facts lấy từ database với nhận xét/suy
-   luận của bạn. Nêu các trường thực tế như giá, rating, sold_count và nội
-   dung review làm căn cứ.
-7. Trả lời bằng tiếng Việt, rõ ràng, ngắn gọn nhưng đủ căn cứ. Không tiết lộ
+   luận. Không gọi sold_count là doanh số đã xác minh; chỉ gọi là độ phổ biến
+   do nguồn ghi nhận.
+7. Chỉ hỗ trợ miền sách. Với sản phẩm ngoài sách, nói rõ yêu cầu chưa được hỗ
+   trợ và không gọi tool để tạo dữ liệu ngoài miền.
+8. Mọi câu trả lời dùng dữ liệu phải nêu: dữ liệu là snapshot lịch sử Tiki
+   Books phục vụ đồ án, không phản ánh catalog, giá hoặc tồn kho hiện tại.
+9. Trả lời bằng tiếng Việt, rõ ràng, ngắn gọn nhưng đủ căn cứ. Không tiết lộ
    chain-of-thought nội bộ; chỉ nêu kết luận và lý do dựa trên dữ liệu.
 """.strip()
 
@@ -43,10 +47,7 @@ OPENAI_TOOLS: tuple[dict[str, Any], ...] = (
     {
         "type": "function",
         "name": "search_products",
-        "description": (
-            "Search products using Vietnamese e-commerce database facts and "
-            "structured filters."
-        ),
+        "description": ("Search historical Tiki book facts with structured filters."),
         "parameters": {
             "type": "object",
             "properties": {
@@ -55,7 +56,18 @@ OPENAI_TOOLS: tuple[dict[str, Any], ...] = (
                 "max_price": {"type": "integer", "minimum": 0},
                 "min_price": {"type": "integer", "minimum": 0},
                 "min_rating": {"type": "number", "minimum": 0, "maximum": 5},
-                "platform": {"type": "string"},
+                "author": {"type": "string"},
+                "publisher": {"type": "string"},
+                "min_page_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20000,
+                },
+                "max_page_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20000,
+                },
                 "limit": {"type": "integer", "minimum": 1, "maximum": 50},
             },
             "additionalProperties": False,
@@ -65,7 +77,7 @@ OPENAI_TOOLS: tuple[dict[str, Any], ...] = (
     {
         "type": "function",
         "name": "get_product_reviews",
-        "description": "Get factual customer reviews for one product ID.",
+        "description": "Get cleaned sampled customer reviews for one book ID.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -81,7 +93,7 @@ OPENAI_TOOLS: tuple[dict[str, Any], ...] = (
         "type": "function",
         "name": "compare_products",
         "description": (
-            "Return comparable database facts for up to five product IDs; "
+            "Return comparable historical facts for up to five book IDs; "
             "the agent makes the explanation and recommendation."
         ),
         "parameters": {

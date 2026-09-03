@@ -57,7 +57,9 @@ spec:
               targets = (
                   ("postgres", os.environ["DATABASE_URL"], 5432),
                   ("redis", os.environ["REDIS_URL"], 6379),
+                  {{ if eq .Values.config.knowledgeBackend "qdrant" }}
                   ("qdrant", os.environ["QDRANT_URL"], 6333),
+                  {{ end }}
               )
               deadline = time.monotonic() + timeout
               for name, raw_url, default_port in targets:
@@ -111,27 +113,6 @@ spec:
           image: {{ include "ecommerce-multi-agent.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["ecommerce-seed"]
-          envFrom:
-            - configMapRef:
-                name: {{ include "ecommerce-multi-agent.fullname" . }}
-          env:
-            {{- include "ecommerce-multi-agent.runtimeSecretEnv" . | nindent 12 }}
-          resources:
-            {{- toYaml .Values.bootstrap.resources | nindent 12 }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          volumeMounts:
-            - name: tmp
-              mountPath: /tmp
-        {{- end }}
-        {{- if .Values.bootstrap.seedKnowledge.enabled }}
-        - name: seed-knowledge
-          image: {{ include "ecommerce-multi-agent.image" . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - ecommerce-seed-knowledge
-            - --wait-seconds
-            - {{ .Values.bootstrap.seedKnowledge.waitSeconds | quote }}
           envFrom:
             - configMapRef:
                 name: {{ include "ecommerce-multi-agent.fullname" . }}

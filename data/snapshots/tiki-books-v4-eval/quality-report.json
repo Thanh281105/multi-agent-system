@@ -1,0 +1,58 @@
+{
+  "cleaner_version": "tiki-books-cleaner-1.0.0",
+  "config_version": "tiki-books-profiles-1.0.0",
+  "correction_counts": {
+    "product_category_mapped": 187,
+    "product_category_to_other": 281,
+    "product_duplicate_identity": 19,
+    "product_invalid_page_count": 1,
+    "product_title_truncated": 1,
+    "review_duplicate_conflict": 1
+  },
+  "drop_counts": {
+    "review_duplicate_identity": 15416,
+    "review_empty_content": 33451,
+    "review_orphan": 15659
+  },
+  "field_coverage": {
+    "product.authors": 0.865,
+    "product.cover_url": 1.0,
+    "product.original_price": 1.0,
+    "product.page_count": 0.87,
+    "product.publisher": 0.845,
+    "product.rating": 1.0,
+    "product.seller": 0.0,
+    "product.source_popularity": 0.98,
+    "review.helpful_count": 1.0,
+    "review.source_timestamp": 0.0,
+    "review.title": 1.0
+  },
+  "gate_failures": [],
+  "input_counts": {
+    "book_rows": 1796,
+    "review_rows": 141281
+  },
+  "output_counts": {
+    "cleaned_products": 1777,
+    "cleaned_reviews": 76755,
+    "products": 200,
+    "profile_target_reviews": 1773,
+    "reviews": 1773
+  },
+  "output_hashes": {
+    "manifest.json": "e4f6580e33aa458713842855a7bb58b0e9a73942d888ff124ba4d30fd6513e8e",
+    "products.jsonl": "830c684733e47a2dddc4591ffba7d62d5db01600f0c00910b02730b1e8da148e",
+    "reviews.jsonl": "1eb3b76031d8186968d9b5d062edb6f6fb5e8d504d78be1bf0b1f71fd8c0bafe",
+    "snapshot": "986803ba95d268cf158f36103efa2e1ce00c6134b0e03b67d96c7058f019d66d"
+  },
+  "profile": "eval",
+  "raw_archive_sha256": "371a618ed66425f8f2738ab01514ab2f20ed1bed645258b509fcce443bd32bbb",
+  "redaction_counts": {
+    "email": 21,
+    "phone": 118,
+    "url": 76
+  },
+  "schema_version": "1.0",
+  "status": "pass",
+  "taxonomy_version": "tiki-books-taxonomy-1.0.0"
+}

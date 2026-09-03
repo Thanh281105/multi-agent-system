@@ -231,7 +231,7 @@ class ReviewAgent(DomainAgent):
         return DataProvenance(
             source_type="sample.database",
             source_id="postgresql:reviews",
-            fields=("rating", "content", "created_at"),
+            fields=("rating", "title", "content", "helpful_count", "created_at"),
             sample_data=True,
         )
 
@@ -239,14 +239,23 @@ class ReviewAgent(DomainAgent):
     def _summary(data: dict[str, Any]) -> str:
         distribution = data["sentiment"]["distribution"]
         negative_aspects = data["aspects"]["negative_aspects"]
+        retrieval = data["retrieval"]
+        sampled_count = int(retrieval.get("count", 0))
+        product = retrieval.get("product", {})
+        source_count = (
+            product.get("source_review_count") if isinstance(product, dict) else None
+        )
         positive_percent = round(float(distribution["positive"]) * 100)
+        scope = f"Trong {sampled_count} review đã làm sạch được lấy mẫu từ snapshot"
+        if isinstance(source_count, int) and not isinstance(source_count, bool):
+            scope += f" (listing nguồn ghi nhận {source_count} review)"
         if negative_aspects:
             issues = ", ".join(negative_aspects[:3])
             return (
-                f"{positive_percent}% review được phân loại tích cực; "
+                f"{scope}, {positive_percent}% được phân loại tích cực; "
                 f"các khía cạnh có tín hiệu chưa tốt gồm {issues}."
             )
         return (
-            f"{positive_percent}% review được phân loại tích cực; "
-            "chưa phát hiện khía cạnh tiêu cực nổi bật trong dữ liệu mẫu."
+            f"{scope}, {positive_percent}% được phân loại tích cực; "
+            "chưa phát hiện khía cạnh tiêu cực nổi bật trong phần review này."
         )

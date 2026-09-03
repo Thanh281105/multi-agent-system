@@ -3,18 +3,10 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import (
-    CheckConstraint,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    Text,
-    func,
-)
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, utc_now
+from app.db.base import Base
 from app.models.dataset_source import DatasetSource
 
 if TYPE_CHECKING:
@@ -27,6 +19,10 @@ class Review(Base):
     __tablename__ = "reviews"
     __table_args__ = (
         CheckConstraint("rating >= 1 AND rating <= 5", name="ck_reviews_rating_range"),
+        CheckConstraint(
+            "helpful_count >= 0",
+            name="ck_reviews_helpful_count_non_negative",
+        ),
         Index("ix_reviews_product_created_at", "product_id", "created_at"),
         Index(
             "ux_reviews_source_external_id",
@@ -43,7 +39,7 @@ class Review(Base):
         index=True,
     )
     external_id: Mapped[str | None] = mapped_column(
-        String(128),
+        String(257),
         nullable=True,
     )
     product_id: Mapped[int] = mapped_column(
@@ -52,12 +48,15 @@ class Review(Base):
         index=True,
     )
     rating: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str | None] = mapped_column(Text, nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
+    helpful_count: Mapped[int] = mapped_column(
+        Integer,
         nullable=False,
-        default=utc_now,
-        server_default=func.now(),
+        default=0,
+        server_default="0",
     )
+    created_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     product: Mapped["Product"] = relationship(back_populates="reviews")
     dataset_source: Mapped["DatasetSource | None"] = relationship(

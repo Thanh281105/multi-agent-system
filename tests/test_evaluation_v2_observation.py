@@ -50,7 +50,7 @@ def test_observation_maps_plan_evidence_usage_scores_and_exact_cost() -> None:
     ).cases[0]
     provenance = DataProvenance(
         source_type="postgresql.products",
-        source_id="products:1",
+        source_id="products:6",
         fields=("name", "price"),
     )
     calls = tuple(
@@ -62,7 +62,7 @@ def test_observation_maps_plan_evidence_usage_scores_and_exact_cost() -> None:
     )
     result = OrchestrationResult(
         status=TaskStatus.SUCCESS,
-        answer=("Tai nghe Bluetooth Nova Air S2 có giá 799.000₫ theo dữ liệu mẫu."),
+        answer=("Sách Nhật Ký Tarot có giá 143.000₫ theo snapshot lịch sử Tiki Books."),
         request_id="req_eval_mapping",
         trace_id="trace_eval_mapping",
         session_id="sess_eval_mapping",
@@ -89,7 +89,7 @@ def test_observation_maps_plan_evidence_usage_scores_and_exact_cost() -> None:
                 task_id="task_eval_mapping",
                 agent_id="product_agent",
                 status=TaskStatus.SUCCESS,
-                data={"products": [{"id": 1}]},
+                data={"products": [{"id": 6}]},
                 provenance=(provenance,),
             ),
         ),
@@ -145,10 +145,10 @@ def test_observation_maps_plan_evidence_usage_scores_and_exact_cost() -> None:
         "source_step_id": "step_product",
         "target_step_id": "step_review",
     }
-    assert observation.retrieved_product_ids == (1,)
-    assert observation.provenance_source_ids == ("products:1",)
+    assert observation.retrieved_product_ids == (6,)
+    assert observation.provenance_source_ids == ("products:6",)
     assert observation.routing_correct is True
-    assert observation.assertions_passed == 3
+    assert observation.assertions_passed == 4
     assert observation.exact_plan is False
 
 
@@ -290,7 +290,7 @@ def _protocol(pricing: PricingManifestV2) -> EvaluationProtocolV2:
         sample_seed_sha256="d" * 64,
         evaluator_sha256="e" * 64,
         correctness_repeats=1,
-        case_order=("simple_01_nova_search",),
+        case_order=("simple_01_tarot_search",),
         variants=(deterministic, hybrid),
         model_runtime_policy=ModelRuntimePolicyV2(
             request_timeout_seconds=18,

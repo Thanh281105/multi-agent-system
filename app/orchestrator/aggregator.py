@@ -19,6 +19,11 @@ from app.shared import (
     mark_model_call_fallback,
 )
 
+SNAPSHOT_DISCLAIMER = (
+    "Dữ liệu là snapshot lịch sử Tiki Books phục vụ đồ án; không phản ánh "
+    "catalog, giá hoặc tồn kho Tiki hiện tại."
+)
+
 
 @dataclass(frozen=True, slots=True)
 class Aggregation:
@@ -58,14 +63,14 @@ class ResultAggregator:
 
         if intent == "general.help":
             answer = (
-                "Mình có thể tìm/so sánh sản phẩm, phân tích review và complaint, "
-                "hoặc tổng hợp tín hiệu thị trường từ bộ dữ liệu mẫu."
+                "Mình có thể tìm/so sánh sách, phân tích review và complaint, "
+                "hoặc thống kê cắt ngang snapshot theo tác giả, nhà xuất bản, "
+                "danh mục, giá và rating."
             )
         elif intent == "general.unsupported":
             answer = (
-                "Yêu cầu này nằm ngoài các miền sản phẩm, review, độ tin cậy và "
-                "thị trường mà hệ thống hiện hỗ trợ; mình chưa gọi tool để tránh "
-                "tạo thông tin không có nguồn."
+                "Trợ lý hiện chỉ hỗ trợ sách. Mình chưa gọi agent hoặc tool cho "
+                "yêu cầu ngoài miền để tránh tạo thông tin không có nguồn."
             )
         elif intent == "multi.recommendation":
             answer, selected_product_id = self._multi_recommendation(results)
@@ -87,6 +92,10 @@ class ResultAggregator:
             )
         elif status == TaskStatus.FAILED and warnings:
             answer = "Không thể hoàn tất yêu cầu từ các nguồn dữ liệu hiện có."
+        if intent == "multi.recommendation" or intent.startswith(
+            ("product", "review", "trust", "market")
+        ):
+            answer = self._with_snapshot_disclaimer(answer)
         return Aggregation(
             status,
             answer,
@@ -169,10 +178,8 @@ class ResultAggregator:
             for claim_id in selected_ids
         ]
         answer = " ".join(cited_claims)
-        if all(item.sample_data for item in fallback.provenance) and (
-            "dữ liệu mẫu" not in answer.casefold()
-        ):
-            answer += " Kết luận này chỉ áp dụng cho dữ liệu mẫu của hệ thống."
+        if all(item.sample_data for item in fallback.provenance):
+            answer = self._with_snapshot_disclaimer(answer)
         return Aggregation(
             status=fallback.status,
             answer=answer,
@@ -217,72 +224,78 @@ class ResultAggregator:
         if comparison:
             products = comparison.get("products", [])
             if not products:
-                return "Không tìm thấy sản phẩm để so sánh trong dữ liệu mẫu."
+                return "Không tìm thấy sách để so sánh trong snapshot."
             lines = [self._product_line(product) for product in products]
-            return "So sánh theo dữ liệu mẫu: " + "; ".join(lines) + "."
+            return "So sánh theo snapshot: " + "; ".join(lines) + "."
 
         ranked = self._first_nested(results, "ranking", "products")
         products = ranked or self._first_list(results, "products")
         if not products:
-            return "Không tìm thấy sản phẩm phù hợp trong dữ liệu mẫu."
+            return "Không tìm thấy sách phù hợp trong snapshot."
         lines = [self._product_line(product) for product in products[:5]]
-        return "Các sản phẩm phù hợp theo dữ liệu mẫu: " + "; ".join(lines) + "."
+        return "Các sách phù hợp theo snapshot: " + "; ".join(lines) + "."
 
     def _review_answer(self, results: tuple[AgentResult, ...]) -> str:
         review = self._agent_data(results, "review_agent")
         if review and isinstance(review.get("summary"), str):
+            searched_products = self._first_list(results, "products")
+            if searched_products:
+                return (
+                    f"{self._product_line(searched_products[0])}. {review['summary']}"
+                )
             product = self._retrieved_product(review)
             prefix = f"{product['name']}: " if product else ""
             return prefix + str(review["summary"])
         if review:
             retrieval = review.get("retrieval")
             if isinstance(retrieval, dict) and not retrieval.get("found", True):
-                return (
-                    "Không tìm thấy sản phẩm hoặc review tương ứng trong dữ liệu mẫu."
-                )
-        return "Không tìm thấy sản phẩm để phân tích review trong dữ liệu mẫu."
+                return "Không tìm thấy sách hoặc review tương ứng trong snapshot."
+        return "Không tìm thấy sách để phân tích review trong snapshot."
 
     def _trust_answer(self, results: tuple[AgentResult, ...]) -> str:
         trust = self._agent_data(results, "trust_agent")
         if not trust:
-            return "Không tìm thấy sản phẩm để phân tích complaint trong dữ liệu mẫu."
+            return "Không tìm thấy sách để phân tích complaint trong snapshot."
         complaints = trust.get("complaints")
         trust_data = trust.get("trust")
         if not isinstance(complaints, dict):
             return "Có review nhưng chưa tính được chỉ số complaint."
         product = self._retrieved_product(trust)
-        name = product["name"] if product else "Sản phẩm"
+        name = product["name"] if product else "Cuốn sách"
         rate = round(float(complaints.get("complaint_rate", 0)) * 100)
         count = int(complaints.get("complaint_count", 0))
         answer = f"{name} có {count} review mang tín hiệu complaint ({rate}%)."
         if isinstance(trust_data, dict):
             score = round(float(trust_data.get("average_trust_score", 0)) * 100)
-            answer += f" Điểm tin cậy heuristic trung bình là {score}%."
+            answer += f" Điểm chất lượng văn bản heuristic trung bình là {score}%."
+        answer += (
+            " Các rule này không xác định review giả, gian lận hay tính xác thực "
+            "của sách."
+        )
         return answer
 
     def _market_answer(self, results: tuple[AgentResult, ...]) -> str:
         market_agent = self._agent_data(results, "market_agent")
         if not market_agent:
-            return "Chưa truy xuất được tín hiệu thị trường mẫu."
+            return "Chưa truy xuất được thống kê snapshot sách."
         market = market_agent.get("market")
         if isinstance(market, dict):
             statistics = market.get("statistics", {})
             count = int(statistics.get("product_count", 0))
             average_price = statistics.get("average_price")
             average_rating = statistics.get("average_rating")
+            rating_text = average_rating if average_rating is not None else "chưa có"
             return (
-                f"Bộ dữ liệu mẫu có {count} sản phẩm trong phạm vi đã chọn, "
+                f"Snapshot có {count} sách trong phạm vi đã chọn, "
                 f"giá trung bình {self._price(average_price)} và rating trung bình "
-                f"{average_rating}. Đây không phải thống kê đại diện thị trường thật."
+                f"{rating_text}. Đây là thống kê cắt ngang, không phải xu hướng "
+                "hay thống kê đại diện thị trường hiện tại."
             )
         knowledge = market_agent.get("knowledge")
         if isinstance(knowledge, dict) and knowledge.get("documents"):
             document = knowledge["documents"][0]
-            return (
-                f"Ghi chú dữ liệu mẫu: {document['content']} "
-                "Đây không phải báo cáo thị trường thật."
-            )
-        return "Không tìm thấy ghi chú thị trường phù hợp trong dữ liệu mẫu."
+            return f"Ghi chú snapshot: {document['content']}"
+        return "Không tìm thấy dữ liệu thống kê sách phù hợp trong snapshot."
 
     def _multi_recommendation(
         self,
@@ -291,7 +304,7 @@ class ResultAggregator:
         ranked = self._first_nested(results, "ranking", "products")
         if not ranked:
             return (
-                "Không tìm thấy sản phẩm phù hợp để tạo recommendation có căn cứ.",
+                "Không tìm thấy sách phù hợp để tạo recommendation có căn cứ.",
                 None,
             )
         scoring = score_recommendation_candidates(
@@ -307,7 +320,7 @@ class ResultAggregator:
         coverage = round(float(product["signal_coverage"]) * 100)
         answer = (
             f"Đã so sánh {len(candidates)} ứng viên. Đề xuất đứng đầu theo dữ liệu "
-            "mẫu là "
+            "snapshot là "
             + self._product_line(product)
             + f", với điểm đa agent {score}% và độ phủ tín hiệu {coverage}%. "
             "Công thức: Product 55%, cảm xúc review 15%, ít complaint 20%, "
@@ -336,10 +349,37 @@ class ResultAggregator:
 
     @staticmethod
     def _product_line(product: dict[str, Any]) -> str:
-        return (
-            f"{product.get('name')} — {ResultAggregator._price(product.get('price'))}, "
-            f"rating {product.get('rating')}, đã bán {product.get('sold_count')}"
+        authors_value = product.get("authors")
+        authors = (
+            ", ".join(str(item) for item in authors_value if str(item).strip())
+            if isinstance(authors_value, list)
+            else ""
         )
+        metadata = []
+        if authors:
+            metadata.append(f"tác giả {authors}")
+        publisher = product.get("publisher")
+        if isinstance(publisher, str) and publisher.strip():
+            publisher_label = publisher.strip()
+            if not publisher_label.casefold().startswith(("nxb", "nhà xuất bản")):
+                publisher_label = f"NXB {publisher_label}"
+            metadata.append(publisher_label)
+        metadata_text = f" ({', '.join(metadata)})" if metadata else ""
+        rating = product.get("rating")
+        rating_text = rating if rating is not None else "chưa có"
+        popularity = product.get("source_popularity", product.get("sold_count"))
+        popularity_text = popularity if popularity is not None else "chưa có"
+        return (
+            f"{product.get('name')}{metadata_text} — "
+            f"{ResultAggregator._price(product.get('price'))}, rating {rating_text}, "
+            f"độ phổ biến nguồn {popularity_text}"
+        )
+
+    @staticmethod
+    def _with_snapshot_disclaimer(answer: str) -> str:
+        if SNAPSHOT_DISCLAIMER.casefold() in answer.casefold():
+            return answer
+        return f"{answer} {SNAPSHOT_DISCLAIMER}"
 
     @staticmethod
     def _price(value: object) -> str:

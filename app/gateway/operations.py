@@ -49,13 +49,16 @@ async def ready(request: Request) -> JSONResponse:
         except Exception:
             checks["redis"] = "failed"
 
-    if runtime.knowledge_store is not None:
-        try:
-            async with asyncio.timeout(2):
-                await asyncio.to_thread(runtime.knowledge_store.ready)
-            checks["qdrant"] = "ok"
-        except Exception:
-            checks["qdrant"] = "failed"
+    try:
+        async with asyncio.timeout(2):
+            knowledge_ready = await asyncio.to_thread(runtime.knowledge_store.ready)
+        if knowledge_ready is not True:
+            raise RuntimeError("knowledge backend reported not ready")
+        checks["knowledge"] = (
+            "disabled" if runtime.knowledge_store.backend == "disabled" else "ok"
+        )
+    except Exception:
+        checks["knowledge"] = "failed"
 
     for dependency, outcome in checks.items():
         runtime.telemetry.metrics.increment(

@@ -6,11 +6,15 @@ metadata:
     {{- include "ecommerce-multi-agent.labels" . | nindent 4 }}
 data:
   APP_ENV: production
+  PUBLIC_SNAPSHOT_DIR: {{ .Values.config.snapshotDir | quote }}
   SHARED_STATE_BACKEND: redis
-  KNOWLEDGE_BACKEND: qdrant
+  KNOWLEDGE_BACKEND: {{ .Values.config.knowledgeBackend | quote }}
   LEGACY_CHAT_ENABLED: "false"
-  QDRANT_URL: {{ required "config.qdrantUrl is required" .Values.config.qdrantUrl | quote }}
+  {{ if eq .Values.config.knowledgeBackend "qdrant" }}
+  QDRANT_URL: {{ required "config.qdrantUrl is required when knowledgeBackend=qdrant" .Values.config.qdrantUrl | quote }}
   QDRANT_COLLECTION: {{ .Values.config.qdrantCollection | quote }}
+  QDRANT_TIMEOUT_SECONDS: {{ .Values.config.qdrantTimeoutSeconds | quote }}
+  {{ end }}
   MODEL_RUNTIME_MODE: {{ .Values.config.modelRuntimeMode | quote }}
   EMBEDDING_BACKEND: {{ .Values.config.embeddingBackend | quote }}
   GATEWAY_PRINCIPAL_POLICIES: {{ .Values.config.gatewayPrincipalPolicies | quote }}
@@ -20,7 +24,6 @@ data:
   GATEWAY_RATE_LIMIT_WINDOW_SECONDS: {{ .Values.config.gatewayRateLimitWindowSeconds | quote }}
   GATEWAY_AUTH_ATTEMPT_REQUESTS: {{ .Values.config.gatewayAuthAttemptRequests | quote }}
   REDIS_SOCKET_TIMEOUT_SECONDS: {{ .Values.config.redisSocketTimeoutSeconds | quote }}
-  QDRANT_TIMEOUT_SECONDS: {{ .Values.config.qdrantTimeoutSeconds | quote }}
   ORCHESTRATION_TIMEOUT_SECONDS: {{ .Values.config.orchestrationTimeoutSeconds | quote }}
   OPENAI_ROUTING_MODEL: {{ .Values.config.openaiRoutingModel | quote }}
   OPENAI_PLANNING_MODEL: {{ .Values.config.openaiPlanningModel | quote }}

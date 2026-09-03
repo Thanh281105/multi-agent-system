@@ -13,7 +13,7 @@ from app.db.public_import import import_public_snapshot
 from app.mcp.catalog import build_default_mcp_router
 
 SNAPSHOT_DIR = (
-    Path(__file__).resolve().parents[1] / "data" / "snapshots" / "tiki-books-v4-sample"
+    Path(__file__).resolve().parents[1] / "data" / "snapshots" / "tiki-books-v4-test"
 )
 
 
@@ -37,7 +37,7 @@ async def test_public_snapshot_provenance_reaches_product_agent() -> None:
             source="orchestrator",
             target="product_agent",
             action="product.search",
-            payload={"category": "Đạo đức - Kỹ năng sống"},
+            payload={"category": "Lập Trình"},
         )
     )
 
@@ -45,4 +45,4 @@ async def test_public_snapshot_provenance_reaches_product_agent() -> None:
     assert result.data["count"] >= 1
     assert result.provenance
     assert result.provenance[0].source_type == "sample.public_dataset"
-    assert result.provenance[0].source_id == "tiki-books:kaggle-v4"
+    assert result.provenance[0].source_id == "tiki-books:kaggle-v4:test"

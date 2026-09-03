@@ -1,15 +1,8 @@
 {
   "schema_version": "1.0",
-  "baseline_id": "phase1_single_agent_v1",
-  "status": "real_model_captured",
-  "reason": "Đã chạy đủ 28 case trên main single-agent bằng OpenAI Responses API thật với model gpt-5.4-mini, cùng frozen corpus sample_ecommerce_vi_28_v1. Artifact ghi output, tool calls, token usage và latency; chưa claim paired hơn-kém vì multi-agent reference chạy deterministic offline khác runtime/provider.",
+  "baseline_id": "tiki_books_deterministic_catalog_v1",
+  "status": "scripted_regression",
+  "reason": "Baseline v1 là mốc hồi quy deterministic, không phải bằng chứng từ mô hình. So sánh cặp có ý nghĩa dùng biến thể product-only deterministic trong protocol v2.",
   "captured_case_count": 28,
-  "model": "gpt-5.4-mini",
-  "prompt_sha256": "8a0a09b217bf2d1fbf8c0eff4a43bd857ea3aa6793ff47da5803d7593432ca2a",
-  "tool_schema_sha256": "4ddd22bc0d8078c1b4e144fd7b71789a35e9cd596dac070702ffd2598f232735",
-  "dataset_sha256": "a34473eff4a6f7e87034b46c239833c852b12542ea4c0faea4b651ddb801671d",
-  "artifact_path": "evaluation/results/baseline-single-agent-v1/observations.json",
-  "artifact_sha256": "1861359c2a3694cccb1d183d756fdd76d24acc299879b3ccec995b362c3d97de",
-  "captured_at": "2026-08-24T04:33:19.460204+00:00",
-  "git_revision": "c7b17cf"
+  "dataset_sha256": "1838b7c5f3d43ef07e3595fcc507f755668b6330ff2d18bf9d7a8902fd2a2650"
 }

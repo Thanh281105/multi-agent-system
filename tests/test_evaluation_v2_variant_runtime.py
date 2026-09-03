@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from app.contracts import ExecutionPlan, TaskStatus
-from app.evaluation.retrieval import search_evaluation_sample_knowledge_v2
-from app.evaluation.runner import isolated_sample_database, load_corpus
+from app.evaluation.runner import isolated_sample_database
 from app.evaluation.v2_models import EvaluationVariantV2, RuntimeMode
 from app.evaluation.variant_runtime import (
     EvaluationTurnError,
@@ -18,20 +15,17 @@ from app.evaluation.variant_runtime import (
 from app.orchestrator.progress import OrchestrationProgress
 from app.orchestrator.schemas import OrchestrationResult
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
 
 @pytest.mark.asyncio
 async def test_deterministic_variant_runs_real_agents_with_bounded_timings() -> None:
-    case = load_corpus(PROJECT_ROOT / "evaluation" / "cases.v1.json").cases[0]
     variant = _deterministic_variant()
 
     with isolated_sample_database():
         observed = await observe_variant_turn_v2(
             build_variant_orchestrator_v2(variant, model_runtime=None),
-            message=case.message,
+            message="Tìm sách Nhật Ký Tarot.",
             variant_id=variant.variant_id,
-            case_id=case.case_id,
+            case_id="book_search_runtime",
             session_id="sess_eval_runtime",
             request_id="req_eval_runtime",
             trace_id="trace_eval_runtime",
@@ -65,14 +59,6 @@ def test_variant_runtime_rejects_missing_or_hidden_model_runtime() -> None:
         build_variant_orchestrator_v2(deterministic, model_runtime=object())  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="require a model runtime"):
         build_variant_orchestrator_v2(hybrid, model_runtime=None)
-
-
-def test_variant_runtime_uses_declared_hashing_retrieval() -> None:
-    result = search_evaluation_sample_knowledge_v2("tai nghe pin", limit=2)
-
-    assert result["method"] == "hashed_token_cosine_v1"
-    assert result["documents"]
-    assert all(item["sample_data"] is True for item in result["documents"])
 
 
 @pytest.mark.asyncio

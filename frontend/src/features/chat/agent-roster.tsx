@@ -1,12 +1,12 @@
 import { useId } from "react"
 import {
   Ban,
+  BookOpenCheck,
   ChartNoAxesCombined,
   CircleCheck,
   CircleDashed,
   Compass,
   MessageSquareText,
-  PackageSearch,
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react"
@@ -47,35 +47,35 @@ const agents: AgentDefinition[] = [
   {
     id: "orchestrator",
     name: "Orchestrator",
-    role: "Định tuyến · lập DAG · tổng hợp",
+    role: "Định tuyến · DAG · tổng hợp",
     index: "00",
     icon: Compass,
   },
   {
     id: "product_agent",
-    name: "Product Agent",
-    role: "Danh mục · giá · thuộc tính",
+    name: "Danh mục sách",
+    role: "Tựa sách · giá · thuộc tính",
     index: "01",
-    icon: PackageSearch,
+    icon: BookOpenCheck,
   },
   {
     id: "review_agent",
-    name: "Review Agent",
-    role: "Cảm xúc · khía cạnh · tóm tắt",
+    name: "Đánh giá độc giả",
+    role: "Nhận xét · khía cạnh · tóm tắt",
     index: "02",
     icon: MessageSquareText,
   },
   {
     id: "trust_agent",
-    name: "Trust Agent",
-    role: "Khiếu nại · rủi ro · độ tin cậy",
+    name: "Trust signals",
+    role: "Phản hồi tiêu cực · tín hiệu rủi ro",
     index: "03",
     icon: ShieldCheck,
   },
   {
     id: "market_agent",
-    name: "Market Agent",
-    role: "Xu hướng · phân khúc · thị trường",
+    name: "Snapshot stats",
+    role: "Thể loại · giá · thống kê cắt ngang",
     index: "04",
     icon: ChartNoAxesCombined,
   },
@@ -99,20 +99,16 @@ export function AgentRoster({
       <header className="flex items-end justify-between border-b px-4 py-4">
         <div>
           <h2 id={titleId} className="font-display text-xl font-semibold">
-            Trạm chuyên gia
+            Các agent
           </h2>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Năng lực được ủy quyền cố định
+            Agent và quyền đã cấu hình
           </p>
         </div>
-        <span className="atlas-data text-muted-foreground">05 TRẠM</span>
+        <span className="atlas-data text-muted-foreground">5 AGENTS</span>
       </header>
 
-      <ol className="relative px-3 py-2">
-        <span
-          aria-hidden="true"
-          className="absolute top-9 bottom-9 left-[2.08rem] w-px bg-border"
-        />
+      <ol className="relative px-3 py-2 before:absolute before:top-9 before:bottom-9 before:left-[2.08rem] before:w-px before:bg-border before:content-['']">
         {agents.map((agent) => {
           const status = resolveAgentStatus(
             agent.id,
@@ -154,7 +150,7 @@ export function AgentRoster({
                       {agent.index}
                     </span>
                   </span>
-                  <span className="mt-0.5 block truncate text-[0.72rem] text-muted-foreground">
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                     {agent.role}
                   </span>
                 </span>
@@ -176,9 +172,9 @@ export function AgentRoster({
                     )}
                   />
                 )}
-                <span className="text-[0.64rem] font-medium text-muted-foreground">
+                <span className="text-xs font-medium text-muted-foreground">
                   {status === "pending"
-                    ? "Sẵn tuyến"
+                    ? "Chờ chạy"
                     : rosterStatusLabels[status]}
                 </span>
               </div>
@@ -188,13 +184,13 @@ export function AgentRoster({
       </ol>
 
       <footer className="mt-auto border-t bg-muted/40 px-4 py-3">
-        <Badge variant="outline" className="border-success/40 text-success">
+        <Badge variant="success">
           <CircleCheck data-icon="inline-start" />
-          Action allowlist bật
+          Chỉ chạy hành động được phép
         </Badge>
-        <p className="mt-2 text-[0.7rem] leading-5 text-muted-foreground">
-          Model đề xuất; code kiểm tra DAG, action và nguồn dữ liệu trước khi
-          chạy.
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+          Model chỉ đề xuất; hệ thống kiểm tra kế hoạch, hành động và nguồn
+          trước khi chạy.
         </p>
       </footer>
     </section>

@@ -58,6 +58,8 @@
     "config": {
       "type": "object",
       "required": [
+        "snapshotDir",
+        "knowledgeBackend",
         "qdrantUrl",
         "qdrantCollection",
         "modelRuntimeMode",
@@ -70,7 +72,12 @@
         "openaiSynthesisModel"
       ],
       "properties": {
-        "qdrantUrl": {"type": "string", "pattern": "^https?://"},
+        "snapshotDir": {"type": "string", "pattern": "^/app/data/snapshots/[A-Za-z0-9._-]+$"},
+        "knowledgeBackend": {"enum": ["disabled", "qdrant"]},
+        "qdrantUrl": {
+          "type": "string",
+          "anyOf": [{"const": ""}, {"pattern": "^https?://"}]
+        },
         "qdrantCollection": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,128}$"},
         "modelRuntimeMode": {"enum": ["off", "shadow", "hybrid", "required"]},
         "embeddingBackend": {"enum": ["auto", "hashing", "openai"]},
@@ -102,7 +109,7 @@
     },
     "bootstrap": {
       "type": "object",
-      "required": ["waitForDependencies", "migrate", "seedData", "seedKnowledge", "resources"],
+      "required": ["waitForDependencies", "migrate", "seedData", "resources"],
       "properties": {
         "waitForDependencies": {
           "type": "object",
@@ -115,15 +122,6 @@
         },
         "migrate": {"$ref": "#/definitions/toggle"},
         "seedData": {"$ref": "#/definitions/toggle"},
-        "seedKnowledge": {
-          "type": "object",
-          "required": ["enabled", "waitSeconds"],
-          "properties": {
-            "enabled": {"type": "boolean"},
-            "waitSeconds": {"type": "integer", "minimum": 0, "maximum": 300}
-          },
-          "additionalProperties": false
-        },
         "resources": {"$ref": "#/definitions/resources"}
       },
       "additionalProperties": false
@@ -157,7 +155,7 @@
         "storageClassName": {"type": "string"},
         "postgres": {"$ref": "#/definitions/dependency"},
         "redis": {"$ref": "#/definitions/dependency"},
-        "qdrant": {"$ref": "#/definitions/dependency"}
+        "qdrant": {"$ref": "#/definitions/optionalDependency"}
       },
       "additionalProperties": false
     }
@@ -169,8 +167,7 @@
         "properties": {
           "bootstrap": {
             "properties": {
-              "seedData": {"properties": {"enabled": {"const": false}}},
-              "seedKnowledge": {"properties": {"enabled": {"const": false}}}
+              "seedData": {"properties": {"enabled": {"const": false}}}
             }
           },
           "internalDependencies": {"properties": {"enabled": {"const": false}}}
@@ -188,6 +185,77 @@
             }
           },
           "internalDependencies": {"properties": {"enabled": {"const": true}}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "bootstrap": {
+            "properties": {
+              "seedData": {
+                "properties": {"enabled": {"const": true}},
+                "required": ["enabled"]
+              }
+            },
+            "required": ["seedData"]
+          }
+        },
+        "required": ["bootstrap"]
+      },
+      "then": {
+        "properties": {
+          "bootstrap": {
+            "properties": {
+              "migrate": {
+                "properties": {"enabled": {"const": true}},
+                "required": ["enabled"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "config": {
+            "properties": {"knowledgeBackend": {"const": "qdrant"}},
+            "required": ["knowledgeBackend"]
+          }
+        },
+        "required": ["config"]
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "properties": {
+              "qdrantUrl": {"type": "string", "pattern": "^https?://"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "internalDependencies": {
+            "properties": {
+              "qdrant": {
+                "properties": {"enabled": {"const": true}},
+                "required": ["enabled"]
+              }
+            },
+            "required": ["qdrant"]
+          }
+        },
+        "required": ["internalDependencies"]
+      },
+      "then": {
+        "properties": {
+          "config": {
+            "properties": {"knowledgeBackend": {"const": "qdrant"}}
+          }
         }
       }
     }
@@ -252,6 +320,17 @@
       "type": "object",
       "required": ["image", "storage", "resources"],
       "properties": {
+        "image": {"type": "string", "minLength": 1, "not": {"pattern": ":latest$"}},
+        "storage": {"type": "string", "pattern": "^[1-9][0-9]*(Mi|Gi|Ti)$"},
+        "resources": {"$ref": "#/definitions/resources"}
+      },
+      "additionalProperties": false
+    },
+    "optionalDependency": {
+      "type": "object",
+      "required": ["enabled", "image", "storage", "resources"],
+      "properties": {
+        "enabled": {"type": "boolean"},
         "image": {"type": "string", "minLength": 1, "not": {"pattern": ":latest$"}},
         "storage": {"type": "string", "pattern": "^[1-9][0-9]*(Mi|Gi|Ti)$"},
         "resources": {"$ref": "#/definitions/resources"}

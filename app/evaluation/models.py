@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
+from pathlib import PurePosixPath
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -101,14 +102,48 @@ class EvalCase(BaseModel):
         return self
 
 
+class EvaluationSnapshotBinding(BaseModel):
+    """Immutable lineage from evaluation gold labels to one clean snapshot."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    snapshot_path: str = Field(min_length=1, max_length=300)
+    dataset_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,127}$")
+    dataset_version: str = Field(min_length=1, max_length=128)
+    profile: Literal["eval"] = "eval"
+    snapshot_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    manifest_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    quality_report_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    product_count: int = Field(ge=1)
+    review_count: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def validate_snapshot_path(self) -> EvaluationSnapshotBinding:
+        path = PurePosixPath(self.snapshot_path)
+        if (
+            path.is_absolute()
+            or ".." in path.parts
+            or path.as_posix() != self.snapshot_path
+        ):
+            raise ValueError("snapshot path must be a normalized relative POSIX path")
+        return self
+
+
 class EvaluationCorpus(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: Literal["1.0", "1.1"] = "1.1"
     dataset_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,127}$")
     sample_data: Literal[True] = True
     curation_note: str = Field(min_length=1, max_length=1_000)
+    source_snapshot: EvaluationSnapshotBinding | None = None
     cases: tuple[EvalCase, ...] = Field(min_length=1, max_length=500)
+
+    @model_validator(mode="after")
+    def require_snapshot_for_current_schema(self) -> EvaluationCorpus:
+        if self.schema_version == "1.1" and self.source_snapshot is None:
+            raise ValueError("evaluation corpus v1.1 requires snapshot lineage")
+        return self
 
 
 class BaselineManifest(BaseModel):
@@ -170,6 +205,26 @@ class BaselineManifest(BaseModel):
                 raise ValueError("a captured baseline must bind its artifact")
             if self.captured_at is None or self.git_revision is None:
                 raise ValueError("a captured baseline must include capture metadata")
+        if self.status == "scripted_regression":
+            if self.captured_case_count < 1 or self.dataset_sha256 is None:
+                raise ValueError(
+                    "a scripted regression baseline must bind cases and dataset"
+                )
+            if any(
+                value is not None
+                for value in (
+                    self.model,
+                    self.prompt_sha256,
+                    self.tool_schema_sha256,
+                    self.artifact_path,
+                    self.artifact_sha256,
+                    self.captured_at,
+                    self.git_revision,
+                )
+            ):
+                raise ValueError(
+                    "a scripted regression baseline cannot claim model evidence"
+                )
         return self
 
 
@@ -248,7 +303,7 @@ class MetricSummary(BaseModel):
 class EvaluationReport(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal["1.1"] = "1.1"
+    schema_version: Literal["1.2"] = "1.2"
     generated_at: datetime
     system_id: Literal["multi_agent_offline", "multi_agent_real"] = (
         "multi_agent_offline"
@@ -258,7 +313,7 @@ class EvaluationReport(BaseModel):
     sut_source_files: tuple[str, ...] = Field(min_length=1)
     dataset_id: str
     dataset_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
-    sample_seed_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    source_snapshot: EvaluationSnapshotBinding
     sample_data: Literal[True] = True
     sample_counts: dict[str, int]
     random_seed: Literal[42] = 42

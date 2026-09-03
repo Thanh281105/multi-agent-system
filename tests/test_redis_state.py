@@ -141,7 +141,7 @@ def test_redis_failure_is_sanitized_and_reported_by_readiness() -> None:
     failed_request = http.post(
         "/api/v1/chat",
         headers={"X-API-Key": "test-secret-key"},
-        json={"message": "Tìm tai nghe"},
+        json={"message": "Tìm sách của Nguyễn Nhật Ánh"},
     )
     readiness = http.get("/readyz")
 
@@ -154,4 +154,5 @@ def test_redis_failure_is_sanitized_and_reported_by_readiness() -> None:
         "runtime": "ok",
         "database": "ok",
         "redis": "failed",
+        "knowledge": "disabled",
     }

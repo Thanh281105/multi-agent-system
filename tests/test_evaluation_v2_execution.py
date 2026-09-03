@@ -57,20 +57,23 @@ async def test_deterministic_matrix_runs_without_key_or_runtime_factory() -> Non
     )
 
     assert execution.sample_counts == {
-        "shops": 5,
-        "products": 30,
-        "reviews": 150,
+        "source_id": 1,
+        "products": 200,
+        "reviews": 1773,
     }
-    assert len(execution.observations) == 1
-    observation = execution.observations[0]
-    validate_observation_protocol(observation, protocol)
-    assert observation.variant_id == "deterministic_v2"
-    assert observation.model_calls == ()
-    assert observation.total_tokens == 0
-    assert observation.estimated_cost_usd == Decimal("0E-12")
-    assert observation.task_success is True
-    assert observation.routing_correct is True
-    assert observation.exact_plan is True
+    assert len(execution.observations) == 2
+    assert {item.variant_id for item in execution.observations} == {
+        "deterministic_book_catalog_v2",
+        "deterministic_v2",
+    }
+    for observation in execution.observations:
+        validate_observation_protocol(observation, protocol)
+        assert observation.model_calls == ()
+        assert observation.total_tokens == 0
+        assert observation.estimated_cost_usd == Decimal("0E-12")
+        assert observation.task_success is True
+        assert observation.routing_correct is True
+        assert observation.exact_plan is True
 
 
 @pytest.mark.asyncio
@@ -87,6 +90,25 @@ async def test_matrix_rejects_hybrid_without_runtime_before_execution() -> None:
     with pytest.raises(RuntimeError, match="runtime factory"):
         await run_evaluation_matrix_v2(
             run_id="run_missing_runtime_v2",
+            assets=assets,
+            protocol=protocol,
+        )
+
+
+@pytest.mark.asyncio
+async def test_matrix_rejects_tampered_snapshot_compatibility_hash() -> None:
+    assets = _assets()
+    protocol = build_evaluation_protocol_v2(
+        assets,
+        project_root=PROJECT_ROOT,
+        variant_ids=("deterministic_v2",),
+        max_cases=1,
+        git_state=GitStateV2(revision="abcdef1", dirty=False),
+    ).model_copy(update={"sample_seed_sha256": "f" * 64})
+
+    with pytest.raises(ValueError, match="seed hash does not match snapshot"):
+        await run_evaluation_matrix_v2(
+            run_id="run_tampered_snapshot_v2",
             assets=assets,
             protocol=protocol,
         )
@@ -124,12 +146,12 @@ async def test_hybrid_matrix_runs_bound_models_and_discards_warmup_calls(
         ),
     )
 
-    assert len(execution.observations) == 4
+    assert len(execution.observations) == 6
     hybrid = [
         item for item in execution.observations if item.variant_id == "hybrid_full"
     ]
     deterministic = [
-        item for item in execution.observations if item.variant_id == "deterministic_v2"
+        item for item in execution.observations if item.variant_id != "hybrid_full"
     ]
     assert {item.phase for item in hybrid} == {
         EvaluationPhase.CORRECTNESS,
@@ -181,7 +203,7 @@ async def test_hybrid_matrix_runs_bound_models_and_discards_warmup_calls(
         execution=execution,
         pricing=assets.pricing,
     )
-    assert completed.manifest.comparison_count == 8
+    assert completed.manifest.comparison_count == 24
     assert completed.manifest.omission_count == 0
     assert completed.manifest.completion_status == "complete"
     assert completed.analysis.robustness == ()
@@ -195,11 +217,11 @@ class _SchemaAwareResponses:
     async def parse(self, **request: Any) -> Any:
         self.requests.append(request)
         schema = request["text_format"]
-        if schema is RoutingDecision:
-            value: Any = RoutingDecision(
+        if isinstance(schema, type) and issubclass(schema, RoutingDecision):
+            value: Any = schema(
                 intent="product.search",
                 confidence=0.99,
-                entities=RoutingEntities(product_query="Nova Air S2"),
+                entities=RoutingEntities(product_query="Nhật Ký Tarot"),
                 rationale="exact_product_lookup",
             )
         elif schema is PlanningDecision:

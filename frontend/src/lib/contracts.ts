@@ -1,4 +1,9 @@
-import { z } from "zod"
+import { z } from "zod/mini"
+
+const nonEmptyStringSchema = z.string().check(z.minLength(1))
+const nonnegativeNumberSchema = z.number().check(z.nonnegative())
+const nonnegativeIntegerSchema = z.int().check(z.nonnegative())
+const positiveIntegerSchema = z.int().check(z.positive())
 
 export const taskStatusSchema = z.enum([
   "pending",
@@ -8,108 +13,92 @@ export const taskStatusSchema = z.enum([
   "failed",
 ])
 
-export const agentExecutionSchema = z
-  .object({
-    step_id: z.string().min(1),
-    agent_id: z.string().min(1),
-    action: z.string().min(1),
-    depends_on: z.array(z.string().min(1)),
-    status: taskStatusSchema,
-    duration_ms: z.number().nonnegative().finite(),
-    error_codes: z.array(z.string()),
-  })
-  .strict()
+export const agentExecutionSchema = z.strictObject({
+  step_id: nonEmptyStringSchema,
+  agent_id: nonEmptyStringSchema,
+  action: nonEmptyStringSchema,
+  depends_on: z.array(nonEmptyStringSchema),
+  status: taskStatusSchema,
+  duration_ms: nonnegativeNumberSchema,
+  error_codes: z.array(z.string()),
+})
 
-export const provenanceSchema = z
-  .object({
-    source_type: z.string().min(1),
-    source_id: z.string().min(1),
-    fields: z.array(z.string()),
-    sample_data: z.boolean(),
-    observed_at: z.iso.datetime({ offset: true }),
-  })
-  .strict()
+export const provenanceSchema = z.strictObject({
+  source_type: nonEmptyStringSchema,
+  source_id: nonEmptyStringSchema,
+  fields: z.array(z.string()),
+  sample_data: z.boolean(),
+  observed_at: z.iso.datetime({ offset: true }),
+})
 
-export const modelCallSchema = z
-  .object({
-    call_id: z.string().min(1),
-    stage: z.string().min(1),
-    agent_id: z.string().min(1),
-    provider: z.string().min(1),
-    model: z.string().min(1),
-    response_id: z.string().nullable(),
-    status: z.string().min(1),
-    duration_ms: z.number().nonnegative().finite(),
-    input_tokens: z.number().int().nonnegative(),
-    cached_input_tokens: z.number().int().nonnegative(),
-    output_tokens: z.number().int().nonnegative(),
-    reasoning_tokens: z.number().int().nonnegative(),
-    total_tokens: z.number().int().nonnegative(),
-    attempts: z.number().int().nonnegative(),
-    fallback_used: z.boolean(),
-    fallback_reason: z.string().nullable(),
-    error_code: z.string().nullable(),
-  })
-  .strict()
+export const modelCallSchema = z.strictObject({
+  call_id: nonEmptyStringSchema,
+  stage: nonEmptyStringSchema,
+  agent_id: nonEmptyStringSchema,
+  provider: nonEmptyStringSchema,
+  model: nonEmptyStringSchema,
+  response_id: z.nullable(z.string()),
+  status: nonEmptyStringSchema,
+  duration_ms: nonnegativeNumberSchema,
+  input_tokens: nonnegativeIntegerSchema,
+  cached_input_tokens: nonnegativeIntegerSchema,
+  output_tokens: nonnegativeIntegerSchema,
+  reasoning_tokens: nonnegativeIntegerSchema,
+  total_tokens: nonnegativeIntegerSchema,
+  attempts: nonnegativeIntegerSchema,
+  fallback_used: z.boolean(),
+  fallback_reason: z.nullable(z.string()),
+  error_code: z.nullable(z.string()),
+})
 
-export const gatewayChatResponseSchema = z
-  .object({
-    api_version: z.literal("v1"),
-    status: taskStatusSchema,
-    answer: z.string(),
-    session_id: z.string().regex(/^sess_[a-zA-Z0-9_-]{3,120}$/),
-    request_id: z.string().min(1),
-    trace_id: z.string().min(1),
-    intent: z.string().min(1),
-    active_agent: z.string().nullable(),
-    selected_product_id: z.number().int().nullable(),
-    executions: z.array(agentExecutionSchema),
-    provenance: z.array(provenanceSchema),
-    model_calls: z.array(modelCallSchema),
-    warnings: z.array(z.string()),
-    sample_data: z.boolean(),
-    duration_ms: z.number().nonnegative().finite(),
-  })
-  .strict()
+export const gatewayChatResponseSchema = z.strictObject({
+  api_version: z.literal("v1"),
+  status: taskStatusSchema,
+  answer: z.string(),
+  session_id: z.string().check(z.regex(/^sess_[a-zA-Z0-9_-]{3,120}$/)),
+  request_id: nonEmptyStringSchema,
+  trace_id: nonEmptyStringSchema,
+  intent: nonEmptyStringSchema,
+  active_agent: z.nullable(z.string()),
+  selected_product_id: z.nullable(z.int()),
+  executions: z.array(agentExecutionSchema),
+  provenance: z.array(provenanceSchema),
+  model_calls: z.array(modelCallSchema),
+  warnings: z.array(z.string()),
+  sample_data: z.boolean(),
+  duration_ms: nonnegativeNumberSchema,
+})
 
-export const gatewayErrorDetailSchema = z
-  .object({
-    code: z.string().min(1),
-    message: z.string().min(1),
-    request_id: z.string().min(1),
-    trace_id: z.string().min(1),
-    retryable: z.boolean(),
-    validation_errors: z.array(z.record(z.string(), z.unknown())),
-  })
-  .strict()
+export const gatewayErrorDetailSchema = z.strictObject({
+  code: nonEmptyStringSchema,
+  message: nonEmptyStringSchema,
+  request_id: nonEmptyStringSchema,
+  trace_id: nonEmptyStringSchema,
+  retryable: z.boolean(),
+  validation_errors: z.array(z.record(z.string(), z.unknown())),
+})
 
-export const gatewayErrorResponseSchema = z
-  .object({
-    error: gatewayErrorDetailSchema,
-  })
-  .strict()
+export const gatewayErrorResponseSchema = z.strictObject({
+  error: gatewayErrorDetailSchema,
+})
 
-export const gatewayStatusEventSchema = z
-  .object({
-    sequence: z.number().int().positive(),
-    phase: z.string().min(1),
-    message: z.string().min(1),
-    request_id: z.string().min(1),
-    trace_id: z.string().min(1),
-    step_id: z.string().nullable(),
-    agent_id: z.string().nullable(),
-    status: taskStatusSchema.nullable(),
-  })
-  .strict()
+export const gatewayStatusEventSchema = z.strictObject({
+  sequence: positiveIntegerSchema,
+  phase: nonEmptyStringSchema,
+  message: nonEmptyStringSchema,
+  request_id: nonEmptyStringSchema,
+  trace_id: nonEmptyStringSchema,
+  step_id: z.nullable(z.string()),
+  agent_id: z.nullable(z.string()),
+  status: z.nullable(taskStatusSchema),
+})
 
-export const gatewayTokenEventSchema = z
-  .object({
-    sequence: z.number().int().positive(),
-    delta: z.string().min(1),
-    request_id: z.string().min(1),
-    trace_id: z.string().min(1),
-  })
-  .strict()
+export const gatewayTokenEventSchema = z.strictObject({
+  sequence: positiveIntegerSchema,
+  delta: nonEmptyStringSchema,
+  request_id: nonEmptyStringSchema,
+  trace_id: nonEmptyStringSchema,
+})
 
 export type TaskStatus = z.infer<typeof taskStatusSchema>
 export type AgentExecution = z.infer<typeof agentExecutionSchema>

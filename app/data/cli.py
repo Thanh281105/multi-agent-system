@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+from typing import cast
 
+from app.data.contracts import DataProfile
+from app.data.quality import SnapshotQualityError, validate_quality_artifacts
 from app.data.tiki_books import (
-    DEFAULT_ARCHIVE_SHA256,
-    DEFAULT_DATASET_VERSION,
-    DEFAULT_SOURCE_URL,
     DatasetPreparationError,
     download_archive,
     prepare_snapshot,
@@ -23,20 +23,24 @@ def main() -> None:
     download.add_argument(
         "--output", type=Path, default=Path("data/raw/tiki-books-v4.zip")
     )
-    download.add_argument("--url", default=DEFAULT_SOURCE_URL)
-    download.add_argument("--expected-sha256", default=DEFAULT_ARCHIVE_SHA256)
 
     prepare = commands.add_parser(
         "prepare", help="prepare a normalized public snapshot"
     )
-    prepare.add_argument("--archive", type=Path, required=True)
-    prepare.add_argument("--output", type=Path, required=True)
-    prepare.add_argument("--products", type=int, default=200)
-    prepare.add_argument("--reviews-per-product", type=int, default=10)
-    prepare.add_argument("--seed", type=int, default=42)
-    prepare.add_argument("--dataset-version", default=DEFAULT_DATASET_VERSION)
-    prepare.add_argument("--source-url", default=DEFAULT_SOURCE_URL)
+    prepare.add_argument(
+        "--archive",
+        type=Path,
+        default=Path("data/raw/tiki-books-v4.zip"),
+    )
+    prepare.add_argument("--profile", choices=("test", "eval", "full"), required=True)
+    prepare.add_argument("--output", type=Path)
     prepare.add_argument("--force", action="store_true")
+
+    validate = commands.add_parser(
+        "validate",
+        help="verify a prepared snapshot quality report and artifact hashes",
+    )
+    validate.add_argument("--snapshot", type=Path, required=True)
 
     import_snapshot = commands.add_parser(
         "import",
@@ -47,39 +51,47 @@ def main() -> None:
     arguments = parser.parse_args()
     try:
         if arguments.command == "download":
-            path = download_archive(
-                destination=arguments.output,
-                url=arguments.url,
-                expected_sha256=arguments.expected_sha256,
-            )
+            path = download_archive(destination=arguments.output)
             print(f"Downloaded and verified: {path}")
             return
+        if arguments.command == "validate":
+            manifest, _ = validate_quality_artifacts(arguments.snapshot)
+            print(
+                "Validated snapshot: "
+                f"profile={manifest.profile} products={manifest.product_count} "
+                f"reviews={manifest.review_count} sha256={manifest.snapshot_sha256}"
+            )
+            return
         if arguments.command == "import":
-            from app.db.public_import import import_public_snapshot
+            from app.db.public_import import (
+                PublicImportConflictError,
+                import_public_snapshot,
+            )
 
-            counts = import_public_snapshot(snapshot_dir=arguments.snapshot)
+            try:
+                counts = import_public_snapshot(snapshot_dir=arguments.snapshot)
+            except PublicImportConflictError as exc:
+                parser.error(str(exc))
             print(
                 "Imported snapshot: "
                 f"source_id={counts['source_id']} products={counts['products']} "
                 f"reviews={counts['reviews']}"
             )
             return
+        profile = cast(DataProfile, arguments.profile)
+        output = arguments.output or Path(f"data/snapshots/tiki-books-v4-{profile}")
         manifest = prepare_snapshot(
             archive_path=arguments.archive,
-            output_dir=arguments.output,
-            target_products=arguments.products,
-            max_reviews_per_product=arguments.reviews_per_product,
-            seed=arguments.seed,
+            output_dir=output,
+            profile=profile,
             force=arguments.force,
-            source_url=arguments.source_url,
-            dataset_version=arguments.dataset_version,
         )
         print(
             "Prepared snapshot: "
             f"products={manifest.product_count} reviews={manifest.review_count} "
             f"sha256={manifest.snapshot_sha256}"
         )
-    except DatasetPreparationError as exc:
+    except (DatasetPreparationError, SnapshotQualityError) as exc:
         parser.error(str(exc))
 
 

@@ -35,7 +35,7 @@ Request:
 
 ```json
 {
-  "message": "Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn.",
+  "message": "Gợi ý sách dưới 150.000 đồng, rating tốt và ít tín hiệu phàn nàn.",
   "session_id": null
 }
 ```
@@ -51,7 +51,7 @@ Response rút gọn:
 {
   "api_version": "v1",
   "status": "success",
-  "answer": "Đã so sánh ... theo dữ liệu mẫu ...",
+  "answer": "Đã so sánh ... theo snapshot lịch sử Tiki Books ...",
   "session_id": "sess_...",
   "request_id": "req_...",
   "trace_id": "trace_...",
@@ -70,11 +70,14 @@ Response rút gọn:
   ],
   "provenance": [
     {
-      "source_type": "sample.database",
-      "source_id": "postgresql:products",
-      "fields": ["price", "rating", "sold_count", "shop", "platform"],
+      "source_type": "sample.public_dataset",
+      "source_id": "tiki-books:kaggle-v4:eval",
+      "fields": [
+        "name", "authors", "publisher", "category", "page_count",
+        "price", "rating", "sold_count"
+      ],
       "sample_data": true,
-      "observed_at": "2026-08-24T00:00:00Z"
+      "observed_at": "2026-08-30T12:34:56Z"
     }
   ],
   "warnings": [],
@@ -170,7 +173,7 @@ data: {"api_version":"v1",...}
 | Endpoint | Auth | Ý nghĩa |
 | --- | --- | --- |
 | `GET /health`, `/livez` | Không | Process sống; không kiểm tra dependency |
-| `GET /readyz` | Không | Runtime + production schema revision + configured Redis/Qdrant contract |
+| `GET /readyz` | Không | Runtime + production schema revision + Redis nếu cấu hình + knowledge contract |
 | `GET /metrics` | Operations key ở production | Prometheus text format |
 | `GET /api/v1/operations/traces/{trace_id}` | Operations key | Redacted bounded trace events |
 | `GET /api/v1/operations/audit?limit=50` | Operations key | Agent Gateway audit, limit 1..200 |
@@ -178,10 +181,12 @@ data: {"api_version":"v1",...}
 
 Không dùng `/livez` để route traffic. Load balancer readiness phải gọi
 `/readyz`; 503 có body nêu dependency nào failed nhưng không lộ credential.
-Ở production, check database yêu cầu đúng Alembic revision hiện hành; check
-Qdrant yêu cầu service sống, collection đúng vector size/distance và có ít nhất
-một knowledge point. Development/test giữ DB check ở mức round-trip để hỗ trợ
-schema fixture cô lập.
+Ở production, check database yêu cầu đúng Alembic revision hiện hành. Mặc định
+`KNOWLEDGE_BACKEND=disabled`, vì vậy response có `knowledge: "disabled"` và
+không cần Qdrant. Chỉ khi chủ động chọn backend `qdrant`, readiness mới yêu cầu
+service sống, collection đúng vector size/distance và có ít nhất một knowledge
+point. Development/test giữ DB check ở mức round-trip để hỗ trợ schema fixture
+cô lập.
 
 ## 6. Legacy API
 

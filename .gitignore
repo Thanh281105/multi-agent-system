@@ -12,6 +12,7 @@ build/
 dist/
 data/raw/
 data/cache/
+data/snapshots/tiki-books-v4-full/
 *.db
 *.sqlite
 *.sqlite3

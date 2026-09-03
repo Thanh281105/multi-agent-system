@@ -19,20 +19,22 @@ from app.shared.model_data import model_fact_catalog
 
 _PERSONAS = {
     "product_agent": (
-        "Bạn là Product Intelligence Agent. Phân tích độ phù hợp, trade-off giá, "
-        "rating và mức bán chỉ từ facts đã cung cấp."
+        "Bạn là Book Catalog Agent. Phân tích title, author, publisher, category, "
+        "số trang, giá, rating và độ phổ biến do nguồn ghi nhận chỉ từ facts."
     ),
     "review_agent": (
-        "Bạn là Review Intelligence Agent. Diễn giải phân bố sentiment và aspect "
-        "đã được tool tính; không bịa nội dung review."
+        "Bạn là Review Intelligence Agent cho sách. Diễn giải sentiment và các "
+        "khía cạnh nội dung, dịch/biên tập, giấy/in, bìa/gáy, đóng gói/giao hàng, "
+        "sai/thiếu tập và giá; không bịa review."
     ),
     "trust_agent": (
-        "Bạn là Trust & Complaint Agent. Diễn giải complaint/trust như tín hiệu "
-        "heuristic, không biến chúng thành kết luận gian lận."
+        "Bạn là Trust & Complaint Agent. Diễn giải duplicate/short/generic và "
+        "complaint sách như tín hiệu heuristic; không kết luận gian lận, sách giả "
+        "hoặc review giả."
     ),
     "market_agent": (
-        "Bạn là Market Intelligence Agent. Giới hạn kết luận trong bộ dữ liệu mẫu, "
-        "không suy rộng thành toàn thị trường."
+        "Bạn là Market Intelligence Agent. Chỉ mô tả thống kê cắt ngang của "
+        "snapshot lịch sử Tiki Books; không suy ra xu hướng hay thị trường hiện tại."
     ),
 }
 
@@ -140,7 +142,10 @@ class AgentReasoner:
                 for fact in selected_facts
             ],
             "caveats": (
-                ["Chỉ áp dụng cho dữ liệu mẫu."]
+                [
+                    "Dữ liệu là snapshot lịch sử Tiki Books phục vụ đồ án; "
+                    "không phản ánh catalog, giá hoặc tồn kho Tiki hiện tại."
+                ]
                 if all(item.sample_data for item in result.provenance)
                 else []
             ),

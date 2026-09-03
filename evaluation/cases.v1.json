@@ -1,135 +1,154 @@
 {
-  "schema_version": "1.0",
-  "dataset_id": "sample_ecommerce_vi_28_v1",
+  "schema_version": "1.1",
+  "dataset_id": "tiki_books_vi_28_v1",
   "sample_data": true,
-  "curation_note": "28 case được gắn nhãn thủ công theo workflow.md và snapshot dữ liệu mẫu 5 shop, 30 sản phẩm, 150 review; gold labels không được tính lại từ hệ thống khi chạy benchmark.",
+  "curation_note": "28 case được gắn nhãn theo hành vi deterministic của trợ lý sách trên snapshot eval Tiki Books đã qua quality gate; gold labels không được tính lại từ output hệ thống trong lúc benchmark.",
+  "source_snapshot": {
+    "snapshot_path": "data/snapshots/tiki-books-v4-eval",
+    "dataset_id": "tiki-books",
+    "dataset_version": "kaggle-v4",
+    "profile": "eval",
+    "snapshot_sha256": "986803ba95d268cf158f36103efa2e1ce00c6134b0e03b67d96c7058f019d66d",
+    "manifest_sha256": "e4f6580e33aa458713842855a7bb58b0e9a73942d888ff124ba4d30fd6513e8e",
+    "quality_report_sha256": "b75c8e0f6efb8da8278b4d3babd33ffb9fabdcf5b58fea5678be90de4c537eac",
+    "product_count": 200,
+    "review_count": 1773
+  },
   "cases": [
     {
-      "case_id": "simple_01_nova_search",
+      "case_id": "simple_01_tarot_search",
       "category": "simple",
-      "message": "Tìm Nova Air S2.",
+      "message": "Tìm sách Nhật Ký Tarot.",
       "accepted_intents": ["product.search"],
       "expected_actions": [{"action": "product.search", "count": 1}],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [1],
+      "relevant_product_ids": [6],
       "answer_assertions": [
-        {"kind": "contains", "value": "Tai nghe Bluetooth Nova Air S2"},
-        {"kind": "contains", "value": "799.000₫"},
+        {"kind": "contains", "value": "Nhật Ký Tarot"},
+        {"kind": "contains", "value": "143.000₫"},
+        {"kind": "contains", "value": "snapshot lịch sử Tiki Books"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "simple_02_voltpro_search",
+      "case_id": "simple_02_quan_vuong_search",
       "category": "simple",
-      "message": "Tìm VoltPro 65W.",
+      "message": "Tìm sách Quân Vương.",
       "accepted_intents": ["product.search"],
       "expected_actions": [{"action": "product.search", "count": 1}],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [26],
+      "relevant_product_ids": [60],
       "answer_assertions": [
-        {"kind": "contains", "value": "Sạc nhanh VoltPro 65W"},
-        {"kind": "contains", "value": "449.000₫"},
+        {"kind": "contains", "value": "Quân Vương – Thuật Cai Trị"},
+        {"kind": "contains", "value": "Niccolò Machiavelli"},
+        {"kind": "contains", "value": "72.000₫"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "simple_03_sunglow_search",
+      "case_id": "simple_03_eat_clean_search",
       "category": "simple",
-      "message": "Tìm SunGlow SPF50.",
+      "message": "Tìm sách Eat Clean - Ăn Sạch Sống Khỏe.",
       "accepted_intents": ["product.search"],
       "expected_actions": [{"action": "product.search", "count": 1}],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [16],
+      "relevant_product_ids": [196],
       "answer_assertions": [
-        {"kind": "contains", "value": "Kem chống nắng SunGlow SPF50"},
-        {"kind": "contains", "value": "189.000₫"},
+        {"kind": "contains", "value": "Eat Clean - Ăn Sạch Sống Khỏe"},
+        {"kind": "contains", "value": "Emma Phạm"},
+        {"kind": "contains", "value": "145.000₫"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "simple_04_review_by_id",
+      "case_id": "simple_04_tarot_review",
       "category": "simple",
-      "message": "Review product_id: 1",
+      "message": "Khách hàng đánh giá sách Nhật Ký Tarot thế nào?",
       "accepted_intents": ["review.summary"],
-      "expected_actions": [{"action": "review.summarize", "count": 1}],
+      "expected_actions": [
+        {"action": "product.search", "count": 1},
+        {"action": "review.summarize", "count": 1}
+      ],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [1],
+      "relevant_product_ids": [6],
       "answer_assertions": [
-        {"kind": "contains", "value": "Tai nghe Bluetooth Nova Air S2"},
-        {"kind": "contains", "value": "review được phân loại tích cực"},
+        {"kind": "contains", "value": "Nhật Ký Tarot"},
+        {"kind": "contains", "value": "303 review"},
+        {"kind": "contains", "value": "40%"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "complex_01_compare_headphones",
+      "case_id": "complex_01_compare_history",
       "category": "complex",
-      "message": "So sánh Nova Air S2 với Sonic G5. Nếu ưu tiên giá và rating thì nên chọn sản phẩm nào?",
+      "message": "So sánh sách Sapiens với sách Quân Vương. Nếu ưu tiên giá và rating thì nên chọn cuốn nào?",
       "accepted_intents": ["product.compare"],
       "expected_actions": [
         {"action": "product.search", "count": 2},
         {"action": "product.compare", "count": 1}
       ],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [1, 2],
+      "relevant_product_ids": [80, 60],
       "answer_assertions": [
-        {"kind": "contains", "value": "Tai nghe Bluetooth Nova Air S2"},
-        {"kind": "contains", "value": "Tai nghe Gaming Sonic G5"},
-        {"kind": "contains", "value": "699.000₫"},
+        {"kind": "contains", "value": "Sapiens Lược Sử Loài Người"},
+        {"kind": "contains", "value": "Quân Vương – Thuật Cai Trị"},
+        {"kind": "contains", "value": "Yuval Noah Harari"},
+        {"kind": "contains", "value": "72.000₫"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "complex_02_compare_laptops",
+      "case_id": "complex_02_compare_python",
       "category": "complex",
-      "message": "So sánh NovaBook Air 14 với LazBook Student 13.",
+      "message": "So sánh sách Tớ Học Lập Trình - Làm Quen Với Python với sách Python lập trình thuật toán.",
       "accepted_intents": ["product.compare"],
       "expected_actions": [
         {"action": "product.search", "count": 2},
         {"action": "product.compare", "count": 1}
       ],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [11, 13],
+      "relevant_product_ids": [29, 91],
       "answer_assertions": [
-        {"kind": "contains", "value": "Laptop NovaBook Air 14"},
-        {"kind": "contains", "value": "LazBook Student 13"},
-        {"kind": "contains", "value": "11.990.000₫"},
+        {"kind": "contains", "value": "Tớ Học Lập Trình - Làm Quen Với Python"},
+        {"kind": "contains", "value": "Python lập trình thuật toán"},
+        {"kind": "contains", "value": "Bùi Việt Hà"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "complex_03_rank_laptops",
+      "case_id": "complex_03_rank_programming",
       "category": "complex",
-      "message": "Gợi ý laptop dưới 20 triệu, rating ít nhất 4.4.",
+      "message": "Gợi ý sách danh mục Lập Trình dưới 120 nghìn, rating ít nhất 4.8.",
       "accepted_intents": ["product.rank"],
       "expected_actions": [{"action": "product.rank", "count": 1}],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [11, 13],
+      "relevant_product_ids": [91],
       "answer_assertions": [
-        {"kind": "contains", "value": "Laptop NovaBook Air 14"},
-        {"kind": "contains", "value": "LazBook Student 13"},
-        {"kind": "excludes", "value": "Laptop GreenOffice 14"},
+        {"kind": "contains", "value": "Python lập trình thuật toán"},
+        {"kind": "contains", "value": "Nhà Xuất Bản Đại Học Quốc Gia Hà Nội"},
+        {"kind": "contains", "value": "95.000₫"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "complex_04_market_headphones",
+      "case_id": "complex_04_market_programming",
       "category": "complex",
-      "message": "Phân tích phân khúc tai nghe trên thị trường trong dữ liệu mẫu.",
+      "message": "Phân tích phân khúc sách danh mục Lập Trình trong snapshot.",
       "accepted_intents": ["market.analyze"],
       "expected_actions": [{"action": "market.analyze", "count": 1}],
       "accepted_statuses": ["success"],
       "relevant_product_ids": null,
       "answer_assertions": [
-        {"kind": "contains", "value": "5 sản phẩm"},
-        {"kind": "contains", "value": "837.200₫"},
-        {"kind": "contains", "value": "không phải thống kê đại diện thị trường thật"},
-        {"kind": "provenance_at_least", "value": 2}
+        {"kind": "contains", "value": "1 sách"},
+        {"kind": "contains", "value": "95.000₫"},
+        {"kind": "contains", "value": "không phải xu hướng hay thống kê đại diện thị trường hiện tại"},
+        {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "multi_domain_01_headphones",
+      "case_id": "multi_domain_01_budget_books",
       "category": "multi_domain",
-      "message": "Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn.",
+      "message": "Tìm sách dưới 150 nghìn, bán tốt và ít bị khách phàn nàn.",
       "accepted_intents": ["multi.recommendation"],
       "expected_actions": [
         {"action": "product.rank", "count": 1},
@@ -137,19 +156,19 @@
         {"action": "trust.compare", "count": 1}
       ],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [1, 2, 4, 5],
+      "relevant_product_ids": [61, 137, 132, 94, 155],
       "answer_assertions": [
-        {"kind": "contains", "value": "Đã so sánh 4 ứng viên"},
-        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "Đã so sánh 5 ứng viên"},
+        {"kind": "contains", "value": "Charlotte Và Wilbur"},
         {"kind": "contains", "value": "điểm đa agent"},
-        {"kind": "selected_product_id", "value": 2},
-        {"kind": "provenance_at_least", "value": 2}
+        {"kind": "selected_product_id", "value": 61},
+        {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "multi_domain_02_phones",
+      "case_id": "multi_domain_02_political_theory",
       "category": "multi_domain",
-      "message": "Gợi ý điện thoại dưới 7 triệu, rating từ 4.3 và ít bị khách phàn nàn.",
+      "message": "Tìm sách danh mục Lý Luận Chính Trị dưới 100 nghìn, bán tốt và ít bị khách phàn nàn.",
       "accepted_intents": ["multi.recommendation"],
       "expected_actions": [
         {"action": "product.rank", "count": 1},
@@ -157,19 +176,19 @@
         {"action": "trust.compare", "count": 1}
       ],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [6, 7],
+      "relevant_product_ids": [60, 59],
       "answer_assertions": [
         {"kind": "contains", "value": "Đã so sánh 2 ứng viên"},
-        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "Quân Vương – Thuật Cai Trị"},
         {"kind": "contains", "value": "điểm đa agent"},
-        {"kind": "selected_product_id", "value": 6},
-        {"kind": "provenance_at_least", "value": 2}
+        {"kind": "selected_product_id", "value": 60},
+        {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "multi_domain_03_laptops",
+      "case_id": "multi_domain_03_author_filter",
       "category": "multi_domain",
-      "message": "Tìm laptop dưới 20 triệu, bán tốt nhưng khách chê ít.",
+      "message": "Tìm sách của Trang Anh dưới 200 nghìn, bán tốt và ít bị khách phàn nàn.",
       "accepted_intents": ["multi.recommendation"],
       "expected_actions": [
         {"action": "product.rank", "count": 1},
@@ -177,19 +196,19 @@
         {"action": "trust.compare", "count": 1}
       ],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [11, 13, 15],
+      "relevant_product_ids": [7],
       "answer_assertions": [
-        {"kind": "contains", "value": "Đã so sánh 3 ứng viên"},
-        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "Đã so sánh 1 ứng viên"},
+        {"kind": "contains", "value": "Tổng ôn ngữ pháp Tiếng Anh cô Trang Anh"},
         {"kind": "contains", "value": "điểm đa agent"},
-        {"kind": "selected_product_id", "value": 13},
-        {"kind": "provenance_at_least", "value": 2}
+        {"kind": "selected_product_id", "value": 7},
+        {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
-      "case_id": "multi_domain_04_accessories",
+      "case_id": "multi_domain_04_publisher_pages",
       "category": "multi_domain",
-      "message": "Nên mua phụ kiện dưới 700 nghìn nào bán tốt và ít complaint?",
+      "message": "Tìm sách nhà xuất bản Nhà Xuất Bản Thế Giới từ 180 đến 350 trang dưới 160 nghìn, bán tốt và ít bị khách phàn nàn.",
       "accepted_intents": ["multi.recommendation"],
       "expected_actions": [
         {"action": "product.rank", "count": 1},
@@ -197,19 +216,19 @@
         {"action": "trust.compare", "count": 1}
       ],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": [26, 28, 29, 30],
+      "relevant_product_ids": [165, 43, 187, 46, 6],
       "answer_assertions": [
-        {"kind": "contains", "value": "Đã so sánh 4 ứng viên"},
-        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "Đã so sánh 5 ứng viên"},
+        {"kind": "contains", "value": "Hôm Nay Phải Mở Mang"},
         {"kind": "contains", "value": "điểm đa agent"},
-        {"kind": "selected_product_id", "value": 26},
-        {"kind": "provenance_at_least", "value": 2}
+        {"kind": "selected_product_id", "value": 43},
+        {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
       "case_id": "missing_data_01_review",
       "category": "missing_data",
-      "message": "Khách hàng đánh giá thế nào về SuperDragon X999?",
+      "message": "Khách hàng đánh giá sách Bản Đồ Sao Hỏa X999 thế nào?",
       "accepted_intents": ["review.summary"],
       "expected_actions": [
         {"action": "product.search", "count": 1},
@@ -218,15 +237,15 @@
       "accepted_statuses": ["partial_success"],
       "relevant_product_ids": [],
       "answer_assertions": [
-        {"kind": "contains", "value": "Không tìm thấy sản phẩm"},
-        {"kind": "excludes", "value": "SuperDragon"},
+        {"kind": "contains", "value": "Không tìm thấy sách"},
+        {"kind": "excludes", "value": "Bản Đồ Sao Hỏa"},
         {"kind": "error_code_present", "value": "orchestrator.missing_dependency_data"}
       ]
     },
     {
       "case_id": "missing_data_02_complaint",
       "category": "missing_data",
-      "message": "Khách phàn nàn gì về PhantomPhone Z99?",
+      "message": "Khách phàn nàn gì về sách Hành Trình Sao Băng Z99?",
       "accepted_intents": ["trust.complaints"],
       "expected_actions": [
         {"action": "product.search", "count": 1},
@@ -235,47 +254,47 @@
       "accepted_statuses": ["partial_success"],
       "relevant_product_ids": [],
       "answer_assertions": [
-        {"kind": "contains", "value": "Không tìm thấy sản phẩm"},
-        {"kind": "excludes", "value": "PhantomPhone"},
+        {"kind": "contains", "value": "Không tìm thấy sách"},
+        {"kind": "excludes", "value": "Hành Trình Sao Băng"},
         {"kind": "error_code_present", "value": "orchestrator.missing_dependency_data"}
       ]
     },
     {
       "case_id": "missing_data_03_compare",
       "category": "missing_data",
-      "message": "So sánh Nova Air S2 với SuperDragon X999.",
+      "message": "So sánh sách Nhật Ký Tarot với sách Bản Đồ Sao Hỏa X999.",
       "accepted_intents": ["product.compare"],
       "expected_actions": [
         {"action": "product.search", "count": 2},
         {"action": "product.compare", "count": 1}
       ],
       "accepted_statuses": ["partial_success"],
-      "relevant_product_ids": [1],
+      "relevant_product_ids": [6],
       "answer_assertions": [
-        {"kind": "contains", "value": "Không tìm thấy sản phẩm phù hợp"},
+        {"kind": "contains", "value": "Không tìm thấy sách phù hợp"},
         {"kind": "contains", "value": "Một phần dữ liệu không truy xuất được"},
-        {"kind": "excludes", "value": "SuperDragon"},
+        {"kind": "excludes", "value": "Bản Đồ Sao Hỏa"},
         {"kind": "error_code_present", "value": "orchestrator.missing_dependency_data"}
       ]
     },
     {
       "case_id": "missing_data_04_filter",
       "category": "missing_data",
-      "message": "Tìm laptop dưới 1 triệu, rating ít nhất 5 sao.",
+      "message": "Tìm sách danh mục Lập Trình dưới 20 nghìn, rating ít nhất 5 sao.",
       "accepted_intents": ["product.search"],
       "expected_actions": [{"action": "product.search", "count": 1}],
       "accepted_statuses": ["success"],
       "relevant_product_ids": [],
       "answer_assertions": [
-        {"kind": "contains", "value": "Không tìm thấy sản phẩm phù hợp"},
-        {"kind": "excludes", "value": "Laptop NovaBook Air 14"},
+        {"kind": "contains", "value": "Không tìm thấy sách phù hợp"},
+        {"kind": "excludes", "value": "Python lập trình thuật toán"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
       "case_id": "tool_failure_01_trust",
       "category": "tool_failure",
-      "message": "Tìm tai nghe dưới 1 triệu, bán tốt và ít bị khách phàn nàn.",
+      "message": "Tìm sách dưới 150 nghìn, bán tốt và ít bị khách phàn nàn.",
       "accepted_intents": ["multi.recommendation"],
       "expected_actions": [
         {"action": "product.rank", "count": 1},
@@ -283,11 +302,11 @@
         {"action": "trust.compare", "count": 1}
       ],
       "accepted_statuses": ["partial_success"],
-      "relevant_product_ids": [1, 2, 4, 5],
+      "relevant_product_ids": [61, 137, 132, 94, 155],
       "answer_assertions": [
-        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "Charlotte Và Wilbur"},
         {"kind": "contains", "value": "Một phần dữ liệu không truy xuất được"},
-        {"kind": "selected_product_id", "value": 2},
+        {"kind": "selected_product_id", "value": 61},
         {"kind": "error_code_present", "value": "trust.eval_injected"}
       ],
       "failure_injection": {
@@ -300,7 +319,7 @@
     {
       "case_id": "tool_failure_02_review",
       "category": "tool_failure",
-      "message": "Gợi ý điện thoại dưới 7 triệu, rating từ 4.3 và ít bị khách phàn nàn.",
+      "message": "Tìm sách danh mục Lý Luận Chính Trị dưới 100 nghìn, bán tốt và ít bị khách phàn nàn.",
       "accepted_intents": ["multi.recommendation"],
       "expected_actions": [
         {"action": "product.rank", "count": 1},
@@ -308,11 +327,11 @@
         {"action": "trust.compare", "count": 1}
       ],
       "accepted_statuses": ["partial_success"],
-      "relevant_product_ids": [6, 7],
+      "relevant_product_ids": [60, 59],
       "answer_assertions": [
-        {"kind": "contains", "value": "Đề xuất đứng đầu"},
+        {"kind": "contains", "value": "Quân Vương – Thuật Cai Trị"},
         {"kind": "contains", "value": "Một phần dữ liệu không truy xuất được"},
-        {"kind": "selected_product_id", "value": 6},
+        {"kind": "selected_product_id", "value": 60},
         {"kind": "error_code_present", "value": "review.eval_injected"}
       ],
       "failure_injection": {
@@ -325,16 +344,17 @@
     {
       "case_id": "tool_failure_03_review_summary",
       "category": "tool_failure",
-      "message": "Khách hàng đánh giá thế nào về Tai nghe Bluetooth Nova Air S2?",
+      "message": "Khách hàng đánh giá sách Nhật Ký Tarot thế nào?",
       "accepted_intents": ["review.summary"],
       "expected_actions": [
         {"action": "product.search", "count": 1},
         {"action": "review.summarize", "count": 1}
       ],
       "accepted_statuses": ["partial_success"],
-      "relevant_product_ids": [1],
+      "relevant_product_ids": [6],
       "answer_assertions": [
         {"kind": "contains", "value": "Một phần dữ liệu không truy xuất được"},
+        {"kind": "contains", "value": "snapshot lịch sử Tiki Books"},
         {"kind": "error_code_present", "value": "review.eval_injected"}
       ],
       "failure_injection": {
@@ -347,14 +367,14 @@
     {
       "case_id": "tool_failure_04_product",
       "category": "tool_failure",
-      "message": "Tìm VoltPro 65W.",
+      "message": "Tìm sách Quân Vương.",
       "accepted_intents": ["product.search"],
       "expected_actions": [{"action": "product.search", "count": 1}],
       "accepted_statuses": ["failed"],
       "relevant_product_ids": [],
       "answer_assertions": [
         {"kind": "contains", "value": "Không thể hoàn tất yêu cầu"},
-        {"kind": "excludes", "value": "Sạc nhanh VoltPro 65W"},
+        {"kind": "excludes", "value": "Quân Vương – Thuật Cai Trị"},
         {"kind": "error_code_present", "value": "product.eval_injected"}
       ],
       "failure_injection": {
@@ -365,48 +385,51 @@
       }
     },
     {
-      "case_id": "ambiguous_01_product",
+      "case_id": "ambiguous_01_reference",
       "category": "ambiguous",
-      "message": "Sản phẩm đó thì sao?",
+      "message": "Cuốn sách đó thì sao?",
       "accepted_intents": ["product.search"],
       "expected_actions": [{"action": "product.search", "count": 1}],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": null,
+      "relevant_product_ids": [],
       "answer_assertions": [
-        {"kind": "contains", "value": "dữ liệu mẫu"},
+        {"kind": "contains", "value": "Không tìm thấy sách phù hợp"},
+        {"kind": "contains", "value": "snapshot lịch sử Tiki Books"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
       "case_id": "ambiguous_02_price",
       "category": "ambiguous",
-      "message": "Giá thế nào?",
+      "message": "Giá sách thế nào?",
       "accepted_intents": ["product.search"],
       "expected_actions": [{"action": "product.search", "count": 1}],
       "accepted_statuses": ["success"],
       "relevant_product_ids": null,
       "answer_assertions": [
-        {"kind": "contains", "value": "dữ liệu mẫu"},
+        {"kind": "contains", "value": "Các sách phù hợp theo snapshot"},
+        {"kind": "contains", "value": "snapshot lịch sử Tiki Books"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
       "case_id": "ambiguous_03_best",
       "category": "ambiguous",
-      "message": "Tốt nhất?",
+      "message": "Sách nào tốt nhất?",
       "accepted_intents": ["product.rank"],
       "expected_actions": [{"action": "product.rank", "count": 1}],
       "accepted_statuses": ["success"],
-      "relevant_product_ids": null,
+      "relevant_product_ids": [],
       "answer_assertions": [
-        {"kind": "contains", "value": "dữ liệu mẫu"},
+        {"kind": "contains", "value": "Không tìm thấy sách phù hợp"},
+        {"kind": "contains", "value": "snapshot lịch sử Tiki Books"},
         {"kind": "provenance_at_least", "value": 1}
       ]
     },
     {
       "case_id": "ambiguous_04_complaint",
       "category": "ambiguous",
-      "message": "Khách chê gì?",
+      "message": "Khách chê cuốn sách nào?",
       "accepted_intents": ["trust.complaints"],
       "expected_actions": [
         {"action": "product.search", "count": 1},
@@ -415,7 +438,8 @@
       "accepted_statuses": ["partial_success"],
       "relevant_product_ids": [],
       "answer_assertions": [
-        {"kind": "contains", "value": "Không tìm thấy sản phẩm"},
+        {"kind": "contains", "value": "Không tìm thấy sách"},
+        {"kind": "contains", "value": "snapshot lịch sử Tiki Books"},
         {"kind": "error_code_present", "value": "orchestrator.missing_dependency_data"}
       ]
     },
@@ -427,7 +451,7 @@
       "expected_actions": [],
       "accepted_statuses": ["success"],
       "relevant_product_ids": [],
-      "answer_assertions": [{"kind": "contains", "value": "chưa gọi tool"}]
+      "answer_assertions": [{"kind": "contains", "value": "chưa gọi agent hoặc tool"}]
     },
     {
       "case_id": "irrelevant_02_weather",
@@ -437,27 +461,27 @@
       "expected_actions": [],
       "accepted_statuses": ["success"],
       "relevant_product_ids": [],
-      "answer_assertions": [{"kind": "contains", "value": "chưa gọi tool"}]
+      "answer_assertions": [{"kind": "contains", "value": "chưa gọi agent hoặc tool"}]
     },
     {
-      "case_id": "irrelevant_03_algebra",
+      "case_id": "irrelevant_03_headphones",
+      "category": "irrelevant",
+      "message": "Tìm tai nghe dưới 1 triệu.",
+      "accepted_intents": ["general.unsupported"],
+      "expected_actions": [],
+      "accepted_statuses": ["success"],
+      "relevant_product_ids": [],
+      "answer_assertions": [{"kind": "contains", "value": "chưa gọi agent hoặc tool"}]
+    },
+    {
+      "case_id": "irrelevant_04_algebra",
       "category": "irrelevant",
       "message": "Giải phương trình x bình phương trừ năm x cộng sáu.",
       "accepted_intents": ["general.unsupported"],
       "expected_actions": [],
       "accepted_statuses": ["success"],
       "relevant_product_ids": [],
-      "answer_assertions": [{"kind": "contains", "value": "chưa gọi tool"}]
-    },
-    {
-      "case_id": "irrelevant_04_translation",
-      "category": "irrelevant",
-      "message": "Dịch câu Tôi yêu Việt Nam sang tiếng Anh.",
-      "accepted_intents": ["general.unsupported"],
-      "expected_actions": [],
-      "accepted_statuses": ["success"],
-      "relevant_product_ids": [],
-      "answer_assertions": [{"kind": "contains", "value": "chưa gọi tool"}]
+      "answer_assertions": [{"kind": "contains", "value": "chưa gọi agent hoặc tool"}]
     }
   ]
 }

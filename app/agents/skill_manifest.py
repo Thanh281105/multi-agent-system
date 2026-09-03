@@ -161,13 +161,6 @@ default_skill_registry = SkillRegistry(
         ),
         _manifest(
             "market_agent",
-            "search_market_knowledge",
-            {"market.analyze", "market.search"},
-            "knowledge",
-            "search_market_knowledge",
-        ),
-        _manifest(
-            "market_agent",
             "analyze_market",
             {"market.analyze"},
             "analytics",

@@ -18,7 +18,7 @@ if not settings.openai_api_key_value:
 @pytest.mark.asyncio
 async def test_openai_agent_can_call_search_tool() -> None:
     result = await run_agent(
-        message="Tìm tai nghe dưới 1 triệu rating ít nhất 4.5",
+        message="Tìm sách của Trang Anh từ 600 đến 610 trang",
         session_id="integration-search",
         request_id="integration-search",
     )
@@ -31,12 +31,12 @@ async def test_openai_agent_can_call_search_tool() -> None:
 async def test_openai_agent_legacy_follow_up_works_with_store_false() -> None:
     session_id = "integration-follow-up-store-false"
     first = await run_agent(
-        message="Tìm tai nghe dưới 1 triệu rating ít nhất 4.5",
+        message="Tìm sách Sapiens",
         session_id=session_id,
         request_id="integration-follow-up-one",
     )
     second = await run_agent(
-        message="Còn pin thì sao?",
+        message="Còn số trang thì sao?",
         session_id=session_id,
         request_id="integration-follow-up-two",
     )

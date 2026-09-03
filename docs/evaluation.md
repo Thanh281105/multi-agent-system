@@ -1,189 +1,157 @@
-# Phương pháp Evaluation
+# Phương pháp evaluation
 
-## 1. Mục tiêu và giới hạn claim
+## 1. Câu hỏi nghiên cứu và giới hạn
 
-Evaluation v2 trả lời bốn câu hỏi có thể kiểm chứng:
+Evaluation hiện tại kiểm tra:
 
-1. Hybrid multi-agent có giữ đúng intent, plan, task assertions và retrieval khi
-   so paired với deterministic baseline trên cùng case/repetition không?
-2. Mỗi lớp model-assisted routing, planning, specialist và synthesis đóng góp gì
-   khi bị loại riêng bằng ablation?
-3. Chất lượng thay đổi thế nào trước typo, paraphrase, distractor và prompt
-   injection giữ nguyên nhãn?
-4. Đổi lại bao nhiêu latency, token và chi phí ước tính theo pricing đã pin?
+1. Bốn specialist book agents có cải thiện frozen task rubric so với trợ lý
+   product-only trên cùng case/repetition không?
+2. Model-assisted routing, planning, specialist reasoning và synthesis đóng góp
+   gì khi bỏ riêng từng stage?
+3. Hệ thống giữ nhãn thế nào trước typo, paraphrase, distractor và prompt
+   injection?
+4. Đổi lại bao nhiêu latency, token và estimated cost theo pricing đã pin?
 
-Protocol không chứng minh chất lượng trên marketplace thật, không thay human
-semantic evaluation và không cho phép claim superiority chỉ từ một live smoke.
-Structured rubric đo contract đã freeze; nó không chấm toàn bộ sắc thái ngôn ngữ
-tự do hoặc mức hữu ích cảm nhận bởi người dùng.
+Rubric đo routing, authorized plan, structured answer assertions và retrieval
+trên snapshot lịch sử. Nó không đo toàn bộ chất lượng ngôn ngữ tự do, human
+preference, dữ liệu Tiki hiện tại hoặc khả năng tổng quát hóa ra marketplace.
+Regression 100% không có nghĩa “AI chính xác 100%”.
 
-## 2. Frozen inputs v2
+## 2. Frozen inputs và provenance
 
-- Clean gold cases: [`evaluation/cases.v1.json`](../evaluation/cases.v1.json)
+- Gold cases: [`evaluation/cases.v1.json`](../evaluation/cases.v1.json)
 - Robustness corpus: [`evaluation/corpus.v2.json`](../evaluation/corpus.v2.json)
-- Full paired experiment: [`evaluation/experiment.v2.json`](../evaluation/experiment.v2.json)
-- Bounded live pilot: [`evaluation/experiment.live-pilot.v2.json`](../evaluation/experiment.live-pilot.v2.json)
-- Pinned pricing: [`evaluation/pricing/openai-standard-2026-08-25.v2.json`](../evaluation/pricing/openai-standard-2026-08-25.v2.json)
+- Paired experiment: [`evaluation/experiment.v2.json`](../evaluation/experiment.v2.json)
+- Bounded live configuration: [`evaluation/experiment.live-pilot.v2.json`](../evaluation/experiment.live-pilot.v2.json)
+- Pricing manifest: [`evaluation/pricing/openai-standard-2026-08-25.v2.json`](../evaluation/pricing/openai-standard-2026-08-25.v2.json)
 
-Corpus gồm 28 clean cases v1 và 16 label-preserving transformations: bốn biến
-thể cho mỗi parent thuộc simple, complex, multi-domain và irrelevant. Gold của
-transformed case kế thừa từ parent; file lưu rõ `parent_case_id`, `transform_id`,
-policy và rationale curator. Bảy nhóm clean vẫn là simple, complex,
-multi-domain, missing data, tool failure, ambiguous và irrelevant.
+Current dataset là `tiki_books_vi_28_v1`: 28 clean cases và 16
+label-preserving transformations, tổng 44 correctness cases. Bốn transform type
+(`typo`, `paraphrase`, `distractor`, `injection`) có bốn case mỗi loại.
 
-Protocol runtime ghi hash SHA-256 của experiment, corpus, base dataset, sample
-seed, evaluator và pricing; đồng thời ghi Git revision/dirty state, network
-policy, case order, model binding và execution budget. Vì vậy hai observation
-chỉ được paired khi cùng protocol hash, không chỉ khi trùng tên case.
+Snapshot binding:
 
-## 3. Variants và giả thuyết ablation
+| Artifact | Frozen value |
+| --- | --- |
+| Snapshot path | `data/snapshots/tiki-books-v4-eval` |
+| Products / reviews | 200 / 1.773 |
+| Cases SHA-256 | `1838b7c5f3d43ef07e3595fcc507f755668b6330ff2d18bf9d7a8902fd2a2650` |
+| Canonical v2 dataset SHA-256 | `92974752db70477761578b11c1f7d98c7456a7fe1f2d64c6fef51612cda370e5` |
+| Snapshot SHA-256 | `986803ba95d268cf158f36103efa2e1ce00c6134b0e03b67d96c7058f019d66d` |
+| Manifest SHA-256 | `e4f6580e33aa458713842855a7bb58b0e9a73942d888ff124ba4d30fd6513e8e` |
+| Quality report SHA-256 | `b75c8e0f6efb8da8278b4d3babd33ffb9fabdcf5b58fea5678be90de4c537eac` |
 
-| Variant | Model stages | Mục đích |
+Gold labels không được tính lại từ SUT output trong lúc benchmark. Protocol còn
+ghi experiment/corpus/evaluator/pricing hashes, Git revision/dirty state, network
+policy, model bindings, retrieval backend, schedule seed và execution budget.
+
+## 3. Variant hierarchy
+
+| Variant | Parent | Mục đích |
 | --- | --- | --- |
-| `deterministic_v2` | Không có | Quality/latency/token/cost floor |
-| `hybrid_full` | Routing + planning + specialist + synthesis | Treatment đầy đủ |
-| `hybrid_no_router` | Bỏ model routing | Cô lập semantic intent routing |
-| `hybrid_no_planner` | Bỏ model planning | Cô lập capability planning |
-| `hybrid_no_specialist` | Bỏ agent-local model insight | Cô lập specialist reasoning |
-| `hybrid_no_synthesis` | Bỏ model synthesis | Cô lập grounded natural-language synthesis |
+| `deterministic_book_catalog_v2` | — | Baseline product-only deterministic |
+| `deterministic_v2` | product-only baseline | Thêm Review, Trust, Market specialists, không model calls |
+| `hybrid_full` | `deterministic_v2` | Routing + planning + specialist + synthesis bằng model khi hợp lệ |
+| `hybrid_no_router` | `hybrid_full` | Cô lập model routing |
+| `hybrid_no_planner` | `hybrid_full` | Cô lập model planning |
+| `hybrid_no_specialist` | `hybrid_full` | Cô lập specialist model selection |
+| `hybrid_no_synthesis` | `hybrid_full` | Cô lập model synthesis |
 
-Full experiment pin `gpt-5.4-nano-2026-03-17` cho routing, planning và specialist;
-`gpt-5.4-mini-2026-03-17` cho synthesis, reasoning effort `low`. Mỗi variant
-khai báo chính xác stage/model, parent ablation, max model calls và fallback
-policy. Full hybrid tối đa 7 model calls/turn: router, planner, tối đa bốn
-specialist calls và một synthesis call.
+Full experiment pin model snapshot theo stage, reasoning effort, provider
+policy, request timeout, retry, max output tokens, concurrency và circuit
+breaker. Credential không được ghi hoặc hash vào artifact.
 
-Experiment và protocol cùng freeze runtime policy không chứa credential:
-provider, request timeout, retry, output-token ceiling, concurrency và circuit
-breaker. API key không được ghi, hash hay fingerprint vào artifact. Protocol là
-nguồn cấu hình runtime thật, không chỉ là metadata mô tả.
+Khi dùng `--variant`, runner tự đóng dependency chain. Chọn
+`deterministic_v2` kéo thêm `deterministic_book_catalog_v2`; chọn `hybrid_full`
+kéo thêm cả hai deterministic ancestors. Vì vậy một live smoke hybrid hiện tại
+chạy ba variants, không phải hai.
 
-Model không sở hữu fact, final status hay tool permission:
+## 4. Paired protocol
 
-- router chọn intent nhưng entity chỉ được dùng khi khớp giá trị Python đã trích
-  xuất từ request/session;
-- planner chỉ đề xuất capability; Python so với capability policy rồi biên dịch
-  DAG đã kiểm tra dependency/step limit;
-- specialist chỉ chọn opaque fact ID trong catalog bounded do server tạo;
-- synthesis chỉ sắp xếp toàn bộ claim ID trong catalog deterministic;
-- Python materialize fact text, claim text, citation, status, selected product,
-  warning và sample-data caveat. Model không có trường prose/citation để bịa fact.
+Full measured matrix:
 
-## 4. Paired execution protocol
+- correctness: `44 cases × 3 repetitions × 7 variants = 924` observations;
+- latency: `7 cases × 5 repetitions × 7 variants = 245` observations;
+- tổng measured: `1.169` observations;
+- warmup: một turn mỗi variant, tổng 7, bị loại khỏi measured matrix;
+- schedule seed `42`; clustered bootstrap `10.000` samples.
 
-Full configuration freeze:
+Trong từng case/repetition, variant order được seeded-shuffle rồi interleave.
+Repetitions được gom thành case mean; bootstrap cluster theo independent base
+case, không giả định mỗi repetition là một sample độc lập.
 
-- correctness: 44 cases × 3 repetitions × 6 variants = 792 observations;
-- latency: 7 representative cases × 5 repetitions × 6 variants = 210
-  observations;
-- warmup: 1 turn/variant, không đưa vào observation matrix;
-- tổng measured matrix: 1.002 observations;
-- random seed `42`, 10.000 clustered bootstrap samples.
+Runner mặc định chặn network. Hybrid cần explicit `--allow-network`. Dirty
+worktree bị từ chối; `--allow-dirty` chỉ dành cho thăm dò và artifact vẫn ghi
+`git_dirty=true`, nên không dùng nó cho evidence chính thức.
 
-Runner tạo schedule xác định trước. Trong từng case/repetition, thứ tự sáu
-variant được shuffle rồi interleave bằng seeded PRNG; correctness và latency dùng
-seed stream riêng. So sánh gộp repetitions thành case mean rồi bootstrap theo
-**independent base cases**, không giả vờ mỗi repetition là một sample độc lập.
+Bundle được ghi qua staging + atomic rename và không overwrite output có sẵn.
+`manifest.json` khóa hash/size/count của protocol, observations, comparisons,
+omissions, robustness, pricing và report. Validator kiểm tra exact observation
+coverage, sequence, pricing, paired comparisons, omission policy, bootstrap và
+robustness; omission hợp lệ duy nhất cho analysis cell không có pair là
+`no_comparable_paired_values`.
 
-Mỗi turn dùng SQLite tạm đã seed đúng sample dataset và retrieval
-`hashed_token_cosine_v1` thực thi thật (không chỉ là nhãn), cùng
-Orchestrator/session cô lập. Failure injection chỉ tác động đúng agent/action đã
-gắn nhãn. Network mặc định bị chặn; experiment có hybrid variant chỉ chạy khi
-người vận hành truyền `--allow-network`. Dirty worktree bị từ chối trừ khi truyền
-`--allow-dirty`, và artifact vẫn ghi `git_dirty=true` để không che provenance.
-
-Bundle được ghi vào staging directory rồi atomic rename. Existing output không
-bị overwrite. `manifest.json` khóa size/hash/count của `protocol.json`,
-`observations.jsonl`, `comparisons.json`, `omissions.json`, `robustness.json`,
-`pricing.json` và `report.json`. Validator đọc lại toàn bộ schema/hash, kiểm tra
-observation matrix đầy đủ/liên tục, recompute pricing, comparison và robustness;
-file thiếu, thừa, symlink hoặc bị sửa đều làm validation fail. Low-level bundle
-mặc định là `partial`. Bundle `complete` phải có đúng mỗi analysis cell được
-protocol yêu cầu, biểu diễn bởi một comparison hoặc omission hợp lệ, đúng
-bootstrap sample/seed; robustness summary cũng phải phủ mọi variant khi corpus
-có transformed correctness case.
-
-## 5. Metrics và thống kê
+## 5. Metrics
 
 | Metric | Direction | Ý nghĩa |
 | --- | --- | --- |
 | `task_success` | Cao hơn tốt hơn | Status hợp lệ và mọi critical assertion pass |
-| `routing_correct` | Cao hơn tốt hơn | Intent thuộc accepted intents |
-| `exact_plan` | Cao hơn tốt hơn | Action multiset đúng, gồm duplicate khi cần |
-| `answer_assertion_accuracy` | Cao hơn tốt hơn | Tỷ lệ structured assertions pass |
-| `retrieval_f1` | Cao hơn tốt hơn | F1 trên frozen relevant product IDs |
-| `end_to_end_latency_ms` | Thấp hơn tốt hơn | Toàn bộ orchestration turn |
-| `total_tokens` | Thấp hơn tốt hơn | Provider usage của mọi model stage |
-| `estimated_cost_usd` | Thấp hơn tốt hơn | Usage × pricing manifest đã hash |
+| `routing_correct` | Cao hơn tốt hơn | Intent thuộc accepted set |
+| `exact_plan` | Cao hơn tốt hơn | Action multiset đúng |
+| `answer_assertion_accuracy` | Cao hơn tốt hơn | Structured assertions pass |
+| `retrieval_f1` | Cao hơn tốt hơn | Frozen relevant product IDs |
+| `end_to_end_latency_ms` | Thấp hơn tốt hơn | Toàn turn orchestration |
+| `total_tokens` | Thấp hơn tốt hơn | Provider usage toàn stage |
+| `estimated_cost_usd` | Thấp hơn tốt hơn | Usage × pinned pricing |
 
-Mọi delta là `candidate - baseline`; direction quyết định win/loss. Report ghi
-baseline/candidate mean, mean/median paired delta, case-level win/tie/loss, 95%
-clustered bootstrap interval, paired effect size và exact two-sided sign-test cho
-binary metrics khi tính được. Pair có `N/A` ở một phía được đếm vào
-`excluded_pair_count`; nếu không còn pair hợp lệ, runner phải ghi omission
-`no_comparable_paired_values`, không được biến thành 0 hay âm thầm bỏ metric.
+Delta luôn là `candidate - baseline`; metric direction quyết định win/loss.
+Report gồm absolute means, paired mean/median delta, case-level win/tie/loss,
+95% clustered bootstrap interval, effect size và sign test khi áp dụng được.
+`N/A` không được đổi thành 0; excluded pairs và omissions phải hiện rõ.
 
-Robustness report ghép từng transformed case với clean parent cùng repetition,
-báo task-success rate, intent consistency, mean/maximum degradation và worst
-transform cho từng variant. Đây là invariance test trong corpus, không phải
-security certification cho mọi prompt injection.
+Robustness ghép transformed case với clean parent cùng repetition và báo task
+success, intent consistency cùng degradation. Đây là invariance test trong
+frozen corpus, không phải security certification.
 
-Chi phí là **ước tính** theo manifest có effective date, không phải hóa đơn
-provider. Snapshot model trả về từ API, token breakdown, attempts, duration và
-fallback reason được capture; prompt, raw provider response và key không được
-ghi vào artifact.
+## 6. Chạy deterministic paired v2
 
-## 6. Live pilot đã xác minh
-
-Ngày 2026-08-26 đã chạy bounded pilot sau bằng provider key hiện hành:
+Đây là đường offline chính, không cần provider key:
 
 ```powershell
 python -m app.evaluation.v2_runner run `
-  --experiment evaluation/experiment.live-pilot.v2.json `
-  --variant hybrid_full `
-  --max-cases 1 `
-  --allow-network `
-  --run-id run_live_pilot_release_20260826_v2
+  --experiment evaluation/experiment.v2.json `
+  --variant deterministic_v2 `
+  --run-id run_books_deterministic_v2
 
 python -m app.evaluation.v2_runner validate `
-  --bundle output/evaluation-v2/run_live_pilot_release_20260826_v2
+  --bundle output/evaluation-v2/run_books_deterministic_v2
+
+python -m app.evaluation.v2_runner compare `
+  --bundle output/evaluation-v2/run_books_deterministic_v2 `
+  --baseline deterministic_book_catalog_v2 `
+  --candidate deterministic_v2 `
+  --metric task_success `
+  --phase correctness
 ```
 
-Kết quả đã validate:
+Dependency closure tạo hai variants, nên expected measured matrix là
+`44 × 3 × 2 + 7 × 5 × 2 = 334` observations. Output dưới
+`output/evaluation-v2/` bị ignore; chỉ freeze bundle sau khi đã review revision
+sạch, protocol hash, coverage, omissions và artifact hashes.
 
-| Quan sát | Giá trị |
-| --- | ---: |
-| Observation / comparison / omission | 2 / 7 / 0 |
-| Completion status | `complete` |
-| Hybrid model calls / outputs được chấp nhận | 4 / 3 |
-| Guarded fallback | Routing: `ungrounded_routing_entities` |
-| Model snapshots | `gpt-5.4-nano-2026-03-17`, `gpt-5.4-mini-2026-03-17` |
-| Total tokens | 2.572 |
-| Estimated cost | USD 0.00117795 |
-| Hybrid end-to-end latency | 9.138,9194 ms |
-| Task/routing/plan/assertion/retrieval | 1.0 ở cả hai variant |
-| Protocol SHA-256 | `b6be64a16fd8e86eac12c65d6d7decac615edbdd920e18a154cec922488f93cf` |
+## 7. Live/hybrid run
 
-Một case chỉ chứng minh wiring thật, structured stage execution, usage/cost
-capture, guarded fallback và artifact integrity. Model routing đã trả thêm entity
-không extractive; server từ chối output đó rồi định tuyến bằng đường deterministic
-đã kiểm chứng. Năm quality metrics hòa `1–1`; token/cost cao hơn deterministic là
-expected. Không suy diễn confidence interval một-case thành độ ổn định hoặc
-superiority. Full 1.002-observation live experiment chưa được chạy và không chạy
-trong CI vì tốn network, tiền và thời gian.
-
-## 7. Chạy và kiểm tra v2
-
-Chạy full experiment từ clean revision:
+Chạy full seven-variant experiment chỉ từ clean revision và với explicit đồng ý
+network/cost:
 
 ```powershell
 python -m app.evaluation.v2_runner run `
   --experiment evaluation/experiment.v2.json `
   --allow-network `
-  --run-id run_thesis_v2
+  --run-id run_books_hybrid_v2
 ```
 
-Smoke ít case nhưng vẫn tự thêm paired baseline khi chọn candidate:
+Bounded wiring smoke:
 
 ```powershell
 python -m app.evaluation.v2_runner run `
@@ -191,58 +159,60 @@ python -m app.evaluation.v2_runner run `
   --variant hybrid_full `
   --max-cases 1 `
   --allow-network `
-  --run-id run_smoke_v2
+  --run-id run_books_live_smoke_v2
 ```
 
-Validate bundle và recompute một comparison:
+Repository **không có checked-in live-LLM result cho corpus Tiki Books hiện
+tại**. Live pilot số liệu cũ chạy trước khi thay corpus/baseline là evidence
+wiring generic lịch sử, không được dùng cho current Tiki Books claim. File
+`experiment.live-pilot.v2.json` chỉ là cấu hình có thể tái chạy, không phải kết
+quả.
 
-```powershell
-python -m app.evaluation.v2_runner validate `
-  --bundle output/evaluation-v2/run_thesis_v2
+## 8. Evidence đã commit
 
-python -m app.evaluation.v2_runner compare `
-  --bundle output/evaluation-v2/run_thesis_v2 `
-  --baseline deterministic_v2 `
-  --candidate hybrid_full `
-  --metric task_success `
-  --phase correctness
-```
+### Current Tiki deterministic regression
 
-Không commit bundle local theo mặc định. Chỉ freeze một report khóa luận sau khi
-đã review protocol hash, revision sạch, đủ matrix, omissions, model snapshots,
-pricing date và mọi artifact hash.
-
-## 8. Artifact v1 lịch sử
-
-V1 được giữ để regression và tái kiểm tra lịch sử, không phải paired evidence
-cho runtime mới:
-
-- deterministic 28-case × 3 reference:
-  [`evaluation/results/reference-v1`](../evaluation/results/reference-v1);
-- frozen single-agent real capture:
-  [`evaluation/results/baseline-single-agent-v1`](../evaluation/results/baseline-single-agent-v1);
-- deterministic-agents + one-call synthesis capture:
-  [`evaluation/results/real-multi-agent-v1`](../evaluation/results/real-multi-agent-v1).
-
-Hai real artifact v1 dùng prompt/runtime khác nhau và một repetition nên delta
-chỉ descriptive. Con số 100% trong regression rubric không phải “AI chính xác
-100%” và không phải external validity. V1 ghi trạng thái `real_model_captured`
-cùng `source-manifest` SHA-256 để ràng buộc artifact với source SUT đã chạy. Các
-runner tương thích vẫn có thể dùng để reproduce/chấm lại:
+[`evaluation/results/reference-v1`](../evaluation/results/reference-v1) là
+28-case × 3 deterministic reference hiện hành, gắn đủ snapshot/manifest/quality
+hashes và trạng thái `scripted_regression_only`. Tái tạo:
 
 ```powershell
 ecommerce-evaluate --repeats 3 --output evaluation/results/latest
+```
+
+Reference hiện tại đạt frozen routing/plan/assertion/retrieval rubric, nhưng chỉ
+là regression trên cùng code/data; latency là local/offline và token/cost là
+`N/A`. Paired causal comparison dùng product-only baseline trong v2, không dùng
+v1 scripted reference làm single-agent model proxy.
+
+### Legacy generic evidence
+
+Các đường sau thuộc dataset cũ `sample_ecommerce_vi_28_v1`, không phải Tiki
+Books hiện tại:
+
+- [`evaluation/results/legacy-reference-v1`](../evaluation/results/legacy-reference-v1)
+- [`evaluation/results/baseline-single-agent-v1`](../evaluation/results/baseline-single-agent-v1)
+- [`evaluation/results/real-multi-agent-v1`](../evaluation/results/real-multi-agent-v1)
+- [`evaluation/legacy/cases.sample-ecommerce.v1.json`](../evaluation/legacy/cases.sample-ecommerce.v1.json)
+
+Hai real-model captures là API captures thật nhưng khác orchestration/prompt và
+không paired; delta chỉ descriptive. Chúng ghi `real_model_captured` và
+`source-manifest` để audit source SUT, nhưng **không phải external validity** và
+không hỗ trợ current Tiki Books live claim.
+
+Chấm lại legacy captures mà không gọi network:
+
+```powershell
 python scripts/score_real_baseline.py
 python scripts/run_real_multi_agent_benchmark.py --score-only
 ```
 
-## 9. Điều kiện trước claim khóa luận mạnh hơn
+## 9. Điều kiện trước claim mạnh hơn
 
-1. Chạy đủ protocol v2 từ clean revision và lưu immutable bundle đã validate.
-2. Dùng curator độc lập/human semantic rubric, báo rubric và inter-annotator
-   agreement; không dùng SUT tạo gold.
-3. Replicate qua nhiều seed/model snapshot và báo sensitivity, không cherry-pick.
+1. Freeze một complete v2 bundle từ clean revision và validate độc lập.
+2. Dùng human/semantic rubric do curator độc lập thiết kế; báo agreement.
+3. Replicate qua nhiều seed/model snapshots; không cherry-pick.
 4. Báo paired effect/interval/win-tie-loss cùng absolute quality, latency, token
    và estimated/billed cost tách biệt.
-5. Thêm load/soak, chaos, drift, fairness, PII/security evaluation trước claim
-   production trên dữ liệu/người dùng thật.
+5. Thêm load/soak, chaos, drift, fairness, PII/security evaluation trước mọi
+   production hoặc marketplace claim.

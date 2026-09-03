@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import secrets
 from collections.abc import Awaitable, Callable
 from time import perf_counter
 from uuid import uuid4
@@ -33,6 +34,12 @@ _KNOWN_METRIC_PATHS = {
     "/metrics",
     "/",
 }
+# Sonner 2.0.8 injects these two static style elements at module evaluation.
+# Keep the package pinned and re-run browser CSP checks before changing either hash.
+_SONNER_STYLE_HASHES = (
+    "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='",
+    "'sha256-StEaX+se6YS7pqjzrzMIA0KaX9zF/8zAhvQXZAe5epY='",
+)
 
 
 def install_gateway_middleware(application: FastAPI) -> None:
@@ -59,6 +66,7 @@ def install_gateway_middleware(application: FastAPI) -> None:
         )
         request.state.request_id = request_id
         request.state.trace_id = trace_id
+        request.state.csp_nonce = secrets.token_urlsafe(18)
         started_at = perf_counter()
         try:
             response = await call_next(request)
@@ -217,6 +225,9 @@ def _set_security_headers(request: Request, response: Response) -> None:
     )
     script_sources = "'self'"
     style_sources = "'self'"
+    if nonce := getattr(request.state, "csp_nonce", None):
+        style_sources += f" 'nonce-{nonce}'"
+    style_sources += " " + " ".join(_SONNER_STYLE_HASHES)
     if request.url.path in {"/docs", "/redoc"}:
         script_sources += " 'unsafe-inline' https://cdn.jsdelivr.net"
         style_sources += " 'unsafe-inline' https://cdn.jsdelivr.net"
