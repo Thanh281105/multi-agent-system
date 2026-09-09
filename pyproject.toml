@@ -43,6 +43,7 @@ where = ["."]
 include = ["app*"]
 
 [tool.setuptools.package-data]
+"app.shared" = ["pricing-manifest.json"]
 "app.frontend" = [
     "dist/index.html",
     "dist/assets/*",

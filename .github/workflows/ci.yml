@@ -97,6 +97,7 @@ jobs:
           wheel = next(Path("dist").glob("*.whl"))
           with ZipFile(wheel) as archive:
               names = set(archive.namelist())
+          assert "app/shared/pricing-manifest.json" in names
           prefix = "app/frontend/dist/"
           assert prefix + "index.html" in names
           assert prefix + "favicon.svg" in names

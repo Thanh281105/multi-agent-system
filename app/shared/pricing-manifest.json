@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "currency": "USD",
+  "price_unit": "usd_per_million_tokens",
+  "verified_on": "2026-09-09",
+  "pricing_profile": {
+    "name": "standard_global_synchronous_text",
+    "service_tier": "default",
+    "endpoint_host": "api.openai.com",
+    "background": false,
+    "batch": false,
+    "regional_processing": false
+  },
+  "aliases": {
+    "gpt-5.4-mini": "gpt-5.4-mini-2026-03-17",
+    "gpt-5.4-nano": "gpt-5.4-nano-2026-03-17"
+  },
+  "models": {
+    "gpt-5.4-mini-2026-03-17": {
+      "operation": "generation",
+      "input_usd_per_million": "0.75",
+      "cached_input_usd_per_million": "0.075",
+      "output_usd_per_million": "4.50",
+      "dimensions": null,
+      "max_input_tokens": null,
+      "max_request_tokens": null,
+      "max_request_inputs": null,
+      "source_url": "https://developers.openai.com/api/docs/models/gpt-5.4-mini",
+      "verified_on": "2026-09-09"
+    },
+    "gpt-5.4-nano-2026-03-17": {
+      "operation": "generation",
+      "input_usd_per_million": "0.20",
+      "cached_input_usd_per_million": "0.02",
+      "output_usd_per_million": "1.25",
+      "dimensions": null,
+      "max_input_tokens": null,
+      "max_request_tokens": null,
+      "max_request_inputs": null,
+      "source_url": "https://developers.openai.com/api/docs/models/gpt-5.4-nano",
+      "verified_on": "2026-09-09"
+    },
+    "text-embedding-3-small": {
+      "operation": "embedding",
+      "input_usd_per_million": "0.02",
+      "cached_input_usd_per_million": "0.02",
+      "output_usd_per_million": "0.00",
+      "dimensions": 1536,
+      "max_input_tokens": 8192,
+      "max_request_tokens": 300000,
+      "max_request_inputs": 2048,
+      "source_url": "https://developers.openai.com/api/docs/models/text-embedding-3-small",
+      "limits_source_url": "https://developers.openai.com/api/reference/resources/embeddings/methods/create",
+      "verified_on": "2026-09-09"
+    }
+  }
+}
