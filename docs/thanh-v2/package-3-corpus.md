@@ -62,3 +62,39 @@ observing retrieval. These probes measure relevance and abstention, not semantic
 claim support or benchmark superiority. Query vectors will be collected once
 through the shared ledger and reused for offline policy comparisons. The final
 selected policy remains provisional until the Package 7 protocol freeze.
+
+## Reviewed ingestion and calibration commands
+
+`scripts/build_book_corpus.py` reads the committed source and mapping manifests,
+validates all 200 current catalog IDs and builds a new immutable PostgreSQL
+corpus/index. It requires an existing ingestion budget scope capped at 5 USD in
+the common account. The command never creates or resets the ledger. Credentials
+come only from the named API-key environment variable.
+
+`--build-owner-id` stays fixed across safe resumes, including a new budget scope
+after the original deadline. Completed batches are reused. An active batch with
+an unpersisted outcome is refused for operator reconciliation; changing scope or
+owner cannot silently dispatch it again. `--retrieval-policy` reads a strict
+policy JSON. `--corpus-version` revalidates the same override in both input
+manifests, allowing a calibrated policy to publish a new version while reusing
+unchanged same-fingerprint vectors. The original published version remains
+immutable. Multiple complete indices require an explicit index ID for reads.
+
+`scripts/calibrate_book_retrieval.py collect` takes explicit corpus/index IDs and
+server-side access-fixture fields. It collects the fixed probes' deduplicated
+query vectors in one budgeted batch. An exclusive pending claim precedes dispatch;
+the complete cache records input identity, vector digest and known/reserved/unknown
+usage. A complete payload remains reusable even if an earlier retry has unknown
+billing. An incomplete payload never triggers automatic redispatch.
+
+The `evaluate` subcommand uses the complete cache and current PostgreSQL ACLs with
+zero provider calls. It records raw ranks/relevance/selection, expected sources,
+no-answer and context bounds for each policy. Collection and evaluation snapshot
+lineage remain separate if a new corpus version reuses the query vectors. The
+runner does not mutate a published policy or claim semantic grounding. `--help`
+lists the required arguments and bounded collect/evaluate examples.
+
+Primary verification: 31 focused tests passed, including six real PostgreSQL
+scenarios; lint/format and typed source checks passed. These fixture tests do not
+establish live embedding quality or publication. Final runtime IDs, policy,
+calibration results and complete ledger usage follow only after those checks run.

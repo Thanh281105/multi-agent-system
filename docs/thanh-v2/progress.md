@@ -173,3 +173,20 @@ the exact rendered Unicode context bound. These are fixture regressions; the
 combined PostgreSQL and real-provider checks remain separate open gate items.
 The lead also verified the pinned upstream blob IDs and actual algorithm lineage,
 and recorded the adaptations in `integration-sources.md`.
+
+The lead reproduced **31 tests in 33.00 seconds** across ingestion, the six real
+PostgreSQL scenarios and the development-calibration fixtures, with no skips or
+warnings. The PostgreSQL facade test proves tenant/principal/mode/scope filtering
+before planning and diagnostics, no provider/planner work for an empty authorized
+catalog, exact citation reopening, and refusal after principal/scope changes or
+version/span tampering. Other scenarios cover vector reuse, stable batch resume,
+concurrent dispatch fencing and separate model/dimension/chunker/enrichment
+fingerprints while preserving the old index.
+
+All seven ingestion/calibration source and test files passed Ruff lint/format;
+the four source modules passed mypy. Their frozen SHA256 values matched the
+workers' reports. Primary's unified verifier used the repository venv and
+`PYTHONPATH`, reported `VERIFY_STATUS=SUCCESS`, and explicitly skipped its pytest
+step because the independent run above passed. The worker's earlier bare-pytest
+path contamination is not treated as a passing test result. Live provider
+publication, threshold calibration and the full v1 regression gate remain open.
