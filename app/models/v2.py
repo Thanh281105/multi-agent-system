@@ -370,6 +370,9 @@ class V2Turn(Base):
     dialogue_outcome: Mapped[str | None] = mapped_column(String(32), nullable=True)
     result: Mapped[dict[str, Any] | None] = mapped_column(JSON_VALUE, nullable=True)
     safe_error: Mapped[dict[str, Any] | None] = mapped_column(JSON_VALUE, nullable=True)
+    runtime_metadata: Mapped[dict[str, Any]] = mapped_column(
+        JSON_VALUE, nullable=False, default=dict, server_default=_json_default("{}")
+    )
     corpus_version_id: Mapped[str | None] = mapped_column(
         String(64),
         ForeignKey("v2_knowledge_corpus_versions.id", ondelete="RESTRICT"),

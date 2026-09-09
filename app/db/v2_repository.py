@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -23,6 +24,9 @@ from app.v2.authorization import (
     bind_request_authorization,
 )
 from app.v2.contracts import (
+    IDENTIFIER_PATTERN,
+    MAX_DRAFT_REPAIRS,
+    MAX_KNOWLEDGE_RETRIEVALS,
     ConversationMode,
     DialogueOutcome,
     SafeExecutionError,
@@ -46,6 +50,12 @@ class TurnStateConflictError(ValueError):
     """A terminal turn was replayed with different terminal state."""
 
     code = "turn_state_conflict"
+
+
+class TurnRuntimeConflictError(TurnStateConflictError):
+    """Runtime pins, counters or lease do not match the durable turn."""
+
+    code = "turn_runtime_conflict"
 
 
 class V2Repository:
@@ -216,6 +226,90 @@ class V2Repository:
         turn.updated_at = now
         self._session.commit()
         return turn
+
+    def bind_turn_runtime(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+        *,
+        data_versions: Mapping[str, str],
+    ) -> V2Turn:
+        """Bind server-owned snapshot versions once, before claiming a turn."""
+
+        versions = _validated_runtime_versions(data_versions)
+        turn = self._locked_turn(authorization, turn_id)
+        try:
+            if turn.execution_state != TurnStatus.PENDING.value:
+                raise TurnRuntimeConflictError("only pending turns may bind runtime")
+            if turn.corpus_version_id != versions["corpus_version_id"]:
+                raise TurnRuntimeConflictError("runtime corpus pin does not match")
+            if turn.runtime_metadata:
+                metadata = _validated_runtime_metadata(turn.runtime_metadata)
+                if metadata["data_versions"] != versions:
+                    raise TurnRuntimeConflictError("turn runtime is already bound")
+            else:
+                turn.runtime_metadata = {
+                    "schema_version": 1,
+                    "data_versions": versions,
+                    "knowledge_retrievals": 0,
+                    "draft_repairs": 0,
+                }
+                turn.updated_at = utc_now()
+            self._session.commit()
+            return turn
+        except Exception:
+            self._session.rollback()
+            raise
+
+    def checkpoint_turn_runtime(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+        *,
+        lease_owner: str,
+        knowledge_retrievals: int | None = None,
+        draft_repairs: int | None = None,
+    ) -> V2Turn:
+        """Commit monotonic attempted-work counters before provider dispatch."""
+
+        for value, limit in (
+            (knowledge_retrievals, MAX_KNOWLEDGE_RETRIEVALS),
+            (draft_repairs, MAX_DRAFT_REPAIRS),
+        ):
+            if value is not None and (
+                type(value) is not int or not 0 <= value <= limit
+            ):
+                raise ValueError("runtime counter is outside its strict integer limit")
+        turn = self._locked_turn(authorization, turn_id)
+        try:
+            expiry = turn.lease_expires_at
+            if expiry is not None and expiry.tzinfo is None:
+                expiry = expiry.replace(tzinfo=UTC)
+            now = utc_now()
+            if (
+                turn.execution_state != TurnStatus.RUNNING.value
+                or turn.lease_owner != lease_owner
+                or expiry is None
+                or expiry <= now
+            ):
+                raise TurnRuntimeConflictError("turn runtime lease is not current")
+            metadata = _validated_runtime_metadata(turn.runtime_metadata)
+            for field, value in (
+                ("knowledge_retrievals", knowledge_retrievals),
+                ("draft_repairs", draft_repairs),
+            ):
+                if value is None:
+                    continue
+                if value < metadata[field]:
+                    raise TurnRuntimeConflictError("runtime counters cannot decrease")
+                metadata[field] = value
+            turn.runtime_metadata = metadata
+            turn.updated_at = now
+            self._session.commit()
+            return turn
+        except Exception:
+            self._session.rollback()
+            raise
 
     def persist_step_result(
         self,
@@ -450,6 +544,45 @@ def canonical_payload_hash(payload: Mapping[str, Any]) -> str:
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()
+
+
+def _validated_runtime_versions(data_versions: Mapping[str, str]) -> dict[str, str]:
+    if set(data_versions) != {
+        "catalog_version_id",
+        "corpus_version_id",
+        "index_manifest_id",
+    }:
+        raise ValueError("runtime binding requires exactly three snapshot versions")
+    if any(
+        not isinstance(value, str) or re.fullmatch(IDENTIFIER_PATTERN, value) is None
+        for value in data_versions.values()
+    ):
+        raise ValueError("runtime snapshot versions must be stable identifiers")
+    return dict(data_versions)
+
+
+def _validated_runtime_metadata(value: Mapping[str, Any]) -> dict[str, Any]:
+    if (
+        set(value)
+        != {"schema_version", "data_versions", "knowledge_retrievals", "draft_repairs"}
+        or type(value.get("schema_version")) is not int
+        or value["schema_version"] != 1
+    ):
+        raise TurnRuntimeConflictError("turn runtime metadata is not bound or valid")
+    versions = value["data_versions"]
+    if not isinstance(versions, Mapping):
+        raise TurnRuntimeConflictError("turn runtime versions are invalid")
+    try:
+        versions = _validated_runtime_versions(versions)
+    except ValueError as exc:
+        raise TurnRuntimeConflictError("turn runtime versions are invalid") from exc
+    for field, limit in (
+        ("knowledge_retrievals", MAX_KNOWLEDGE_RETRIEVALS),
+        ("draft_repairs", MAX_DRAFT_REPAIRS),
+    ):
+        if type(value[field]) is not int or not 0 <= value[field] <= limit:
+            raise TurnRuntimeConflictError("turn runtime counters are invalid")
+    return {**value, "data_versions": versions}
 
 
 def _match_turn_replay(turn: V2Turn, payload_hash: str) -> V2Turn:
