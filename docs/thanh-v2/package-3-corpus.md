@@ -38,3 +38,9 @@ an immutable index changes its chunker. Package 3 therefore adds an explicit
 data is preserved; an ambiguous backfill or a downgrade that would collapse two
 chunk layouts must fail instead of discarding content. This correction supports
 the planned index fingerprint invariant without changing document identity.
+
+The migration slice passed the lead's 21-test SQLite/PostgreSQL migration and
+persistence run. Validation happens before schema mutation, and downgrade also
+refuses a chunker identity that could not be reconstructed on reapply. These
+checks establish the schema boundary; ingestion and retrieval still require
+their integrated gate before the package can close.

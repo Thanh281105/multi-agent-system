@@ -140,3 +140,15 @@ source/citation identities. The scope estimate increases by one migration, one
 focused test file and two small existing-file changes. Package 3 remains open
 until ingestion, retrieval, ACL/no-answer, actual publication and regression
 checks pass together.
+
+The lead reviewed the completed chunker migration and reproduced **21 tests in
+52.56 seconds** across `test_knowledge_migrations.py`, `test_migrations.py` and
+`test_v2_persistence.py`, with no skips or warnings. The tests cover SQLite and
+real PostgreSQL, preserved rows/vectors/foreign keys, separate chunk layouts,
+safe downgrade/reapply, and rejection of ambiguous evidence or lossy downgrade.
+Backfill evidence is validated before DDL so a refused SQLite upgrade remains
+retryable. Nonlegacy chunker identities must remain reconstructable on downgrade.
+Ruff passed for all five changed Python files; mypy passed for the three source
+files. The unified verifier reported `VERIFY_STATUS=SUCCESS`, with pytest
+explicitly skipped in that wrapper because the independent run above had passed.
+The preserved runtime database has not yet been migrated by this code-only slice.

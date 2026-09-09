@@ -152,7 +152,10 @@ class V2KnowledgeChunk(Base):
         CheckConstraint("chunk_index >= 0", name="ck_v2_chunk_index_non_negative"),
         CheckConstraint("token_count >= 0", name="ck_v2_chunk_tokens_non_negative"),
         UniqueConstraint(
-            "document_id", "chunk_index", name="uq_v2_chunk_document_index"
+            "document_id",
+            "chunker_version",
+            "chunk_index",
+            name="uq_v2_chunk_document_chunker_index",
         ),
         UniqueConstraint("id", "corpus_version_id", name="uq_v2_chunk_id_corpus"),
     )
@@ -162,6 +165,7 @@ class V2KnowledgeChunk(Base):
     corpus_version_id: Mapped[str] = mapped_column(
         String(64), nullable=False, index=True
     )
+    chunker_version: Mapped[str] = mapped_column(String(120), nullable=False)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     token_count: Mapped[int] = mapped_column(Integer, nullable=False)

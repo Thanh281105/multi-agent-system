@@ -556,10 +556,10 @@ def test_vectors_are_bound_to_their_index_fingerprint_corpus(
         connection.execute(
             text(
                 "INSERT INTO v2_knowledge_chunks "
-                "(id, document_id, corpus_version_id, chunk_index, content, "
-                "token_count) "
+                "(id, document_id, corpus_version_id, chunker_version, "
+                "chunk_index, content, token_count) "
                 "VALUES ('chunk_vector_a', 'document_vector_a', 'corpus_vector_a', "
-                "0, 'Synthetic chunk', 2)"
+                "'chunker_test', 0, 'Synthetic chunk', 2)"
             )
         )
 
