@@ -1,6 +1,6 @@
 # Package 3 — versioned book corpus and retrieval
 
-Package 2 passed and was committed at `16f0d2a` before this package started. This document records the active implementation boundary; it does not claim that a production corpus or retrieval gate is complete.
+Package 2 passed and was committed at `16f0d2a` before this package started. This document records the implementation boundary and independently verified runtime artifacts. The package gate is recorded separately in the progress log after the complete regression run.
 
 ## Scope and ownership
 
@@ -30,7 +30,7 @@ The lead verifies the source/edition mapping and license provenance, publication
 
 Contracts are committed at `5fb0994`; the curated 20-work/200-record source inputs
 are committed at `a1edfff`. The primary independently validated both slices. The
-input files are ready for ingestion; no operational index is published yet.
+input files supplied the operational publication recorded below.
 
 The existing chunk uniqueness `(document_id, chunk_index)` is insufficient when
 an immutable index changes its chunker. Package 3 therefore adds an explicit
@@ -98,3 +98,61 @@ Primary verification: 31 focused tests passed, including six real PostgreSQL
 scenarios; lint/format and typed source checks passed. These fixture tests do not
 establish live embedding quality or publication. Final runtime IDs, policy,
 calibration results and complete ledger usage follow only after those checks run.
+
+## Published runtime and observed calibration
+
+The primary published `books-v1-calibrated-20260909` with corpus ID
+`cor_e06f6abbf338cfcf5fe17d450eec52ed961975e0fa8ee6bae32369ed3956`
+and index ID
+`idx_69af0802b50991c371bcb1f2954e79de82ccdc7855e15d3e602126b3b9c4`.
+Its index fingerprint is
+`ee3afa43eb9199f0b962f467946e54127c7133424b9f56d84660975a5df34759`.
+The index uses `text-embedding-3-small`, 1,536 dimensions, `table_chunker_v1`
+and `source_keywords_v1`. There are 20 sources/chunks/vectors and all 200
+product mappings: 20 exact work, 17 ambiguous and 163 unmatched.
+
+The six-policy development grid found 4/4 expected positive sources and 4/4
+correct negative abstentions at dense relevance 0.25. Both lexical thresholds
+separated the probes; the selected policy retains the stricter existing 0.10.
+Positive queries still return extra sources. These observations do not establish
+exact-source precision, semantic support or held-out quality. The selected policy
+remains provisional until Package 7 freezes the complete protocol.
+
+The calibrated publication reused all 20 vectors from the original published
+`books-v1` corpus. Primary compared their public chunk IDs and vector payloads
+directly and verified that publishing the new version made zero provider calls.
+The direct published-store audit then ran all eight queries from the cache and
+reopened all 24 returned evidence references with matching text and timestamp.
+A foreign tenant received no context. The audit made zero provider calls.
+
+The complete evidence is committed in:
+
+- [query-embeddings.json](../../data/knowledge/books-v1/calibration/query-embeddings.json): immutable one-batch query cache and usage.
+- [candidates-v1.json](../../data/knowledge/books-v1/calibration/candidates-v1.json): raw diagnostics for all six policies.
+- [selected-policy.json](../../data/knowledge/books-v1/calibration/selected-policy.json): the published retrieval policy.
+- [published-policy-verification.json](../../data/knowledge/books-v1/calibration/published-policy-verification.json): policy-evaluation result with separate collection/evaluation lineage.
+- [runtime-manifest.json](../../data/knowledge/books-v1/runtime-manifest.json): actual publication, input/vector fingerprints, direct facade/citation checks and ledger totals.
+
+The policy runner is read-only even when its candidate equals the published
+policy. Actual publication and direct facade behavior were independently checked
+in the runtime manifest. Calibration/gold artifacts are verification inputs only;
+they must never be injected into application model context or the ingested source
+corpus.
+
+Total observed Package 3 provider use is **2 embedding attempts, 2,632 input
+tokens, 52,640 nano-USD (0.00005264 USD)**. The corpus build accounts for 2,159
+tokens and query collection for 473. There are no pending attempts, unknown costs,
+missing usage or held reservations. No generation, warmup or benchmark request was
+made. The baseline database remains revision 0003 with 200 products/1,773 reviews;
+the runtime is revision 0006 with the same catalog counts. Neither database nor
+the common account was reset.
+
+## Final gate
+
+Primary full regression: **462 passed, 2 optional live v1 tests deselected,
+1 existing Starlette warning**, with all PostgreSQL checks executed. Ruff passed
+for 202 files, mypy for 133 application modules, and all five v1 OpenAPI routes and
+component schemas are unchanged. The unified verifier reported
+`VERIFY_STATUS=SUCCESS`; its generic config smoke was marked skipped because the
+explicit provider/publication/PostgreSQL/citation audits above supply runtime
+verification. The gate is met; semantic grounding remains the next package.

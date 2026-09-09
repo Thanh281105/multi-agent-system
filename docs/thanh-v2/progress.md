@@ -6,7 +6,7 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | --- | --- | --- |
 | 1 — branch, environment, baseline, provenance | Committed `6b046d4` | Baseline and environment status established; tests, local database and attribution reviewed. Known captured-artifact hash failure recorded below. |
 | 2 — contracts, registry, schema, authorization, budget | Committed `16f0d2a` | 395 tests pass; contracts, real PostgreSQL, exact-cost ledger and v1 regression verified. Seven implementation/fix commits plus the gate record. |
-| 3 — corpus, mapping, retrieval, citations | In progress | Three disjoint source/ingestion/retrieval scopes; runtime database and license prerequisite ready. |
+| 3 — corpus, mapping, retrieval, citations | Gate passed | 462 tests pass; published 20-work/200-mapping corpus, real embeddings/ledger and development no-answer calibration verified. |
 | 4 — supervisor, continuation, deduplication, grounding | Not started | Bounded end-to-end reads; no duplicate completed step |
 | 5 — history, memory, sandbox actions | Not started | Restart/retry/confirmation/real PostgreSQL concurrency |
 | 6 — API and frontend | Not started | JSON/SSE/UI consistency; v1 regression |
@@ -190,3 +190,43 @@ workers' reports. Primary's unified verifier used the repository venv and
 step because the independent run above passed. The worker's earlier bare-pytest
 path contamination is not treated as a passing test result. Live provider
 publication, threshold calibration and the full v1 regression gate remain open.
+
+Ingestion/PostgreSQL is committed as `02ff49a`; the calibration runner and its
+regressions are committed as `fcce567`. Primary then completed actual publication
+and development calibration through the preserved common ledger. The final
+20-source/20-vector/200-mapping corpus uses policy `p3_cal_d025_l010`; publishing
+that policy reused every vector and cost zero additional attempts. The direct
+published-store audit passed all eight fixed probes and reopened 24 evidence
+references exactly. Positive probes contain extra sources, so this is relevance
+and abstention evidence only, not semantic grounding or benchmark quality.
+
+Two real embedding attempts used 2,632 input tokens and 52,640 nano-USD
+(0.00005264 USD). Pending/reserved/unknown/missing usage are all zero. Runtime and
+baseline catalog counts remain 200/1,773, at revisions 0006 and 0003 respectively.
+The full app passed Ruff lint/format (202 files), mypy (133 modules) and exact
+comparison of all five v1 paths/component schemas against the earlier snapshot.
+The complete regression result and gate decision follow below.
+
+## Package 3 gate decision
+
+Gate met on 2026-09-09 after the primary full run: **462 passed, 2 deselected,
+1 warning in 508.23 seconds**. No PostgreSQL scenario was skipped. The deselected
+tests are the two optional v1 live-provider smoke tests, and the warning is the
+pre-existing Starlette/httpx deprecation. The separate real-provider corpus and
+calibration calls above establish the live embedding boundary.
+
+The lead reviewed all worker reports and frozen files, reproduced the focused
+and combined tests, verified source attribution, and inspected the generated
+calibration/runtime artifacts. SQL ACL-before-plan, stable evidence IDs and spans,
+fingerprint changes, restart-safe batch reuse and concurrent fencing passed. The
+full suite covers the shared ledger and v1 regression; exact v1 OpenAPI and all
+existing evaluation artifacts remain unchanged. Frontend code did not change in
+this package; its earlier verified baseline remains applicable.
+
+The package contains 17 source/test/migration files, within the reassessed
+12–18-file estimate, plus the required curated inputs, license, documentation and
+five generated calibration/publication artifacts. The only schema adjustment was
+the documented chunker uniqueness migration. No semantic-grounding or benchmark
+quality claim is inferred from the development probes. See
+[package-3-corpus.md](package-3-corpus.md) for exact runtime IDs, recorded limits and
+costs. Package 4 may now begin.
