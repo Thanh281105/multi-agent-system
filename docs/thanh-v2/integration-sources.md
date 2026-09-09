@@ -78,9 +78,14 @@ symbol, không bám theo tên file target.
 | --- | --- | --- |
 | `app/knowledge/v2_contracts.py` | `commerce-common/commerce_common/rag/models.py`: `RagAcl`, `RagAccessContext`, `CommerceDocument`, `RagDocumentArtifact`, `RagChunk`, `Citation` | `algorithm reimplemented`: dùng khái niệm typed document/chunk/ACL/evidence; validation, mapping tác phẩm/ấn bản, canonical hash, ID citation độc lập corpus và fingerprint được viết theo contract thanh-v2. Không sao chép provider loop. |
 | `tests/test_knowledge_ingestion.py` (nhóm contract ban đầu) | Các khái niệm contract ở dòng trên; các tình huống lỗi riêng của thanh-v2 | Test mới kiểm tra normalization/identity tái lập, ID work/edition bị tráo, ACL không hợp lệ, vector NaN và chunk/span bị sửa. Lead chạy lại: 4 passed; Ruff lint/format và mypy đạt. |
+| `app/knowledge/retrieval.py` | `commerce-common/commerce_common/rag/retrieval.py`, blob `4a1ac852bdd20ebe458e32a5e9d5d5be80db5f2b`: `_bm25`, `RankedChunk`, `HybridRetriever.retrieve`, `DeterministicPostProcessor.process`; ACL-order intent từ `store.py`, blob `646e633f358c74d36e545a51610523a778c345fb` | `adapted`: giữ BM25, dense/BM25 union, weighted RRF, dedupe và adjacent ordering. Bổ sung pin corpus/index, SQL-store protocol, current authorization, relevance/no-answer, diagnostics, cosine an toàn, context bound gồm metadata và cancellation qua ledger. Planner online được viết lại trên `ModelRuntime`; không port provider loop hoặc model postprocessor của source. |
+| `app/knowledge/service.py` | `commerce-common/commerce_common/rag/service.py`, blob `e2267eac0e1e976ca3a616829d91c51bb9363ca0`: `CommerceRag.search` | `algorithm reimplemented`: dùng ý tưởng facade, viết mới chuyển đổi contract v2 và mở lại evidence theo source/version/chunk/span với quyền hiện tại. `[C#]` chỉ là label; timestamp là thời điểm nguồn được thu thập. Các tool definitions và grounding methods của source chưa được port bởi file này. |
+| `tests/test_knowledge_retrieval.py`, `tests/test_knowledge_citations.py` | `commerce-common/tests/test_rag.py`, blob `60d6a84f00c4702892986e5173086eefb00a8c01`: ACL-before-planning, stable citations, unauthorized-source rejection, adjacent ordering | `test intent ported`, thêm tình huống riêng của thanh-v2: required/hybrid errors, budget/cancel propagation, source narrowing, Unicode context cap, finite-vector overflow và exact reopening. Lead chạy lại bản đã đóng băng: 28 passed; Ruff bốn file và mypy hai module đạt. Đây là regression qua fixture; PostgreSQL kết hợp và provider thật có gate riêng. |
 
 Các dòng dự kiến ở bảng nguồn phía trên tiếp tục là kế hoạch cho tới khi có diff
-và kiểm tra tương ứng. Bản sao giấy phép Apache-2.0 đã lưu tại
+và kiểm tra tương ứng; các target có dòng thực tế ở bảng này đã được tích hợp ở
+phạm vi ghi rõ. Lead đối chiếu lại blob IDs, công thức BM25, adjacent ordering,
+facade nguồn và header của bản retrieval/service đã đóng băng. Bản sao giấy phép Apache-2.0 đã lưu tại
 `LICENSES/Apache-2.0.txt`; hash SHA-256 đã đối chiếu với blob giấy phép nguồn:
 `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`.
 

@@ -163,3 +163,13 @@ groups are excluded from held-out evaluation, and no probe text entered the
 corpus (`P3_PROBES_GOLD_PREFLIGHT=PASS`). Threshold calibration and real provider
 collection have not yet run. The new calibration runner is a bounded Package 3
 verification task assigned to Sol XHigh; it does not begin Package 7.
+
+The lead independently reviewed the frozen retrieval/service slice and reproduced
+**28 tests in 22.62 seconds**, without skips or warnings. Ruff lint/format passed
+for its four files and mypy passed for both modules. Tests cover ACL-before-plan
+ordering, source allowlists, exact citation reopening, hybrid/required failure
+semantics, cancellation, raw relevance abstention, weighted rank provenance and
+the exact rendered Unicode context bound. These are fixture regressions; the
+combined PostgreSQL and real-provider checks remain separate open gate items.
+The lead also verified the pinned upstream blob IDs and actual algorithm lineage,
+and recorded the adaptations in `integration-sources.md`.
