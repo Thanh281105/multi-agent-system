@@ -62,6 +62,13 @@ REAL_MULTI_REPORT = REAL_MULTI_ARTIFACT.with_name("report.json")
 REFERENCE_REPORT_PATH = (
     PROJECT_ROOT / "evaluation" / "results" / "reference-v1" / "report.json"
 )
+# Immutable P1 reference origin at b7df1cc; current-runtime provenance is tested below.
+FROZEN_REFERENCE_REPORT_SHA256 = (
+    "a0b6706e7130fb38616e5823b1bed46e2b71346d9a31d94c3a9025c4e60e8075"
+)
+FROZEN_REFERENCE_SUT_SOURCE_SHA256 = (
+    "213c2b50d32ad42be33933fcb0d861f62d864e922226943d950e013bf6c2c0e0"
+)
 
 
 def canonical_sha256(path: Path) -> str:
@@ -204,21 +211,20 @@ def test_real_multi_agent_artifact_is_frozen_and_scoreable() -> None:
     assert "OPENAI_API_KEY" not in REAL_MULTI_ARTIFACT.read_text(encoding="utf-8")
 
 
-def test_checked_in_book_reference_matches_current_sources_and_corpus() -> None:
+def test_checked_in_book_reference_preserves_frozen_origin_and_corpus() -> None:
     corpus = load_corpus(CASES_PATH)
     baseline = load_baseline_manifest(BASELINE_PATH)
     report = EvaluationReport.model_validate_json(
         REFERENCE_REPORT_PATH.read_text(encoding="utf-8")
     )
-    source_hash, source_files = _sut_source_manifest()
 
+    assert canonical_sha256(REFERENCE_REPORT_PATH) == FROZEN_REFERENCE_REPORT_SHA256
     assert report.dataset_id == corpus.dataset_id
     assert report.dataset_sha256 == runner_sha256(CASES_PATH)
     assert report.source_snapshot == corpus.source_snapshot
     assert report.baseline == baseline
     assert report.comparison_status == "scripted_regression_only"
-    assert report.sut_source_sha256 == source_hash
-    assert report.sut_source_files == source_files
+    assert report.sut_source_sha256 == FROZEN_REFERENCE_SUT_SOURCE_SHA256
     assert [item.case_id for item in report.case_scores] == [
         case.case_id for case in corpus.cases
     ]
