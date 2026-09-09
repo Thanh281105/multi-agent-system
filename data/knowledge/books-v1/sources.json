@@ -1,0 +1,708 @@
+{
+  "schema_version": "1.0",
+  "corpus_name": "books",
+  "corpus_version": "books-v1",
+  "catalog_source_commit": "b7df1cc420127e31449a777204411bf6844f5b65",
+  "sources": [
+    {
+      "source_id": "src_little_women_prh",
+      "title": "Little Women — work metadata note",
+      "source_url": "https://www.penguinrandomhouse.com/books/292282/little-women-by-louisa-may-alcott-edited-with-an-introduction-by-anne-boyd-rioux-foreword-by-patti-smith/9780143106654/",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose, excerpt, or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Little Women\n\nPrimary publisher-source factual note. Penguin Random House identifies *Little Women* as a novel by Louisa May Alcott centered on the March sisters. This source supports the work identity and broad family-life subject only; it does not establish the catalog item's Vietnamese edition, ISBN, or pagination.\n",
+      "content_sha256": "e053d979826419433dede56dc23669c749da5322b413b63551f26e6919529c07",
+      "support_scope": "work",
+      "work_identifier": "work_little_women_louisa_may_alcott",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Little Women",
+        "Louisa May Alcott",
+        "Những người phụ nữ bé nhỏ"
+      ]
+    },
+    {
+      "source_id": "src_start_up_nation_hachette",
+      "title": "Start-up Nation — work metadata note",
+      "source_url": "https://www.hachettebookgroup.com/titles/dan-senor/start-up-nation/9780446541466/?lens=twelve",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Start-up Nation\n\nPrimary publisher-source factual note. Hachette Book Group identifies *Start-up Nation: The Story of Israel's Economic Miracle* as a work by Dan Senor and Saul Singer about factors associated with Israel's startup formation and innovation culture. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "eead9e3de3f0fc59c6246c1dfabc12f34164d3f43ed769d63fbde489e637c009",
+      "support_scope": "work",
+      "work_identifier": "work_start_up_nation_dan_senor_saul_singer",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Start-up Nation",
+        "Dan Senor",
+        "Saul Singer",
+        "Quốc Gia Khởi Nghiệp"
+      ]
+    },
+    {
+      "source_id": "src_becoming_prh",
+      "title": "Becoming — work metadata note",
+      "source_url": "https://www.penguinrandomhouse.com/books/562881/becoming-by-michelle-obama/",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Becoming\n\nPrimary publisher-source factual note. Penguin Random House identifies *Becoming* as Michelle Obama's memoir, covering her life from childhood through family and public life. This source supports the work identity and memoir subject only; it does not establish the catalog item's Vietnamese hardcover edition.\n",
+      "content_sha256": "5c9da0051ba39c0e44a30c6037d28afaa5c3fde84cb2b7a19e8af57fe13e565a",
+      "support_scope": "work",
+      "work_identifier": "work_becoming_michelle_obama",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Becoming",
+        "Michelle Obama",
+        "Chất Michelle",
+        "memoir"
+      ]
+    },
+    {
+      "source_id": "src_social_contract_gutenberg",
+      "title": "The Social Contract — work metadata note",
+      "source_url": "https://www.gutenberg.org/ebooks/46333",
+      "source_kind": "library_catalog",
+      "use_basis": "Independently written factual bibliographic note based only on the cited Project Gutenberg catalog record; no full text was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# The Social Contract\n\nLibrary-catalog factual note. Project Gutenberg record 46333 identifies Jean-Jacques Rousseau as the author of *The Social Contract* within *The Social Contract & Discourses*, translated into English by G. D. H. Cole, and classifies it under political theory and social contract. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "016e20c80d37ea7578ff75ae674e1eebbcc8da39f80092da370cd2139f95a5f9",
+      "support_scope": "work",
+      "work_identifier": "work_the_social_contract_jean_jacques_rousseau",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "The Social Contract",
+        "Jean-Jacques Rousseau",
+        "Bàn Về Khế Ước Xã Hội",
+        "political theory"
+      ]
+    },
+    {
+      "source_id": "src_the_prince_gutenberg",
+      "title": "The Prince — work metadata note",
+      "source_url": "https://www.gutenberg.org/ebooks/1232",
+      "source_kind": "library_catalog",
+      "use_basis": "Independently written factual bibliographic note based only on the cited Project Gutenberg catalog record; no full text was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# The Prince\n\nLibrary-catalog factual note. Project Gutenberg record 1232 identifies Niccolò Machiavelli as the author of *The Prince*, gives the uniform title *Il Principe*, names W. K. Marriott as the English translator, and classifies the work under political science and political ethics. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "d966c080a2aa5229a925d659c91628cc0dd69d40c7568a461e2bab24db7bd17a",
+      "support_scope": "work",
+      "work_identifier": "work_the_prince_niccolo_machiavelli",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "The Prince",
+        "Il Principe",
+        "Niccolò Machiavelli",
+        "Quân Vương"
+      ]
+    },
+    {
+      "source_id": "src_einstein_simon_schuster",
+      "title": "Einstein: His Life and Universe — work metadata note",
+      "source_url": "https://www.simonandschuster.com/books/Einstein/Walter-Isaacson/9780743264747",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Einstein: His Life and Universe\n\nPrimary publisher-source factual note. Simon & Schuster identifies *Einstein: His Life and Universe* as Walter Isaacson's biography of Albert Einstein, addressing both his personal life and scientific ideas. This source supports the work identity and biography subject only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "2482c51e62ec55195d289c45b186316fa07f4575681ab92543aee5361e0544e4",
+      "support_scope": "work",
+      "work_identifier": "work_einstein_his_life_and_universe_walter_isaacson",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Einstein: His Life and Universe",
+        "Walter Isaacson",
+        "Einstein Cuộc Đời Và Vũ Trụ",
+        "biography"
+      ]
+    },
+    {
+      "source_id": "src_devotion_suspect_x_macmillan",
+      "title": "The Devotion of Suspect X — work metadata note",
+      "source_url": "https://us.macmillan.com/books/9781429992312/thedevotionofsuspectx/",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page observed during curation; no publisher prose or excerpt was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# The Devotion of Suspect X\n\nPrimary publisher-source factual note. Macmillan identifies *The Devotion of Suspect X* as a mystery novel by Keigo Higashino and the first work in its Detective Galileo sequence. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "e9f89b09a28f43dbb3f8818a35548bd532b3768bed7b20a1ef768fb8c77d9b20",
+      "support_scope": "work",
+      "work_identifier": "work_the_devotion_of_suspect_x_keigo_higashino",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "The Devotion of Suspect X",
+        "Keigo Higashino",
+        "Phía Sau Nghi Can X",
+        "Detective Galileo"
+      ]
+    },
+    {
+      "source_id": "src_7_habits_simon_schuster",
+      "title": "The 7 Habits of Highly Effective People — work metadata note",
+      "source_url": "https://www.simonandschuster.com/books/The-7-Habits-of-Highly-Effective-People/Stephen-R-Covey/The-Covey-Habits-Series/9781982137137",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# The 7 Habits of Highly Effective People\n\nPrimary publisher-source factual note. Simon & Schuster identifies *The 7 Habits of Highly Effective People* as a work by Stephen R. Covey presenting a principle-centered framework for personal and professional effectiveness. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "d6f2d64e3da62e4dd17190c6aff115aaf5c52e486ca9d1c3efaf2b397722d0f7",
+      "support_scope": "work",
+      "work_identifier": "work_the_7_habits_of_highly_effective_people_stephen_r_covey",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "The 7 Habits of Highly Effective People",
+        "Stephen R. Covey",
+        "7 Thói Quen Hiệu Quả"
+      ]
+    },
+    {
+      "source_id": "src_phoenix_project_it_revolution",
+      "title": "The Phoenix Project — work metadata note",
+      "source_url": "https://itrevolution.com/product/the-phoenix-project/",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page observed during curation; no publisher prose, downloads, or excerpt was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# The Phoenix Project\n\nPrimary publisher-source factual note. IT Revolution identifies *The Phoenix Project* as a business novel by Gene Kim, Kevin Behr, and George Spafford about IT operations, DevOps, and organizational improvement. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "13fbd00448b8d5f54eede59025aeb83c95a1a248ef97fe0bb579bac050cbbd73",
+      "support_scope": "work",
+      "work_identifier": "work_the_phoenix_project_gene_kim_kevin_behr_george_spafford",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "The Phoenix Project",
+        "Gene Kim",
+        "Kevin Behr",
+        "George Spafford",
+        "Dự Án Phượng Hoàng"
+      ]
+    },
+    {
+      "source_id": "src_sapiens_author",
+      "title": "Sapiens — work subject note",
+      "source_url": "https://www.ynharari.com/book/sapiens/",
+      "source_kind": "author_site",
+      "use_basis": "Independently written factual note based on the cited primary author page; no author-page prose or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Sapiens: A Brief History of Humankind\n\nPrimary author-source factual note. Yuval Noah Harari's official page identifies *Sapiens* as a multidisciplinary history of Homo sapiens spanning evolutionary roots, agriculture, money, religion, nation states, capitalism, and genetic engineering. This source supports the work and high-level subject only; it does not establish the catalog item's Vietnamese edition or pagination.\n",
+      "content_sha256": "3617abf8bb96dfedf9625b4cf3c575c348e8e0f2d566a9c6f820f7d2c8e7fd66",
+      "support_scope": "work",
+      "work_identifier": "work_sapiens_yuval_noah_harari",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Sapiens",
+        "Yuval Noah Harari",
+        "Lược Sử Loài Người",
+        "human history"
+      ]
+    },
+    {
+      "source_id": "src_socrates_express_simon_schuster",
+      "title": "The Socrates Express — work metadata note",
+      "source_url": "https://www.simonandschuster.com/books/The-Socrates-Express/Eric-Weiner/9781501129018",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# The Socrates Express\n\nPrimary publisher-source factual note. Simon & Schuster identifies *The Socrates Express: In Search of Life Lessons from Dead Philosophers* as a work by Eric Weiner combining travel with reflections on philosophers and practical questions about living. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "3e297b02f37df7fb5f95d69e935116ad6f1991cc53b147004d9eaefe6c61acdd",
+      "support_scope": "work",
+      "work_identifier": "work_the_socrates_express_eric_weiner",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "The Socrates Express",
+        "Eric Weiner",
+        "Lên Tàu Cùng Socrates",
+        "philosophy"
+      ]
+    },
+    {
+      "source_id": "src_show_your_work_alphabooks",
+      "title": "Show Your Work! / Nghệ Thuật PR Bản Thân — work metadata note",
+      "source_url": "https://www.alphabooks.vn/nghe-thuat-pr-ban-than",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited Vietnamese publisher/distributor page; no publisher prose or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Show Your Work! / Nghệ Thuật PR Bản Thân\n\nPrimary publisher/distributor-source factual note. Alpha Books links the Vietnamese title *Nghệ Thuật PR Bản Thân* to Austin Kleon's English work *Show Your Work!* and describes it as guidance on sharing one's creative process and work. This source supports the work only; it does not establish a unique printing or ISBN.\n",
+      "content_sha256": "7881e855e0e33d35ae959220707d7903680ed40d0baae45e65d025bad3a31afe",
+      "support_scope": "work",
+      "work_identifier": "work_show_your_work_austin_kleon",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Show Your Work",
+        "Austin Kleon",
+        "Nghệ Thuật PR Bản Thân",
+        "creative work"
+      ]
+    },
+    {
+      "source_id": "src_flour_water_salt_yeast_prh",
+      "title": "Flour Water Salt Yeast — work metadata note",
+      "source_url": "https://www.penguinrandomhouse.com/books/216098/flour-water-salt-yeast-by-ken-forkish/",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no recipes, publisher prose, or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Flour Water Salt Yeast\n\nPrimary publisher-source factual note. Penguin Random House identifies *Flour Water Salt Yeast* as a baking book by Ken Forkish focused on artisan bread and pizza methods for home bakers. This source supports the work and broad cooking subject only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "d05ea69bab73c85782c58d3ca66456e6eb1668cb34989cf673735f30797b69c2",
+      "support_scope": "work",
+      "work_identifier": "work_flour_water_salt_yeast_ken_forkish",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Flour Water Salt Yeast",
+        "Ken Forkish",
+        "Bột Nước Muối Men",
+        "bread",
+        "pizza"
+      ]
+    },
+    {
+      "source_id": "src_morisaki_nlv",
+      "title": "Những giấc mơ ở hiệu sách Morisaki — bibliographic work note",
+      "source_url": "https://nlv.gov.vn/dmdocuments/tmqg-02-2024.pdf#page=177",
+      "source_kind": "library_catalog",
+      "use_basis": "Independently written factual bibliographic note based only on National Library of Vietnam bibliography entry 2217 on PDF page 177 (viewer index 176); no book text was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Những giấc mơ ở hiệu sách Morisaki\n\nNational-library factual note. The National Library of Vietnam's February 2024 bibliography, PDF page 177 (viewer index 176), entry 2217, identifies *Những giấc mơ ở hiệu sách Morisaki* as a work by Yagisawa Satoshi, translated by Trần Quỳnh Anh from the Japanese title 森崎書店の日々. This source supports the work only; the bibliography and catalog page counts differ, so edition identity is unresolved.\n",
+      "content_sha256": "07fe32b0ef3a127ee3a69233d56fef67213357a9e5dab41f096a04a74078394c",
+      "support_scope": "work",
+      "work_identifier": "work_morisaki_shoten_no_hibi_satoshi_yagisawa",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Những giấc mơ ở hiệu sách Morisaki",
+        "森崎書店の日々",
+        "Yagisawa Satoshi",
+        "Trần Quỳnh Anh"
+      ]
+    },
+    {
+      "source_id": "src_boy_striped_pajamas_prh",
+      "title": "The Boy in the Striped Pajamas — work metadata note",
+      "source_url": "https://www.penguinrandomhouse.com/books/665424/el-nino-con-el-pijama-de-rayas-the-boy-in-the-striped-pajamas-by-john-boyne/",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# The Boy in the Striped Pajamas\n\nPrimary publisher-source factual note. Penguin Random House identifies *The Boy in the Striped Pajamas* as a work by John Boyne and categorizes its cited translation as teen and young-adult fiction. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "382f9d7a2c1d0f3b2939cae5778e92302dee700705ae91f3897a45078c9b82ca",
+      "support_scope": "work",
+      "work_identifier": "work_the_boy_in_the_striped_pajamas_john_boyne",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "The Boy in the Striped Pajamas",
+        "John Boyne",
+        "Chú Bé Mang Pyjama Sọc"
+      ]
+    },
+    {
+      "source_id": "src_economix_abrams",
+      "title": "Economix — work metadata note",
+      "source_url": "https://www.abramsbooks.com/product/economix_9780810988392/",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose, illustrations, or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Economix\n\nPrimary publisher-source factual note. Abrams identifies *Economix: How Our Economy Works (and Doesn't Work), in Words and Pictures* as a work by Michael Goodwin with illustrations by Dan E. Burr, using a graphic format to explain economic ideas and history. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "c5ef27fb2f59131ef4e2c95254662fa04add75b2734fead379fff8b61548b2e1",
+      "support_scope": "work",
+      "work_identifier": "work_economix_michael_goodwin",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Economix",
+        "Michael Goodwin",
+        "Dan E. Burr",
+        "Các Nền Kinh Tế Vận Hành"
+      ]
+    },
+    {
+      "source_id": "src_steve_jobs_simon_schuster",
+      "title": "Steve Jobs — work metadata note",
+      "source_url": "https://www.simonandschuster.com/books/Steve-Jobs/Walter-Isaacson/9781451648539",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose, excerpt, or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Steve Jobs\n\nPrimary publisher-source factual note. Simon & Schuster identifies *Steve Jobs* as Walter Isaacson's biography of the Apple cofounder, drawing on interviews and addressing his life, character, leadership, and work in technology and media. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "99040c00f709597605d356e2433b70a5beec07697a8e3d4c623c7c923976830b",
+      "support_scope": "work",
+      "work_identifier": "work_steve_jobs_walter_isaacson",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Steve Jobs",
+        "Walter Isaacson",
+        "Tiểu Sử Steve Jobs",
+        "biography"
+      ]
+    },
+    {
+      "source_id": "src_de_men_kim_dong",
+      "title": "Dế Mèn phiêu lưu ký — work metadata note",
+      "source_url": "https://nxbkimdong.com.vn/products/de-men-phieu-luu-ky-2",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written work-level factual note based on the cited primary publisher page; no publisher prose, images, price, availability, or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Dế Mèn phiêu lưu ký\n\nPrimary publisher-source factual note. Nhà xuất bản Kim Đồng identifies *Dế Mèn phiêu lưu ký* as a work by Tô Hoài and describes it as an animal adventure with themes of friendship and peaceful coexistence. This source supports the work only; the catalog item's anniversary-edition identity is unresolved.\n",
+      "content_sha256": "de52337122a72e491cf5e7b8fdfd5b7b0160a67b901154da52ab82724bd4abfa",
+      "support_scope": "work",
+      "work_identifier": "work_de_men_phieu_luu_ky_to_hoai",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Dế Mèn phiêu lưu ký",
+        "Tô Hoài",
+        "Đậu Đũa",
+        "văn học thiếu nhi"
+      ]
+    },
+    {
+      "source_id": "src_zero_to_one_prh",
+      "title": "Zero to One — work metadata note",
+      "source_url": "https://www.penguinrandomhouse.com/books/234730/zero-to-one-by-peter-thiel-with-blake-masters/",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Zero to One\n\nPrimary publisher-source factual note. Penguin Random House identifies *Zero to One* as a work by Peter Thiel and Blake Masters about entrepreneurship, innovation, and creating new value. This source supports the work only; it does not establish the catalog item's Vietnamese edition, and the catalog omits Blake Masters.\n",
+      "content_sha256": "716522e9d0353c89e5d45fb0ba9eaa75bebc38926f2db051b0e41fe14c0e188c",
+      "support_scope": "work",
+      "work_identifier": "work_zero_to_one_peter_thiel_blake_masters",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Zero to One",
+        "Peter Thiel",
+        "Blake Masters",
+        "Không Đến Một",
+        "entrepreneurship"
+      ]
+    },
+    {
+      "source_id": "src_fahrenheit_451_simon_schuster",
+      "title": "Fahrenheit 451 — work metadata note",
+      "source_url": "https://www.simonandschuster.com/books/Fahrenheit-451/Ray-Bradbury/9781451673265",
+      "source_kind": "publisher_site",
+      "use_basis": "Independently written factual note based on the cited primary publisher page; no publisher prose or edition-specific claim was copied.",
+      "retrieved_at": "2026-09-09T06:47:25.633Z",
+      "document_version": "2026-09-09",
+      "language": "en",
+      "content_markdown": "# Fahrenheit 451\n\nPrimary publisher-source factual note. Simon & Schuster identifies *Fahrenheit 451* as a dystopian novel by Ray Bradbury about a society in which books are destroyed and a fireman begins to question that system. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+      "content_sha256": "511d2de4e27486e25fe295f1639150b1a8d7de4fa3829b80a43391737821428a",
+      "support_scope": "work",
+      "work_identifier": "work_fahrenheit_451_ray_bradbury",
+      "edition_identifier": null,
+      "access": {
+        "allowed_tenant_ids": [
+          "default"
+        ],
+        "principal_policy": "authenticated",
+        "allowed_principal_ids": [],
+        "shopper_required_scopes": [
+          "ecommerce.read"
+        ],
+        "merchant_required_scopes": [
+          "ecommerce.read",
+          "merchant.read"
+        ]
+      },
+      "keywords": [
+        "Fahrenheit 451",
+        "Ray Bradbury",
+        "451 Độ F",
+        "dystopian fiction"
+      ]
+    }
+  ]
+}

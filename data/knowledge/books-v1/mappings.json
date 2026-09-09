@@ -1,0 +1,2049 @@
+{
+  "schema_version": "1.0",
+  "corpus_name": "books",
+  "corpus_version": "books-v1",
+  "catalog_source_commit": "b7df1cc420127e31449a777204411bf6844f5b65",
+  "catalog_book_count": 200,
+  "mappings": [
+    {
+      "product_id": 1,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Bộ Truyện Tranh Gieo Hạt Cùng Vĩ Nhân (Tập 1-10)",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 2,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 3,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 4,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 5,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 6,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 7,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 8,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 9,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 10,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Combo 10 Cuốn: Chuyện Xóm Gà",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 11,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 12,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 13,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 14,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 15,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 16,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 17,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 18,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 19,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 20,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 21,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 22,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 23,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 24,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 25,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 26,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Combo Tiếng Hàn Tổng Hợp Sơ Cấp 1 Dành Cho Người Việt Nam Bản In Màu - Học Kèm App",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 27,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Combo Giáo Trình Chuẩn HSK 4 Bài Học và Giáo Trình Chuẩn HSK 4 Bài Tập ( Tặng Kèm Viết )",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 28,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 29,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 30,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 31,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 32,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 33,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Bộ Ehon song ngữ Anh Việt 10 cuốn - Cho bé 0-6 tuổi - Bộ sách nuôi dưỡng tâm hồn bé",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 34,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 35,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 36,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 37,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 38,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_little_women_prh"
+      ],
+      "work_identifier": "work_little_women_louisa_may_alcott",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 39,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 40,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 41,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 42,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 43,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 44,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 45,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 46,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 47,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 48,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 49,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 50,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 51,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_start_up_nation_hachette"
+      ],
+      "work_identifier": "work_start_up_nation_dan_senor_saul_singer",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 52,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_becoming_prh"
+      ],
+      "work_identifier": "work_becoming_michelle_obama",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 53,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 54,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 55,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 56,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 57,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 58,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "The catalog record is a milk multipack rather than a bibliographic work."
+    },
+    {
+      "product_id": 59,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_social_contract_gutenberg"
+      ],
+      "work_identifier": "work_the_social_contract_jean_jacques_rousseau",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 60,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_the_prince_gutenberg"
+      ],
+      "work_identifier": "work_the_prince_niccolo_machiavelli",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 61,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 62,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 63,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 64,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 65,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Combo 2 cuốn Giáo Trình Hán Ngữ (Sách học Tiếng Trung dành cho người Việt) Giáo Trình Hán Ngữ Tập 1 + Giáo Trình Hán Ngữ Tập 2 (Phiên bản mới - Học bằng App McBooks)",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 66,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 67,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 68,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_einstein_simon_schuster"
+      ],
+      "work_identifier": "work_einstein_his_life_and_universe_walter_isaacson",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 69,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 70,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Combo Sách Thành thạo Tin học văn phòng",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 71,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_devotion_suspect_x_macmillan"
+      ],
+      "work_identifier": "work_the_devotion_of_suspect_x_keigo_higashino",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 72,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 73,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 74,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 75,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 76,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_7_habits_simon_schuster"
+      ],
+      "work_identifier": "work_the_7_habits_of_highly_effective_people_stephen_r_covey",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 77,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 78,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_phoenix_project_it_revolution"
+      ],
+      "work_identifier": "work_the_phoenix_project_gene_kim_kevin_behr_george_spafford",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 79,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 80,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_sapiens_author"
+      ],
+      "work_identifier": "work_sapiens_yuval_noah_harari",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 81,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 82,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 83,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 84,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 85,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Bộ Sách Khởi Nghiệp Kinh Doanh Online - Marketing và Bán Hàng Hiệu Quả Với Thương Mại Điện Tử Tại Việt Nam",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 86,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 87,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 88,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 89,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 90,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 91,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 92,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 93,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 94,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 95,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 96,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_socrates_express_simon_schuster"
+      ],
+      "work_identifier": "work_the_socrates_express_eric_weiner",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 97,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 98,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 99,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_show_your_work_alphabooks"
+      ],
+      "work_identifier": "work_show_your_work_austin_kleon",
+      "edition_identifier": null,
+      "mapping_evidence": "Alpha Books explicitly links the Vietnamese title to Show Your Work! and names Austin Kleon; no unique printing or ISBN is established.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 100,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 101,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_flour_water_salt_yeast_prh"
+      ],
+      "work_identifier": "work_flour_water_salt_yeast_ken_forkish",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 102,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 103,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 104,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 105,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 106,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 107,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 108,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_morisaki_nlv"
+      ],
+      "work_identifier": "work_morisaki_shoten_no_hibi_satoshi_yagisawa",
+      "edition_identifier": null,
+      "mapping_evidence": "National Library of Vietnam bibliography PDF page 177 (viewer index 176), entry 2217, links the Vietnamese title and author to the Japanese source title; the page-count mismatch leaves the edition unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 109,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 110,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Combo Sách Không Phải Sói Nhưng Cũng Đừng Là Cừu + Thao Túng Tâm Lý (Bộ 2 Cuốn)",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 111,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 112,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 113,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 114,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 115,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 116,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 117,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 118,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 119,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 120,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 121,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 122,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 123,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 124,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: BỘ SÁCH THỰC HÀNH VÀ PHÁT TRIỂN TRÍ THÔNG MINH CẢM XÚC TUỔI TEEN | Dành cho các con từ 10 tuổi đến 18 tuổi",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 125,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 126,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 127,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 128,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 129,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 130,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 131,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 132,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 133,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 134,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 135,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 136,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 137,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_boy_striped_pajamas_prh"
+      ],
+      "work_identifier": "work_the_boy_in_the_striped_pajamas_john_boyne",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 138,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 139,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 140,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 141,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_economix_abrams"
+      ],
+      "work_identifier": "work_economix_michael_goodwin",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 142,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 143,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 144,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 145,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 146,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 147,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 148,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Fullset Ehon Nhật Bản cho bé thông minh sáng tạo: Ehon Điều Kỳ Diệu Của Hình Khối + Điều Kỳ Diệu Của Âm Thanh + Điều Kỳ Diệu Của Màu Sắc (Bộ 10 cuốn cho bé 0-6 tuổi / Bộ Sách Phát Triển Trí Tuệ & Kích Thích Thị Giác Cho",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 149,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 150,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 151,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 152,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 153,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 154,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 155,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 156,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 157,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 158,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_steve_jobs_simon_schuster"
+      ],
+      "work_identifier": "work_steve_jobs_walter_isaacson",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 159,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 160,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Bộ tư duy triệu phú (Bí mật tư duy triệu phú + Người giàu có nhất thành Babylon)",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 161,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 162,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 163,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 164,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Boxset 4 Cuốn: Cá Voi Đêm Bão Và Những Câu Chuyện Khác…",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 165,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 166,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 167,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 168,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_de_men_kim_dong"
+      ],
+      "work_identifier": "work_de_men_phieu_luu_ky_to_hoai",
+      "edition_identifier": null,
+      "mapping_evidence": "Nhà xuất bản Kim Đồng verifies the work title and Tô Hoài; the catalog's 100th-anniversary qualifier is not confirmed, so edition identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 169,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Combo Chinh Phục Luyện Thi Vào 10 Toán Văn Anh Theo Chủ Đề",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 170,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 171,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 172,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 173,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 174,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Combo Bộ 3 Cuốn: EHON - Thông Minh Cho Trẻ Mẫu Giáo (Gồm 3 Cuốn: Xếp Hàng Làm Gì Thế? Ai Đang Trốn Ấy Nhỉ? Kẹt Xe Lâu Quá Vậy?)",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 175,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 176,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Bé Tô màu - Combo 11 cuốn",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 177,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 178,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 179,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_zero_to_one_prh"
+      ],
+      "work_identifier": "work_zero_to_one_peter_thiel_blake_masters",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 180,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 181,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 182,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 183,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 184,
+      "mapping_status": "ambiguous",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "The public catalog title is a bundle or set containing multiple books or named works: Combo 4 cuốn Chuyện con mèo dạy hải âu bay, Chuyện con mèo con chuột và bạn thân của nó, chuyện con ốc sên, chuyện chú chó tên là trung thành",
+      "ambiguity_reason": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 185,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 186,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 187,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 188,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 189,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 190,
+      "mapping_status": "exact_work",
+      "source_ids": [
+        "src_fahrenheit_451_simon_schuster"
+      ],
+      "work_identifier": "work_fahrenheit_451_ray_bradbury",
+      "edition_identifier": null,
+      "mapping_evidence": "An authoritative source verifies the work title and creator(s); edition-specific catalog identity remains unresolved.",
+      "ambiguity_reason": null,
+      "unmatched_reason": null
+    },
+    {
+      "product_id": 191,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 192,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 193,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 194,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 195,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 196,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 197,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 198,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 199,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    },
+    {
+      "product_id": 200,
+      "mapping_status": "unmatched",
+      "source_ids": [],
+      "work_identifier": null,
+      "edition_identifier": null,
+      "mapping_evidence": "No traceable source supports a publishable work or edition mapping in books-v1.",
+      "ambiguity_reason": null,
+      "unmatched_reason": "No authoritative source was reviewed for this catalog record in the bounded initial corpus curation."
+    }
+  ]
+}
