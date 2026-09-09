@@ -16,6 +16,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    services:
+      postgres:
+        image: postgres:16.15-alpine3.24
+        env:
+          POSTGRES_USER: ecommerce_test
+          POSTGRES_PASSWORD: ci-postgres-disposable-only
+          POSTGRES_DB: thanh_v2_test_server
+        ports:
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U ecommerce_test -d thanh_v2_test_server"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -56,6 +71,8 @@ jobs:
         run: mypy app
 
       - name: Run offline test suite
+        env:
+          TEST_POSTGRES_URL: postgresql+psycopg://ecommerce_test:ci-postgres-disposable-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/thanh_v2_test_server
         run: pytest -m "not integration" -q
 
       - name: Re-score legacy captured real-model baseline
