@@ -1,11 +1,11 @@
 # thanh-v2 execution progress
 
-Implementation contract: [approved plan](implementation-contract.md). Work packages run sequentially; a package is committed only after its gate has been assessed and met. Package 1 records baseline failures as required by its gate; subsequent gates require their named tests to pass.
+Implementation contract: [approved plan](implementation-contract.md). Work packages run sequentially; the next package starts only after the current gate is met. Following the user's updated instruction, independently reviewed and tested slices are committed as they finish, using [commit.md](../../commit.md), with a final gate record for each package. Package 1 records baseline failures as required by its gate; subsequent gates require their named tests to pass.
 
 | Package | State | Gate / evidence |
 | --- | --- | --- |
-| 1 — branch, environment, baseline, provenance | Gate met | Baseline and environment status established; tests, local database and attribution reviewed. Known captured-artifact hash failure recorded below. |
-| 2 — contracts, registry, schema, authorization, budget | Not started | Contract/migration/auth/budget tests |
+| 1 — branch, environment, baseline, provenance | Committed `6b046d4` | Baseline and environment status established; tests, local database and attribution reviewed. Known captured-artifact hash failure recorded below. |
+| 2 — contracts, registry, schema, authorization, budget | Gate met | 395 tests pass; contracts, real PostgreSQL, exact-cost ledger and v1 regression verified. Seven implementation/fix commits plus this gate record. |
 | 3 — corpus, mapping, retrieval, citations | Not started | Valid corpus version; retrieval/ACL/no-answer |
 | 4 — supervisor, continuation, deduplication, grounding | Not started | Bounded end-to-end reads; no duplicate completed step |
 | 5 — history, memory, sandbox actions | Not started | Restart/retry/confirmation/real PostgreSQL concurrency |
@@ -78,3 +78,25 @@ Selective source mapping is recorded in [integration-sources.md](integration-sou
 Delegation materially contributed the frontend baseline, local service configuration/verification and provenance map. Primary verification includes Ruff, mypy, pytest, captured re-scoring, wheel content inspection, direct PostgreSQL counts and a repeated two-pass seed assertion (`PRIMARY_PG_SEED_IDEMPOTENCY=PASS`). No skipped live-model test is represented as a live integration pass.
 
 To start the isolated local data services from the repository, run `docker compose -f deploy/compose.local.yaml up -d --wait postgres redis`. The Compose file has no variable interpolation and binds both published ports to loopback. Keep the seeded `ecommerce_p1` baseline intact; subsequent mutating integration tests use separately named disposable databases.
+
+## Package 2 review and gate progress
+
+Implementation is in progress across the three assigned scopes. Primary review has required corrections to SQLAlchemy column declarations, integer VND storage, product ID types, state/memory enums, claim–citation consistency, continuation bounds, turn transition locking, interrupted-turn replay, and ledger recovery/accounting. A correction is not considered verified until its relevant test passes.
+
+The primary compared current v1 OpenAPI with the pre-package snapshot: `P2_V1_OPENAPI_STATUS=PASS`, including all five v1 paths and component schemas. CI YAML parsing and the new PostgreSQL test-service structure passed (`P2_CI_YAML_STATUS=PASS`); hosted CI has not been run. The primary reproduced the contract/authorization/registry tests: 51 passed in 35.82 seconds, with no skips or warnings. The primary also reproduced 13 migration/persistence tests in 17.86 seconds, including real PostgreSQL upgrade/downgrade/reapply, isolation, single-winner transitions, lock release and durable errors. The later provider-ledger and combined results follow below; no paid provider call occurred in Package 2.
+
+Following the user's updated commit instruction, reviewed slices are committed as `c89dee0` (contracts/authorization/registry), `882aea0` (schema and PostgreSQL migration prerequisite), `3fcd2b2` (durable turn repository), `c01e2fa` (ledger and packaged pricing), and `c291732` (provider adapters). Each commit explains what changed, why, and how to review. These commits do not mark the package gate complete.
+
+The primary then reproduced all 39 ledger/recovery/runtime tests in 58.92 seconds, including real PostgreSQL races and original unscoped adapter tests. Full Ruff lint/format passed (187 files); mypy passed (128 application files). Wheel build and extraction proved frontend assets and the pricing manifest are present, match source content and load from the extracted package. The unified verifier reported `VERIFY_STATUS=SUCCESS` with `VERIFY_TESTS=skipped` because pytest ran separately.
+
+The first full Package 2 offline run finished with **392 passed, 2 failed, 2 deselected, 1 warning** in 358.54 seconds. The failures are the scripted reference's historical full-source hash compared against the modified checkout, and missing gateway request logs after programmatic Alembic migrations. The two live-provider integration tests were intentionally deselected; the existing FastAPI/Starlette TestClient deprecation warning remains. The lead assigned bounded fixes without changing historical captures or weakening log-safety assertions. Package 3 has not started.
+
+## Package 2 gate decision
+
+Gate met on 2026-09-09 after the final full run: **395 passed, 2 deselected, 1 warning in 326.21 seconds**. PostgreSQL checks ran against real disposable databases; no database check was skipped. The deselected tests are the two optional real-provider v1 smoke tests. No paid provider call was made, and synthetic transport checks do not establish live provider quality.
+
+The two gate corrections were committed separately: `5bd834c` preserves existing application loggers during Alembic configuration; `504fbed` pins the immutable reference report to its verified P1 origin while retaining the existing complete 28-case current-runtime regression. The lead reproduced the ordered migration/gateway check (2 passed), reconstructed the 120-file baseline source manifest directly from Git `b7df1cc`, verified the full reference digest, and confirmed evaluation artifacts/readers remain unchanged. The final full suite passed both corrections together.
+
+Final Ruff lint and format checks passed for 188 files; mypy passed for all 128 unchanged-since-check application files. The unified verifier again reported `VERIFY_STATUS=SUCCESS` with tests explicitly run outside the wrapper. Wheel assets and packaged pricing passed, v1 contracts remain unchanged, and the baseline database is still revision0003 with 200 products and 1,773 reviews. The pre-existing legacy captured Multi-Agent re-score immutability failure recorded under Package1 remains a separate known CI limitation; no historical report was rewritten to hide it.
+
+The package changed 33 files after the lead reassessed the required packaging, CI and regression fixes. Sol XHigh implemented contracts, persistence and bounded gate fixes; Sol Max implemented ledger and provider-attempt concurrency/deadline behavior. Primary reviewed complete reports and diffs, validated the findings above and owns the gate decision. Package 3 may now begin.

@@ -149,7 +149,9 @@ Database lưu metadata ở `dataset_sources`; facts trả về dùng provenance 
 `tiki-books:kaggle-v4:<profile>`, ví dụ `tiki-books:kaggle-v4:eval`, và vẫn gắn
 `sample_data=true` vì đây là một mẫu lịch sử chứ không phải feed hiện tại.
 
-Migration schema hiện hành là `20260830_0003`.
+Migration schema hiện hành là `20260909_0005`. Các bảng `v2_` bổ sung hội thoại,
+sandbox, knowledge có phiên bản và ledger ngân sách; không thay semantics dữ
+liệu snapshot v1. Xem [foundation v2](thanh-v2/package-2-foundation.md).
 
 ## 6. Dữ liệu legacy
 

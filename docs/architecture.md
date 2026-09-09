@@ -221,7 +221,9 @@ raw provider payload hoặc raw tool arguments.
 
 ### PostgreSQL
 
-Alembic head hiện tại là `20260830_0003`. Bảng `dataset_sources` giữ provenance
+Alembic head hiện tại là `20260909_0005`. Các revision 0004–0005 bổ sung schema
+v2 cho hội thoại, sandbox, knowledge và ledger ngân sách; migration không seed
+dữ liệu. Xem [foundation v2](thanh-v2/package-2-foundation.md). Bảng `dataset_sources` giữ provenance
 bất biến theo `(dataset_id, dataset_version, profile)`; product/review giữ
 `source_id` và `external_id` cùng metadata sách normalized.
 
