@@ -108,3 +108,35 @@ Package2 was committed at `16f0d2a` before Package3 began. The source curator (S
 The lead created a separately marked `thanh_v2_runtime` database on the existing loopback PostgreSQL service, migrated it to0005 and seeded exactly200 products/1773 reviews through the existing quality-gated importer. Its durable account `thanh-v2-provider-global` has the verified100USD limit and zero known/reserved/unknown usage at initialization. This runtime database is preserved across subsequent packages; tests continue to create their own disposable databases, and `ecommerce_p1` remains the original baseline.
 
 The Apache2.0 license was copied byte-for-byte from source commit `94af718da1858b74b3cb4fba05ddd908ac28d9b4` to `LICENSES/Apache-2.0.txt`; SHA256 is `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`. File-level notices and exact port provenance accompany actual adaptations. No corpus has yet been published and no paid embedding has been sent.
+
+## Package 3 reviewed slices
+
+`5fb0994` adds strict source/mapping/index contracts and stable citation identities.
+The lead reproduced four contract regressions, Ruff lint/format and mypy. The
+checks cover canonical normalization, swapped work/edition IDs, malformed ACL,
+non-finite vectors and tampered chunk/span identity. They do not establish the
+later PostgreSQL ingestion or retrieval behavior.
+
+`a1edfff` adds the reviewed source manifests: 20 distinct works, 200 catalog IDs,
+20 `exact_work`, 17 `ambiguous` sets and 163 `unmatched` records. The lead read all
+20 factual notes, independently checked their authoritative sources and validated
+the complete mapping against the bounded catalog export. No initial record is
+claimed as `exact_edition`. Product 58 is a milk multipack from the historical
+snapshot and remains explicitly unmatched. See the committed source coverage
+report for per-work limitations.
+
+The first retrieval worker reported a Codex usage-limit error. On continuation,
+the runtime confirmed that all three former worker handles were absent. Their
+files were preserved, completed contract/curation work was retained, and new
+workers resumed only unfinished ingestion and retrieval. The lead owns the
+independent curation verification because the curator could not deliver its final
+report before the interruption. No paid application-provider attempt occurred.
+
+Review found one required schema correction: the Package 2 uniqueness rule
+`(document_id, chunk_index)` cannot store two chunk layouts when a new index uses
+a different chunker. A bounded migration adds explicit `chunker_version` to that
+uniqueness rule. This retains the agreed PostgreSQL architecture and immutable
+source/citation identities. The scope estimate increases by one migration, one
+focused test file and two small existing-file changes. Package 3 remains open
+until ingestion, retrieval, ACL/no-answer, actual publication and regression
+checks pass together.

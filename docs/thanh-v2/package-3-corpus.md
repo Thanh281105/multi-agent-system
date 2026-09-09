@@ -25,3 +25,16 @@ Relevance checks allow an empty result; a high relative rank alone does not esta
 ## Gate
 
 The lead verifies the source/edition mapping and license provenance, publication of a valid version covering at least 20 works, complete 200-record mapping, stable IDs and rebuild behavior, separate vectors for changed fingerprints, table limits, SQL ACL before planner/ranking, no-answer behavior, authorized citation reopening and exact spans. Tests exercise the PostgreSQL boundary on real isolated databases. The package also checks the common budget ledger and v1 regression. Only a passed gate permits Package 4; verified slices are committed separately following `commit.md`.
+
+## Reviewed progress and necessary schema correction
+
+Contracts are committed at `5fb0994`; the curated 20-work/200-record source inputs
+are committed at `a1edfff`. The primary independently validated both slices. The
+input files are ready for ingestion; no operational index is published yet.
+
+The existing chunk uniqueness `(document_id, chunk_index)` is insufficient when
+an immutable index changes its chunker. Package 3 therefore adds an explicit
+`chunker_version` column to the uniqueness key through a new migration. Existing
+data is preserved; an ambiguous backfill or a downgrade that would collapse two
+chunk layouts must fail instead of discarding content. This correction supports
+the planned index fingerprint invariant without changing document identity.
