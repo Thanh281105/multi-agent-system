@@ -72,6 +72,18 @@ symbol, không bám theo tên file target.
 
 ## Phần tái sử dụng và phần chủ ý loại trừ
 
+### Các phần đã có diff và kiểm tra trong Package 3
+
+| Target thực tế | Source tại `94af718da1858b74b3cb4fba05ddd908ac28d9b4` | Trạng thái và thay đổi |
+| --- | --- | --- |
+| `app/knowledge/v2_contracts.py` | `commerce-common/commerce_common/rag/models.py`: `RagAcl`, `RagAccessContext`, `CommerceDocument`, `RagDocumentArtifact`, `RagChunk`, `Citation` | `algorithm reimplemented`: dùng khái niệm typed document/chunk/ACL/evidence; validation, mapping tác phẩm/ấn bản, canonical hash, ID citation độc lập corpus và fingerprint được viết theo contract thanh-v2. Không sao chép provider loop. |
+| `tests/test_knowledge_ingestion.py` (nhóm contract ban đầu) | Các khái niệm contract ở dòng trên; các tình huống lỗi riêng của thanh-v2 | Test mới kiểm tra normalization/identity tái lập, ID work/edition bị tráo, ACL không hợp lệ, vector NaN và chunk/span bị sửa. Lead chạy lại: 4 passed; Ruff lint/format và mypy đạt. |
+
+Các dòng dự kiến ở bảng nguồn phía trên tiếp tục là kế hoạch cho tới khi có diff
+và kiểm tra tương ứng. Bản sao giấy phép Apache-2.0 đã lưu tại
+`LICENSES/Apache-2.0.txt`; hash SHA-256 đã đối chiếu với blob giấy phép nguồn:
+`cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`.
+
 Sẽ tái sử dụng có chuyển thể:
 
 - typed records cho document/chunk/retrieval trace, ACL filter-before-plan, content hash và
