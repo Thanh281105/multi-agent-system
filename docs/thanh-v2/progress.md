@@ -5,8 +5,8 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | Package | State | Gate / evidence |
 | --- | --- | --- |
 | 1 — branch, environment, baseline, provenance | Committed `6b046d4` | Baseline and environment status established; tests, local database and attribution reviewed. Known captured-artifact hash failure recorded below. |
-| 2 — contracts, registry, schema, authorization, budget | Gate met | 395 tests pass; contracts, real PostgreSQL, exact-cost ledger and v1 regression verified. Seven implementation/fix commits plus this gate record. |
-| 3 — corpus, mapping, retrieval, citations | Not started | Valid corpus version; retrieval/ACL/no-answer |
+| 2 — contracts, registry, schema, authorization, budget | Committed `16f0d2a` | 395 tests pass; contracts, real PostgreSQL, exact-cost ledger and v1 regression verified. Seven implementation/fix commits plus the gate record. |
+| 3 — corpus, mapping, retrieval, citations | In progress | Three disjoint source/ingestion/retrieval scopes; runtime database and license prerequisite ready. |
 | 4 — supervisor, continuation, deduplication, grounding | Not started | Bounded end-to-end reads; no duplicate completed step |
 | 5 — history, memory, sandbox actions | Not started | Restart/retry/confirmation/real PostgreSQL concurrency |
 | 6 — API and frontend | Not started | JSON/SSE/UI consistency; v1 regression |
@@ -100,3 +100,11 @@ The two gate corrections were committed separately: `5bd834c` preserves existing
 Final Ruff lint and format checks passed for 188 files; mypy passed for all 128 unchanged-since-check application files. The unified verifier again reported `VERIFY_STATUS=SUCCESS` with tests explicitly run outside the wrapper. Wheel assets and packaged pricing passed, v1 contracts remain unchanged, and the baseline database is still revision0003 with 200 products and 1,773 reviews. The pre-existing legacy captured Multi-Agent re-score immutability failure recorded under Package1 remains a separate known CI limitation; no historical report was rewritten to hide it.
 
 The package changed 33 files after the lead reassessed the required packaging, CI and regression fixes. Sol XHigh implemented contracts, persistence and bounded gate fixes; Sol Max implemented ledger and provider-attempt concurrency/deadline behavior. Primary reviewed complete reports and diffs, validated the findings above and owns the gate decision. Package 3 may now begin.
+
+## Package 3 kickoff
+
+Package2 was committed at `16f0d2a` before Package3 began. The source curator (Sol XHigh) receives only 200 public bibliographic records; the ingestion/store owner (Sol XHigh) and retrieval owner (Sol Max) have separate files and must agree on typed interfaces before integration. See [package-3-corpus.md](package-3-corpus.md) for scope and gate.
+
+The lead created a separately marked `thanh_v2_runtime` database on the existing loopback PostgreSQL service, migrated it to0005 and seeded exactly200 products/1773 reviews through the existing quality-gated importer. Its durable account `thanh-v2-provider-global` has the verified100USD limit and zero known/reserved/unknown usage at initialization. This runtime database is preserved across subsequent packages; tests continue to create their own disposable databases, and `ecommerce_p1` remains the original baseline.
+
+The Apache2.0 license was copied byte-for-byte from source commit `94af718da1858b74b3cb4fba05ddd908ac28d9b4` to `LICENSES/Apache-2.0.txt`; SHA256 is `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`. File-level notices and exact port provenance accompany actual adaptations. No corpus has yet been published and no paid embedding has been sent.

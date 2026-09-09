@@ -28,6 +28,12 @@ liên quan (`LICENSE:101-105`). Điều kiện `NOTICE` chỉ phát sinh khi Wor
 `NOTICE` (`LICENSE:107-122`); `git ls-tree` xác nhận snapshot nguồn không có
 `NOTICE`, `NOTICE.txt` hoặc `NOTICE.md`.
 
+Khi bắt đầu Package3, bản sao chính xác giấy phép tại commit nguồn đã được thêm ở
+[LICENSES/Apache-2.0.txt](../../LICENSES/Apache-2.0.txt), SHA256
+`cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`.
+Thông báo thay đổi trên từng file và bảng provenance vẫn phải đi kèm code thực tế;
+bản sao giấy phép riêng chưa có nghĩa là đã hoàn thành port.
+
 Các file mã liên quan đều mang:
 
 ```text
@@ -39,8 +45,8 @@ Khi bắt đầu port mã, mỗi file chứa phần sao chép hoặc chuyển th
 dòng này và thêm thông báo nổi bật rằng file đã được sửa cho `thanh-v2`, kèm commit
 nguồn đầy đủ. Trước khi phân phối phần đã port, bổ sung bản sao Apache-2.0 ở
 `LICENSES/Apache-2.0.txt` (hoặc một vị trí giấy phép tương đương được dự án chốt) và
-attribution dễ đọc nêu hai commit/tác giả ở bảng trên. Target hiện chưa có `LICENSE`,
-`NOTICE` hay `COPYING`, nên không thể xem nghĩa vụ này là đã hoàn thành. Không tự tạo
+attribution dễ đọc nêu hai commit/tác giả ở bảng trên. Tại baseline target chưa có `LICENSE`,
+`NOTICE` hay `COPYING`; Package3 bổ sung bản sao ở vị trí nêu trên. Không tự tạo
 copyright mới cho người tích hợp nếu chủ sở hữu chưa được xác định.
 
 ## Bản đồ source → target
