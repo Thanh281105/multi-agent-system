@@ -1,0 +1,484 @@
+"""Owner-scoped durable repository for v2 conversations and turns."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from collections.abc import Mapping, Sequence
+from datetime import datetime
+from enum import Enum
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.contracts import AuthorizationContext, TaskStatus
+from app.db.base import utc_now
+from app.models.v2 import V2Conversation, V2StepResult, V2Turn
+from app.v2.authorization import (
+    ResourceBinding,
+    ResourceNotFoundError,
+    authorize_resource_access,
+    bind_request_authorization,
+)
+from app.v2.contracts import (
+    ConversationMode,
+    DialogueOutcome,
+    SafeExecutionError,
+    TurnStatus,
+)
+
+
+class TurnPayloadConflictError(ValueError):
+    """A client retry key was reused with a different request payload."""
+
+    code = "turn_payload_conflict"
+
+
+class StepResultConflictError(ValueError):
+    """An operation key was reused for a different durable step result."""
+
+    code = "step_result_conflict"
+
+
+class TurnStateConflictError(ValueError):
+    """A terminal turn was replayed with different terminal state."""
+
+    code = "turn_state_conflict"
+
+
+class V2Repository:
+    """Commit-scoped persistence used before and after provider dispatch.
+
+    Every mutating method commits before returning. This makes the ordering
+    boundary explicit: callers can record a turn, dispatch provider work, then
+    persist terminal state without relying on a longer-lived outer transaction.
+    """
+
+    def __init__(self, session: Session) -> None:
+        self._session = session
+
+    def create_conversation(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        conversation_id: str,
+        mode: ConversationMode,
+        title: str | None = None,
+    ) -> V2Conversation:
+        resource_authorization = bind_request_authorization(authorization, mode)
+        binding = resource_authorization.binding
+        conversation = V2Conversation(
+            id=conversation_id,
+            tenant_id=binding.tenant_id,
+            principal_id=binding.principal_id,
+            mode=binding.mode.value,
+            store_id=binding.store_id,
+            title=title,
+        )
+        self._session.add(conversation)
+        self._session.commit()
+        return conversation
+
+    def get_conversation(
+        self,
+        authorization: AuthorizationContext,
+        conversation_id: str,
+    ) -> V2Conversation:
+        conversation = self._session.scalar(
+            select(V2Conversation).where(
+                V2Conversation.id == conversation_id,
+                V2Conversation.deleted_at.is_(None),
+            )
+        )
+        if conversation is None:
+            raise ResourceNotFoundError
+        self._authorize(authorization, conversation)
+        return conversation
+
+    def list_conversations(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        mode: ConversationMode,
+        limit: int = 100,
+    ) -> Sequence[V2Conversation]:
+        if limit < 1 or limit > 100:
+            raise ValueError("conversation list limit must be between 1 and 100")
+        binding = bind_request_authorization(authorization, mode).binding
+        return tuple(
+            self._session.scalars(
+                select(V2Conversation)
+                .where(
+                    V2Conversation.tenant_id == binding.tenant_id,
+                    V2Conversation.principal_id == binding.principal_id,
+                    V2Conversation.mode == binding.mode.value,
+                    V2Conversation.store_id == binding.store_id,
+                    V2Conversation.deleted_at.is_(None),
+                )
+                .order_by(V2Conversation.updated_at.desc(), V2Conversation.id.desc())
+                .limit(limit)
+            )
+        )
+
+    def record_turn(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        client_turn_id: str,
+        payload: Mapping[str, Any],
+        corpus_version_id: str | None = None,
+    ) -> V2Turn:
+        conversation = self.get_conversation(authorization, conversation_id)
+        payload_copy = dict(payload)
+        payload_hash = canonical_payload_hash(payload_copy)
+        existing = self._turn_for_retry(conversation_id, client_turn_id)
+        if existing is not None:
+            try:
+                replay = _match_turn_replay(existing, payload_hash)
+            except TurnPayloadConflictError:
+                self._session.rollback()
+                raise
+            self._session.commit()
+            return replay
+
+        turn = V2Turn(
+            id=turn_id,
+            conversation_id=conversation.id,
+            tenant_id=conversation.tenant_id,
+            principal_id=conversation.principal_id,
+            mode=conversation.mode,
+            store_id=conversation.store_id,
+            client_turn_id=client_turn_id,
+            request_payload_hash=payload_hash,
+            request_payload=payload_copy,
+            execution_state=TurnStatus.PENDING.value,
+            corpus_version_id=corpus_version_id,
+        )
+        self._session.add(turn)
+        try:
+            self._session.commit()
+        except IntegrityError:
+            self._session.rollback()
+            existing = self._turn_for_retry(conversation_id, client_turn_id)
+            if existing is None:
+                raise
+            try:
+                replay = _match_turn_replay(existing, payload_hash)
+            except TurnPayloadConflictError:
+                self._session.rollback()
+                raise
+            self._session.commit()
+            return replay
+        return turn
+
+    def get_turn(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+    ) -> V2Turn:
+        turn = self._session.scalar(
+            select(V2Turn)
+            .join(V2Conversation, V2Conversation.id == V2Turn.conversation_id)
+            .where(V2Turn.id == turn_id, V2Conversation.deleted_at.is_(None))
+        )
+        if turn is None:
+            raise ResourceNotFoundError
+        self._authorize(authorization, turn)
+        return turn
+
+    def claim_turn(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+        *,
+        lease_owner: str,
+        lease_expires_at: datetime,
+    ) -> V2Turn:
+        if lease_expires_at.tzinfo is None or lease_expires_at.utcoffset() is None:
+            raise ValueError("lease expiry must be timezone-aware")
+        turn = self._locked_turn(authorization, turn_id)
+        now = utc_now()
+        if lease_expires_at <= now:
+            self._session.rollback()
+            raise ValueError("lease expiry must be in the future")
+        if turn.execution_state != TurnStatus.PENDING.value:
+            self._session.rollback()
+            raise TurnStateConflictError("turn is not claimable")
+        turn.execution_state = TurnStatus.RUNNING.value
+        turn.lease_owner = lease_owner
+        turn.lease_expires_at = lease_expires_at
+        turn.started_at = turn.started_at or now
+        turn.completed_at = None
+        turn.updated_at = now
+        self._session.commit()
+        return turn
+
+    def persist_step_result(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        turn_id: str,
+        step_result_id: str,
+        operation_key: str,
+        status: TaskStatus,
+        result: Mapping[str, Any],
+        plan_revision: int = 0,
+        data_version: str | None = None,
+    ) -> V2StepResult:
+        turn = self.get_turn(authorization, turn_id)
+        if status not in {
+            TaskStatus.SUCCESS,
+            TaskStatus.PARTIAL_SUCCESS,
+            TaskStatus.FAILED,
+        }:
+            raise ValueError("only terminal step results are durable")
+        result_copy = dict(result)
+        existing = self._session.scalar(
+            select(V2StepResult).where(
+                V2StepResult.turn_id == turn_id,
+                V2StepResult.operation_key == operation_key,
+            )
+        )
+        if existing is not None:
+            try:
+                replay = _match_step_replay(
+                    existing,
+                    status=status,
+                    result=result_copy,
+                    plan_revision=plan_revision,
+                    data_version=data_version,
+                )
+            except StepResultConflictError:
+                self._session.rollback()
+                raise
+            self._session.commit()
+            return replay
+
+        step_result = V2StepResult(
+            id=step_result_id,
+            turn_id=turn.id,
+            conversation_id=turn.conversation_id,
+            operation_key=operation_key,
+            plan_revision=plan_revision,
+            status=status.value,
+            result=result_copy,
+            data_version=data_version,
+            completed_at=utc_now(),
+        )
+        self._session.add(step_result)
+        try:
+            self._session.commit()
+        except IntegrityError:
+            self._session.rollback()
+            existing = self._session.scalar(
+                select(V2StepResult).where(
+                    V2StepResult.turn_id == turn_id,
+                    V2StepResult.operation_key == operation_key,
+                )
+            )
+            if existing is None:
+                raise
+            try:
+                replay = _match_step_replay(
+                    existing,
+                    status=status,
+                    result=result_copy,
+                    plan_revision=plan_revision,
+                    data_version=data_version,
+                )
+            except StepResultConflictError:
+                self._session.rollback()
+                raise
+            self._session.commit()
+            return replay
+        return step_result
+
+    def get_step_result(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        turn_id: str,
+        operation_key: str,
+    ) -> V2StepResult | None:
+        self.get_turn(authorization, turn_id)
+        return self._session.scalar(
+            select(V2StepResult).where(
+                V2StepResult.turn_id == turn_id,
+                V2StepResult.operation_key == operation_key,
+            )
+        )
+
+    def list_step_results(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+    ) -> Sequence[V2StepResult]:
+        self.get_turn(authorization, turn_id)
+        return tuple(
+            self._session.scalars(
+                select(V2StepResult)
+                .where(V2StepResult.turn_id == turn_id)
+                .order_by(V2StepResult.created_at, V2StepResult.id)
+            )
+        )
+
+    def complete_turn(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+        *,
+        status: TurnStatus,
+        dialogue_outcome: DialogueOutcome | None = None,
+        result: Mapping[str, Any] | None = None,
+        safe_error: SafeExecutionError | None = None,
+    ) -> V2Turn:
+        terminal = {
+            TurnStatus.COMPLETED,
+            TurnStatus.FAILED,
+            TurnStatus.CANCELLED,
+            TurnStatus.INTERRUPTED,
+        }
+        if status not in terminal:
+            raise ValueError("terminal persistence requires a terminal turn status")
+        if status is TurnStatus.COMPLETED:
+            if dialogue_outcome is None or result is None or safe_error is not None:
+                raise ValueError("completed turns require an outcome and result")
+        elif dialogue_outcome is not None or result is not None:
+            raise ValueError("only completed turns may persist a dialogue result")
+        if status in {TurnStatus.FAILED, TurnStatus.INTERRUPTED}:
+            if safe_error is None:
+                raise ValueError("failed and interrupted turns require a safe error")
+        elif safe_error is not None:
+            raise ValueError(
+                "safe errors are only valid for failed or interrupted turns"
+            )
+
+        turn = self._locked_turn(authorization, turn_id)
+        result_copy = dict(result) if result is not None else None
+        error_copy = (
+            safe_error.model_dump(mode="json") if safe_error is not None else None
+        )
+        if turn.execution_state in {item.value for item in terminal}:
+            if (
+                turn.execution_state == status.value
+                and turn.dialogue_outcome
+                == (dialogue_outcome.value if dialogue_outcome is not None else None)
+                and turn.result == result_copy
+                and turn.safe_error == error_copy
+            ):
+                self._session.commit()
+                return turn
+            self._session.rollback()
+            raise TurnStateConflictError("turn already has different terminal state")
+
+        now = utc_now()
+        turn.execution_state = status.value
+        turn.dialogue_outcome = (
+            dialogue_outcome.value if dialogue_outcome is not None else None
+        )
+        turn.result = result_copy
+        turn.safe_error = error_copy
+        turn.completed_at = now
+        turn.updated_at = now
+        turn.lease_owner = None
+        turn.lease_expires_at = None
+        self._session.commit()
+        return turn
+
+    def _turn_for_retry(
+        self,
+        conversation_id: str,
+        client_turn_id: str,
+    ) -> V2Turn | None:
+        return self._session.scalar(
+            select(V2Turn).where(
+                V2Turn.conversation_id == conversation_id,
+                V2Turn.client_turn_id == client_turn_id,
+            )
+        )
+
+    def _locked_turn(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+    ) -> V2Turn:
+        turn = self._session.scalar(
+            select(V2Turn)
+            .join(V2Conversation, V2Conversation.id == V2Turn.conversation_id)
+            .where(V2Turn.id == turn_id, V2Conversation.deleted_at.is_(None))
+            .with_for_update(of=V2Turn)
+            .execution_options(populate_existing=True)
+        )
+        if turn is None:
+            self._session.rollback()
+            raise ResourceNotFoundError
+        try:
+            self._authorize(authorization, turn)
+        except Exception:
+            self._session.rollback()
+            raise
+        return turn
+
+    @staticmethod
+    def _authorize(
+        authorization: AuthorizationContext,
+        resource: V2Conversation | V2Turn,
+    ) -> None:
+        authorize_resource_access(
+            authorization,
+            ResourceBinding(
+                tenant_id=resource.tenant_id,
+                principal_id=resource.principal_id,
+                mode=ConversationMode(resource.mode),
+                store_id=resource.store_id,
+            ),
+        )
+
+
+def canonical_payload_hash(payload: Mapping[str, Any]) -> str:
+    """Hash a canonical JSON payload for deterministic retry comparison."""
+
+    canonical = json.dumps(
+        dict(payload),
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _match_turn_replay(turn: V2Turn, payload_hash: str) -> V2Turn:
+    if turn.request_payload_hash != payload_hash:
+        raise TurnPayloadConflictError(
+            "client_turn_id was already used with a different payload"
+        )
+    return turn
+
+
+def _match_step_replay(
+    step: V2StepResult,
+    *,
+    status: TaskStatus,
+    result: Mapping[str, Any],
+    plan_revision: int,
+    data_version: str | None,
+) -> V2StepResult:
+    if (
+        step.status != _enum_value(status)
+        or step.result != dict(result)
+        or step.plan_revision != plan_revision
+        or step.data_version != data_version
+    ):
+        raise StepResultConflictError(
+            "operation_key was already used with a different step result"
+        )
+    return step
+
+
+def _enum_value(value: Enum) -> str:
+    return str(value.value)
