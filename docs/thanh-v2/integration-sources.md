@@ -136,3 +136,21 @@ Không đổi trạng thái thành “đã port” trước khi diff target và 
 Trước mỗi lần port cần kiểm tra lại đúng blob từ commit cố định, không đọc code từ HEAD
 nguồn nếu HEAD đã thay đổi. Nếu source bổ sung `NOTICE` hoặc đổi license ở commit khác,
 commit đó là nguồn mới và phải được ghi riêng; không được ngầm mở rộng snapshot này.
+
+### Các phần đã có diff và kiểm tra trong Package 4
+
+| Target thực tế | Source tại `94af718da1858b74b3cb4fba05ddd908ac28d9b4` | Trạng thái và thay đổi |
+| --- | --- | --- |
+| `app/knowledge/grounding.py` | `commerce-common/commerce_common/rag/grounding.py`, blob `90217306877d139e2be95b458600f1e6dbadaa68`: `GroundingVerifier`, `OpenAIGroundingVerifier` | `algorithm reimplemented`: giữ ý tưởng kiểm tra citation/number trước entailment. Viết lại exact source/version/chunk/span, current-ACL reopening, subject/field/unit, semantic verdict chặt và trích đoạn đủ câu. Lexical overlap không chứng minh hỗ trợ; không port provider loop. Copyright/SPDX và thông báo sửa được giữ ở đầu file. |
+| `tests/test_grounding.py`, `tests/test_v2_answers.py` | `commerce-common/tests/test_rag.py`, blob `60d6a84f00c4702892986e5173086eefb00a8c01`: rejection và overgeneralization regressions | `test intent ported`, thêm regression số liệu sai subject/field/unit, entity/negation, citation giả, quyền bị thu hồi trước repair, nguồn injection, bốn mode và payload chứa schema thật. |
+
+`app/v2/answers.py` là code mới: model chỉ chọn fact IDs hoặc soạn claim có evidence;
+giá trị có cấu trúc được render từ công cụ. Bộ chọn evidence giữ nghĩa vụ rõ ràng
+trong giới hạn context, claim và độ dài câu trả lời. Một repair cần kiểm tra lại
+quyền nguồn trước callback cấp ngân sách; output chỉ được ghép từ claims đã kiểm tra.
+
+Lead đã đối chiếu hai blob IDs và đọc mã grounding nguồn cùng bản target đã đóng
+băng. Kiểm tra độc lập đạt 57 test grounding/tools/PostgreSQL trước bản sửa quyền
+repair, rồi đạt regression mới và hai ca repair lân cận sau bản sửa. Ruff tám file
+và mypy bốn module đạt. Đây chưa phải gate toàn Package 4 hay benchmark chất lượng;
+supervisor/recovery và provider thật có kiểm tra riêng.
