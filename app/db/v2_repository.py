@@ -52,6 +52,12 @@ class TurnStateConflictError(ValueError):
     code = "turn_state_conflict"
 
 
+class TurnLeaseConflictError(TurnStateConflictError):
+    """A guarded write no longer owns the required turn state or lease."""
+
+    code = "turn_lease_conflict"
+
+
 class TurnRuntimeConflictError(TurnStateConflictError):
     """Runtime pins, counters or lease do not match the durable turn."""
 
@@ -322,14 +328,15 @@ class V2Repository:
         result: Mapping[str, Any],
         plan_revision: int = 0,
         data_version: str | None = None,
+        lease_owner: str | None = None,
     ) -> V2StepResult:
-        turn = self.get_turn(authorization, turn_id)
         if status not in {
             TaskStatus.SUCCESS,
             TaskStatus.PARTIAL_SUCCESS,
             TaskStatus.FAILED,
         }:
             raise ValueError("only terminal step results are durable")
+        turn = self._locked_turn(authorization, turn_id)
         result_copy = dict(result)
         existing = self._session.scalar(
             select(V2StepResult).where(
@@ -352,6 +359,7 @@ class V2Repository:
             self._session.commit()
             return replay
 
+        self._validate_turn_write_fence(turn, lease_owner=lease_owner)
         step_result = V2StepResult(
             id=step_result_id,
             turn_id=turn.id,
@@ -429,7 +437,14 @@ class V2Repository:
         dialogue_outcome: DialogueOutcome | None = None,
         result: Mapping[str, Any] | None = None,
         safe_error: SafeExecutionError | None = None,
+        lease_owner: str | None = None,
+        expected_status: TurnStatus | None = None,
+        require_expired_lease: bool = False,
     ) -> V2Turn:
+        if lease_owner is not None and require_expired_lease:
+            raise ValueError(
+                "an active-worker lease cannot be combined with expired recovery"
+            )
         terminal = {
             TurnStatus.COMPLETED,
             TurnStatus.FAILED,
@@ -469,6 +484,12 @@ class V2Repository:
             self._session.rollback()
             raise TurnStateConflictError("turn already has different terminal state")
 
+        self._validate_turn_write_fence(
+            turn,
+            lease_owner=lease_owner,
+            expected_status=expected_status,
+            require_expired_lease=require_expired_lease,
+        )
         now = utc_now()
         turn.execution_state = status.value
         turn.dialogue_outcome = (
@@ -516,6 +537,42 @@ class V2Repository:
             self._session.rollback()
             raise
         return turn
+
+    def _validate_turn_write_fence(
+        self,
+        turn: V2Turn,
+        *,
+        lease_owner: str | None = None,
+        expected_status: TurnStatus | None = None,
+        require_expired_lease: bool = False,
+    ) -> None:
+        """Validate an optional state/lease premise while holding the turn lock."""
+
+        expiry = turn.lease_expires_at
+        if expiry is not None and (expiry.tzinfo is None or expiry.utcoffset() is None):
+            expiry = expiry.replace(tzinfo=UTC)
+        now = utc_now()
+        conflict: str | None = None
+        if (
+            expected_status is not None
+            and turn.execution_state != expected_status.value
+        ):
+            conflict = "turn no longer has the expected state"
+        elif lease_owner is not None and (
+            turn.execution_state != TurnStatus.RUNNING.value
+            or turn.lease_owner != lease_owner
+            or expiry is None
+            or expiry <= now
+        ):
+            conflict = "turn lease is not current for this worker"
+        elif require_expired_lease and (
+            turn.execution_state != TurnStatus.RUNNING.value
+            or (expiry is not None and expiry > now)
+        ):
+            conflict = "turn does not have an expired or missing running lease"
+        if conflict is not None:
+            self._session.rollback()
+            raise TurnLeaseConflictError(conflict)
 
     @staticmethod
     def _authorize(
