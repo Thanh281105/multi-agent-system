@@ -12,7 +12,7 @@ Only verified public sources enter the corpus. Each records URL, retrieval time,
 
 ## Runtime and reproducibility boundaries
 
-The initial runtime database is `thanh_v2_runtime` on the separate loopback PostgreSQL service at `127.0.0.1:55432`. It contains the quality-gated 200-book snapshot at schema revision 0005. Its shared budget account is `thanh-v2-provider-global`; account totals must survive retries, restarts and later work packages. The original `ecommerce_p1` baseline and temporary test databases remain separate.
+The runtime database is `thanh_v2_runtime` on the separate loopback PostgreSQL service at `127.0.0.1:55432`. It contains the quality-gated 200-product historical snapshot, initially at revision 0005 and now at 0006 after the reviewed migration `2424a68`. The lead verified that its 200 products, 1,773 reviews and shared budget account `thanh-v2-provider-global` were preserved. Account totals must survive retries, restarts and later work packages. The original `ecommerce_p1` baseline remains at revision 0003; temporary test databases remain separate.
 
 The lead alone runs reviewed live ingestion with the existing configured OpenAI key, through the shared attempt ledger. Corpus work has an initial allocation of 5 USD within the overall 100 USD limit. An ingestion scope begins immediately before provider work so setup time cannot silently consume its deadline. Offline hashing validates deterministic mechanics only; the published operational index uses the approved `text-embedding-3-small`, 1,536-dimensional boundary, and every attempt is accounted for.
 
@@ -44,3 +44,21 @@ persistence run. Validation happens before schema mutation, and downgrade also
 refuses a chunker identity that could not be reconstructed on reapply. These
 checks establish the schema boundary; ingestion and retrieval still require
 their integrated gate before the package can close.
+
+## Development relevance probes
+
+The eight fixed queries and expected sources are recorded in
+[development-probes.json](../../data/knowledge/books-v1/development-probes.json).
+They were selected before any live query-embedding or retrieval output. The lead
+checked every query against the earlier plan, whose SHA256 is
+`8f365b18451486245242e94b5d125e14c7b24713ff4a48ca7f3b2c2007cfe4a4`.
+The canonical JSON hash of the probe artifact is
+`c1fd1801dc2481384ca8383f21eb140c2ee36238906c7ea294c1d544bfce3433`.
+
+Products 80, 168, 179 and 101 and their entire work groups are development-only.
+The four negative query families and their paraphrases are also excluded from
+Package 7's held-out partition. Gold source IDs will not be relabelled after
+observing retrieval. These probes measure relevance and abstention, not semantic
+claim support or benchmark superiority. Query vectors will be collected once
+through the shared ledger and reused for offline policy comparisons. The final
+selected policy remains provisional until the Package 7 protocol freeze.

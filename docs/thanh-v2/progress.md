@@ -151,4 +151,15 @@ retryable. Nonlegacy chunker identities must remain reconstructable on downgrade
 Ruff passed for all five changed Python files; mypy passed for the three source
 files. The unified verifier reported `VERIFY_STATUS=SUCCESS`, with pytest
 explicitly skipped in that wrapper because the independent run above had passed.
-The preserved runtime database has not yet been migrated by this code-only slice.
+The slice was committed as `2424a68`. The lead then applied it only to the marked
+runtime database and confirmed schema/model agreement, unchanged 200 products and
+1,773 reviews, zero known/reserved/unknown account usage, and an untouched revision
+0003 baseline (`P3_RUNTIME_CHUNKER_MIGRATION=PASS`).
+
+Eight development relevance probes are now fixed in
+`data/knowledge/books-v1/development-probes.json`. Primary validation confirmed
+all queries and expected sources match the pre-SUT plan, all four positive work
+groups are excluded from held-out evaluation, and no probe text entered the
+corpus (`P3_PROBES_GOLD_PREFLIGHT=PASS`). Threshold calibration and real provider
+collection have not yet run. The new calibration runner is a bounded Package 3
+verification task assigned to Sol XHigh; it does not begin Package 7.
