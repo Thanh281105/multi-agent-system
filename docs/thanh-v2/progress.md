@@ -7,8 +7,8 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | 1 — branch, environment, baseline, provenance | Committed `6b046d4` | Baseline and environment status established; tests, local database and attribution reviewed. Known captured-artifact hash failure recorded below. |
 | 2 — contracts, registry, schema, authorization, budget | Committed `16f0d2a` | 395 tests pass; contracts, real PostgreSQL, exact-cost ledger and v1 regression verified. Seven implementation/fix commits plus the gate record. |
 | 3 — corpus, mapping, retrieval, citations | Committed `7c9d86d` | 462 tests pass; published 20-work/200-mapping corpus, real embeddings/ledger and development no-answer calibration verified. |
-| 4 — supervisor, continuation, deduplication, grounding | Gate met 2026-09-10 | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
-| 5 — history, memory, sandbox actions | Not started | Restart/retry/confirmation/real PostgreSQL concurrency |
+| 4 — supervisor, continuation, deduplication, grounding | Committed `93c7cf7` | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
+| 5 — history, memory, sandbox actions | In progress | Restart/retry/confirmation/real PostgreSQL concurrency |
 | 6 — API and frontend | Not started | JSON/SSE/UI consistency; v1 regression |
 | 7 — evaluation v3, gold, pilot, freeze | Not started | Budget projection and immutable protocol |
 | 8 — benchmark, error analysis, final checks/docs | Not started | Full acceptance checklist; honest completeness state |
@@ -306,3 +306,27 @@ revisions 0003/0007 with 200 products and 1,773 reviews each. This development r
 proves the bounded execution, grounding and accounting path; it is not a benchmark
 quality claim. See [package-4-runtime.md](package-4-runtime.md) for the detailed
 limits and evidence. Package 5 may now begin.
+
+## Package 5 kickoff
+
+Preflight after `93c7cf7` confirms a clean `thanh-v2` worktree and healthy
+Package 4 boundary. The Package 2 schema already supplies owner-scoped
+conversation, preference, offer, cart, immutable order, proposal, idempotency
+and audit records; Package 5 adds their durable service behavior instead of
+replacing the schema or v1 runtime.
+
+Three bounded read-only investigations mapped the work before file ownership
+was assigned. Luna Max owns durable history/memory and the insert-only sandbox
+seed/guard slices. Sol High owns action transactions, stable lock ordering,
+idempotent replay, stale previews and concurrency tests. The lead rejected a
+redundant proposal action-ID column: the stable proposal ID is also the public
+action ID. Existing `genre` and `author` preferences remain valid book
+preferences alongside language and budget; memory still requires an explicit,
+source-bound request and never infers sensitive traits.
+
+Expected change budget is 8–12 files across history/context, sandbox seed/read
+state and action execution. Real PostgreSQL must prove restart, current ACL,
+conversation deletion, concurrent seed, confirmation/rejection races,
+same-key replay, different-payload conflict, stale price/stock/cart previews,
+single immutable order, one stock decrement and one consumed cart version.
+See [package-5-sandbox.md](package-5-sandbox.md) for the scoped gate.
