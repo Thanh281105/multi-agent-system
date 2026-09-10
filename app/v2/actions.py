@@ -185,14 +185,20 @@ class V2ActionService:
             authorization, ConversationMode.SHOPPER, write=True
         )
         binding = access.binding
+        direct_identity: JsonObject = {
+            "owner": _binding_json(binding),
+            "conversation_id": conversation_id,
+            "turn_id": turn_id,
+            "action_type": ActionKind.CART_CHANGE.value,
+            "target_type": "cart",
+            "target_id": request.cart_id,
+            "target_version": request.expected_version,
+            "request": request.model_dump(mode="json"),
+        }
+        request_hash = _canonical_hash(direct_identity)
         action_id = _stable_id(
             "proposal",
-            {
-                "owner": _binding_json(binding),
-                "turn_id": turn_id,
-                "kind": ActionKind.CART_CHANGE.value,
-                "request": request.model_dump(mode="json"),
-            },
+            direct_identity,
         )
         result: ActionExecutionResult
         with self._session_factory() as session, session.begin():
@@ -201,18 +207,6 @@ class V2ActionService:
             )
             cart = self._lock_cart(session, binding, request.cart_id)
             lines = self._lock_cart_lines(session, cart)
-            existing = session.get(V2Proposal, action_id)
-            if existing is not None:
-                if existing.result is None:
-                    raise ActionStateConflictError("cart action has no stored result")
-                result = ActionExecutionResult.model_validate(
-                    existing.result["response"]
-                )
-                return result
-            if cart.status != "active":
-                raise ActionConflictError("cart_not_active")
-            if cart.version != request.expected_version:
-                raise ActionConflictError("cart_version_conflict")
             offer = session.scalar(
                 select(V2Offer)
                 .where(
@@ -224,6 +218,22 @@ class V2ActionService:
             )
             if offer is None:
                 raise ResourceNotFoundError
+            existing = session.get(V2Proposal, action_id)
+            if existing is not None:
+                result = self._validate_direct_cart_replay(
+                    existing,
+                    binding=binding,
+                    conversation_id=conversation.id,
+                    turn_id=turn.id,
+                    request=request,
+                    offer=offer,
+                    request_hash=request_hash,
+                )
+                return result
+            if cart.status != "active":
+                raise ActionConflictError("cart_not_active")
+            if cart.version != request.expected_version:
+                raise ActionConflictError("cart_version_conflict")
             if not offer.is_active:
                 raise ActionConflictError("offer_inactive")
             if request.quantity > offer.stock:
@@ -262,6 +272,7 @@ class V2ActionService:
             )
             before_payload: JsonObject = {
                 "schema_version": 1,
+                "request_hash": request_hash,
                 "quantity": before_quantity,
                 "offer_id": offer.id,
                 "offer_version": offer.version,
@@ -272,6 +283,7 @@ class V2ActionService:
             }
             after_payload: JsonObject = {
                 "schema_version": 1,
+                "request_hash": request_hash,
                 "quantity": request.quantity,
                 "cart_version": cart.version,
             }
@@ -811,6 +823,76 @@ class V2ActionService:
             ],
         }
 
+    def _validate_direct_cart_replay(
+        self,
+        proposal: V2Proposal,
+        *,
+        binding: ResourceBinding,
+        conversation_id: str,
+        turn_id: str,
+        request: CartChangeInput,
+        offer: V2Offer,
+        request_hash: str,
+    ) -> ActionExecutionResult:
+        if not _proposal_owned_by(proposal, binding):
+            raise ResourceNotFoundError
+        before = proposal.before_payload
+        after = proposal.after_payload
+        result_payload = proposal.result
+        valid = (
+            proposal.conversation_id == conversation_id
+            and proposal.turn_id == turn_id
+            and proposal.action_type == ActionKind.CART_CHANGE.value
+            and proposal.target_type == "cart"
+            and proposal.target_id == request.cart_id
+            and proposal.target_version == request.expected_version
+            and proposal.proposal_version == 1
+            and proposal.status == ActionStatus.EXECUTED.value
+            and set(before)
+            == {
+                "schema_version",
+                "request_hash",
+                "quantity",
+                "offer_id",
+                "offer_version",
+                "data_version_ids",
+            }
+            and before.get("schema_version") == 1
+            and before.get("request_hash") == request_hash
+            and type(before.get("quantity")) is int
+            and cast(int, before["quantity"]) >= 0
+            and before.get("offer_id") == offer.id
+            and type(before.get("offer_version")) is int
+            and cast(int, before["offer_version"]) >= 1
+            and isinstance(before.get("data_version_ids"), list)
+            and len(cast(list[JsonValue], before["data_version_ids"])) == 2
+            and cast(list[JsonValue], before["data_version_ids"])[0]
+            == self._catalog_version_id
+            and set(after)
+            == {"schema_version", "request_hash", "quantity", "cart_version"}
+            and after.get("schema_version") == 1
+            and after.get("request_hash") == request_hash
+            and after.get("quantity") == request.quantity
+            and after.get("cart_version")
+            == request.expected_version
+            + int(cast(int, before["quantity"]) != request.quantity)
+            and isinstance(result_payload, dict)
+            and result_payload.get("schema_version") == 1
+            and isinstance(result_payload.get("response"), dict)
+        )
+        if not valid:
+            raise ActionStateConflictError("deterministic action identity conflict")
+        assert isinstance(result_payload, dict)
+        result = ActionExecutionResult.model_validate(result_payload["response"])
+        if (
+            result.action_id != proposal.id
+            or result.status != ActionStatus.EXECUTED
+            or result.resource_id != request.cart_id
+            or result.resource_version != after["cart_version"]
+        ):
+            raise ActionStateConflictError("deterministic action identity conflict")
+        return result
+
     def _create_or_replay_proposal(
         self,
         session: Session,
@@ -827,6 +909,7 @@ class V2ActionService:
     ) -> V2Proposal:
         identity = {
             "owner": _binding_json(binding),
+            "conversation_id": conversation.id,
             "turn_id": turn.id,
             "action_type": action_type.value,
             "target_type": target_type,
@@ -838,6 +921,18 @@ class V2ActionService:
         proposal_id = _stable_id("proposal", identity)
         existing = session.get(V2Proposal, proposal_id)
         if existing is not None:
+            self._validate_proposal_identity(
+                existing,
+                binding=binding,
+                conversation_id=conversation.id,
+                turn_id=turn.id,
+                action_type=action_type,
+                target_type=target_type,
+                target_id=target_id,
+                target_version=target_version,
+                before_payload=before_payload,
+                after_payload=after_payload,
+            )
             return existing
         db_now = self._database_now(session)
         proposal = V2Proposal(
@@ -862,6 +957,35 @@ class V2ActionService:
         session.add(proposal)
         session.flush()
         return proposal
+
+    @staticmethod
+    def _validate_proposal_identity(
+        proposal: V2Proposal,
+        *,
+        binding: ResourceBinding,
+        conversation_id: str,
+        turn_id: str,
+        action_type: ActionKind,
+        target_type: str,
+        target_id: str,
+        target_version: int,
+        before_payload: JsonObject,
+        after_payload: JsonObject,
+    ) -> None:
+        if not _proposal_owned_by(proposal, binding):
+            raise ResourceNotFoundError
+        if (
+            proposal.conversation_id != conversation_id
+            or proposal.turn_id != turn_id
+            or proposal.action_type != action_type.value
+            or proposal.target_type != target_type
+            or proposal.target_id != target_id
+            or proposal.target_version != target_version
+            or proposal.before_payload != before_payload
+            or proposal.after_payload != after_payload
+            or proposal.proposal_version != 1
+        ):
+            raise ActionStateConflictError("deterministic action identity conflict")
 
     def _lock_idempotency(
         self,
@@ -1358,6 +1482,15 @@ def _proposal_owner_predicates(binding: ResourceBinding) -> tuple[Any, ...]:
         V2Proposal.principal_id == binding.principal_id,
         V2Proposal.mode == binding.mode.value,
         V2Proposal.store_id == binding.store_id,
+    )
+
+
+def _proposal_owned_by(proposal: V2Proposal, binding: ResourceBinding) -> bool:
+    return (
+        proposal.tenant_id == binding.tenant_id
+        and proposal.principal_id == binding.principal_id
+        and proposal.mode == binding.mode.value
+        and proposal.store_id == binding.store_id
     )
 
 

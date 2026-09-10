@@ -214,6 +214,127 @@ def test_postgres_same_key_different_payload_conflicts(
     _assert_checkout_effect(postgres_sessions, fixture, expected_stock=8)
 
 
+def test_postgres_same_scoped_key_cannot_confirm_two_proposals(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_merchant(postgres_sessions, "crossproposalkey")
+    second_product_id = _product_id("crossproposalkeysecond")
+    second_offer_id = "offer_crossproposalkey_second"
+    with postgres_sessions.begin() as session:
+        _insert_product_offer(
+            session,
+            second_product_id,
+            second_offer_id,
+            fixture.authorization.tenant_id,
+        )
+    first = actions.propose_offer_change(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        request=MerchantOfferProposalInput(
+            offer_id=fixture.offer_id,
+            expected_version=1,
+            new_price_vnd=110_000,
+        ),
+    )
+    second = actions.propose_offer_change(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        request=MerchantOfferProposalInput(
+            offer_id=second_offer_id,
+            expected_version=1,
+            new_price_vnd=120_000,
+        ),
+    )
+    _finish_turn(postgres_sessions, fixture.turn_id)
+    key = "same-scope-two-proposals"
+    executed = actions.confirm_action(
+        fixture.authorization,
+        action_id=first.action.action_id,
+        request=ActionConfirmRequest(proposal_version=1),
+        idempotency_key=key,
+    )
+    assert executed.status == ActionStatus.EXECUTED
+    with pytest.raises(ActionIdempotencyConflictError):
+        actions.confirm_action(
+            fixture.authorization,
+            action_id=second.action.action_id,
+            request=ActionConfirmRequest(proposal_version=1),
+            idempotency_key=key,
+        )
+    with postgres_sessions() as session:
+        first_offer = session.get(V2Offer, fixture.offer_id)
+        second_offer = session.get(V2Offer, second_offer_id)
+        assert first_offer is not None and second_offer is not None
+        assert (first_offer.demo_price_vnd, first_offer.version) == (110_000, 2)
+        assert (second_offer.demo_price_vnd, second_offer.version) == (100_000, 1)
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(V2ActionAudit)
+                .where(V2ActionAudit.event_type == "merchant.offer.executed")
+                .where(
+                    V2ActionAudit.proposal_id.in_(
+                        (first.action.action_id, second.action.action_id)
+                    )
+                )
+            )
+            == 1
+        )
+
+
+def test_deterministic_checkout_id_rejects_corrupt_stored_identity(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture, action_id = _checkout_proposal(
+        actions, postgres_sessions, "corruptproposalidentity"
+    )
+    with postgres_sessions.begin() as session:
+        proposal = session.get(V2Proposal, action_id)
+        assert proposal is not None
+        proposal.after_payload = {**proposal.after_payload, "total_vnd": 1}
+    with pytest.raises(ActionStateConflictError, match="identity conflict"):
+        actions.propose_checkout(
+            fixture.authorization,
+            conversation_id=fixture.conversation_id,
+            turn_id=fixture.turn_id,
+            request=CheckoutInput(cart_id=fixture.cart_id, expected_version=1),
+        )
+
+
+def test_deterministic_direct_cart_id_rejects_corrupt_stored_identity(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_shopper(postgres_sessions, "corruptcartidentity", quantity=1)
+    request = CartChangeInput(
+        cart_id=fixture.cart_id,
+        product_id=fixture.product_id,
+        quantity=3,
+        expected_version=1,
+    )
+    result = actions.set_cart_item(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        request=request,
+    )
+    with postgres_sessions.begin() as session:
+        proposal = session.get(V2Proposal, result.action_id)
+        assert proposal is not None
+        proposal.after_payload = {**proposal.after_payload, "quantity": 999}
+    with pytest.raises(ActionStateConflictError, match="identity conflict"):
+        actions.set_cart_item(
+            fixture.authorization,
+            conversation_id=fixture.conversation_id,
+            turn_id=fixture.turn_id,
+            request=request,
+        )
+
+
 @pytest.mark.parametrize("same_key", [True, False])
 def test_postgres_concurrent_confirmation_has_one_checkout_effect(
     actions: V2ActionService,
@@ -250,6 +371,132 @@ def test_postgres_concurrent_confirmation_has_one_checkout_effect(
             )
             == expected_rows
         )
+
+
+def test_postgres_concurrent_shared_multi_offer_checkouts_lock_in_sorted_order(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    tenant_id = "tenant_multiofferconcurrency"
+    offer_ids = ("offer_multioffer_a", "offer_multioffer_b")
+    product_ids = (
+        _product_id("multiofferconcurrencya"),
+        _product_id("multiofferconcurrencyb"),
+    )
+    principals = ("principal_multioffer_a", "principal_multioffer_b")
+    conversations = ("conversation_multioffer_a", "conversation_multioffer_b")
+    turns = ("turn_multioffer_a", "turn_multioffer_b")
+    carts = ("cart_multioffer_a", "cart_multioffer_b")
+    with postgres_sessions.begin() as session:
+        for product_id, offer_id in zip(product_ids, offer_ids, strict=True):
+            _insert_product_offer(session, product_id, offer_id, tenant_id)
+        for principal, conversation, turn, cart in zip(
+            principals, conversations, turns, carts, strict=True
+        ):
+            _insert_context(
+                session,
+                conversation,
+                turn,
+                tenant_id,
+                principal,
+                ConversationMode.SHOPPER,
+            )
+            session.execute(
+                text(
+                    "INSERT INTO v2_carts "
+                    "(id, tenant_id, principal_id, store_id, status, version) "
+                    "VALUES (:id, :tenant, :principal, 'demo', 'active', 1)"
+                ),
+                {"id": cart, "tenant": tenant_id, "principal": principal},
+            )
+        line_rows = (
+            ("line_a_2", carts[0], principals[0], offer_ids[1], 2),
+            ("line_a_1", carts[0], principals[0], offer_ids[0], 1),
+            ("line_b_1", carts[1], principals[1], offer_ids[0], 2),
+            ("line_b_2", carts[1], principals[1], offer_ids[1], 3),
+        )
+        for line_id, cart, principal, offer_id, quantity in line_rows:
+            session.execute(
+                text(
+                    "INSERT INTO v2_cart_lines "
+                    "(id, cart_id, tenant_id, principal_id, store_id, offer_id, "
+                    "quantity, offer_version) VALUES "
+                    "(:id, :cart, :tenant, :principal, 'demo', :offer, :quantity, 1)"
+                ),
+                {
+                    "id": line_id,
+                    "cart": cart,
+                    "tenant": tenant_id,
+                    "principal": principal,
+                    "offer": offer_id,
+                    "quantity": quantity,
+                },
+            )
+    authorizations = tuple(
+        AuthorizationContext(
+            tenant_id=tenant_id,
+            principal_id=principal,
+            scopes=frozenset({"ecommerce.read", "ecommerce.write"}),
+        )
+        for principal in principals
+    )
+    action_ids = []
+    for authorization, conversation, turn, cart in zip(
+        authorizations, conversations, turns, carts, strict=True
+    ):
+        proposal = actions.propose_checkout(
+            authorization,
+            conversation_id=conversation,
+            turn_id=turn,
+            request=CheckoutInput(cart_id=cart, expected_version=1),
+        )
+        action_ids.append(proposal.action.action_id)
+        _finish_turn(postgres_sessions, turn)
+    barrier = Barrier(2)
+
+    def confirm(position: int) -> ActionStatus:
+        barrier.wait(timeout=10)
+        return actions.confirm_action(
+            authorizations[position],
+            action_id=action_ids[position],
+            request=ActionConfirmRequest(proposal_version=1),
+            idempotency_key=f"multi-offer-confirm-{position}",
+        ).status
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(confirm, position) for position in (0, 1)]
+        statuses = [future.result(timeout=10) for future in futures]
+    assert sorted(status.value for status in statuses) == ["conflicted", "executed"]
+    winner = statuses.index(ActionStatus.EXECUTED)
+    expected_stocks = (9, 8) if winner == 0 else (8, 7)
+    with postgres_sessions() as session:
+        offers = {
+            offer.id: offer
+            for offer in session.scalars(
+                select(V2Offer).where(V2Offer.id.in_(offer_ids)).order_by(V2Offer.id)
+            )
+        }
+        assert (offers[offer_ids[0]].stock, offers[offer_ids[0]].version) == (
+            expected_stocks[0],
+            2,
+        )
+        assert (offers[offer_ids[1]].stock, offers[offer_ids[1]].version) == (
+            expected_stocks[1],
+            2,
+        )
+        orders = tuple(
+            session.scalars(select(V2Order).where(V2Order.cart_id.in_(carts)))
+        )
+        assert len(orders) == 1
+        assert orders[0].cart_id == carts[winner]
+        proposals = {
+            proposal.id: proposal
+            for proposal in session.scalars(
+                select(V2Proposal).where(V2Proposal.id.in_(action_ids))
+            )
+        }
+        assert proposals[action_ids[winner]].status == ActionStatus.EXECUTED.value
+        assert proposals[action_ids[1 - winner]].status == ActionStatus.CONFLICTED.value
 
 
 def test_postgres_failure_before_commit_rolls_back_everything(
@@ -550,6 +797,57 @@ def test_postgres_merchant_offer_executes_once_and_versions_only_offer(
         assert offer.demo_price_vnd == (110_000 if change == "price" else 100_000)
         assert offer.stock == (7 if change == "stock" else 10)
         assert product.price == 100_000
+
+
+@pytest.mark.parametrize("same_key", [True, False])
+def test_postgres_concurrent_merchant_confirmation_has_one_offer_effect(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+    same_key: bool,
+) -> None:
+    suffix = "merchantconcurrentsame" if same_key else "merchantconcurrentdifferent"
+    fixture, action_id = _merchant_proposal(
+        actions,
+        postgres_sessions,
+        suffix,
+        quantity_delta=-3,
+    )
+    barrier = Barrier(2)
+
+    def confirm(position: int) -> dict[str, object]:
+        barrier.wait(timeout=10)
+        return actions.confirm_action(
+            fixture.authorization,
+            action_id=action_id,
+            request=ActionConfirmRequest(proposal_version=1),
+            idempotency_key=(
+                "merchant-concurrent-shared"
+                if same_key
+                else f"merchant-concurrent-{position}"
+            ),
+        ).model_dump(mode="json")
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(confirm, position) for position in (0, 1)]
+        results = [future.result(timeout=10) for future in futures]
+    assert results[0] == results[1]
+    with postgres_sessions() as session:
+        offer = session.get(V2Offer, fixture.offer_id)
+        assert offer is not None
+        assert (offer.stock, offer.version) == (7, 2)
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(V2ActionAudit)
+                .where(V2ActionAudit.proposal_id == action_id)
+            )
+            == 1
+        )
+        assert session.scalar(
+            select(func.count())
+            .select_from(V2ActionIdempotency)
+            .where(V2ActionIdempotency.proposal_id == action_id)
+        ) == (1 if same_key else 2)
 
 
 def test_postgres_action_result_read_and_immutable_checkout_rows(
