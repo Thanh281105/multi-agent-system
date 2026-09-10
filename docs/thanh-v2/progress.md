@@ -6,8 +6,8 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | --- | --- | --- |
 | 1 — branch, environment, baseline, provenance | Committed `6b046d4` | Baseline and environment status established; tests, local database and attribution reviewed. Known captured-artifact hash failure recorded below. |
 | 2 — contracts, registry, schema, authorization, budget | Committed `16f0d2a` | 395 tests pass; contracts, real PostgreSQL, exact-cost ledger and v1 regression verified. Seven implementation/fix commits plus the gate record. |
-| 3 — corpus, mapping, retrieval, citations | Gate passed | 462 tests pass; published 20-work/200-mapping corpus, real embeddings/ledger and development no-answer calibration verified. |
-| 4 — supervisor, continuation, deduplication, grounding | Not started | Bounded end-to-end reads; no duplicate completed step |
+| 3 — corpus, mapping, retrieval, citations | Committed `7c9d86d` | 462 tests pass; published 20-work/200-mapping corpus, real embeddings/ledger and development no-answer calibration verified. |
+| 4 — supervisor, continuation, deduplication, grounding | Gate met 2026-09-10 | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
 | 5 — history, memory, sandbox actions | Not started | Restart/retry/confirmation/real PostgreSQL concurrency |
 | 6 — API and frontend | Not started | JSON/SSE/UI consistency; v1 regression |
 | 7 — evaluation v3, gold, pilot, freeze | Not started | Budget projection and immutable protocol |
@@ -15,7 +15,7 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 
 ## Execution rules
 
-- Lead owns review, integration, gates and commits. Sol XHigh implements bounded tasks; Sol Max is reserved for architecture, hard debugging, transactional concurrency/idempotency, supervisor and grounding.
+- Lead owns review, integration, gates and commits. Following the current routing instruction, Luna Max implements bounded tasks; Sol High is reserved for architecture, hard debugging, transactional concurrency/idempotency, supervisor and grounding.
 - Explicit file ownership precedes concurrent edits; source snapshot/review data and credentials are not delegated. `Multi-Agent-lac-v2` is read-only, including its pre-existing `.gitignore` change.
 - v1 schema/routing/SSE and captured evaluation v1/v2 artifacts remain regression boundaries.
 - PostgreSQL is authoritative for durable v2 state, action execution, replay and reservations. No provider/network calls inside action transactions.
@@ -230,3 +230,79 @@ the documented chunker uniqueness migration. No semantic-grounding or benchmark
 quality claim is inferred from the development probes. See
 [package-3-corpus.md](package-3-corpus.md) for exact runtime IDs, recorded limits and
 costs. Package 4 may now begin.
+
+## Package 4 kickoff
+
+Preflight after `7c9d86d` confirms clean `thanh-v2` and the same CodeGraph/sensitive
+file boundaries. Sol Max receives supervisor/continuation and semantic grounding.
+The intended Sol XHigh read-tool dispatch hit the runtime's agent-thread limit;
+the lead owns that bounded integration while both workers proceed. The lead also owns interface review, durable
+integration, live credentials, regression gates and small commits. See
+[package-4-runtime.md](package-4-runtime.md) for scope, sequencing and acceptance.
+
+## Package 4 reviewed slices
+
+`75c0c51` fixes the shared PostgreSQL author-search expression. The first real
+read-tool run found that direct JSON-to-text matching missed escaped Vietnamese
+names while SQLite passed. PostgreSQL now decodes JSON through JSONB before text
+matching; SQLite behavior and all v1 contracts remain unchanged. The lead ran
+**27 search/domain-agent/PostgreSQL regressions**, plus **22 read-tool integration
+tests**, with no skips or warnings. Ruff and mypy passed; the unified verifier
+reported `VERIFY_STATUS=SUCCESS` with pytest explicitly run separately.
+
+The lead's ongoing interface review required exact Decimal persistence, current
+ACL validation before model context, rejection of misleading partial quotations,
+and answer coverage for explicit evidence obligations. Supervisor review also
+requires genuine model planning, staged initial dependencies that do not consume
+the continuation allowance, and separate expert reasoning over shared tools.
+The reviewed internal contract, read tools, grounding verifier and answer producer
+are now committed separately as `0dfb5e4`, `213374a`, `399970f` and `c9302ae`.
+Primary reproduced 57 combined grounding/read-tool/PostgreSQL tests, then the new
+source-revocation-before-repair regression and two adjacent repair cases after the
+final answer-layer correction. Ruff eight files and mypy four modules passed.
+Source blobs, Apache headers and the exact frozen worker hashes were reviewed.
+
+`99c2883` adds the small internal runtime-metadata persistence seam. Primary ran
+14 new metadata tests and 21 existing persistence/migration regressions, then
+reran the two final migration fixtures. The unified verifier reports
+`VERIFY_STATUS=SUCCESS` with pytest run separately. Runtime alone was upgraded to
+0007; before/after hashes of the baseline, catalog, corpus, vector and budget
+tables match. The baseline remains at 0003. No generation call has been made by
+Package 4 at this checkpoint.
+
+A bounded Sol Max concurrency review found a check/write lease race and two
+exception-cleanup cases. That worker now owns the atomic repository fence and its
+PostgreSQL regressions; the supervisor owner wires the guarded writes and finishes
+the genuine model-template selection, fractional-price and replay-usage fixes.
+The lead reproduced the atomic fence with six PostgreSQL tests and committed it as
+`7103085`. Planner, durable execution and supervisor were then committed separately
+as `8513a3f`, `eb59550` and `f1a2eb2`. After the user's routing update, final
+in-workspace inspection used Sol High; no completed work was restarted.
+
+## Package 4 gate decision
+
+Gate met on 2026-09-10. Primary verification passed **126 Package 4 integration
+tests in 178.35 seconds**, including real PostgreSQL races, then **588 full tests,
+2 deselected and 1 warning in 863.89 seconds**. The deselected cases are the two
+optional v1 live-provider tests; the warning remains the known Starlette/httpx
+deprecation. No PostgreSQL test was skipped. Ruff lint/format passed for 242 files,
+mypy passed for 140 source files, and exact v1 OpenAPI comparison retained all five
+paths and component schemas. Package 4 changed no historical evaluation source or
+captured result.
+
+The live development catalog read in `off` mode completed and replayed with zero
+generation calls, provider attempts or cost. The `required` knowledge read used the
+previously excluded Sapiens development group and the frozen corpus/index. It
+completed with one retrieval, six generation calls, seven total provider attempts
+(including embedding), one bounded repair, 6,903 total tokens and 0.00897707 USD
+known cost. The model repair was not grounded, so the answer layer truthfully marked
+fallback and emitted only checked catalog facts plus the exact authorized source
+extract. Cross-process retry returned the stored result and identical usage without
+another dispatch.
+
+The preserved global account moved from 52,640 to 9,029,710 nano-USD known usage;
+reserved and unknown usage remain zero. Baseline/runtime databases remain at
+revisions 0003/0007 with 200 products and 1,773 reviews each. This development run
+proves the bounded execution, grounding and accounting path; it is not a benchmark
+quality claim. See [package-4-runtime.md](package-4-runtime.md) for the detailed
+limits and evidence. Package 5 may now begin.
