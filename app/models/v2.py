@@ -561,6 +561,15 @@ class V2Cart(Base):
             "id", "tenant_id", "principal_id", "store_id", name="uq_v2_cart_owner"
         ),
         Index("ix_v2_carts_owner_status", "tenant_id", "principal_id", "status"),
+        Index(
+            "uq_v2_cart_active_owner",
+            "tenant_id",
+            "principal_id",
+            "store_id",
+            unique=True,
+            postgresql_where=text("status = 'active'"),
+            sqlite_where=text("status = 'active'"),
+        ),
     )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
