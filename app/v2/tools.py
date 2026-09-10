@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 from app.agents.product.skills import rank_products
 from app.agents.review.skills import extract_review_aspects
 from app.agents.trust.skills import analyze_review_trust, detect_complaints
-from app.contracts import TaskStatus
+from app.contracts import AuthorizationContext, TaskStatus
 from app.knowledge.service import KnowledgeService
 from app.knowledge.v2_contracts import (
     PublishedKnowledgeSnapshot,
@@ -33,7 +33,9 @@ from app.knowledge.v2_contracts import (
 )
 from app.models.dataset_source import DatasetSource
 from app.models.product import Product
+from app.models.v2 import V2Offer
 from app.repositories.ecommerce import EcommerceRepository, product_comparison_fact
+from app.v2.actions import ActionServiceError, V2ActionService
 from app.v2.authorization import (
     DEMO_STORE_ID,
     AuthorizationDeniedError,
@@ -42,6 +44,7 @@ from app.v2.authorization import (
     required_scopes_for_mode,
 )
 from app.v2.contracts import (
+    ConversationMode,
     EvidenceKind,
     EvidenceReference,
     SafeExecutionError,
@@ -49,12 +52,17 @@ from app.v2.contracts import (
 )
 from app.v2.registry import (
     CapabilityEffect,
+    CartReadInput,
+    CartResult,
     CatalogSearchInput,
+    CheckoutInput,
+    CheckoutPreviewResult,
     KnowledgeRetrieveInput,
     MarketMetric,
     MarketResult,
     MarketSnapshotInput,
     MerchantReadInput,
+    MerchantReadResult,
     ProductCandidate,
     ProductResult,
     ProductSelectionInput,
@@ -137,6 +145,7 @@ class V2ReadTools:
         catalog_snapshot: CatalogSnapshot,
         knowledge_service: KnowledgeService | None = None,
         knowledge_snapshot: PublishedKnowledgeSnapshot | None = None,
+        action_service: V2ActionService | None = None,
         registry: V2CapabilityRegistry | None = None,
     ) -> None:
         if (knowledge_service is None) != (knowledge_snapshot is None):
@@ -147,6 +156,7 @@ class V2ReadTools:
         self.catalog_snapshot = catalog_snapshot
         self.knowledge_service = knowledge_service
         self.knowledge_snapshot = knowledge_snapshot
+        self.action_service = action_service
         self.registry = registry or build_default_v2_registry()
 
     def data_version_ids(self, capability: str) -> tuple[str, ...]:
@@ -192,7 +202,7 @@ class V2ReadTools:
                 output, evidence = await self._knowledge(request, access)
             else:
                 output, evidence = await asyncio.to_thread(
-                    self._read, operation.capability, request
+                    self._read, operation.capability, request, access
                 )
             definition.validate_output(output.model_dump(mode="json"))
         except ReadToolError as exc:
@@ -234,10 +244,36 @@ class V2ReadTools:
             raise ReadToolError("stale_data_version")
 
     def _read(
-        self, capability: str, request: V2Contract
+        self,
+        capability: str,
+        request: V2Contract,
+        access: ResourceAuthorization | None = None,
     ) -> tuple[V2Contract, ToolEvidence]:
         with self.session_factory() as session:
             self._guard_snapshot(session)
+            if capability in {
+                "merchant.inventory.read",
+                "shopper.cart.read",
+                "shopper.checkout.preview",
+            }:
+                if self.action_service is None or access is None:
+                    raise ReadToolError("read_capability_unavailable")
+                return self._action_read(capability, request, access)
+            if (
+                self.action_service is not None
+                and access is not None
+                and access.binding.mode == ConversationMode.SHOPPER
+                and capability in {"product.catalog.search", "product.rank"}
+            ):
+                assert isinstance(request, CatalogSearchInput)
+                products, sandbox_prices = self._sandbox_catalog(
+                    session, request, access
+                )
+                return self._catalog(
+                    products,
+                    ranked=capability == "product.rank",
+                    sandbox_prices=sandbox_prices,
+                )
             repository = EcommerceRepository(session)
             if capability in {"product.catalog.search", "product.rank"}:
                 assert isinstance(request, CatalogSearchInput)
@@ -280,6 +316,166 @@ class V2ReadTools:
                 return self._market(repository, request)
             raise ReadToolError("read_capability_unavailable")
 
+    def _action_read(
+        self,
+        capability: str,
+        request: V2Contract,
+        access: ResourceAuthorization,
+    ) -> tuple[V2Contract, ToolEvidence]:
+        if self.action_service is None:
+            raise ReadToolError("read_capability_unavailable")
+        authorization = AuthorizationContext(
+            principal_id=access.binding.principal_id,
+            tenant_id=access.binding.tenant_id,
+            scopes=access.scopes,
+        )
+        output: V2Contract
+        try:
+            if capability == "merchant.inventory.read":
+                assert isinstance(request, MerchantReadInput)
+                output = self.action_service.read_inventory(authorization, request)
+            elif capability == "shopper.cart.read":
+                assert isinstance(request, CartReadInput)
+                output = self.action_service.read_cart(authorization, request)
+            elif capability == "shopper.checkout.preview":
+                assert isinstance(request, CheckoutInput)
+                output = self.action_service.preview_checkout(authorization, request)
+            else:
+                raise ReadToolError("read_capability_unavailable")
+        except (
+            ActionServiceError,
+            AuthorizationDeniedError,
+            ResourceNotFoundError,
+        ) as exc:
+            raise ReadToolError(exc.code) from exc
+        return output, self._sandbox_action_evidence(capability, output)
+
+    def _sandbox_catalog(
+        self,
+        session: Session,
+        request: CatalogSearchInput,
+        access: ResourceAuthorization,
+    ) -> tuple[list[Product], dict[int, int]]:
+        rows = session.execute(
+            select(Product, V2Offer)
+            .join(V2Offer, V2Offer.product_id == Product.id)
+            .where(
+                V2Offer.tenant_id == access.binding.tenant_id,
+                V2Offer.store_id == DEMO_STORE_ID,
+                V2Offer.is_active.is_(True),
+                Product.platform == "Tiki",
+                Product.source_id.in_(self.catalog_snapshot.source_ids),
+            )
+        ).all()
+        filtered = [
+            (product, offer)
+            for product, offer in rows
+            if _matches_sandbox_catalog(product, offer, request)
+        ]
+        filtered.sort(key=_sandbox_catalog_sort_key)
+        selected = filtered[: request.candidate_limit]
+        return (
+            [product for product, _ in selected],
+            {product.id: offer.demo_price_vnd for product, offer in selected},
+        )
+
+    def _sandbox_action_evidence(
+        self,
+        capability: str,
+        output: V2Contract,
+    ) -> ToolEvidence:
+        builder = _EvidenceBuilder(self.catalog_snapshot)
+        if capability == "merchant.inventory.read":
+            assert isinstance(output, MerchantReadResult)
+            if not output.offers:
+                builder.add(
+                    source_id="sandbox_inventory",
+                    title="Demo inventory",
+                    kind=EvidenceKind.SANDBOX,
+                    entries=[("demo_offer_count", 0, "offer")],
+                )
+            for offer in output.offers:
+                builder.add(
+                    source_id=f"sandbox_inventory_{offer.offer_id}",
+                    subject_id=f"offer_{offer.offer_id}",
+                    title=f"Demo inventory — offer {offer.offer_id}",
+                    kind=EvidenceKind.SANDBOX,
+                    entries=[
+                        ("demo_price_vnd", offer.price_vnd, "VND"),
+                        ("demo_stock", offer.available_quantity, "item"),
+                        ("demo_offer_version", offer.version, None),
+                    ],
+                )
+            return builder.build()
+
+        if capability == "shopper.cart.read":
+            assert isinstance(output, CartResult)
+            summary_entries: list[FactEntry] = [
+                ("demo_cart_id", output.cart_id, None),
+                ("demo_cart_version", output.version, None),
+                ("demo_cart_total_vnd", output.total_price_vnd, "VND"),
+            ]
+            if not output.items:
+                summary_entries.append(("demo_cart_item_count", 0, "item"))
+            builder.add(
+                source_id=f"sandbox_cart_{output.cart_id}",
+                subject_id=output.cart_id,
+                title=f"Demo cart — {output.cart_id}",
+                kind=EvidenceKind.SANDBOX,
+                entries=summary_entries,
+            )
+            for item in output.items:
+                builder.add(
+                    source_id=f"sandbox_cart_{output.cart_id}_{item.product_id}",
+                    subject_id=f"product_{item.product_id}",
+                    title=(
+                        f"Demo cart item — product {item.product_id} "
+                        f"in {output.cart_id}"
+                    ),
+                    kind=EvidenceKind.SANDBOX,
+                    entries=[
+                        ("demo_price_vnd", item.unit_price_vnd, "VND"),
+                        ("demo_quantity", item.quantity, "item"),
+                        ("demo_line_total_vnd", item.line_total_vnd, "VND"),
+                    ],
+                )
+            return builder.build()
+
+        if capability == "shopper.checkout.preview":
+            assert isinstance(output, CheckoutPreviewResult)
+            cart = output.cart
+            issues = "; ".join(output.issues) if output.issues else "none"
+            builder.add(
+                source_id=f"sandbox_checkout_{cart.cart_id}",
+                subject_id=cart.cart_id,
+                title=f"Demo checkout preview — {cart.cart_id}",
+                kind=EvidenceKind.SANDBOX,
+                entries=[
+                    ("demo_checkout_can_checkout", output.can_checkout, None),
+                    ("demo_checkout_issues", issues, None),
+                    ("demo_cart_version", cart.version, None),
+                    ("demo_cart_total_vnd", cart.total_price_vnd, "VND"),
+                ],
+            )
+            for item in cart.items:
+                builder.add(
+                    source_id=f"sandbox_checkout_{cart.cart_id}_{item.product_id}",
+                    subject_id=f"product_{item.product_id}",
+                    title=(
+                        f"Demo checkout item — product {item.product_id} "
+                        f"in {cart.cart_id}"
+                    ),
+                    kind=EvidenceKind.SANDBOX,
+                    entries=[
+                        ("demo_price_vnd", item.unit_price_vnd, "VND"),
+                        ("demo_quantity", item.quantity, "item"),
+                        ("demo_line_total_vnd", item.line_total_vnd, "VND"),
+                    ],
+                )
+            return builder.build()
+
+        raise ReadToolError("read_capability_unavailable")
+
     def _products(
         self, repository: EcommerceRepository, ids: tuple[int, ...]
     ) -> list[Product]:
@@ -293,7 +489,11 @@ class V2ReadTools:
         return products
 
     def _catalog(
-        self, products: list[Product], *, ranked: bool = False
+        self,
+        products: list[Product],
+        *,
+        ranked: bool = False,
+        sandbox_prices: Mapping[int, int] | None = None,
     ) -> tuple[ProductResult, ToolEvidence]:
         ranking: dict[int, Decimal] = {}
         if ranked:
@@ -317,7 +517,11 @@ class V2ReadTools:
                     author=author
                     if author is not None and len(author) <= 160
                     else None,
-                    price_vnd=product.price if product.price > 0 else None,
+                    price_vnd=(
+                        sandbox_prices.get(product.id)
+                        if sandbox_prices is not None
+                        else (product.price if product.price > 0 else None)
+                    ),
                     rating=product.rating,
                     catalog_version_id=self.catalog_snapshot.version_id,
                 )
@@ -346,6 +550,16 @@ class V2ReadTools:
                 entries=entries,
                 observed_at=_product_observed_at(product),
             )
+            if sandbox_prices is not None:
+                builder.add(
+                    source_id=f"sandbox_offer_{product.id}",
+                    subject_id=f"product_{product.id}",
+                    title=f"{product.name} — demo price",
+                    kind=EvidenceKind.SANDBOX,
+                    entries=[
+                        ("demo_price_vnd", sandbox_prices[product.id], "VND"),
+                    ],
+                )
             if ranked:
                 candidate_scope = _tool_id("rnk", sorted(ranking))
                 builder.add(
@@ -671,6 +885,63 @@ def _product_observed_at(product: Product) -> datetime:
     if product.dataset_source is None:
         raise ReadToolError("catalog_snapshot_unavailable")
     return _aware(product.dataset_source.retrieved_at)
+
+
+def _matches_sandbox_catalog(
+    product: Product,
+    offer: V2Offer,
+    request: CatalogSearchInput,
+) -> bool:
+    if request.query:
+        query = request.query.strip().casefold()
+        values = (
+            product.name,
+            product.category,
+            product.publisher or "",
+            product.description,
+            *(str(author) for author in product.authors),
+        )
+        if not any(query in value.casefold() for value in values):
+            return False
+    if request.author:
+        author = request.author.strip().casefold()
+        if not any(author in str(item).casefold() for item in product.authors):
+            return False
+    if (
+        request.category
+        and product.category.casefold() != request.category.strip().casefold()
+    ):
+        return False
+    if request.publisher and (
+        not product.publisher
+        or request.publisher.strip().casefold() not in product.publisher.casefold()
+    ):
+        return False
+    if (
+        request.min_price_vnd is not None
+        and offer.demo_price_vnd < request.min_price_vnd
+    ):
+        return False
+    if (
+        request.max_price_vnd is not None
+        and offer.demo_price_vnd > request.max_price_vnd
+    ):
+        return False
+    return True
+
+
+def _sandbox_catalog_sort_key(
+    row: tuple[Product, V2Offer],
+) -> tuple[bool, float, bool, int, int, int]:
+    product, offer = row
+    return (
+        product.rating is None,
+        -(product.rating or 0.0),
+        product.sold_count is None,
+        -(product.sold_count or 0),
+        offer.demo_price_vnd,
+        product.id,
+    )
 
 
 def _fact_text(value: str | int | Decimal | bool) -> str:

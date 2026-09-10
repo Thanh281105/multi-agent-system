@@ -96,6 +96,9 @@ _P4_IMPLEMENTED_READ_CAPABILITIES = frozenset(
         "market.snapshot",
         "knowledge.retrieve",
         "merchant.catalog.read",
+        "merchant.inventory.read",
+        "shopper.cart.read",
+        "shopper.checkout.preview",
     }
 )
 _QUOTED_QUERY_PATTERN = re.compile(r"[\"“”'](?P<query>[^\"“”']{2,160})[\"“”']")
@@ -931,6 +934,8 @@ def _operation_payload(
         else:
             dimension = MarketDimension.CATEGORY
         return {"dimension": dimension.value}
+    if capability == "shopper.cart.read":
+        return {}
     if capability in {"merchant.catalog.read", "merchant.inventory.read"}:
         return {"product_ids": list(product_ids)}
     raise PlanningError("capability_parameters_unsupported")
@@ -1074,6 +1079,8 @@ def _normalize_capability_sequence(capabilities: list[str]) -> tuple[str, ...]:
         "trust.analyze": 3,
         "trust.compare": 3,
         "merchant.inventory.read": 4,
+        "shopper.cart.read": 4,
+        "shopper.checkout.preview": 4,
         "market.snapshot": 5,
         "knowledge.retrieve": 6,
     }

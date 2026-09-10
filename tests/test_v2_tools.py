@@ -27,6 +27,8 @@ from app.knowledge.v2_contracts import (
 from app.models.dataset_source import DatasetSource
 from app.models.product import Product
 from app.models.review import Review
+from app.models.v2 import V2Offer
+from app.v2.actions import V2ActionService
 from app.v2.authorization import (
     AuthorizationDeniedError,
     ResourceAuthorization,
@@ -34,7 +36,12 @@ from app.v2.authorization import (
     ResourceNotFoundError,
 )
 from app.v2.contracts import ConversationMode, EvidenceKind, EvidenceReference
-from app.v2.registry import KnowledgeExcerpt, KnowledgeResult, ProductResult
+from app.v2.registry import (
+    KnowledgeExcerpt,
+    KnowledgeResult,
+    ProductResult,
+    ReviewResult,
+)
 from app.v2.runtime_contracts import RuntimeOperation, build_operation_key
 from app.v2.tools import V2ReadTools, load_catalog_snapshot
 
@@ -200,6 +207,76 @@ async def test_catalog_filters_precede_candidate_limit_and_keep_exact_source(
         )
     replay = await tools.execute(operation, tool_access())
     assert replay.evidence == result.evidence
+
+
+@pytest.mark.asyncio
+async def test_shopper_sandbox_catalog_uses_demo_price_for_filters_and_evidence(
+    tool_sessions: sessionmaker[Session],
+) -> None:
+    with tool_sessions.begin() as session:
+        session.add_all(
+            [
+                V2Offer(
+                    id="offer_unit_one",
+                    tenant_id="default",
+                    store_id="demo",
+                    product_id=1,
+                    demo_price_vnd=42_000,
+                    stock=10,
+                    version=1,
+                    is_active=True,
+                ),
+                V2Offer(
+                    id="offer_unit_two",
+                    tenant_id="default",
+                    store_id="demo",
+                    product_id=2,
+                    demo_price_vnd=180_000,
+                    stock=10,
+                    version=1,
+                    is_active=True,
+                ),
+            ]
+        )
+    snapshot = load_catalog_snapshot(tool_sessions)
+    tools = V2ReadTools(
+        tool_sessions,
+        catalog_snapshot=snapshot,
+        action_service=V2ActionService(
+            tool_sessions, catalog_version_id=snapshot.version_id
+        ),
+    )
+    result = await tools.execute(
+        operation_for(
+            tools,
+            "product.catalog.search",
+            {"author": "Nguyễn An", "max_price_vnd": 100_000},
+        ),
+        tool_access(),
+    )
+
+    assert result.status == TaskStatus.SUCCESS
+    output = ProductResult.model_validate(result.output)
+    assert [(product.product_id, product.price_vnd) for product in output.products] == [
+        (1, 42_000)
+    ]
+    assert {
+        (reference.kind, reference.title) for reference in result.evidence.references
+    } == {
+        (EvidenceKind.CATALOG, "Sách thử nghiệm 1 — dữ liệu catalog lịch sử"),
+        (EvidenceKind.SANDBOX, "Sách thử nghiệm 1 — demo price"),
+    }
+    assert {fact.field: fact.value for fact in result.evidence.facts} == {
+        "title": "Sách thử nghiệm 1",
+        "category": "Công nghệ",
+        "snapshot_price_vnd": 110_000,
+        "snapshot_review_count": 25,
+        "author": "Nguyễn An",
+        "publisher": "Nhà xuất bản mẫu",
+        "page_count": 110,
+        "snapshot_rating": Decimal("4.1"),
+        "demo_price_vnd": 42_000,
+    }
 
 
 @pytest.mark.asyncio
@@ -370,10 +447,7 @@ async def test_no_reviews_are_reported_as_empty_sample(
     )
     facts = {fact.field: fact.value for fact in result.evidence.facts}
     assert facts == {"sampled_review_count": 0}
-    assert (
-        result.output is not None
-        and result.output["findings"][0]["average_rating"] is None
-    )  # type: ignore[index]
+    assert ReviewResult.model_validate(result.output).findings[0].average_rating is None
 
 
 @pytest.mark.asyncio
