@@ -19,12 +19,14 @@ from app.models.v2 import (
     V2ActionAudit,
     V2ActionIdempotency,
     V2Cart,
+    V2Conversation,
     V2Offer,
     V2Order,
     V2OrderItem,
     V2Proposal,
 )
 from app.v2.actions import (
+    ActionConflictError,
     ActionIdempotencyConflictError,
     ActionStateConflictError,
     V2ActionService,
@@ -36,6 +38,7 @@ from app.v2.contracts import (
     ActionStatus,
     ConversationMode,
 )
+from app.v2.history import V2HistoryService
 from app.v2.registry import (
     CartChangeInput,
     CartReadInput,
@@ -154,6 +157,59 @@ def test_cart_inventory_reads_and_cart_set_remove_are_owner_scoped(
         assert audits == 2
 
 
+def test_postgres_stale_direct_cart_change_is_readable_after_restart(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_shopper(postgres_sessions, "staledirectcart", quantity=1)
+    with postgres_sessions.begin() as session:
+        cart = session.get(V2Cart, fixture.cart_id)
+        assert cart is not None
+        cart.version += 1
+
+    with postgres_sessions() as session:
+        audit_count_before = session.scalar(
+            select(func.count())
+            .select_from(V2ActionAudit)
+            .where(V2ActionAudit.tenant_id == f"tenant_{fixture.suffix}")
+        )
+
+    with pytest.raises(ActionConflictError, match="cart_version_conflict"):
+        actions.set_cart_item(
+            fixture.authorization,
+            conversation_id=fixture.conversation_id,
+            turn_id=fixture.turn_id,
+            request=CartChangeInput(
+                cart_id=fixture.cart_id,
+                product_id=fixture.product_id,
+                quantity=2,
+                expected_version=1,
+            ),
+        )
+
+    restarted_actions = V2ActionService(
+        postgres_sessions,
+        catalog_version_id="catalog_actions_v1",
+    )
+    cart_result = restarted_actions.read_cart(
+        fixture.authorization,
+        CartReadInput(),
+        cart_id=fixture.cart_id,
+    )
+    assert cart_result.version == 2
+    assert cart_result.total_price_vnd == 100_000
+    assert [(item.product_id, item.quantity) for item in cart_result.items] == [
+        (fixture.product_id, 1)
+    ]
+    with postgres_sessions() as session:
+        audit_count_after = session.scalar(
+            select(func.count())
+            .select_from(V2ActionAudit)
+            .where(V2ActionAudit.tenant_id == f"tenant_{fixture.suffix}")
+        )
+    assert audit_count_after == audit_count_before == 0
+
+
 def test_postgres_same_key_exact_replay_and_lost_response_mutate_once(
     actions: V2ActionService,
     postgres_sessions: sessionmaker[Session],
@@ -166,7 +222,11 @@ def test_postgres_same_key_exact_replay_and_lost_response_mutate_once(
         request=request,
         idempotency_key="checkout-exact-1",
     )
-    replay = actions.confirm_action(
+    restarted_actions = V2ActionService(
+        postgres_sessions,
+        catalog_version_id="catalog_actions_v1",
+    )
+    replay = restarted_actions.confirm_action(
         fixture.authorization,
         action_id=action_id,
         request=request,
@@ -700,6 +760,63 @@ def test_postgres_confirm_reject_race_has_one_terminal_winner(
         )
 
 
+def test_postgres_delete_conversation_serializes_with_confirm(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture, action_id = _checkout_proposal(
+        actions, postgres_sessions, "deleteconfirmrace"
+    )
+    barrier = Barrier(2)
+
+    def confirm() -> str:
+        barrier.wait(timeout=10)
+        try:
+            return actions.confirm_action(
+                fixture.authorization,
+                action_id=action_id,
+                request=ActionConfirmRequest(proposal_version=1),
+                idempotency_key="delete-confirm-race-key",
+            ).status.value
+        except ResourceNotFoundError:
+            return "not_found"
+
+    def delete_conversation() -> str:
+        barrier.wait(timeout=10)
+        with postgres_sessions() as session:
+            V2HistoryService(session).delete_conversation(
+                fixture.authorization,
+                fixture.conversation_id,
+            )
+        return "deleted"
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        confirm_future = executor.submit(confirm)
+        delete_future = executor.submit(delete_conversation)
+        confirm_outcome = confirm_future.result(timeout=20)
+        delete_outcome = delete_future.result(timeout=20)
+
+    assert delete_outcome == "deleted"
+    with postgres_sessions() as session:
+        conversation = session.get(V2Conversation, fixture.conversation_id)
+        proposal = session.get(V2Proposal, action_id)
+        order_count = session.scalar(
+            select(func.count())
+            .select_from(V2Order)
+            .where(V2Order.cart_id == fixture.cart_id)
+        )
+        assert conversation is not None and conversation.deleted_at is not None
+        assert proposal is not None
+        if proposal.status == ActionStatus.EXECUTED.value:
+            assert confirm_outcome == ActionStatus.EXECUTED.value
+            assert order_count == 1
+        else:
+            assert proposal.status == ActionStatus.EXPIRED.value
+            assert proposal.result == {"code": "conversation_deleted"}
+            assert confirm_outcome == "not_found"
+            assert order_count == 0
+
+
 def test_postgres_owner_mode_and_cancelled_turn_are_enforced(
     actions: V2ActionService,
     postgres_sessions: sessionmaker[Session],
@@ -799,6 +916,69 @@ def test_postgres_merchant_offer_executes_once_and_versions_only_offer(
         assert product.price == 100_000
 
 
+@pytest.mark.parametrize("mutation", ["price", "stock", "activity", "version"])
+def test_postgres_merchant_confirmation_rejects_stale_offer_state(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+    mutation: str,
+) -> None:
+    fixture, action_id = _merchant_proposal(
+        actions,
+        postgres_sessions,
+        f"merchantstale{mutation}",
+        price=110_000,
+    )
+    with postgres_sessions.begin() as session:
+        offer = session.get(V2Offer, fixture.offer_id)
+        assert offer is not None
+        if mutation == "price":
+            offer.demo_price_vnd += 1
+        elif mutation == "stock":
+            offer.stock -= 1
+        elif mutation == "activity":
+            offer.is_active = False
+        else:
+            offer.version += 1
+        changed_offer = (
+            offer.demo_price_vnd,
+            offer.stock,
+            offer.version,
+            offer.is_active,
+        )
+
+    first = actions.confirm_action(
+        fixture.authorization,
+        action_id=action_id,
+        request=ActionConfirmRequest(proposal_version=1),
+        idempotency_key=f"merchant-stale-{mutation}-key",
+    )
+    replay = actions.confirm_action(
+        fixture.authorization,
+        action_id=action_id,
+        request=ActionConfirmRequest(proposal_version=1),
+        idempotency_key=f"merchant-stale-{mutation}-key",
+    )
+    assert first.status == ActionStatus.CONFLICTED
+    assert replay.model_dump(mode="json") == first.model_dump(mode="json")
+    with postgres_sessions() as session:
+        offer = session.get(V2Offer, fixture.offer_id)
+        proposal = session.get(V2Proposal, action_id)
+        audit_count = session.scalar(
+            select(func.count())
+            .select_from(V2ActionAudit)
+            .where(V2ActionAudit.proposal_id == action_id)
+        )
+        assert offer is not None and proposal is not None
+        assert (
+            offer.demo_price_vnd,
+            offer.stock,
+            offer.version,
+            offer.is_active,
+        ) == changed_offer
+        assert proposal.status == ActionStatus.CONFLICTED.value
+        assert audit_count == 1
+
+
 @pytest.mark.parametrize("same_key", [True, False])
 def test_postgres_concurrent_merchant_confirmation_has_one_offer_effect(
     actions: V2ActionService,
@@ -865,12 +1045,36 @@ def test_postgres_action_result_read_and_immutable_checkout_rows(
     assert stored.card.action_id == stored.card.proposal_id == action_id
     assert stored.result is not None
     assert stored.result["response"] == result.model_dump(mode="json")
-    with pytest.raises(IntegrityError, match="immutable"):
-        with postgres_sessions.begin() as session:
-            session.execute(
-                text("UPDATE v2_orders SET total_vnd = 1 WHERE id = :order_id"),
-                {"order_id": result.resource_id},
-            )
+    _assert_checkout_effect(postgres_sessions, fixture, expected_stock=8)
+    with postgres_sessions() as session:
+        item_id = session.scalar(
+            select(V2OrderItem.id).where(V2OrderItem.order_id == result.resource_id)
+        )
+    assert item_id is not None
+
+    immutable_statements = (
+        (
+            "UPDATE v2_orders SET total_vnd = 1 WHERE id = :order_id",
+            {"order_id": result.resource_id},
+        ),
+        (
+            "DELETE FROM v2_orders WHERE id = :order_id",
+            {"order_id": result.resource_id},
+        ),
+        (
+            "UPDATE v2_order_items SET quantity = 1 WHERE id = :item_id",
+            {"item_id": item_id},
+        ),
+        (
+            "DELETE FROM v2_order_items WHERE id = :item_id",
+            {"item_id": item_id},
+        ),
+    )
+    for statement, parameters in immutable_statements:
+        with pytest.raises(IntegrityError, match="immutable"):
+            with postgres_sessions.begin() as session:
+                session.execute(text(statement), parameters)
+    _assert_checkout_effect(postgres_sessions, fixture, expected_stock=8)
 
 
 class _FailBeforeCommitService(V2ActionService):
