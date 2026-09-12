@@ -65,3 +65,57 @@ Primary review and tests must cover:
 
 Only a passing real-PostgreSQL restart/retry/confirmation/concurrency gate permits
 Package 6 API and frontend work.
+
+## Reviewed slices
+
+The reviewed Package 5 slices are committed in order: `5a4a942` opens the
+package gate; `6fb8cf9` adds durable history, bounded context and explicit
+source-bound memory; `a558aef` adds deterministic demo-offer seeding and the
+active-cart/audit guards; `76a7443` adds transactional cart, checkout and
+merchant-offer actions; `ed39233` hardens proposal identity and action races;
+`6a49233` connects sandbox reads to the planner and tools; `094657c` restores
+durable conversation context after a new claim; `afa7961` adds stale, replay,
+restart, deletion and immutable-order regressions; `aa3dfcf` adds guarded chat
+proposal creation with server-owned cards; and `5f42cf0` closes proposal
+recovery, database-clock lease fencing and history timestamp ties.
+
+The P1 mixed-clock audit found that application `datetime.now(UTC)` checks could
+be compared with lease timestamps governed by PostgreSQL, allowing application
+clock skew to accept or reject a lease incorrectly. The final slice makes
+`clock_timestamp()` the database authority for claim, active-worker fencing and
+expiry/recovery checks, with the lease check held under the locked turn row. It
+also recovers an expired proposal turn by replaying its stored card without
+rerunning planning, tools or model work. A history timestamp-tie regression was
+fixed at the same time: when turns share `created_at`, context ordering now uses
+`completed_at` and then the stable turn ID.
+
+The original 8–12-file estimate is reassessed against the actual slices. The
+package currently spans 19 tracked application, test, migration and seed-script
+files, plus these two documentation files. The increase is explained by the
+separate history, sandbox seed/read, action,
+planner/runtime recovery and real-PostgreSQL regression boundaries. It does not
+change the agreed v2 service or PostgreSQL architecture.
+
+## Verification evidence
+
+The focused final set passed **171 tests in 149.91 seconds**. The final
+action/runtime set passed **60 tests in 52.25 seconds**; the supervisor plus
+continuation set passed **84 tests in 114.33 seconds**. PostgreSQL verification
+used a native disposable PostgreSQL **18.4** server at `127.0.0.1:55432`, with
+no PostgreSQL skips. Docker Desktop Engine was unavailable for this run, so
+these results do not claim a Docker test.
+
+Ruff lint passed for 229 files, Ruff format passed for 229 files, and mypy
+passed for 143 application files. The v1 OpenAPI snapshot exactly matches the
+Package 4 commit `93c7cf7`: both SHA256 values are
+`1B0C0F4AAD5613C9373FAD826030DCF4C770E08063CCA48C020CD8432AB96C9B`, covering
+5 v1 paths and 8 schemas.
+
+## Current gate status
+
+Package 5 gate **passed on 2026-09-12**. The final CI-equivalent
+`pytest -m "not integration" -q` run completed with **703 passed, 2 deselected
+and 1 warning in 727.75 seconds (12:07)**. The deselected cases are the two
+optional integration-marked provider tests. The warning is the existing
+Starlette `TestClient` deprecation warning for the installed `httpx` transport.
+Package 6 may now begin.

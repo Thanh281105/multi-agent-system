@@ -8,7 +8,7 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | 2 — contracts, registry, schema, authorization, budget | Committed `16f0d2a` | 395 tests pass; contracts, real PostgreSQL, exact-cost ledger and v1 regression verified. Seven implementation/fix commits plus the gate record. |
 | 3 — corpus, mapping, retrieval, citations | Committed `7c9d86d` | 462 tests pass; published 20-work/200-mapping corpus, real embeddings/ledger and development no-answer calibration verified. |
 | 4 — supervisor, continuation, deduplication, grounding | Committed `93c7cf7` | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
-| 5 — history, memory, sandbox actions | In progress | Restart/retry/confirmation/real PostgreSQL concurrency |
+| 5 — history, memory, sandbox actions | Gate passed | 703 tests pass; real PostgreSQL recovery/concurrency, clock skew and exact v1 OpenAPI verified. |
 | 6 — API and frontend | Not started | JSON/SSE/UI consistency; v1 regression |
 | 7 — evaluation v3, gold, pilot, freeze | Not started | Budget projection and immutable protocol |
 | 8 — benchmark, error analysis, final checks/docs | Not started | Full acceptance checklist; honest completeness state |
@@ -330,3 +330,46 @@ conversation deletion, concurrent seed, confirmation/rejection races,
 same-key replay, different-payload conflict, stale price/stock/cart previews,
 single immutable order, one stock decrement and one consumed cart version.
 See [package-5-sandbox.md](package-5-sandbox.md) for the scoped gate.
+
+## Package 5 reviewed slices and verification
+
+The reviewed Package 5 slices are committed as `5a4a942`, `6fb8cf9`, `a558aef`,
+`76a7443`, `ed39233`, `6a49233`, `094657c`, `afa7961`, `aa3dfcf` and `5f42cf0`.
+Together they add durable history/memory, deterministic insert-only demo offers,
+transactional cart/checkout/merchant actions, sandbox reads, guarded chat
+proposals, recovery, database-clock lease fences, stable history ordering and
+their PostgreSQL regressions.
+
+The P1 mixed-clock audit found application-clock lease checks beside
+PostgreSQL-controlled lease timestamps. The final fix uses the database
+`clock_timestamp()` for claim, active-worker fencing and expiry/recovery, and
+checks the lease under the locked turn row. Expired proposal turns recover by
+replaying their stored card without new planning, tool or model work. The same
+slice fixes history ordering when turns tie on `created_at` by ordering next on
+`completed_at`, then the stable turn ID.
+
+The original 8–12-file estimate is reassessed at 19 tracked application,
+test, migration and seed-script files across the actual slices, plus the two
+Package 5 documentation files. The extra coverage belongs to separate history,
+sandbox seed/read, action, planner/runtime recovery and real-PostgreSQL
+regression boundaries; the v2 service and PostgreSQL architecture is unchanged.
+
+The focused final set passed **171 tests in 149.91 seconds**. The final
+action/runtime set passed **60 tests in 52.25 seconds**, and the supervisor plus
+continuation set passed **84 tests in 114.33 seconds**. PostgreSQL verification
+used a native disposable PostgreSQL **18.4** server at `127.0.0.1:55432`, with
+no skips. Docker Desktop Engine was unavailable, so this record makes no Docker
+test claim.
+
+Ruff lint passed for 229 files, Ruff format passed for 229 files, and mypy
+passed for 143 application files. The v1 OpenAPI snapshot exactly matches
+Package 4 commit `93c7cf7`; both SHA256 values are
+`1B0C0F4AAD5613C9373FAD826030DCF4C770E08063CCA48C020CD8432AB96C9B`, covering
+5 v1 paths and 8 schemas.
+
+Package 5 gate passed on 2026-09-12. The final CI-equivalent
+`pytest -m "not integration" -q` run completed with **703 passed, 2 deselected
+and 1 warning in 727.75 seconds (12:07)**. The two deselected cases are the
+optional integration-marked provider tests. The warning is the existing
+Starlette `TestClient` deprecation warning for the installed `httpx` transport.
+All required PostgreSQL cases ran without skips, and Package 6 may now begin.
