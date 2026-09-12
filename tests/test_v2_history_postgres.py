@@ -315,7 +315,7 @@ def test_model_context_is_bounded_and_current_request_wins(
             client_turn_id="client-context-source",
             message="find books in Vietnamese",
         )
-        _complete_turn(
+        second = _complete_turn(
             session,
             owner,
             conversation_id=conversation_id,
@@ -323,7 +323,7 @@ def test_model_context_is_bounded_and_current_request_wins(
             client_turn_id="client-context-second",
             message="show another title",
         )
-        _complete_turn(
+        third = _complete_turn(
             session,
             owner,
             conversation_id=conversation_id,
@@ -331,6 +331,12 @@ def test_model_context_is_bounded_and_current_request_wins(
             client_turn_id="client-context-third",
             message="compare them",
         )
+        tied_created_at = datetime(2026, 9, 1, tzinfo=UTC)
+        for position, turn in enumerate((source, second, third), start=1):
+            turn.created_at = tied_created_at
+            turn.completed_at = tied_created_at + timedelta(seconds=position)
+            turn.updated_at = turn.completed_at
+        session.commit()
         repository.record_turn(
             owner,
             conversation_id=conversation_id,

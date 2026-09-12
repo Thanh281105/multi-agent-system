@@ -124,6 +124,10 @@ class _FakeActionService:
         self.read_inventory_calls = 0
         self.checkout_requests: list[CheckoutInput] = []
         self.offer_requests: list[MerchantOfferProposalInput] = []
+        self.proposal_lease_owners: list[str] = []
+        self.recovery_requests: list[
+            tuple[AuthorizationContext, str, str, ConversationMode]
+        ] = []
         self.fail_at = fail_at
         self.error = error
 
@@ -153,11 +157,13 @@ class _FakeActionService:
         *,
         conversation_id: str,
         turn_id: str,
+        lease_owner: str,
         request: CheckoutInput,
     ) -> ProposalResult:
         del authorization
         assert conversation_id == "conversation_action"
         assert turn_id == "turn_action"
+        self.proposal_lease_owners.append(lease_owner)
         self.checkout_requests.append(request)
         self._raise_if_configured("propose_checkout")
         return ProposalResult(
@@ -168,6 +174,17 @@ class _FakeActionService:
                 target_version=request.expected_version,
             )
         )
+
+    def recover_expired_turn_proposal(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        mode: ConversationMode,
+    ) -> bool:
+        self.recovery_requests.append((authorization, conversation_id, turn_id, mode))
+        return True
 
     def read_inventory(
         self,
@@ -197,11 +214,13 @@ class _FakeActionService:
         *,
         conversation_id: str,
         turn_id: str,
+        lease_owner: str,
         request: MerchantOfferProposalInput,
     ) -> ProposalResult:
         del authorization
         assert conversation_id == "conversation_action"
         assert turn_id == "turn_action"
+        self.proposal_lease_owners.append(lease_owner)
         self.offer_requests.append(request)
         self._raise_if_configured("propose_offer")
         kind = (
@@ -831,10 +850,63 @@ async def test_plain_confirmation_bypasses_model_and_action_service(
     assert runtime.calls == 0
     assert executor.calls == []
     assert producer.calls == 0
+    assert action_service.proposal_lease_owners == []
     assert action_service.read_cart_calls == 0
     assert action_service.read_inventory_calls == 0
     assert action_service.checkout_requests == []
     assert action_service.offer_requests == []
+
+
+def test_supervisor_forwards_atomic_recovery_and_short_circuits_without_service() -> (
+    None
+):
+    context = _context(write=True)
+    planner = BoundedV2Planner(runtime_mode="off")
+    executor = _FakeOperationExecutor()
+    producer = _AnswerProducer()
+    without_actions = V2ReadSupervisor(
+        _unused_session_factory,
+        planner=planner,
+        operation_executor=executor,  # type: ignore[arg-type]
+        answer_producer=producer,
+    )
+    assert (
+        without_actions.recover_expired_turn_proposal(
+            conversation_id="conversation_action",
+            turn_id="turn_action",
+            access=context.access,
+        )
+        is False
+    )
+
+    actions = _FakeActionService()
+    with_actions = V2ReadSupervisor(
+        _unused_session_factory,
+        planner=planner,
+        operation_executor=executor,  # type: ignore[arg-type]
+        answer_producer=producer,
+        action_service=actions,  # type: ignore[arg-type]
+    )
+    assert (
+        with_actions.recover_expired_turn_proposal(
+            conversation_id="conversation_action",
+            turn_id="turn_action",
+            access=context.access,
+        )
+        is True
+    )
+    assert actions.recovery_requests == [
+        (
+            AuthorizationContext(
+                tenant_id=context.access.binding.tenant_id,
+                principal_id=context.access.binding.principal_id,
+                scopes=context.access.scopes,
+            ),
+            "conversation_action",
+            "turn_action",
+            ConversationMode.SHOPPER,
+        )
+    ]
 
 
 @pytest.mark.asyncio
@@ -1007,6 +1079,7 @@ async def test_supervisor_creates_server_owned_card_without_tools_or_grounding(
     assert computation.result.citations == ()
     assert executor.calls == []
     assert producer.calls == 0
+    assert action_service.proposal_lease_owners == ["worker_action"]
     if expected_kind == ActionKind.CHECKOUT:
         assert action_service.checkout_requests == [
             CheckoutInput(cart_id="cart_server_owned", expected_version=4)

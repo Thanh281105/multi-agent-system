@@ -14,9 +14,22 @@ from sqlalchemy import create_engine, func, select, text, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.contracts import AuthorizationContext, TaskStatus
+from app.db import v2_repository as v2_repository_module
 from app.db.migrate import upgrade_database
-from app.db.v2_repository import V2Repository
-from app.models.v2 import V2KnowledgeCorpusVersion, V2Proposal, V2StepResult, V2Turn
+from app.db.v2_repository import (
+    TurnLeaseConflictError,
+    TurnRuntimeConflictError,
+    TurnStateConflictError,
+    V2Repository,
+)
+from app.models.v2 import (
+    V2Cart,
+    V2KnowledgeCorpusVersion,
+    V2Order,
+    V2Proposal,
+    V2StepResult,
+    V2Turn,
+)
 from app.shared import ModelCallMetadata, ModelRuntimeError
 from app.shared.budget import (
     PricingManifest,
@@ -26,13 +39,20 @@ from app.shared.budget import (
     current_provider_budget,
     default_pricing_manifest_path,
 )
+from app.v2 import execution as v2_execution_module
 from app.v2.actions import V2ActionService
 from app.v2.answers import GroundedAnswerProducer
+from app.v2.authorization import ResourceAuthorization, ResourceBinding
 from app.v2.contracts import (
+    ActionConfirmRequest,
+    ActionRejectRequest,
+    ActionStatus,
     BudgetPreference,
+    ConversationMode,
     DialogueOutcome,
     PreferenceKind,
     PreferencePutRequest,
+    SafeExecutionError,
     TurnResult,
     TurnStatus,
 )
@@ -40,8 +60,10 @@ from app.v2.execution import (
     DurableExecutionError,
     DurableOperationExecutor,
     DurableReadTurnExecutor,
+    DurableTurnOutcome,
     DurableTurnRequest,
     TurnComputation,
+    TurnExecutionInterrupted,
 )
 from app.v2.history import V2HistoryService
 from app.v2.planning import (
@@ -79,6 +101,7 @@ class _CountingActionService(V2ActionService):
         *,
         conversation_id: str,
         turn_id: str,
+        lease_owner: str,
         request: CheckoutInput,
     ) -> ProposalResult:
         self.proposal_calls += 1
@@ -86,6 +109,7 @@ class _CountingActionService(V2ActionService):
             authorization,
             conversation_id=conversation_id,
             turn_id=turn_id,
+            lease_owner=lease_owner,
             request=request,
         )
 
@@ -357,6 +381,20 @@ class _BlockingHandler:
         return _answered("Single claimant completed")
 
 
+class _FarFutureClock:
+    @staticmethod
+    def now(tz: object | None = None) -> datetime:
+        value = datetime.now(UTC) + timedelta(days=30)
+        return value if tz is not None else value.replace(tzinfo=None)
+
+
+class _FarPastClock:
+    @staticmethod
+    def now(tz: object | None = None) -> datetime:
+        value = datetime(2000, 1, 1, tzinfo=UTC)
+        return value if tz is not None else value.replace(tzinfo=None)
+
+
 @pytest.mark.asyncio
 async def test_concurrent_retry_has_one_claimant_and_no_duplicate_handler(
     postgres_runtime_store: _RuntimeStore,
@@ -393,6 +431,85 @@ async def test_concurrent_retry_has_one_claimant_and_no_duplicate_handler(
     handler.release.set()
     first = await asyncio.wait_for(first_task, timeout=5)
     assert first.status == TurnStatus.COMPLETED
+
+
+@pytest.mark.asyncio
+async def test_claim_lifetime_is_relative_to_locked_database_clock_under_app_skew(
+    postgres_runtime_store: _RuntimeStore,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = postgres_runtime_store
+    context = _context()
+    conversation_id = "conv_runtime_db_clock_claim"
+    turn_id = "turn_runtime_db_clock_claim"
+    _conversation(store.sessions, context, conversation_id)
+    handler = _BlockingHandler()
+    runner = DurableReadTurnExecutor(store.sessions, handler)
+
+    with monkeypatch.context() as clock:
+        clock.setattr(v2_execution_module, "datetime", _FarFutureClock)
+        clock.setattr(
+            v2_repository_module,
+            "utc_now",
+            lambda: datetime.now(UTC) + timedelta(days=30),
+        )
+        task = asyncio.create_task(
+            runner.execute(
+                _request(
+                    conversation_id,
+                    turn_id,
+                    "client-runtime-db-clock-claim",
+                    "worker-runtime-db-clock-claim",
+                ),
+                context,
+            )
+        )
+        await asyncio.wait_for(handler.entered.wait(), timeout=5)
+        with store.sessions() as session:
+            turn = session.get(V2Turn, turn_id)
+            db_now = session.scalar(select(func.clock_timestamp()))
+            assert turn is not None and db_now is not None
+            assert turn.lease_expires_at is not None
+            remaining = (turn.lease_expires_at - db_now).total_seconds()
+            assert 55 < remaining <= 65
+
+    handler.release.set()
+    outcome = await asyncio.wait_for(task, timeout=5)
+    assert outcome.status == TurnStatus.COMPLETED
+
+
+@pytest.mark.asyncio
+async def test_active_running_retry_skips_proposal_recovery(
+    postgres_runtime_store: _RuntimeStore,
+) -> None:
+    store = postgres_runtime_store
+    context = _context()
+    conversation_id = "conv_runtime_active_recovery_skip"
+    turn_id = "turn_runtime_active_recovery_skip"
+    client_turn_id = "client-runtime-active-recovery-skip"
+    _conversation(store.sessions, context, conversation_id)
+    _record_bind_claim(
+        store.sessions,
+        context,
+        conversation_id=conversation_id,
+        turn_id=turn_id,
+        client_turn_id=client_turn_id,
+        lease_owner="worker-runtime-active",
+    )
+    handler = _RecoveryTrackingNeverHandler()
+    outcome = await DurableReadTurnExecutor(store.sessions, handler).execute(
+        _request(
+            conversation_id,
+            "turn_runtime_active_recovery_retry",
+            client_turn_id,
+            "worker-runtime-active-retry",
+        ),
+        context,
+    )
+    assert outcome.status == TurnStatus.RUNNING
+    assert outcome.reused is True
+    assert handler.calls == 0
+    assert handler.recovery_calls == 0
 
 
 @pytest.mark.asyncio
@@ -450,6 +567,185 @@ async def test_expired_running_turn_is_interrupted_and_never_reclaimed(
     assert outcome.status == replay.status == TurnStatus.INTERRUPTED
     assert outcome.error is not None and outcome.error.code == "turn_lease_expired"
     assert handler.calls == 0
+    with store.sessions() as session:
+        turn = session.get(V2Turn, turn_id)
+        assert turn is not None
+        assert turn.execution_state == TurnStatus.INTERRUPTED.value
+        assert turn.lease_owner is None
+        assert turn.lease_expires_at is None
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(V2Proposal)
+                .where(V2Proposal.turn_id == turn_id)
+            )
+            == 0
+        )
+
+
+@pytest.mark.parametrize("write_kind", ["checkpoint", "completion"])
+def test_expired_active_write_fences_ignore_slow_application_clock(
+    postgres_runtime_store: _RuntimeStore,
+    monkeypatch: pytest.MonkeyPatch,
+    write_kind: str,
+) -> None:
+    store = postgres_runtime_store
+    context = _context()
+    suffix = write_kind.replace("completion", "complete")
+    conversation_id = f"conv_runtime_db_clock_{suffix}"
+    turn_id = f"turn_runtime_db_clock_{suffix}"
+    lease_owner = f"worker-runtime-db-clock-{suffix}"
+    _conversation(store.sessions, context, conversation_id)
+    _record_bind_claim(
+        store.sessions,
+        context,
+        conversation_id=conversation_id,
+        turn_id=turn_id,
+        client_turn_id=f"client-runtime-db-clock-{suffix}",
+        lease_owner=lease_owner,
+    )
+    with store.sessions.begin() as session:
+        session.execute(
+            text(
+                "UPDATE v2_turns SET lease_expires_at = "
+                "clock_timestamp() - interval '1 second' WHERE id = :turn_id"
+            ),
+            {"turn_id": turn_id},
+        )
+
+    monkeypatch.setattr(
+        v2_repository_module,
+        "utc_now",
+        lambda: datetime(2000, 1, 1, tzinfo=UTC),
+    )
+    with store.sessions() as session:
+        repository = V2Repository(session)
+        if write_kind == "checkpoint":
+            with pytest.raises(TurnRuntimeConflictError, match="lease"):
+                repository.checkpoint_turn_runtime(
+                    _authorization(context),
+                    turn_id,
+                    lease_owner=lease_owner,
+                    knowledge_retrievals=1,
+                )
+        else:
+            with pytest.raises(TurnLeaseConflictError, match="current"):
+                repository.complete_turn(
+                    _authorization(context),
+                    turn_id,
+                    status=TurnStatus.COMPLETED,
+                    dialogue_outcome=DialogueOutcome.ANSWERED,
+                    result={"stale_worker": True},
+                    lease_owner=lease_owner,
+                    expected_status=TurnStatus.RUNNING,
+                )
+
+    with store.sessions() as session:
+        turn = session.get(V2Turn, turn_id)
+        assert turn is not None
+        assert turn.execution_state == TurnStatus.RUNNING.value
+        assert turn.runtime_metadata["knowledge_retrievals"] == 0
+        assert turn.result is None
+
+
+@pytest.mark.asyncio
+async def test_active_claim_check_uses_database_clock_before_dispatch(
+    postgres_runtime_store: _RuntimeStore,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = postgres_runtime_store
+    context = _context()
+    conversation_id = "conv_runtime_db_clock_assert"
+    turn_id = "turn_runtime_db_clock_assert"
+    lease_owner = "worker-runtime-db-clock-assert"
+    _conversation(store.sessions, context, conversation_id)
+    _record_bind_claim(
+        store.sessions,
+        context,
+        conversation_id=conversation_id,
+        turn_id=turn_id,
+        client_turn_id="client-runtime-db-clock-assert",
+        lease_owner=lease_owner,
+    )
+    with store.sessions.begin() as session:
+        session.execute(
+            text(
+                "UPDATE v2_turns SET lease_expires_at = "
+                "clock_timestamp() - interval '1 second' WHERE id = :turn_id"
+            ),
+            {"turn_id": turn_id},
+        )
+    planned = await BoundedV2Planner(runtime_mode="off").plan(
+        "Tìm sách Sapiens",
+        context,
+    )
+    dispatcher = _CatalogDispatcher()
+    monkeypatch.setattr(v2_execution_module, "datetime", _FarPastClock)
+    monkeypatch.setattr(
+        v2_repository_module,
+        "utc_now",
+        lambda: datetime(2000, 1, 1, tzinfo=UTC),
+    )
+
+    with pytest.raises(TurnExecutionInterrupted, match="turn_lease_expired"):
+        await DurableOperationExecutor(store.sessions, dispatcher).execute(
+            turn_id=turn_id,
+            lease_owner=lease_owner,
+            access=context.access,
+            operations=planned.initial_operations,
+            plan_revision=0,
+        )
+    assert dispatcher.calls == 0
+
+
+@pytest.mark.asyncio
+async def test_expired_recovery_cannot_overwrite_renewed_live_lease(
+    postgres_runtime_store: _RuntimeStore,
+) -> None:
+    store = postgres_runtime_store
+    context = _context()
+    conversation_id = "conv_runtime_expired_renewed"
+    turn_id = "turn_runtime_expired_renewed"
+    client_turn_id = "client-runtime-expired-renewed"
+    _conversation(store.sessions, context, conversation_id)
+    _record_bind_claim(
+        store.sessions,
+        context,
+        conversation_id=conversation_id,
+        turn_id=turn_id,
+        client_turn_id=client_turn_id,
+        lease_owner="worker-runtime-expired",
+    )
+    with store.sessions.begin() as session:
+        session.execute(
+            text(
+                "UPDATE v2_turns SET lease_expires_at = "
+                "clock_timestamp() - interval '1 second' WHERE id = :turn_id"
+            ),
+            {"turn_id": turn_id},
+        )
+
+    handler = _NeverHandler()
+    runner = _RenewLeaseBeforeInterruptExecutor(store.sessions, handler)
+    outcome = await runner.execute(
+        _request(
+            conversation_id,
+            "turn_runtime_expired_renewed_retry",
+            client_turn_id,
+            "worker-runtime-retry",
+        ),
+        context,
+    )
+    assert outcome.status == TurnStatus.RUNNING
+    assert handler.calls == 0
+    with store.sessions() as session:
+        turn = session.get(V2Turn, turn_id)
+        db_now = session.scalar(select(func.clock_timestamp()))
+        assert turn is not None and db_now is not None
+        assert turn.execution_state == TurnStatus.RUNNING.value
+        assert turn.lease_owner == "worker-runtime-renewed"
+        assert turn.lease_expires_at is not None and turn.lease_expires_at > db_now
+        assert turn.safe_error is None
 
 
 @pytest.mark.asyncio
@@ -940,6 +1236,218 @@ async def test_checkout_proposal_card_is_stored_and_replayed_without_recreation(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("decision", ["confirm", "reject"])
+async def test_expired_running_proposal_recovers_exact_completed_result_without_work(
+    postgres_runtime_store: _RuntimeStore,
+    decision: str,
+) -> None:
+    store = postgres_runtime_store
+    suffix = f"_recovery_{decision}"
+    access = ResourceAuthorization(
+        binding=ResourceBinding(
+            tenant_id=f"tenant_runtime_recovery_{decision}",
+            principal_id=f"principal_runtime_recovery_{decision}",
+            mode=ConversationMode.SHOPPER,
+            store_id="demo",
+        ),
+        scopes=frozenset({"ecommerce.read", "ecommerce.write"}),
+    )
+    original_context = PlanningContext(
+        access=access,
+        versions=RuntimeDataVersions(
+            catalog_version_id="catalog_runtime_action",
+            corpus_version_id="corpus_runtime_a",
+            index_manifest_id="index_runtime_a",
+        ),
+    )
+    retry_context = original_context.model_copy(
+        update={
+            "versions": RuntimeDataVersions(
+                catalog_version_id="catalog_runtime_action",
+                corpus_version_id="corpus_runtime_b",
+                index_manifest_id="index_runtime_b",
+            )
+        }
+    )
+    conversation_id = f"conv_runtime_proposal_recovery_{decision}"
+    turn_id = f"turn_runtime_proposal_recovery_{decision}"
+    client_turn_id = f"client-runtime-proposal-recovery-{decision}"
+    lease_owner = f"worker-runtime-proposal-crashed-{decision}"
+    _conversation(store.sessions, original_context, conversation_id)
+    cart_id = _seed_checkout_cart(
+        store.sessions,
+        original_context,
+        suffix=suffix,
+    )
+    _record_bind_claim(
+        store.sessions,
+        original_context,
+        conversation_id=conversation_id,
+        turn_id=turn_id,
+        client_turn_id=client_turn_id,
+        lease_owner=lease_owner,
+        message="Thanh toán giỏ hàng",
+    )
+    seed_actions = V2ActionService(
+        store.sessions,
+        catalog_version_id=original_context.versions.catalog_version_id,
+    )
+    proposal = seed_actions.propose_checkout(
+        _authorization(original_context),
+        conversation_id=conversation_id,
+        turn_id=turn_id,
+        lease_owner=lease_owner,
+        request=CheckoutInput(cart_id=cart_id, expected_version=1),
+    )
+    with store.sessions.begin() as session:
+        session.execute(
+            update(V2Turn)
+            .where(V2Turn.id == turn_id)
+            .values(lease_expires_at=datetime.now(UTC) - timedelta(seconds=1))
+        )
+
+    planner = _CountingPlanner()
+    dispatcher = _CatalogDispatcher()
+    producer = _NeverAnswerProducer()
+    recovery_actions = _CountingActionService(
+        store.sessions,
+        catalog_version_id=original_context.versions.catalog_version_id,
+    )
+    supervisor = V2ReadSupervisor(
+        store.sessions,
+        planner=planner,
+        operation_executor=DurableOperationExecutor(store.sessions, dispatcher),
+        answer_producer=producer,  # type: ignore[arg-type]
+        action_service=recovery_actions,
+    )
+    foreign_accesses = (
+        access.model_copy(
+            update={
+                "binding": access.binding.model_copy(
+                    update={"principal_id": "principal_runtime_recovery_foreign"}
+                )
+            }
+        ),
+        access.model_copy(
+            update={
+                "binding": access.binding.model_copy(
+                    update={"tenant_id": "tenant_runtime_recovery_foreign"}
+                )
+            }
+        ),
+    )
+    for foreign_access in foreign_accesses:
+        assert (
+            supervisor.read_turn_proposal(
+                conversation_id=conversation_id,
+                turn_id=turn_id,
+                access=foreign_access,
+            )
+            is None
+        )
+        assert (
+            supervisor.recover_expired_turn_proposal(
+                conversation_id=conversation_id,
+                turn_id=turn_id,
+                access=foreign_access,
+            )
+            is False
+        )
+    runner = DurableReadTurnExecutor(store.sessions, supervisor)
+    request = _request(
+        conversation_id,
+        f"turn_runtime_proposal_recovery_retry_{decision}",
+        client_turn_id,
+        f"worker-runtime-proposal-recovery-{decision}",
+        message="Thanh toán giỏ hàng",
+    )
+    recovered = await runner.execute(request, retry_context)
+    replay = await runner.execute(
+        request.model_copy(
+            update={
+                "turn_id": f"turn_runtime_proposal_recovery_replay_{decision}",
+                "lease_owner": f"worker-runtime-proposal-replay-{decision}",
+            }
+        ),
+        retry_context,
+    )
+
+    assert recovered.status == replay.status == TurnStatus.COMPLETED
+    assert recovered.outcome == DialogueOutcome.AWAITING_CONFIRMATION
+    assert recovered.reused is True and replay.reused is True
+    assert recovered.result == replay.result
+    assert recovered.result is not None
+    assert recovered.result.action_cards == (proposal.action,)
+    assert recovered.result.claims == ()
+    assert recovered.result.citations == ()
+    assert recovered.result.evidence == ()
+    assert recovered.result.plan is None
+    assert planner.calls == 0
+    assert recovery_actions.proposal_calls == 0
+    assert dispatcher.calls == 0
+    assert producer.calls == 0
+    with store.sessions() as session:
+        turn = session.get(V2Turn, turn_id)
+        assert turn is not None and turn.result is not None
+        recovered_payload = dict(turn.result)
+        runtime = cast(dict[str, object], turn.result["runtime"])
+        assert runtime["data_versions"] == original_context.versions.model_dump(
+            mode="json"
+        )
+
+    with pytest.raises(TurnStateConflictError):
+        with store.sessions() as session:
+            V2Repository(session).complete_turn(
+                _authorization(original_context),
+                turn_id,
+                status=TurnStatus.COMPLETED,
+                dialogue_outcome=DialogueOutcome.ANSWERED,
+                result={"stale_worker": True},
+                lease_owner=lease_owner,
+                expected_status=TurnStatus.RUNNING,
+            )
+    with store.sessions() as session:
+        turn = session.get(V2Turn, turn_id)
+        assert turn is not None and turn.result == recovered_payload
+
+    if decision == "confirm":
+        first_decision = recovery_actions.confirm_action(
+            _authorization(original_context),
+            action_id=proposal.action.action_id,
+            request=ActionConfirmRequest(proposal_version=1),
+            idempotency_key=f"recovery-confirm-{decision}",
+        )
+        decision_replay = recovery_actions.confirm_action(
+            _authorization(original_context),
+            action_id=proposal.action.action_id,
+            request=ActionConfirmRequest(proposal_version=1),
+            idempotency_key=f"recovery-confirm-{decision}",
+        )
+        assert first_decision.status == ActionStatus.EXECUTED
+        assert decision_replay == first_decision
+    else:
+        first_decision = recovery_actions.reject_action(
+            _authorization(original_context),
+            action_id=proposal.action.action_id,
+            request=ActionRejectRequest(proposal_version=1, reason="user declined"),
+        )
+        decision_replay = recovery_actions.reject_action(
+            _authorization(original_context),
+            action_id=proposal.action.action_id,
+            request=ActionRejectRequest(proposal_version=1, reason="user declined"),
+        )
+        assert first_decision.status == ActionStatus.REJECTED
+        assert decision_replay == first_decision
+    with store.sessions() as session:
+        cart = session.get(V2Cart, cart_id)
+        assert cart is not None
+        assert cart.status == ("checked_out" if decision == "confirm" else "active")
+        assert session.scalar(
+            select(func.count()).select_from(V2Order).where(V2Order.cart_id == cart_id)
+        ) == (1 if decision == "confirm" else 0)
+
+
+@pytest.mark.asyncio
 async def test_restarted_executor_loads_grounded_history_and_preferences(
     postgres_runtime_store: _RuntimeStore,
 ) -> None:
@@ -1073,6 +1581,50 @@ class _NeverHandler:
         raise AssertionError("handler must not run")
 
 
+class _RecoveryTrackingNeverHandler(_NeverHandler):
+    def __init__(self) -> None:
+        super().__init__()
+        self.recovery_calls = 0
+
+    def recover_expired_turn_proposal(self, **_: Any) -> bool:
+        self.recovery_calls += 1
+        raise AssertionError("active running retry must not enter proposal recovery")
+
+
+class _RenewLeaseBeforeInterruptExecutor(DurableReadTurnExecutor):
+    def _persist_error(
+        self,
+        turn_id: str,
+        access: ResourceAuthorization,
+        *,
+        status: TurnStatus,
+        error: SafeExecutionError,
+        provider_budget: ProviderBudgetContext | None,
+        lease_owner: str | None = None,
+        expected_status: TurnStatus | None = None,
+        require_expired_lease: bool = False,
+    ) -> DurableTurnOutcome:
+        with self.session_factory() as session, session.begin():
+            session.execute(
+                text(
+                    "UPDATE v2_turns SET lease_owner = 'worker-runtime-renewed', "
+                    "lease_expires_at = clock_timestamp() + interval '5 minutes' "
+                    "WHERE id = :turn_id"
+                ),
+                {"turn_id": turn_id},
+            )
+        return super()._persist_error(
+            turn_id,
+            access,
+            status=status,
+            error=error,
+            provider_budget=provider_budget,
+            lease_owner=lease_owner,
+            expected_status=expected_status,
+            require_expired_lease=require_expired_lease,
+        )
+
+
 def _context(
     *,
     corpus: str = "corpus_runtime_a",
@@ -1112,35 +1664,48 @@ def _conversation(
 def _seed_checkout_cart(
     sessions: sessionmaker[Session],
     context: PlanningContext,
-) -> None:
+    *,
+    suffix: str = "",
+) -> str:
     binding = context.access.binding
+    product_id = 1_987_654_321 + sum(ord(char) for char in suffix)
+    offer_id = f"offer_runtime_checkout{suffix}"
+    cart_id = f"cart_runtime_checkout{suffix}"
+    line_id = f"line_runtime_checkout{suffix}"
     with sessions.begin() as session:
         session.execute(
             text(
                 "INSERT INTO products "
                 "(id, name, category, price, description, platform) VALUES "
-                "(1987654321, 'Runtime checkout book', 'Books', 100000, "
+                "(:product, 'Runtime checkout book', 'Books', 100000, "
                 "'Runtime proposal fixture', 'Tiki')"
-            )
+            ),
+            {"product": product_id},
         )
         session.execute(
             text(
                 "INSERT INTO v2_offers "
                 "(id, tenant_id, store_id, product_id, demo_price_vnd, stock, "
                 "version) VALUES "
-                "('offer_runtime_checkout', :tenant, :store, 1987654321, "
+                "(:offer, :tenant, :store, :product, "
                 "100000, 10, 1)"
             ),
-            {"tenant": binding.tenant_id, "store": binding.store_id},
+            {
+                "offer": offer_id,
+                "tenant": binding.tenant_id,
+                "store": binding.store_id,
+                "product": product_id,
+            },
         )
         session.execute(
             text(
                 "INSERT INTO v2_carts "
                 "(id, tenant_id, principal_id, store_id, status, version) VALUES "
-                "('cart_runtime_checkout', :tenant, :principal, :store, "
+                "(:cart, :tenant, :principal, :store, "
                 "'active', 1)"
             ),
             {
+                "cart": cart_id,
                 "tenant": binding.tenant_id,
                 "principal": binding.principal_id,
                 "store": binding.store_id,
@@ -1151,15 +1716,18 @@ def _seed_checkout_cart(
                 "INSERT INTO v2_cart_lines "
                 "(id, cart_id, tenant_id, principal_id, store_id, offer_id, "
                 "quantity, offer_version) VALUES "
-                "('line_runtime_checkout', 'cart_runtime_checkout', :tenant, "
-                ":principal, :store, 'offer_runtime_checkout', 2, 1)"
+                "(:line, :cart, :tenant, :principal, :store, :offer, 2, 1)"
             ),
             {
+                "line": line_id,
+                "cart": cart_id,
                 "tenant": binding.tenant_id,
                 "principal": binding.principal_id,
                 "store": binding.store_id,
+                "offer": offer_id,
             },
         )
+    return cart_id
 
 
 def _request(
@@ -1199,6 +1767,7 @@ def _record_bind_claim(
     turn_id: str,
     client_turn_id: str,
     lease_owner: str,
+    message: str = "Tìm sách Sapiens",
 ) -> None:
     with sessions() as session:
         repository = V2Repository(session)
@@ -1207,7 +1776,7 @@ def _record_bind_claim(
             conversation_id=conversation_id,
             turn_id=turn_id,
             client_turn_id=client_turn_id,
-            payload=_stable_payload(conversation_id, client_turn_id),
+            payload=_stable_payload(conversation_id, client_turn_id, message),
             corpus_version_id=context.versions.corpus_version_id,
         )
         repository.bind_turn_runtime(

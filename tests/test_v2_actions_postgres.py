@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from threading import Barrier, Lock
+from datetime import timedelta
+from threading import Barrier, Event, Lock
+from time import sleep
 
 import pytest
 from sqlalchemy import Engine, create_engine, func, select, text
@@ -24,6 +26,7 @@ from app.models.v2 import (
     V2Order,
     V2OrderItem,
     V2Proposal,
+    V2Turn,
 )
 from app.v2.actions import (
     ActionConflictError,
@@ -84,6 +87,7 @@ class ShopperFixture:
     authorization: AuthorizationContext
     conversation_id: str
     turn_id: str
+    lease_owner: str
     cart_id: str
     offer_id: str
     product_id: int
@@ -95,6 +99,7 @@ class MerchantFixture:
     authorization: AuthorizationContext
     conversation_id: str
     turn_id: str
+    lease_owner: str
     offer_id: str
     product_id: int
 
@@ -281,6 +286,8 @@ def test_postgres_same_scoped_key_cannot_confirm_two_proposals(
     fixture = _seed_merchant(postgres_sessions, "crossproposalkey")
     second_product_id = _product_id("crossproposalkeysecond")
     second_offer_id = "offer_crossproposalkey_second"
+    second_turn_id = "turn_crossproposalkey_second"
+    second_lease_owner = f"worker_{second_turn_id}"
     with postgres_sessions.begin() as session:
         _insert_product_offer(
             session,
@@ -288,10 +295,19 @@ def test_postgres_same_scoped_key_cannot_confirm_two_proposals(
             second_offer_id,
             fixture.authorization.tenant_id,
         )
+        _insert_running_turn(
+            session,
+            fixture.conversation_id,
+            second_turn_id,
+            fixture.authorization.tenant_id,
+            fixture.authorization.principal_id,
+            ConversationMode.MERCHANT,
+        )
     first = actions.propose_offer_change(
         fixture.authorization,
         conversation_id=fixture.conversation_id,
-        turn_id=fixture.turn_id,
+        turn_id=second_turn_id,
+        lease_owner=second_lease_owner,
         request=MerchantOfferProposalInput(
             offer_id=fixture.offer_id,
             expected_version=1,
@@ -302,6 +318,7 @@ def test_postgres_same_scoped_key_cannot_confirm_two_proposals(
         fixture.authorization,
         conversation_id=fixture.conversation_id,
         turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
         request=MerchantOfferProposalInput(
             offer_id=second_offer_id,
             expected_version=1,
@@ -309,6 +326,7 @@ def test_postgres_same_scoped_key_cannot_confirm_two_proposals(
         ),
     )
     _finish_turn(postgres_sessions, fixture.turn_id)
+    _finish_turn(postgres_sessions, second_turn_id)
     key = "same-scope-two-proposals"
     executed = actions.confirm_action(
         fixture.authorization,
@@ -345,15 +363,485 @@ def test_postgres_same_scoped_key_cannot_confirm_two_proposals(
         )
 
 
+def test_checkout_proposal_replays_identical_card_after_live_state_drift(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_shopper(postgres_sessions, "checkoutreplaydrift", quantity=2)
+    request = CheckoutInput(cart_id=fixture.cart_id, expected_version=1)
+    first = actions.propose_checkout(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
+        request=request,
+    )
+    with postgres_sessions.begin() as session:
+        cart = session.get(V2Cart, fixture.cart_id)
+        offer = session.get(V2Offer, fixture.offer_id)
+        assert cart is not None and offer is not None
+        cart.version = 2
+        offer.demo_price_vnd = 999_000
+        offer.version = 2
+
+    replay = actions.propose_checkout(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
+        request=request,
+    )
+    assert replay == first
+    assert replay.action.target.expected_resource_version == 1
+
+
+def test_merchant_proposal_replays_exact_target_after_offer_drift(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_merchant(postgres_sessions, "merchantreplaydrift")
+    request = MerchantOfferProposalInput(
+        offer_id=fixture.offer_id,
+        expected_version=1,
+        new_price_vnd=230_000,
+    )
+    first = actions.propose_offer_change(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
+        request=request,
+    )
+    with postgres_sessions.begin() as session:
+        offer = session.get(V2Offer, fixture.offer_id)
+        assert offer is not None
+        offer.demo_price_vnd = 310_000
+        offer.version = 2
+
+    replay = actions.propose_offer_change(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
+        request=request,
+    )
+    assert replay == first
+    assert replay.action.target.resource_id == fixture.offer_id
+    assert replay.action.target.expected_resource_version == 1
+    assert replay.action.changes[0].after_integer == 230_000
+
+
+def test_proposal_creation_rejects_mismatched_and_expired_turn_leases(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_shopper(postgres_sessions, "proposallease", quantity=1)
+    request = CheckoutInput(cart_id=fixture.cart_id, expected_version=1)
+    with pytest.raises(ActionStateConflictError, match="turn_lease_mismatch"):
+        actions.propose_checkout(
+            fixture.authorization,
+            conversation_id=fixture.conversation_id,
+            turn_id=fixture.turn_id,
+            lease_owner="worker_wrong_owner",
+            request=request,
+        )
+    with postgres_sessions.begin() as session:
+        session.execute(
+            text(
+                "UPDATE v2_turns SET lease_expires_at = now() - interval '1 second' "
+                "WHERE id = :turn_id"
+            ),
+            {"turn_id": fixture.turn_id},
+        )
+    with pytest.raises(ActionStateConflictError, match="turn_lease_expired"):
+        actions.propose_checkout(
+            fixture.authorization,
+            conversation_id=fixture.conversation_id,
+            turn_id=fixture.turn_id,
+            lease_owner=fixture.lease_owner,
+            request=request,
+        )
+
+
+def test_proposal_write_rechecks_lease_after_context_lock(
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_shopper(postgres_sessions, "proposalwritefence", quantity=1)
+    actions = _ExpireBeforeProposalWriteService(
+        postgres_sessions,
+        catalog_version_id="catalog_actions_v1",
+    )
+    with pytest.raises(ActionStateConflictError, match="turn_lease_expired"):
+        actions.propose_checkout(
+            fixture.authorization,
+            conversation_id=fixture.conversation_id,
+            turn_id=fixture.turn_id,
+            lease_owner=fixture.lease_owner,
+            request=CheckoutInput(cart_id=fixture.cart_id, expected_version=1),
+        )
+    with postgres_sessions() as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(V2Proposal)
+                .where(V2Proposal.turn_id == fixture.turn_id)
+            )
+            == 0
+        )
+
+
+def test_recovery_expires_stale_proposal_before_interrupting_turn(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_shopper(postgres_sessions, "recoveryexpiredproposal", quantity=1)
+    proposed = actions.propose_checkout(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
+        request=CheckoutInput(cart_id=fixture.cart_id, expected_version=1),
+    )
+    with postgres_sessions.begin() as session:
+        session.execute(
+            text(
+                "UPDATE v2_turns SET lease_expires_at = "
+                "clock_timestamp() - interval '1 second' WHERE id = :turn_id"
+            ),
+            {"turn_id": fixture.turn_id},
+        )
+        session.execute(
+            text(
+                "UPDATE v2_proposals SET expires_at = "
+                "clock_timestamp() - interval '1 second' WHERE id = :proposal_id"
+            ),
+            {"proposal_id": proposed.action.action_id},
+        )
+
+    recovered = actions.recover_expired_turn_proposal(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        mode=ConversationMode.SHOPPER,
+    )
+    replay = actions.recover_expired_turn_proposal(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        mode=ConversationMode.SHOPPER,
+    )
+    assert recovered is True and replay is True
+    with postgres_sessions() as session:
+        turn = session.get(V2Turn, fixture.turn_id)
+        proposal = session.get(V2Proposal, proposed.action.action_id)
+        assert turn is not None and proposal is not None
+        assert turn.execution_state == "interrupted"
+        assert turn.lease_owner is None and turn.lease_expires_at is None
+        assert proposal.status == ActionStatus.EXPIRED.value
+        assert proposal.resolved_at is not None
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(V2ActionAudit)
+                .where(
+                    V2ActionAudit.proposal_id == proposal.id,
+                    V2ActionAudit.event_type == "action.expired",
+                )
+            )
+            == 1
+        )
+
+
+@pytest.mark.parametrize("duplicate", [False, True])
+def test_recovery_fails_all_corrupt_pending_proposals(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+    duplicate: bool,
+) -> None:
+    fixture = _seed_shopper(
+        postgres_sessions, f"recoverycorrupt{str(duplicate).lower()}", quantity=1
+    )
+    proposed = actions.propose_checkout(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
+        request=CheckoutInput(cart_id=fixture.cart_id, expected_version=1),
+    )
+    with postgres_sessions.begin() as session:
+        proposal = session.get(V2Proposal, proposed.action.action_id)
+        turn = session.get(V2Turn, fixture.turn_id)
+        assert proposal is not None and turn is not None
+        proposal.after_payload = {**proposal.after_payload, "total_vnd": 1}
+        if duplicate:
+            session.add(
+                V2Proposal(
+                    id=f"proposal_duplicate_recovery_{fixture.suffix}",
+                    tenant_id=proposal.tenant_id,
+                    principal_id=proposal.principal_id,
+                    mode=proposal.mode,
+                    store_id=proposal.store_id,
+                    conversation_id=proposal.conversation_id,
+                    turn_id=proposal.turn_id,
+                    action_type=proposal.action_type,
+                    target_type=proposal.target_type,
+                    target_id=proposal.target_id,
+                    target_version=proposal.target_version,
+                    before_payload=proposal.before_payload,
+                    after_payload=proposal.after_payload,
+                    proposal_version=proposal.proposal_version,
+                    status=ActionStatus.PROPOSED.value,
+                    expires_at=proposal.expires_at,
+                )
+            )
+        session.execute(
+            text(
+                "UPDATE v2_turns SET lease_expires_at = "
+                "clock_timestamp() - interval '1 second' WHERE id = :turn_id"
+            ),
+            {"turn_id": fixture.turn_id},
+        )
+
+    assert actions.recover_expired_turn_proposal(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        mode=ConversationMode.SHOPPER,
+    )
+    with postgres_sessions() as session:
+        turn = session.get(V2Turn, fixture.turn_id)
+        proposals = tuple(
+            session.scalars(
+                select(V2Proposal)
+                .where(V2Proposal.turn_id == fixture.turn_id)
+                .order_by(V2Proposal.id)
+            )
+        )
+        assert turn is not None
+        assert turn.execution_state == "interrupted"
+        assert turn.dialogue_outcome is None and turn.result is None
+        assert len(proposals) == (2 if duplicate else 1)
+        assert all(item.status == ActionStatus.FAILED.value for item in proposals)
+        assert all(item.resolved_at is not None for item in proposals)
+        assert all(
+            item.result is not None
+            and item.result["response"]["status"] == ActionStatus.FAILED.value
+            for item in proposals
+        )
+        assert session.scalar(
+            select(func.count())
+            .select_from(V2ActionAudit)
+            .where(V2ActionAudit.proposal_id.in_(tuple(item.id for item in proposals)))
+        ) == len(proposals)
+
+
+def test_recovery_racing_proposal_commit_observes_committed_card(
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_shopper(postgres_sessions, "recoverycommit", quantity=1)
+    actions = _BlockProposalCommitService(
+        postgres_sessions,
+        catalog_version_id="catalog_actions_v1",
+    )
+    with postgres_sessions.begin() as session:
+        turn = session.get(V2Turn, fixture.turn_id)
+        assert turn is not None
+        db_now = session.scalar(select(func.clock_timestamp()))
+        assert db_now is not None
+        turn.lease_expires_at = db_now + timedelta(seconds=4)
+        turn.runtime_metadata = {
+            "schema_version": 1,
+            "data_versions": {
+                "catalog_version_id": "catalog_actions_v1",
+                "corpus_version_id": "corpus_actions_v1",
+                "index_manifest_id": "index_actions_v1",
+            },
+            "knowledge_retrievals": 0,
+            "draft_repairs": 0,
+        }
+
+    def propose() -> object:
+        return actions.propose_checkout(
+            fixture.authorization,
+            conversation_id=fixture.conversation_id,
+            turn_id=fixture.turn_id,
+            lease_owner=fixture.lease_owner,
+            request=CheckoutInput(cart_id=fixture.cart_id, expected_version=1),
+        )
+
+    recovery_started = Event()
+
+    def recover() -> bool:
+        recovery_started.set()
+        return actions.recover_expired_turn_proposal(
+            fixture.authorization,
+            conversation_id=fixture.conversation_id,
+            turn_id=fixture.turn_id,
+            mode=ConversationMode.SHOPPER,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        proposal_future = executor.submit(propose)
+        assert actions.commit_entered.wait(timeout=10)
+        recovery_future = executor.submit(recover)
+        assert recovery_started.wait(timeout=10)
+        sleep(4.2)
+        assert not recovery_future.done()
+        actions.allow_commit.set()
+        proposal = proposal_future.result(timeout=10)
+        assert recovery_future.result(timeout=10) is True
+
+    with postgres_sessions() as session:
+        turn = session.get(V2Turn, fixture.turn_id)
+        assert turn is not None and turn.result is not None
+        assert turn.execution_state == "completed"
+        assert turn.dialogue_outcome == "awaiting_confirmation"
+        assert turn.result["turn_result"]["action_cards"] == [
+            proposal.action.model_dump(mode="json")
+        ]
+
+
+def test_concurrent_different_semantics_leave_one_turn_proposal(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_merchant(postgres_sessions, "proposalconcurrent")
+    barrier = Barrier(2)
+
+    def propose(price: int) -> tuple[str, str]:
+        barrier.wait(timeout=10)
+        try:
+            result = actions.propose_offer_change(
+                fixture.authorization,
+                conversation_id=fixture.conversation_id,
+                turn_id=fixture.turn_id,
+                lease_owner=fixture.lease_owner,
+                request=MerchantOfferProposalInput(
+                    offer_id=fixture.offer_id,
+                    expected_version=1,
+                    new_price_vnd=price,
+                ),
+            )
+        except ActionStateConflictError as exc:
+            return "conflict", str(exc)
+        return "created", result.action.action_id
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        outcomes = tuple(executor.map(propose, (150_000, 160_000)))
+    assert sorted(item[0] for item in outcomes) == ["conflict", "created"]
+    assert next(value for status, value in outcomes if status == "conflict") == (
+        "turn_proposal_conflict"
+    )
+    with postgres_sessions() as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(V2Proposal)
+                .where(V2Proposal.turn_id == fixture.turn_id)
+            )
+            == 1
+        )
+
+
+def test_concurrent_same_semantics_replay_one_turn_proposal(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_merchant(postgres_sessions, "proposalsamerequest")
+    barrier = Barrier(2)
+    request = MerchantOfferProposalInput(
+        offer_id=fixture.offer_id,
+        expected_version=1,
+        new_price_vnd=175_000,
+    )
+
+    def propose() -> dict[str, object]:
+        barrier.wait(timeout=10)
+        return actions.propose_offer_change(
+            fixture.authorization,
+            conversation_id=fixture.conversation_id,
+            turn_id=fixture.turn_id,
+            lease_owner=fixture.lease_owner,
+            request=request,
+        ).model_dump(mode="json")
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(propose) for _ in range(2)]
+        results = [future.result(timeout=10) for future in futures]
+    assert results[0] == results[1]
+    with postgres_sessions() as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(V2Proposal)
+                .where(V2Proposal.turn_id == fixture.turn_id)
+            )
+            == 1
+        )
+
+
+def test_read_turn_proposal_hides_cross_owner(
+    actions: V2ActionService,
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    fixture = _seed_merchant(postgres_sessions, "proposalreadscope")
+    request = MerchantOfferProposalInput(
+        offer_id=fixture.offer_id,
+        expected_version=1,
+        quantity_delta=-2,
+    )
+    proposed = actions.propose_offer_change(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
+        request=request,
+    )
+    stored = actions.read_turn_proposal(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        mode=ConversationMode.MERCHANT,
+    )
+    assert stored is not None and stored.card == proposed.action
+    foreign_authorizations = (
+        AuthorizationContext(
+            tenant_id=fixture.authorization.tenant_id,
+            principal_id="principal_foreign_proposal_reader",
+            scopes=fixture.authorization.scopes,
+        ),
+        AuthorizationContext(
+            tenant_id="tenant_foreign_proposal_reader",
+            principal_id=fixture.authorization.principal_id,
+            scopes=fixture.authorization.scopes,
+        ),
+    )
+    for foreign in foreign_authorizations:
+        assert (
+            actions.read_turn_proposal(
+                foreign,
+                conversation_id=fixture.conversation_id,
+                turn_id=fixture.turn_id,
+                mode=ConversationMode.MERCHANT,
+            )
+            is None
+        )
+
+
 def test_deterministic_checkout_id_rejects_corrupt_stored_identity(
     actions: V2ActionService,
     postgres_sessions: sessionmaker[Session],
 ) -> None:
-    fixture, action_id = _checkout_proposal(
-        actions, postgres_sessions, "corruptproposalidentity"
+    fixture = _seed_shopper(postgres_sessions, "corruptproposalidentity", quantity=2)
+    proposed = actions.propose_checkout(
+        fixture.authorization,
+        conversation_id=fixture.conversation_id,
+        turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
+        request=CheckoutInput(cart_id=fixture.cart_id, expected_version=1),
     )
     with postgres_sessions.begin() as session:
-        proposal = session.get(V2Proposal, action_id)
+        proposal = session.get(V2Proposal, proposed.action.action_id)
         assert proposal is not None
         proposal.after_payload = {**proposal.after_payload, "total_vnd": 1}
     with pytest.raises(ActionStateConflictError, match="identity conflict"):
@@ -361,6 +849,7 @@ def test_deterministic_checkout_id_rejects_corrupt_stored_identity(
             fixture.authorization,
             conversation_id=fixture.conversation_id,
             turn_id=fixture.turn_id,
+            lease_owner=fixture.lease_owner,
             request=CheckoutInput(cart_id=fixture.cart_id, expected_version=1),
         )
 
@@ -508,6 +997,7 @@ def test_postgres_concurrent_shared_multi_offer_checkouts_lock_in_sorted_order(
             authorization,
             conversation_id=conversation,
             turn_id=turn,
+            lease_owner=f"worker_{turn}",
             request=CheckoutInput(cart_id=cart, expected_version=1),
         )
         action_ids.append(proposal.action.action_id)
@@ -1092,6 +1582,28 @@ class _FailBeforeCommitService(V2ActionService):
                 raise RuntimeError("synthetic pre-commit failure")
 
 
+class _ExpireBeforeProposalWriteService(V2ActionService):
+    def _before_proposal_write(self, session: Session, turn: V2Turn) -> None:
+        db_now = session.scalar(select(func.clock_timestamp()))
+        assert db_now is not None
+        turn.lease_expires_at = db_now - timedelta(seconds=1)
+        session.flush()
+
+
+class _BlockProposalCommitService(V2ActionService):
+    def __init__(
+        self, session_factory: sessionmaker[Session], *, catalog_version_id: str
+    ) -> None:
+        super().__init__(session_factory, catalog_version_id=catalog_version_id)
+        self.commit_entered = Event()
+        self.allow_commit = Event()
+
+    def _before_commit(self) -> None:
+        self.commit_entered.set()
+        if not self.allow_commit.wait(timeout=10):
+            raise TimeoutError("proposal commit was not released")
+
+
 def _checkout_proposal(
     actions: V2ActionService,
     sessions: sessionmaker[Session],
@@ -1107,6 +1619,7 @@ def _checkout_proposal(
         fixture.authorization,
         conversation_id=fixture.conversation_id,
         turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
         request=CheckoutInput(cart_id=fixture.cart_id, expected_version=1),
     )
     assert proposal.action.action_id == proposal.action.proposal_id
@@ -1114,6 +1627,7 @@ def _checkout_proposal(
         fixture.authorization,
         conversation_id=fixture.conversation_id,
         turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
         request=CheckoutInput(cart_id=fixture.cart_id, expected_version=1),
     )
     assert replay.model_dump(mode="json") == proposal.model_dump(mode="json")
@@ -1138,6 +1652,7 @@ def _merchant_proposal(
         fixture.authorization,
         conversation_id=fixture.conversation_id,
         turn_id=fixture.turn_id,
+        lease_owner=fixture.lease_owner,
         request=MerchantOfferProposalInput(
             offer_id=fixture.offer_id,
             expected_version=1,
@@ -1199,6 +1714,7 @@ def _seed_shopper(
         authorization=_shopper_auth(suffix),
         conversation_id=conversation_id,
         turn_id=turn_id,
+        lease_owner=f"worker_{turn_id}",
         cart_id=cart_id,
         offer_id=offer_id,
         product_id=product_id,
@@ -1227,6 +1743,7 @@ def _seed_merchant(sessions: sessionmaker[Session], suffix: str) -> MerchantFixt
         authorization=_merchant_auth(suffix),
         conversation_id=conversation_id,
         turn_id=turn_id,
+        lease_owner=f"worker_{turn_id}",
         offer_id=offer_id,
         product_id=product_id,
     )
@@ -1274,13 +1791,33 @@ def _insert_context(
             "mode": mode.value,
         },
     )
+    _insert_running_turn(
+        session,
+        conversation_id,
+        turn_id,
+        tenant_id,
+        principal_id,
+        mode,
+    )
+
+
+def _insert_running_turn(
+    session: Session,
+    conversation_id: str,
+    turn_id: str,
+    tenant_id: str,
+    principal_id: str,
+    mode: ConversationMode,
+) -> None:
     session.execute(
         text(
             "INSERT INTO v2_turns "
             "(id, conversation_id, tenant_id, principal_id, mode, store_id, "
-            "client_turn_id, request_payload_hash, request_payload, execution_state) "
+            "client_turn_id, request_payload_hash, request_payload, execution_state, "
+            "lease_owner, lease_expires_at) "
             "VALUES (:id, :conversation, :tenant, :principal, :mode, 'demo', "
-            ":client, :hash, '{}', 'running')"
+            ":client, :hash, '{}', 'running', :lease_owner, "
+            "now() + interval '5 minutes')"
         ),
         {
             "id": turn_id,
@@ -1290,6 +1827,7 @@ def _insert_context(
             "mode": mode.value,
             "client": f"client-{turn_id}",
             "hash": "a" * 64,
+            "lease_owner": f"worker_{turn_id}",
         },
     )
 

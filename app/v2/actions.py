@@ -19,6 +19,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.contracts import AuthorizationContext
+from app.db.v2_repository import V2Repository
 from app.models.product import Product
 from app.models.v2 import (
     V2ActionAudit,
@@ -38,6 +39,8 @@ from app.v2.authorization import (
     bind_request_authorization,
 )
 from app.v2.contracts import (
+    MAX_DRAFT_REPAIRS,
+    MAX_KNOWLEDGE_RETRIEVALS,
     ActionCard,
     ActionChange,
     ActionConfirmRequest,
@@ -48,6 +51,7 @@ from app.v2.contracts import (
     ActionTarget,
     ConversationMode,
     DialogueOutcome,
+    SafeExecutionError,
     TurnStatus,
 )
 from app.v2.registry import (
@@ -71,6 +75,13 @@ JsonObject: TypeAlias = dict[str, JsonValue]
 _MAX_PRICE_VND = 10_000_000_000
 _MAX_STOCK = 1_000_000
 _PROPOSAL_LIFETIME = timedelta(minutes=10)
+_CONFIRMATION_ACTION_TYPES = frozenset(
+    {
+        ActionKind.CHECKOUT.value,
+        ActionKind.MERCHANT_PRICE_CHANGE.value,
+        ActionKind.MERCHANT_INVENTORY_CHANGE.value,
+    }
+)
 
 
 class ActionServiceError(RuntimeError):
@@ -345,6 +356,7 @@ class V2ActionService:
         *,
         conversation_id: str,
         turn_id: str,
+        lease_owner: str,
         request: CheckoutInput,
     ) -> ProposalResult:
         request = CheckoutInput.model_validate(request.model_dump(mode="python"))
@@ -353,9 +365,24 @@ class V2ActionService:
         )
         binding = access.binding
         with self._session_factory() as session, session.begin():
-            conversation, turn = self._lock_live_context(
-                session, binding, conversation_id, turn_id
+            conversation, turn = self._lock_proposal_context(
+                session, binding, conversation_id, turn_id, lease_owner
             )
+            existing = self._existing_turn_proposal(
+                session,
+                binding,
+                conversation_id=conversation.id,
+                turn_id=turn.id,
+            )
+            if existing is not None:
+                self._validate_proposal_request(
+                    existing,
+                    action_type=ActionKind.CHECKOUT,
+                    target_type="cart",
+                    target_id=request.cart_id,
+                    target_version=request.expected_version,
+                )
+                return ProposalResult(action=self._proposal_card(existing))
             cart = self._lock_cart(session, binding, request.cart_id)
             basis = self._checkout_basis(session, cart, lock=True)
             issues = _checkout_issues(basis, request.expected_version)
@@ -367,11 +394,12 @@ class V2ActionService:
                 "cart_status": "checked_out",
                 "total_vnd": cast(int, basis["total_vnd"]),
             }
-            proposal = self._create_or_replay_proposal(
+            proposal = self._create_proposal(
                 session,
                 binding,
                 conversation,
                 turn,
+                lease_owner=lease_owner,
                 action_type=ActionKind.CHECKOUT,
                 target_type="cart",
                 target_id=cart.id,
@@ -389,6 +417,7 @@ class V2ActionService:
         *,
         conversation_id: str,
         turn_id: str,
+        lease_owner: str,
         request: MerchantOfferProposalInput,
     ) -> ProposalResult:
         request = MerchantOfferProposalInput.model_validate(
@@ -398,10 +427,32 @@ class V2ActionService:
             authorization, ConversationMode.MERCHANT, write=True
         )
         binding = access.binding
+        kind = (
+            ActionKind.MERCHANT_PRICE_CHANGE
+            if request.new_price_vnd is not None
+            else ActionKind.MERCHANT_INVENTORY_CHANGE
+        )
         with self._session_factory() as session, session.begin():
-            conversation, turn = self._lock_live_context(
-                session, binding, conversation_id, turn_id
+            conversation, turn = self._lock_proposal_context(
+                session, binding, conversation_id, turn_id, lease_owner
             )
+            existing = self._existing_turn_proposal(
+                session,
+                binding,
+                conversation_id=conversation.id,
+                turn_id=turn.id,
+            )
+            if existing is not None:
+                self._validate_proposal_request(
+                    existing,
+                    action_type=kind,
+                    target_type="offer",
+                    target_id=request.offer_id,
+                    target_version=request.expected_version,
+                    new_price_vnd=request.new_price_vnd,
+                    quantity_delta=request.quantity_delta,
+                )
+                return ProposalResult(action=self._proposal_card(existing))
             offer = self._lock_offer(session, binding, request.offer_id)
             if offer.version != request.expected_version:
                 raise ActionConflictError("offer_version_conflict")
@@ -411,19 +462,18 @@ class V2ActionService:
             after_payload = dict(before_payload)
             if request.new_price_vnd is not None:
                 after_payload["price_vnd"] = request.new_price_vnd
-                kind = ActionKind.MERCHANT_PRICE_CHANGE
             else:
                 assert request.quantity_delta is not None
                 new_stock = offer.stock + request.quantity_delta
                 if not 0 <= new_stock <= _MAX_STOCK:
                     raise ActionConflictError("stock_out_of_range")
                 after_payload["stock"] = new_stock
-                kind = ActionKind.MERCHANT_INVENTORY_CHANGE
-            proposal = self._create_or_replay_proposal(
+            proposal = self._create_proposal(
                 session,
                 binding,
                 conversation,
                 turn,
+                lease_owner=lease_owner,
                 action_type=kind,
                 target_type="offer",
                 target_id=offer.id,
@@ -602,6 +652,158 @@ class V2ActionService:
                 result=cast(JsonObject | None, proposal.result),
             )
 
+    def read_turn_proposal(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        mode: ConversationMode,
+    ) -> StoredAction | None:
+        """Read the sole durable proposal for an exact owner-scoped turn."""
+
+        access = bind_request_authorization(authorization, mode, write=False)
+        binding = access.binding
+        with self._session_factory() as session:
+            conversation = session.scalar(
+                select(V2Conversation.id).where(
+                    V2Conversation.id == conversation_id,
+                    V2Conversation.deleted_at.is_(None),
+                    *_conversation_owner_predicates(binding),
+                )
+            )
+            if conversation is None:
+                return None
+            turn = session.scalar(
+                select(V2Turn.id).where(
+                    V2Turn.id == turn_id,
+                    V2Turn.conversation_id == conversation_id,
+                    *_turn_owner_predicates(binding),
+                )
+            )
+            if turn is None:
+                return None
+            proposal = self._existing_turn_proposal(
+                session,
+                binding,
+                conversation_id=conversation_id,
+                turn_id=turn_id,
+            )
+            if proposal is None:
+                return None
+            if (
+                proposal.status != ActionStatus.PROPOSED.value
+                or proposal.action_type not in _CONFIRMATION_ACTION_TYPES
+            ):
+                return None
+            self._validate_stored_proposal_identity(proposal)
+            return StoredAction(
+                card=self._proposal_card(proposal),
+                result=cast(JsonObject | None, proposal.result),
+            )
+
+    def recover_expired_turn_proposal(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        mode: ConversationMode,
+    ) -> bool:
+        """Atomically close an expired turn, recovering its valid proposal if any."""
+
+        access = bind_request_authorization(authorization, mode, write=False)
+        binding = access.binding
+        with self._session_factory() as session:
+            conversation = session.scalar(
+                select(V2Conversation)
+                .where(
+                    V2Conversation.id == conversation_id,
+                    V2Conversation.deleted_at.is_(None),
+                    *_conversation_owner_predicates(binding),
+                )
+                .with_for_update()
+            )
+            if conversation is None:
+                return False
+            turn = session.scalar(
+                select(V2Turn)
+                .where(
+                    V2Turn.id == turn_id,
+                    V2Turn.conversation_id == conversation.id,
+                    *_turn_owner_predicates(binding),
+                )
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+            if turn is None:
+                return False
+            db_now = self._database_now(session)
+            expires_at = (
+                _aware(turn.lease_expires_at)
+                if turn.lease_expires_at is not None
+                else None
+            )
+            if turn.execution_state != TurnStatus.RUNNING.value or (
+                expires_at is not None and expires_at > db_now
+            ):
+                return True
+            proposals = self._turn_proposals(
+                session,
+                binding,
+                conversation_id=conversation.id,
+                turn_id=turn.id,
+                lock=True,
+            )
+            proposal = proposals[0] if len(proposals) == 1 else None
+            recovery_result = self._proposal_recovery_result(
+                turn,
+                proposal,
+                db_now=db_now,
+            )
+            if recovery_result is None:
+                for pending in proposals:
+                    if (
+                        pending.status == ActionStatus.PROPOSED.value
+                        and pending.action_type in _CONFIRMATION_ACTION_TYPES
+                    ):
+                        status = (
+                            ActionStatus.EXPIRED
+                            if _aware(pending.expires_at) <= db_now
+                            else ActionStatus.FAILED
+                        )
+                        self._terminalize_proposal_for_recovery(
+                            session,
+                            pending,
+                            status=status,
+                            db_now=db_now,
+                        )
+            repository = V2Repository(session)
+            if recovery_result is not None:
+                repository.complete_turn(
+                    authorization,
+                    turn.id,
+                    status=TurnStatus.COMPLETED,
+                    dialogue_outcome=DialogueOutcome.AWAITING_CONFIRMATION,
+                    result=recovery_result,
+                    expected_status=TurnStatus.RUNNING,
+                )
+            else:
+                repository.complete_turn(
+                    authorization,
+                    turn.id,
+                    status=TurnStatus.INTERRUPTED,
+                    safe_error=SafeExecutionError(
+                        code="turn_lease_expired",
+                        message=(
+                            "The previous worker stopped before completing the turn."
+                        ),
+                        retryable=True,
+                    ),
+                    expected_status=TurnStatus.RUNNING,
+                )
+            return True
+
     def _proposal_mode(
         self, authorization: AuthorizationContext, action_id: str
     ) -> ConversationMode:
@@ -654,6 +856,41 @@ class V2ActionService:
         }:
             raise ActionStateConflictError("turn is not live")
         return conversation, turn
+
+    def _lock_proposal_context(
+        self,
+        session: Session,
+        binding: ResourceBinding,
+        conversation_id: str,
+        turn_id: str,
+        lease_owner: str,
+    ) -> tuple[V2Conversation, V2Turn]:
+        if not lease_owner or len(lease_owner) > 160:
+            raise ValueError("lease owner must contain 1 to 160 characters")
+        conversation, turn = self._lock_live_context(
+            session, binding, conversation_id, turn_id
+        )
+        self._validate_proposal_lease(session, turn, lease_owner)
+        return conversation, turn
+
+    def _validate_proposal_lease(
+        self,
+        session: Session,
+        turn: V2Turn,
+        lease_owner: str,
+    ) -> datetime:
+        db_now = self._database_now(session)
+        expires_at = (
+            _aware(turn.lease_expires_at) if turn.lease_expires_at is not None else None
+        )
+        if (
+            turn.execution_state != TurnStatus.RUNNING.value
+            or turn.lease_owner != lease_owner
+        ):
+            raise ActionStateConflictError("turn_lease_mismatch")
+        if expires_at is None or expires_at <= db_now:
+            raise ActionStateConflictError("turn_lease_expired")
+        return db_now
 
     def _lock_action_context(
         self, session: Session, binding: ResourceBinding, action_id: str
@@ -893,13 +1130,209 @@ class V2ActionService:
             raise ActionStateConflictError("deterministic action identity conflict")
         return result
 
-    def _create_or_replay_proposal(
+    @staticmethod
+    def _existing_turn_proposal(
+        session: Session,
+        binding: ResourceBinding,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        lock: bool = False,
+    ) -> V2Proposal | None:
+        proposals = V2ActionService._turn_proposals(
+            session,
+            binding,
+            conversation_id=conversation_id,
+            turn_id=turn_id,
+            lock=lock,
+        )
+        if len(proposals) > 1:
+            raise ActionStateConflictError("turn_proposal_conflict")
+        return proposals[0] if proposals else None
+
+    @staticmethod
+    def _turn_proposals(
+        session: Session,
+        binding: ResourceBinding,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        lock: bool = False,
+    ) -> tuple[V2Proposal, ...]:
+        statement = (
+            select(V2Proposal)
+            .where(
+                V2Proposal.conversation_id == conversation_id,
+                V2Proposal.turn_id == turn_id,
+                *_proposal_owner_predicates(binding),
+            )
+            .order_by(V2Proposal.id)
+        )
+        if lock:
+            statement = statement.with_for_update()
+        return tuple(
+            session.scalars(statement.execution_options(populate_existing=True))
+        )
+
+    def _validate_proposal_request(
+        self,
+        proposal: V2Proposal,
+        *,
+        action_type: ActionKind,
+        target_type: str,
+        target_id: str,
+        target_version: int,
+        new_price_vnd: int | None = None,
+        quantity_delta: int | None = None,
+    ) -> None:
+        self._validate_stored_proposal_identity(proposal)
+        same_request = (
+            proposal.action_type == action_type.value
+            and proposal.target_type == target_type
+            and proposal.target_id == target_id
+            and proposal.target_version == target_version
+        )
+        if same_request and action_type == ActionKind.MERCHANT_PRICE_CHANGE:
+            same_request = proposal.after_payload.get("price_vnd") == new_price_vnd
+        elif same_request and action_type == ActionKind.MERCHANT_INVENTORY_CHANGE:
+            before_stock = proposal.before_payload.get("stock")
+            after_stock = proposal.after_payload.get("stock")
+            same_request = (
+                type(before_stock) is int
+                and type(after_stock) is int
+                and after_stock - before_stock == quantity_delta
+            )
+        if not same_request:
+            raise ActionStateConflictError("turn_proposal_conflict")
+
+    @staticmethod
+    def _validate_stored_proposal_identity(proposal: V2Proposal) -> None:
+        stored_identity = {
+            "owner": {
+                "tenant_id": proposal.tenant_id,
+                "principal_id": proposal.principal_id,
+                "mode": proposal.mode,
+                "store_id": proposal.store_id,
+            },
+            "conversation_id": proposal.conversation_id,
+            "turn_id": proposal.turn_id,
+            "action_type": proposal.action_type,
+            "target_type": proposal.target_type,
+            "target_id": proposal.target_id,
+            "target_version": proposal.target_version,
+            "before": proposal.before_payload,
+            "after": proposal.after_payload,
+        }
+        if (
+            proposal.id != _stable_id("proposal", stored_identity)
+            or proposal.proposal_version != 1
+        ):
+            raise ActionStateConflictError("deterministic action identity conflict")
+
+    def _proposal_recovery_result(
+        self,
+        turn: V2Turn,
+        proposal: V2Proposal | None,
+        *,
+        db_now: datetime,
+    ) -> JsonObject | None:
+        if proposal is None:
+            return None
+        expires_at = _aware(proposal.expires_at)
+        if (
+            proposal.status != ActionStatus.PROPOSED.value
+            or proposal.action_type not in _CONFIRMATION_ACTION_TYPES
+            or expires_at <= db_now
+        ):
+            return None
+        try:
+            self._validate_stored_proposal_identity(proposal)
+            card = self._proposal_card(proposal)
+        except (ActionServiceError, KeyError, TypeError, ValueError):
+            return None
+        metadata = turn.runtime_metadata
+        versions = metadata.get("data_versions")
+        knowledge = metadata.get("knowledge_retrievals")
+        repairs = metadata.get("draft_repairs")
+        if (
+            metadata.get("schema_version") != 1
+            or not isinstance(versions, dict)
+            or set(versions)
+            != {
+                "catalog_version_id",
+                "corpus_version_id",
+                "index_manifest_id",
+            }
+            or not all(isinstance(value, str) and value for value in versions.values())
+            or type(knowledge) is not int
+            or not 0 <= knowledge <= MAX_KNOWLEDGE_RETRIEVALS
+            or type(repairs) is not int
+            or not 0 <= repairs <= MAX_DRAFT_REPAIRS
+        ):
+            return None
+        result: JsonObject = {
+            "outcome": DialogueOutcome.AWAITING_CONFIRMATION.value,
+            "answer": (
+                "Vui lòng kiểm tra thẻ xác nhận bên dưới và dùng nút hành động "
+                "để xác nhận hoặc từ chối."
+            ),
+            "claims": [],
+            "citations": [],
+            "evidence": [],
+            "action_cards": [card.model_dump(mode="json")],
+            "plan": None,
+            "executions": [],
+            "warnings": [],
+        }
+        return {
+            "turn_result": result,
+            "runtime": {
+                "fallback_reasons": [],
+                "knowledge_retrievals": knowledge,
+                "draft_repairs": repairs,
+                "data_versions": cast(JsonObject, dict(versions)),
+            },
+        }
+
+    def _terminalize_proposal_for_recovery(
+        self,
+        session: Session,
+        proposal: V2Proposal,
+        *,
+        status: ActionStatus,
+        db_now: datetime,
+    ) -> None:
+        if status not in {ActionStatus.EXPIRED, ActionStatus.FAILED}:
+            raise ValueError("recovery terminal status must fail closed")
+        result = ActionExecutionResult(
+            action_id=proposal.id,
+            status=status,
+            resource_id=proposal.target_id,
+            resource_version=proposal.target_version,
+        )
+        proposal.status = status.value
+        proposal.resolved_at = db_now
+        proposal.result = {
+            "schema_version": 1,
+            "response": result.model_dump(mode="json"),
+        }
+        self._append_audit(
+            session,
+            proposal,
+            event_type=(
+                "action.expired" if status == ActionStatus.EXPIRED else "action.failed"
+            ),
+            payload={"response": result.model_dump(mode="json")},
+        )
+
+    def _create_proposal(
         self,
         session: Session,
         binding: ResourceBinding,
         conversation: V2Conversation,
         turn: V2Turn,
         *,
+        lease_owner: str,
         action_type: ActionKind,
         target_type: str,
         target_id: str,
@@ -907,6 +1340,8 @@ class V2ActionService:
         before_payload: JsonObject,
         after_payload: JsonObject,
     ) -> V2Proposal:
+        self._before_proposal_write(session, turn)
+        db_now = self._validate_proposal_lease(session, turn, lease_owner)
         identity = {
             "owner": _binding_json(binding),
             "conversation_id": conversation.id,
@@ -919,22 +1354,6 @@ class V2ActionService:
             "after": after_payload,
         }
         proposal_id = _stable_id("proposal", identity)
-        existing = session.get(V2Proposal, proposal_id)
-        if existing is not None:
-            self._validate_proposal_identity(
-                existing,
-                binding=binding,
-                conversation_id=conversation.id,
-                turn_id=turn.id,
-                action_type=action_type,
-                target_type=target_type,
-                target_id=target_id,
-                target_version=target_version,
-                before_payload=before_payload,
-                after_payload=after_payload,
-            )
-            return existing
-        db_now = self._database_now(session)
         proposal = V2Proposal(
             id=proposal_id,
             tenant_id=binding.tenant_id,
@@ -957,35 +1376,6 @@ class V2ActionService:
         session.add(proposal)
         session.flush()
         return proposal
-
-    @staticmethod
-    def _validate_proposal_identity(
-        proposal: V2Proposal,
-        *,
-        binding: ResourceBinding,
-        conversation_id: str,
-        turn_id: str,
-        action_type: ActionKind,
-        target_type: str,
-        target_id: str,
-        target_version: int,
-        before_payload: JsonObject,
-        after_payload: JsonObject,
-    ) -> None:
-        if not _proposal_owned_by(proposal, binding):
-            raise ResourceNotFoundError
-        if (
-            proposal.conversation_id != conversation_id
-            or proposal.turn_id != turn_id
-            or proposal.action_type != action_type.value
-            or proposal.target_type != target_type
-            or proposal.target_id != target_id
-            or proposal.target_version != target_version
-            or proposal.before_payload != before_payload
-            or proposal.after_payload != after_payload
-            or proposal.proposal_version != 1
-        ):
-            raise ActionStateConflictError("deterministic action identity conflict")
 
     def _lock_idempotency(
         self,
@@ -1334,10 +1724,15 @@ class V2ActionService:
 
     @staticmethod
     def _database_now(session: Session) -> datetime:
-        value = session.scalar(select(func.now()))
+        value = session.scalar(select(func.clock_timestamp()))
         if not isinstance(value, datetime):
             raise ActionServiceError("database clock is unavailable")
         return _aware(value)
+
+    def _before_proposal_write(self, session: Session, turn: V2Turn) -> None:
+        """Fault-injection seam before the final lease fence and proposal insert."""
+
+        del session, turn
 
     def _before_commit(self) -> None:
         """Fault-injection seam used to prove rollback-before-commit semantics."""

@@ -10,14 +10,17 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from time import monotonic
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from pydantic import Field, model_validator
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.contracts import AuthorizationContext, TaskStatus
 from app.db.v2_repository import (
     StepResultConflictError,
+    TurnLeaseConflictError,
+    TurnLeaseExpiredError,
     TurnRuntimeConflictError,
     TurnStateConflictError,
     V2Repository,
@@ -268,6 +271,17 @@ class ClaimedTurnHandler(Protocol):
         context: PlanningContext,
         deadline_monotonic: float,
     ) -> TurnComputation: ...
+
+
+@runtime_checkable
+class ExpiredTurnProposalRecoverer(Protocol):
+    def recover_expired_turn_proposal(
+        self,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        access: ResourceAuthorization,
+    ) -> bool: ...
 
 
 class DurableTurnRequest(V2Contract):
@@ -733,15 +747,17 @@ class DurableOperationExecutor:
         access: ResourceAuthorization,
     ) -> None:
         authorization = _authorization(access)
-        with self.session_factory() as session:
-            turn = V2Repository(session).get_turn(authorization, turn_id)
-            state = str(turn.execution_state)
-            owner = turn.lease_owner
-            expires_at = _aware(turn.lease_expires_at)
-        if state != TurnStatus.RUNNING.value or owner != lease_owner:
-            raise TurnExecutionInterrupted("turn_claim_lost")
-        if expires_at is None or expires_at <= datetime.now(UTC):
-            raise TurnExecutionInterrupted("turn_lease_expired")
+        try:
+            with self.session_factory() as session:
+                V2Repository(session).assert_turn_claim(
+                    authorization,
+                    turn_id,
+                    lease_owner=lease_owner,
+                )
+        except TurnLeaseExpiredError as exc:
+            raise TurnExecutionInterrupted("turn_lease_expired") from exc
+        except TurnLeaseConflictError as exc:
+            raise TurnExecutionInterrupted("turn_claim_lost") from exc
 
     def _checkpoint_knowledge(
         self,
@@ -780,6 +796,9 @@ class DurableReadTurnExecutor:
     ) -> None:
         self.session_factory = session_factory
         self.handler = handler
+        self.proposal_recoverer = (
+            handler if isinstance(handler, ExpiredTurnProposalRecoverer) else None
+        )
         self.budget_ledger = budget_ledger
 
     async def execute(
@@ -841,14 +860,13 @@ class DurableReadTurnExecutor:
                 expected_status=TurnStatus.PENDING,
             )
 
-        lease_expires_at = datetime.now(UTC) + timedelta(seconds=_LEASE_SECONDS)
         try:
             with self.session_factory() as session:
                 claimed = V2Repository(session).claim_turn(
                     authorization,
                     snapshot.turn_id,
                     lease_owner=request.lease_owner,
-                    lease_expires_at=lease_expires_at,
+                    lease_duration=timedelta(seconds=_LEASE_SECONDS),
                 )
                 snapshot = _snapshot_turn(claimed)
         except TurnStateConflictError:
@@ -1068,7 +1086,27 @@ class DurableReadTurnExecutor:
     ) -> DurableTurnOutcome:
         if snapshot.status == TurnStatus.RUNNING:
             expires_at = snapshot.lease_expires_at
-            if expires_at is None or expires_at <= datetime.now(UTC):
+            db_now = self._database_now()
+            if expires_at is not None and expires_at > db_now:
+                return self._outcome_from_snapshot(
+                    snapshot,
+                    provider_budget=provider_budget,
+                    reused=True,
+                )
+            if self.proposal_recoverer is not None:
+                handled = self.proposal_recoverer.recover_expired_turn_proposal(
+                    conversation_id=snapshot.conversation_id,
+                    turn_id=snapshot.turn_id,
+                    access=access,
+                )
+                if handled:
+                    latest = self._load_turn(snapshot.turn_id, access)
+                    return self._outcome_from_snapshot(
+                        latest,
+                        provider_budget=provider_budget,
+                        reused=True,
+                    )
+            if expires_at is None or expires_at <= db_now:
                 return self._persist_error(
                     snapshot.turn_id,
                     access,
@@ -1089,6 +1127,15 @@ class DurableReadTurnExecutor:
             provider_budget=provider_budget,
             reused=True,
         )
+
+    def _database_now(self) -> datetime:
+        with self.session_factory() as session:
+            value = session.scalar(select(func.clock_timestamp()))
+        if not isinstance(value, datetime):
+            raise DurableExecutionError("database_clock_unavailable")
+        aware = _aware(value)
+        assert aware is not None
+        return aware
 
     def _persist_error(
         self,

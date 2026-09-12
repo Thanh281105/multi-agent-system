@@ -6,11 +6,11 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -56,6 +56,10 @@ class TurnLeaseConflictError(TurnStateConflictError):
     """A guarded write no longer owns the required turn state or lease."""
 
     code = "turn_lease_conflict"
+
+
+class TurnLeaseExpiredError(TurnLeaseConflictError):
+    """The required turn lease is missing or expired by the database clock."""
 
 
 class TurnRuntimeConflictError(TurnStateConflictError):
@@ -212,13 +216,24 @@ class V2Repository:
         turn_id: str,
         *,
         lease_owner: str,
-        lease_expires_at: datetime,
+        lease_expires_at: datetime | None = None,
+        lease_duration: timedelta | None = None,
     ) -> V2Turn:
-        if lease_expires_at.tzinfo is None or lease_expires_at.utcoffset() is None:
+        if (lease_expires_at is None) == (lease_duration is None):
+            raise ValueError("provide exactly one lease expiry or duration")
+        if lease_expires_at is not None and (
+            lease_expires_at.tzinfo is None or lease_expires_at.utcoffset() is None
+        ):
             raise ValueError("lease expiry must be timezone-aware")
+        if lease_duration is not None and lease_duration <= timedelta(0):
+            raise ValueError("lease duration must be positive")
         turn = self._locked_turn(authorization, turn_id)
-        now = utc_now()
-        if lease_expires_at <= now:
+        now = self._database_now()
+        resolved_expiry = (
+            now + lease_duration if lease_duration is not None else lease_expires_at
+        )
+        assert resolved_expiry is not None
+        if resolved_expiry <= now:
             self._session.rollback()
             raise ValueError("lease expiry must be in the future")
         if turn.execution_state != TurnStatus.PENDING.value:
@@ -226,7 +241,7 @@ class V2Repository:
             raise TurnStateConflictError("turn is not claimable")
         turn.execution_state = TurnStatus.RUNNING.value
         turn.lease_owner = lease_owner
-        turn.lease_expires_at = lease_expires_at
+        turn.lease_expires_at = resolved_expiry
         turn.started_at = turn.started_at or now
         turn.completed_at = None
         turn.updated_at = now
@@ -291,7 +306,7 @@ class V2Repository:
             expiry = turn.lease_expires_at
             if expiry is not None and expiry.tzinfo is None:
                 expiry = expiry.replace(tzinfo=UTC)
-            now = utc_now()
+            now = self._database_now()
             if (
                 turn.execution_state != TurnStatus.RUNNING.value
                 or turn.lease_owner != lease_owner
@@ -316,6 +331,21 @@ class V2Repository:
         except Exception:
             self._session.rollback()
             raise
+
+    def assert_turn_claim(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+        *,
+        lease_owner: str,
+    ) -> None:
+        """Check an active worker's lease against the DB clock under the row lock."""
+
+        turn = self._locked_turn(authorization, turn_id)
+        try:
+            self._validate_turn_write_fence(turn, lease_owner=lease_owner)
+        finally:
+            self._session.rollback()
 
     def persist_step_result(
         self,
@@ -551,28 +581,48 @@ class V2Repository:
         expiry = turn.lease_expires_at
         if expiry is not None and (expiry.tzinfo is None or expiry.utcoffset() is None):
             expiry = expiry.replace(tzinfo=UTC)
-        now = utc_now()
+        database_now = (
+            self._database_now()
+            if lease_owner is not None or require_expired_lease
+            else None
+        )
         conflict: str | None = None
+        lease_expired = False
         if (
             expected_status is not None
             and turn.execution_state != expected_status.value
         ):
             conflict = "turn no longer has the expected state"
-        elif lease_owner is not None and (
-            turn.execution_state != TurnStatus.RUNNING.value
-            or turn.lease_owner != lease_owner
-            or expiry is None
-            or expiry <= now
-        ):
-            conflict = "turn lease is not current for this worker"
+        elif lease_owner is not None:
+            if (
+                turn.execution_state != TurnStatus.RUNNING.value
+                or turn.lease_owner != lease_owner
+            ):
+                conflict = "turn lease is not current for this worker"
+            elif expiry is None or database_now is None or expiry <= database_now:
+                conflict = "turn lease is not current for this worker: expired"
+                lease_expired = True
         elif require_expired_lease and (
             turn.execution_state != TurnStatus.RUNNING.value
-            or (expiry is not None and expiry > now)
+            or database_now is None
+            or (expiry is not None and expiry > database_now)
         ):
             conflict = "turn does not have an expired or missing running lease"
         if conflict is not None:
             self._session.rollback()
-            raise TurnLeaseConflictError(conflict)
+            error_type = (
+                TurnLeaseExpiredError if lease_expired else TurnLeaseConflictError
+            )
+            raise error_type(conflict)
+
+    def _database_now(self) -> datetime:
+        value = self._session.scalar(select(func.clock_timestamp()))
+        if not isinstance(value, datetime):
+            self._session.rollback()
+            raise TurnLeaseConflictError("database clock is unavailable")
+        if value.tzinfo is None or value.utcoffset() is None:
+            return value.replace(tzinfo=UTC)
+        return value
 
     @staticmethod
     def _authorize(

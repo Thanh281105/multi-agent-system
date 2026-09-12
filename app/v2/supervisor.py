@@ -22,7 +22,7 @@ from app.shared.budget import (
     current_provider_budget,
     nano_usd_to_usd,
 )
-from app.v2.actions import ActionConflictError, V2ActionService
+from app.v2.actions import ActionConflictError, StoredAction, V2ActionService
 from app.v2.answers import EvidenceRequirement
 from app.v2.authorization import ResourceAuthorization, ResourceNotFoundError
 from app.v2.contracts import (
@@ -113,6 +113,48 @@ class V2ReadSupervisor:
         self.knowledge_resolver = knowledge_resolver
         self.action_service = action_service
 
+    def read_turn_proposal(
+        self,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        access: ResourceAuthorization,
+    ) -> StoredAction | None:
+        if self.action_service is None:
+            return None
+        binding = access.binding
+        return self.action_service.read_turn_proposal(
+            AuthorizationContext(
+                tenant_id=binding.tenant_id,
+                principal_id=binding.principal_id,
+                scopes=access.scopes,
+            ),
+            conversation_id=conversation_id,
+            turn_id=turn_id,
+            mode=binding.mode,
+        )
+
+    def recover_expired_turn_proposal(
+        self,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        access: ResourceAuthorization,
+    ) -> bool:
+        if self.action_service is None:
+            return False
+        binding = access.binding
+        return self.action_service.recover_expired_turn_proposal(
+            AuthorizationContext(
+                tenant_id=binding.tenant_id,
+                principal_id=binding.principal_id,
+                scopes=access.scopes,
+            ),
+            conversation_id=conversation_id,
+            turn_id=turn_id,
+            mode=binding.mode,
+        )
+
     async def run_claimed(
         self,
         *,
@@ -143,6 +185,7 @@ class V2ReadSupervisor:
             return self._create_proposal(
                 conversation_id=conversation_id,
                 turn_id=turn_id,
+                lease_owner=lease_owner,
                 planned=planned,
                 context=context,
                 fallback_reasons=fallback_reasons,
@@ -382,6 +425,7 @@ class V2ReadSupervisor:
         *,
         conversation_id: str,
         turn_id: str,
+        lease_owner: str,
         planned: PlannedTurn,
         context: PlanningContext,
         fallback_reasons: tuple[str, ...],
@@ -426,6 +470,7 @@ class V2ReadSupervisor:
                     authorization,
                     conversation_id=conversation_id,
                     turn_id=turn_id,
+                    lease_owner=lease_owner,
                     request=checkout_request,
                 )
             except (ResourceNotFoundError, ActionConflictError):
@@ -471,6 +516,7 @@ class V2ReadSupervisor:
                     authorization,
                     conversation_id=conversation_id,
                     turn_id=turn_id,
+                    lease_owner=lease_owner,
                     request=offer_request,
                 )
             except (ResourceNotFoundError, ActionConflictError):

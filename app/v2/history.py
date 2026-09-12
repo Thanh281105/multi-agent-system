@@ -414,7 +414,11 @@ class V2HistoryService:
                     V2Turn.conversation_id == conversation.id,
                     V2Turn.execution_state == TurnStatus.COMPLETED.value,
                 )
-                .order_by(V2Turn.created_at.desc(), V2Turn.id.desc())
+                .order_by(
+                    V2Turn.created_at.desc(),
+                    V2Turn.completed_at.desc(),
+                    V2Turn.id.desc(),
+                )
                 .limit(turn_limit)
             )
         )
