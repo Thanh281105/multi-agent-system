@@ -32,6 +32,11 @@ MAX_EXPERT_STEPS = 8
 MAX_CANDIDATES = 5
 MAX_KNOWLEDGE_RETRIEVALS = 2
 MAX_DRAFT_REPAIRS = 1
+MAX_ARTIFACTS = 16
+MAX_ARTIFACT_ITEMS = 100
+MAX_ARTIFACT_DATA_VERSIONS = 16
+MAX_SSE_EVENTS = 10_000
+MAX_TEXT_DELTA_LENGTH = 4_000
 
 IDENTIFIER_PATTERN = r"^[a-z][a-z0-9_-]{2,127}$"
 CLIENT_TURN_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
@@ -44,6 +49,10 @@ Quantity = Annotated[int, Field(strict=True, ge=0, le=1_000_000)]
 PositiveQuantity = Annotated[int, Field(strict=True, gt=0, le=1_000_000)]
 ResourceVersion = Annotated[int, Field(strict=True, ge=1)]
 StableId = Annotated[str, Field(pattern=IDENTIFIER_PATTERN)]
+ArtifactAmountVnd = Annotated[
+    int,
+    Field(strict=True, ge=0, le=10_000_000_000_000_000),
+]
 
 
 class V2Contract(BaseModel):
@@ -99,6 +108,27 @@ class ActionStatus(StrEnum):
     EXPIRED = "expired"
     CONFLICTED = "conflicted"
     FAILED = "failed"
+
+
+class ArtifactKind(StrEnum):
+    PRODUCT_COMPARISON = "product_comparison"
+    CART = "cart"
+    ORDER = "order"
+    ACTION = "action"
+
+
+class TurnSSEEventKind(StrEnum):
+    PROGRESS = "progress"
+    TEXT_DELTA = "text_delta"
+    TERMINAL = "terminal"
+
+
+class TurnSSEProgressPhase(StrEnum):
+    ADMITTED = "admitted"
+    ATTACHED = "attached"
+    CLAIMED = "claimed"
+    STEP_STARTED = "step_started"
+    STEP_FINISHED = "step_finished"
 
 
 class PreferenceKind(StrEnum):
@@ -440,6 +470,136 @@ class ActionCard(V2Contract):
         return self
 
 
+class ArtifactProduct(V2Contract):
+    """Safe catalog fields used to reopen a comparison from history."""
+
+    product_id: ProductId
+    title: str = Field(min_length=1, max_length=300)
+    author: str | None = Field(default=None, min_length=1, max_length=160)
+    price_vnd: PriceVnd | None = None
+    rating: float | None = Field(default=None, ge=0, le=5)
+    catalog_version_id: StableId
+
+
+class ArtifactLineItem(V2Contract):
+    """Bounded cart/order display line derived from the sandbox result."""
+
+    product_id: ProductId
+    title: str = Field(min_length=1, max_length=300)
+    quantity: PositiveQuantity
+    unit_price_vnd: PriceVnd
+    line_total_vnd: ArtifactAmountVnd
+
+    @model_validator(mode="after")
+    def validate_line_total(self) -> ArtifactLineItem:
+        if self.line_total_vnd != self.quantity * self.unit_price_vnd:
+            raise ValueError("artifact line total must equal quantity times unit price")
+        return self
+
+
+class ArtifactBase(V2Contract):
+    artifact_id: StableId
+    resource_id: StableId
+    resource_version: ResourceVersion
+    title: str = Field(min_length=1, max_length=160)
+
+
+class ProductComparisonArtifact(ArtifactBase):
+    kind: Literal[ArtifactKind.PRODUCT_COMPARISON]
+    status: Literal["ready", "partial"]
+    products: tuple[ArtifactProduct, ...] = Field(
+        min_length=2,
+        max_length=MAX_CANDIDATES,
+    )
+    data_version_ids: tuple[StableId, ...] = Field(
+        min_length=1,
+        max_length=MAX_ARTIFACT_DATA_VERSIONS,
+    )
+
+    @model_validator(mode="after")
+    def validate_products(self) -> ProductComparisonArtifact:
+        product_ids = [product.product_id for product in self.products]
+        if len(product_ids) != len(set(product_ids)):
+            raise ValueError("comparison artifact product IDs must be unique")
+        if len(self.data_version_ids) != len(set(self.data_version_ids)):
+            raise ValueError("comparison artifact data versions must be unique")
+        known_versions = set(self.data_version_ids)
+        if any(
+            product.catalog_version_id not in known_versions
+            for product in self.products
+        ):
+            raise ValueError("comparison product references an unknown data version")
+        return self
+
+
+class CartArtifact(ArtifactBase):
+    kind: Literal[ArtifactKind.CART]
+    status: Literal["active", "checked_out", "abandoned"]
+    items: tuple[ArtifactLineItem, ...] = Field(max_length=MAX_ARTIFACT_ITEMS)
+    total_price_vnd: ArtifactAmountVnd
+    data_version_ids: tuple[StableId, ...] = Field(
+        min_length=1,
+        max_length=MAX_ARTIFACT_DATA_VERSIONS,
+    )
+
+    @model_validator(mode="after")
+    def validate_cart(self) -> CartArtifact:
+        _validate_artifact_lines(self.items, self.total_price_vnd)
+        _validate_unique_data_versions(self.data_version_ids)
+        return self
+
+
+class OrderArtifact(ArtifactBase):
+    kind: Literal[ArtifactKind.ORDER]
+    status: Literal["confirmed"]
+    cart_id: StableId
+    cart_version: ResourceVersion
+    items: tuple[ArtifactLineItem, ...] = Field(
+        min_length=1,
+        max_length=MAX_ARTIFACT_ITEMS,
+    )
+    total_price_vnd: ArtifactAmountVnd
+    data_version_ids: tuple[StableId, ...] = Field(
+        min_length=1,
+        max_length=MAX_ARTIFACT_DATA_VERSIONS,
+    )
+    created_at: AwareDatetime
+
+    @model_validator(mode="after")
+    def validate_order(self) -> OrderArtifact:
+        _validate_artifact_lines(self.items, self.total_price_vnd)
+        _validate_unique_data_versions(self.data_version_ids)
+        return self
+
+
+class ActionArtifact(ArtifactBase):
+    kind: Literal[ArtifactKind.ACTION]
+    action_id: StableId
+    proposal_id: StableId
+    proposal_version: ResourceVersion
+    action_kind: ActionKind
+    status: ActionStatus
+
+
+TurnArtifact = Annotated[
+    ProductComparisonArtifact | CartArtifact | OrderArtifact | ActionArtifact,
+    Field(discriminator="kind"),
+]
+
+
+def _validate_artifact_lines(
+    items: tuple[ArtifactLineItem, ...],
+    total_price_vnd: int,
+) -> None:
+    if sum(item.line_total_vnd for item in items) != total_price_vnd:
+        raise ValueError("artifact total must equal the sum of its line totals")
+
+
+def _validate_unique_data_versions(data_version_ids: tuple[str, ...]) -> None:
+    if len(data_version_ids) != len(set(data_version_ids)):
+        raise ValueError("artifact data versions must be unique")
+
+
 class UsageSummary(V2Contract):
     input_tokens: int = Field(default=0, strict=True, ge=0)
     cached_input_tokens: int = Field(default=0, strict=True, ge=0)
@@ -489,6 +649,10 @@ class TurnResult(V2Contract):
     citations: tuple[Citation, ...] = ()
     evidence: tuple[EvidenceReference, ...] = ()
     action_cards: tuple[ActionCard, ...] = ()
+    artifacts: tuple[TurnArtifact, ...] = Field(
+        default=(),
+        max_length=MAX_ARTIFACTS,
+    )
     plan: PlanTrace | None = None
     executions: tuple[ExecutionRecord, ...] = Field(
         default=(), max_length=MAX_EXPERT_STEPS
@@ -500,12 +664,18 @@ class TurnResult(V2Contract):
         claim_ids = {claim.claim_id for claim in self.claims}
         citation_ids = {citation.citation_id for citation in self.citations}
         evidence_ids = {item.evidence_id for item in self.evidence}
+        artifact_ids = {item.artifact_id for item in self.artifacts}
         if len(claim_ids) != len(self.claims):
             raise ValueError("claim IDs must be unique")
         if len(citation_ids) != len(self.citations):
             raise ValueError("citation IDs must be unique")
         if len(evidence_ids) != len(self.evidence):
             raise ValueError("evidence IDs must be unique")
+        if len(artifact_ids) != len(self.artifacts):
+            raise ValueError("artifact IDs must be unique")
+        action_ids = [card.action_id for card in self.action_cards]
+        if len(action_ids) != len(set(action_ids)):
+            raise ValueError("action card IDs must be unique")
         display_labels = [item.display_label for item in self.evidence]
         if len(display_labels) != len(set(display_labels)):
             raise ValueError("evidence display labels must be unique")
@@ -542,6 +712,23 @@ class TurnResult(V2Contract):
             and not self.action_cards
         ):
             raise ValueError("awaiting confirmation requires an action card")
+        action_cards_by_id = {card.action_id: card for card in self.action_cards}
+        for artifact in self.artifacts:
+            if not isinstance(artifact, ActionArtifact):
+                continue
+            card = action_cards_by_id.get(artifact.action_id)
+            if card is None:
+                raise ValueError("action artifact references an unknown action card")
+            if (
+                artifact.proposal_id != card.proposal_id
+                or artifact.proposal_version != card.proposal_version
+                or artifact.action_kind != card.kind
+                or artifact.status != card.status
+                or artifact.resource_id != card.target.resource_id
+                or artifact.resource_version != card.target.expected_resource_version
+                or artifact.title != card.title
+            ):
+                raise ValueError("action artifact does not match its action card")
         return self
 
 
@@ -650,6 +837,156 @@ class TurnResponse(V2Contract):
 
 class ChatResponse(TurnResponse):
     """Terminal or in-progress response returned from the chat endpoint."""
+
+
+class TurnSSEEnvelope(V2Contract):
+    """Correlation and ordering fields shared by every v2 SSE data event."""
+
+    sequence: int = Field(strict=True, gt=0)
+    request_id: StableId
+    trace_id: StableId
+    turn_id: StableId
+
+
+class TurnSSEProgressEvent(TurnSSEEnvelope):
+    event: Literal[TurnSSEEventKind.PROGRESS] = TurnSSEEventKind.PROGRESS
+    phase: TurnSSEProgressPhase
+    turn_status: TurnStatus
+    step_id: StableId | None = None
+    capability: str | None = Field(default=None, pattern=ACTION_PATTERN)
+    plan_revision: int | None = Field(
+        default=None,
+        strict=True,
+        ge=0,
+        le=MAX_PLAN_REVISIONS,
+    )
+    step_status: TaskStatus | None = None
+    reused: bool = False
+
+    @model_validator(mode="after")
+    def validate_progress(self) -> TurnSSEProgressEvent:
+        step_phase = self.phase in {
+            TurnSSEProgressPhase.STEP_STARTED,
+            TurnSSEProgressPhase.STEP_FINISHED,
+        }
+        if step_phase != (self.step_id is not None):
+            raise ValueError("step progress requires exactly one step identity")
+        if step_phase != (self.capability is not None):
+            raise ValueError("step progress requires exactly one capability")
+        if step_phase != (self.plan_revision is not None):
+            raise ValueError("step progress requires exactly one plan revision")
+        if self.phase is TurnSSEProgressPhase.STEP_FINISHED:
+            if self.step_status not in {
+                TaskStatus.SUCCESS,
+                TaskStatus.PARTIAL_SUCCESS,
+                TaskStatus.FAILED,
+            }:
+                raise ValueError("finished step progress requires a terminal status")
+        elif self.step_status is not None:
+            raise ValueError("only finished step progress exposes a step status")
+        if step_phase and self.turn_status is not TurnStatus.RUNNING:
+            raise ValueError("step progress requires a running turn")
+        if self.phase is TurnSSEProgressPhase.ADMITTED:
+            if self.turn_status is not TurnStatus.PENDING:
+                raise ValueError("admitted progress requires a pending turn")
+        elif self.phase is TurnSSEProgressPhase.ATTACHED:
+            if self.turn_status not in {TurnStatus.PENDING, TurnStatus.RUNNING}:
+                raise ValueError("attached progress requires a live turn")
+        elif self.phase is TurnSSEProgressPhase.CLAIMED:
+            if self.turn_status is not TurnStatus.RUNNING:
+                raise ValueError("claimed progress requires a running turn")
+        if self.phase is not TurnSSEProgressPhase.STEP_FINISHED and self.reused:
+            raise ValueError("only finished step progress can be reused")
+        return self
+
+
+class TurnSSETextDeltaEvent(TurnSSEEnvelope):
+    event: Literal[TurnSSEEventKind.TEXT_DELTA] = TurnSSEEventKind.TEXT_DELTA
+    turn_status: Literal[TurnStatus.COMPLETED] = TurnStatus.COMPLETED
+    delta: str = Field(min_length=1, max_length=MAX_TEXT_DELTA_LENGTH)
+    post_grounding: Literal[True] = True
+
+
+class TurnCompletedTerminal(V2Contract):
+    status: Literal[TurnStatus.COMPLETED]
+    result: TurnResult
+    usage: UsageSummary = Field(default_factory=UsageSummary)
+
+
+class TurnFailedTerminal(V2Contract):
+    status: Literal[TurnStatus.FAILED]
+    error: SafeExecutionError
+    usage: UsageSummary = Field(default_factory=UsageSummary)
+
+
+class TurnCancelledTerminal(V2Contract):
+    status: Literal[TurnStatus.CANCELLED]
+    usage: UsageSummary = Field(default_factory=UsageSummary)
+
+
+class TurnInterruptedTerminal(V2Contract):
+    status: Literal[TurnStatus.INTERRUPTED]
+    error: SafeExecutionError
+    usage: UsageSummary = Field(default_factory=UsageSummary)
+
+
+TurnTerminalPayload = Annotated[
+    TurnCompletedTerminal
+    | TurnFailedTerminal
+    | TurnCancelledTerminal
+    | TurnInterruptedTerminal,
+    Field(discriminator="status"),
+]
+
+
+class TurnSSETerminalEvent(TurnSSEEnvelope):
+    event: Literal[TurnSSEEventKind.TERMINAL] = TurnSSEEventKind.TERMINAL
+    payload: TurnTerminalPayload
+    reused_result: bool = False
+
+
+TurnSSEEvent = Annotated[
+    TurnSSEProgressEvent | TurnSSETextDeltaEvent | TurnSSETerminalEvent,
+    Field(discriminator="event"),
+]
+
+
+class TurnSSESequence(V2Contract):
+    """Validation helper for one completed SSE event sequence."""
+
+    events: tuple[TurnSSEEvent, ...] = Field(
+        min_length=1,
+        max_length=MAX_SSE_EVENTS,
+    )
+
+    @model_validator(mode="after")
+    def validate_stream(self) -> TurnSSESequence:
+        sequences = tuple(event.sequence for event in self.events)
+        if any(
+            current <= previous
+            for previous, current in zip(sequences, sequences[1:], strict=False)
+        ):
+            raise ValueError("SSE event sequence must be strictly increasing")
+        correlation = (
+            self.events[0].request_id,
+            self.events[0].trace_id,
+            self.events[0].turn_id,
+        )
+        if any(
+            (event.request_id, event.trace_id, event.turn_id) != correlation
+            for event in self.events[1:]
+        ):
+            raise ValueError("SSE events must share request, trace, and turn IDs")
+        terminal_indexes = [
+            index
+            for index, event in enumerate(self.events)
+            if isinstance(event, TurnSSETerminalEvent)
+        ]
+        if terminal_indexes != [len(self.events) - 1]:
+            raise ValueError(
+                "a completed SSE sequence requires one final terminal event"
+            )
+        return self
 
 
 class ConversationDetailResponse(V2Contract):

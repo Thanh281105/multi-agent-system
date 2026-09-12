@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from app.contracts import TaskStatus
 from app.v2.contracts import (
     MAX_MESSAGE_LENGTH,
+    ActionArtifact,
     ActionCard,
     ActionChange,
     ActionConfirmRequest,
@@ -18,7 +19,11 @@ from app.v2.contracts import (
     ActionReadResponse,
     ActionStatus,
     ActionTarget,
+    ArtifactKind,
+    ArtifactLineItem,
+    ArtifactProduct,
     BudgetPreference,
+    CartArtifact,
     ChatRequest,
     Citation,
     Claim,
@@ -32,14 +37,26 @@ from app.v2.contracts import (
     ExecutionRecord,
     GenrePreference,
     HistoryTurn,
+    OrderArtifact,
     PlanRevision,
     PlanStep,
     PlanTrace,
     PreferenceKind,
     PreferencePutRequest,
+    ProductComparisonArtifact,
     SafeExecutionError,
+    TurnCancelledTerminal,
+    TurnCompletedTerminal,
+    TurnFailedTerminal,
+    TurnInterruptedTerminal,
     TurnResponse,
     TurnResult,
+    TurnSSEEventKind,
+    TurnSSEProgressEvent,
+    TurnSSEProgressPhase,
+    TurnSSESequence,
+    TurnSSETerminalEvent,
+    TurnSSETextDeltaEvent,
     TurnStatus,
     TurnSummary,
     UsageSummary,
@@ -110,6 +127,103 @@ def _action_card(
         ),
         expires_at=NOW + timedelta(minutes=10),
     )
+
+
+def _artifact_line() -> ArtifactLineItem:
+    return ArtifactLineItem(
+        product_id=42,
+        title="Sapiens",
+        quantity=2,
+        unit_price_vnd=100_000,
+        line_total_vnd=200_000,
+    )
+
+
+def _artifacts(
+    card: ActionCard,
+) -> tuple[
+    ProductComparisonArtifact,
+    CartArtifact,
+    OrderArtifact,
+    ActionArtifact,
+]:
+    data_versions = ("version_catalog_001",)
+    line = _artifact_line()
+    return (
+        ProductComparisonArtifact(
+            kind=ArtifactKind.PRODUCT_COMPARISON,
+            artifact_id="artifact_comparison_001",
+            resource_id="comparison_001",
+            resource_version=1,
+            status="ready",
+            title="So sánh sách",
+            products=(
+                ArtifactProduct(
+                    product_id=42,
+                    title="Sapiens",
+                    author="Yuval Noah Harari",
+                    price_vnd=100_000,
+                    rating=4.7,
+                    catalog_version_id=data_versions[0],
+                ),
+                ArtifactProduct(
+                    product_id=7,
+                    title="Homo Deus",
+                    author="Yuval Noah Harari",
+                    price_vnd=120_000,
+                    rating=4.6,
+                    catalog_version_id=data_versions[0],
+                ),
+            ),
+            data_version_ids=data_versions,
+        ),
+        CartArtifact(
+            kind=ArtifactKind.CART,
+            artifact_id="artifact_cart_001",
+            resource_id=card.target.resource_id,
+            resource_version=card.target.expected_resource_version,
+            status="active",
+            title="Giỏ hàng sandbox",
+            items=(line,),
+            total_price_vnd=line.line_total_vnd,
+            data_version_ids=data_versions,
+        ),
+        OrderArtifact(
+            kind=ArtifactKind.ORDER,
+            artifact_id="artifact_order_001",
+            resource_id="order_00000001",
+            resource_version=1,
+            status="confirmed",
+            title="Đơn hàng sandbox",
+            cart_id=card.target.resource_id,
+            cart_version=card.target.expected_resource_version,
+            items=(line,),
+            total_price_vnd=line.line_total_vnd,
+            data_version_ids=data_versions,
+            created_at=NOW,
+        ),
+        ActionArtifact(
+            kind=ArtifactKind.ACTION,
+            artifact_id="artifact_action_001",
+            resource_id=card.target.resource_id,
+            resource_version=card.target.expected_resource_version,
+            title=card.title,
+            action_id=card.action_id,
+            proposal_id=card.proposal_id,
+            proposal_version=card.proposal_version,
+            action_kind=card.kind,
+            status=card.status,
+        ),
+    )
+
+
+def _sse_correlation(sequence: int) -> dict[str, object]:
+    return {
+        "sequence": sequence,
+        "request_id": "request_sse_001",
+        "trace_id": "trace_sse_001",
+        "turn_id": "turn_sse_001",
+    }
 
 
 def test_chat_request_is_strict_and_serializable() -> None:
@@ -695,6 +809,267 @@ def test_action_read_response_fails_closed_on_storage_or_authority_fields(
         )
 
 
+def test_turn_result_round_trips_all_typed_artifact_variants() -> None:
+    card = _action_card()
+    artifacts = _artifacts(card)
+    result = TurnResult(
+        outcome=DialogueOutcome.AWAITING_CONFIRMATION,
+        answer="Đã chuẩn bị so sánh, giỏ hàng, đơn và đề xuất.",
+        action_cards=(card,),
+        artifacts=artifacts,
+    )
+
+    restored = TurnResult.model_validate_json(result.model_dump_json())
+    assert [artifact.kind for artifact in restored.artifacts] == [
+        ArtifactKind.PRODUCT_COMPARISON,
+        ArtifactKind.CART,
+        ArtifactKind.ORDER,
+        ArtifactKind.ACTION,
+    ]
+    assert isinstance(restored.artifacts[0], ProductComparisonArtifact)
+    assert isinstance(restored.artifacts[1], CartArtifact)
+    assert isinstance(restored.artifacts[2], OrderArtifact)
+    assert isinstance(restored.artifacts[3], ActionArtifact)
+
+    legacy = TurnResult.model_validate(
+        {
+            "outcome": "answered",
+            "answer": "Persisted before artifact projection existed.",
+        }
+    )
+    assert legacy.artifacts == ()
+
+    injected = artifacts[0].model_dump(mode="json") | {
+        "raw_tool_payload": {"secret": "hidden"}
+    }
+    with pytest.raises(ValidationError):
+        TurnResult.model_validate(
+            {
+                "outcome": "answered",
+                "answer": "unsafe",
+                "artifacts": [injected],
+            }
+        )
+
+
+def test_artifacts_enforce_unique_ids_totals_and_action_card_links() -> None:
+    card = _action_card()
+    comparison, cart, _order, action = _artifacts(card)
+
+    duplicate = cart.model_copy(update={"artifact_id": comparison.artifact_id})
+    with pytest.raises(ValidationError, match="artifact IDs must be unique"):
+        TurnResult(
+            outcome=DialogueOutcome.ANSWERED,
+            answer="duplicate artifact",
+            artifacts=(comparison, duplicate),
+        )
+
+    with pytest.raises(ValidationError, match="unknown action card"):
+        TurnResult(
+            outcome=DialogueOutcome.ANSWERED,
+            answer="orphan action artifact",
+            artifacts=(action,),
+        )
+
+    mismatched = action.model_copy(update={"proposal_version": 2})
+    with pytest.raises(ValidationError, match="does not match its action card"):
+        TurnResult(
+            outcome=DialogueOutcome.AWAITING_CONFIRMATION,
+            answer="mismatched action artifact",
+            action_cards=(card,),
+            artifacts=(mismatched,),
+        )
+
+    with pytest.raises(ValidationError, match="sum of its line totals"):
+        CartArtifact.model_validate(
+            cart.model_dump(mode="python") | {"total_price_vnd": 1}
+        )
+
+    with pytest.raises(ValidationError, match="unknown data version"):
+        ProductComparisonArtifact.model_validate(
+            comparison.model_dump(mode="python")
+            | {"data_version_ids": ("version_other_001",)}
+        )
+
+
+def test_sse_sequence_covers_real_progress_and_post_grounding_text() -> None:
+    progress = (
+        TurnSSEProgressEvent(
+            **_sse_correlation(1),
+            phase=TurnSSEProgressPhase.ADMITTED,
+            turn_status=TurnStatus.PENDING,
+        ),
+        TurnSSEProgressEvent(
+            **_sse_correlation(2),
+            phase=TurnSSEProgressPhase.ATTACHED,
+            turn_status=TurnStatus.PENDING,
+        ),
+        TurnSSEProgressEvent(
+            **_sse_correlation(3),
+            phase=TurnSSEProgressPhase.CLAIMED,
+            turn_status=TurnStatus.RUNNING,
+        ),
+        TurnSSEProgressEvent(
+            **_sse_correlation(4),
+            phase=TurnSSEProgressPhase.STEP_STARTED,
+            turn_status=TurnStatus.RUNNING,
+            step_id="step_sse_001",
+            capability="product.catalog.search",
+            plan_revision=0,
+        ),
+        TurnSSEProgressEvent(
+            **_sse_correlation(5),
+            phase=TurnSSEProgressPhase.STEP_FINISHED,
+            turn_status=TurnStatus.RUNNING,
+            step_id="step_sse_001",
+            capability="product.catalog.search",
+            plan_revision=0,
+            step_status=TaskStatus.SUCCESS,
+        ),
+    )
+    text = TurnSSETextDeltaEvent(
+        **_sse_correlation(6),
+        delta="Câu trả lời đã được kiểm chứng.",
+    )
+    terminal = TurnSSETerminalEvent(
+        **_sse_correlation(7),
+        payload=TurnCompletedTerminal(
+            status=TurnStatus.COMPLETED,
+            result=TurnResult(
+                outcome=DialogueOutcome.ANSWERED,
+                answer=text.delta,
+            ),
+        ),
+    )
+    sequence = TurnSSESequence(events=(*progress, text, terminal))
+
+    restored = TurnSSESequence.model_validate_json(sequence.model_dump_json())
+    assert [event.sequence for event in restored.events] == list(range(1, 8))
+    assert text.post_grounding is True
+    assert text.turn_status is TurnStatus.COMPLETED
+    assert restored.events[-1].event is TurnSSEEventKind.TERMINAL
+    schema_text = str(TurnSSESequence.model_json_schema()).lower()
+    assert "heartbeat" not in schema_text
+
+
+def test_sse_events_reject_bad_sequence_correlation_and_untrusted_fields() -> None:
+    admitted = TurnSSEProgressEvent(
+        **_sse_correlation(1),
+        phase=TurnSSEProgressPhase.ADMITTED,
+        turn_status=TurnStatus.PENDING,
+    )
+    terminal = TurnSSETerminalEvent(
+        **_sse_correlation(2),
+        payload=TurnCancelledTerminal(status=TurnStatus.CANCELLED),
+    )
+
+    with pytest.raises(ValidationError):
+        TurnSSEProgressEvent.model_validate(
+            admitted.model_dump() | {"tenant_id": "attacker"}
+        )
+    with pytest.raises(ValidationError):
+        TurnSSEProgressEvent.model_validate(admitted.model_dump() | {"sequence": 0})
+    with pytest.raises(ValidationError):
+        TurnSSETextDeltaEvent(
+            **_sse_correlation(2),
+            delta="unsafe pre-grounding token",
+            post_grounding=False,
+        )
+    with pytest.raises(ValidationError):
+        TurnSSETextDeltaEvent(
+            **_sse_correlation(2),
+            turn_status=TurnStatus.RUNNING,
+            delta="unsafe in-flight token",
+        )
+    with pytest.raises(ValidationError, match="strictly increasing"):
+        TurnSSESequence(events=(admitted, terminal.model_copy(update={"sequence": 1})))
+    with pytest.raises(ValidationError, match="share request, trace, and turn"):
+        TurnSSESequence(
+            events=(
+                admitted,
+                terminal.model_copy(update={"trace_id": "trace_other_001"}),
+            )
+        )
+    with pytest.raises(ValidationError, match="one final terminal"):
+        TurnSSESequence(events=(admitted,))
+    with pytest.raises(ValidationError, match="one final terminal"):
+        TurnSSESequence(
+            events=(
+                admitted,
+                terminal,
+                terminal.model_copy(update={"sequence": 3}),
+            )
+        )
+
+
+def test_sse_terminal_payloads_are_status_discriminated_and_strict() -> None:
+    error = SafeExecutionError(
+        code="provider.timeout",
+        message="The model attempt timed out.",
+        retryable=True,
+    )
+    result = TurnResult(
+        outcome=DialogueOutcome.ANSWERED,
+        answer="Hoàn tất.",
+    )
+    usage = UsageSummary(
+        input_tokens=2,
+        output_tokens=1,
+        total_tokens=3,
+        estimated_cost_usd=Decimal("0.001"),
+        known_cost_usd=Decimal("0.001"),
+    )
+    payloads = (
+        TurnCompletedTerminal(
+            status=TurnStatus.COMPLETED,
+            result=result,
+            usage=usage,
+        ),
+        TurnFailedTerminal(status=TurnStatus.FAILED, error=error, usage=usage),
+        TurnCancelledTerminal(status=TurnStatus.CANCELLED, usage=usage),
+        TurnInterruptedTerminal(
+            status=TurnStatus.INTERRUPTED,
+            error=error,
+            usage=usage,
+        ),
+    )
+
+    for index, payload in enumerate(payloads, start=1):
+        event = TurnSSETerminalEvent(
+            **_sse_correlation(index),
+            payload=payload,
+        )
+        restored = TurnSSETerminalEvent.model_validate_json(event.model_dump_json())
+        assert restored.payload.status == payload.status
+    assert (
+        '"estimated_cost_usd":"0.001"'
+        in TurnSSETerminalEvent(
+            **_sse_correlation(1),
+            payload=payloads[0],
+        ).model_dump_json()
+    )
+
+    invalid_payloads = (
+        {
+            "status": "completed",
+            "result": result.model_dump(mode="json"),
+            "error": error.model_dump(mode="json"),
+        },
+        {"status": "failed"},
+        {"status": "cancelled", "error": error.model_dump(mode="json")},
+        {"status": "interrupted"},
+    )
+    for invalid in invalid_payloads:
+        with pytest.raises(ValidationError):
+            TurnSSETerminalEvent.model_validate(
+                {
+                    **_sse_correlation(1),
+                    "event": "terminal",
+                    "payload": invalid,
+                }
+            )
+
+
 def test_usage_rejects_inconsistent_or_hidden_reservations() -> None:
     with pytest.raises(ValidationError, match="reasoning tokens"):
         UsageSummary(output_tokens=1, reasoning_tokens=2, total_tokens=1)
@@ -788,6 +1163,7 @@ def test_public_contract_schemas_do_not_expose_sensitive_runtime_payloads() -> N
     schemas = (
         ActionReadResponse.model_json_schema(),
         ConversationDetailResponse.model_json_schema(),
+        TurnSSESequence.model_json_schema(),
         TurnResponse.model_json_schema(),
         TurnResult.model_json_schema(),
         PlanTrace.model_json_schema(),
@@ -799,5 +1175,10 @@ def test_public_contract_schemas_do_not_expose_sensitive_runtime_payloads() -> N
         "chain_of_thought",
         "reasoning_trace",
         "raw_tool_payload",
+        "tenant_id",
+        "principal_id",
+        "authority",
+        "secret",
+        "heartbeat",
     ):
         assert forbidden_name not in serialized
