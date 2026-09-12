@@ -12,7 +12,10 @@ from app.v2.contracts import (
     ActionCard,
     ActionChange,
     ActionConfirmRequest,
+    ActionDecisionResponse,
+    ActionExecutionResponse,
     ActionKind,
+    ActionReadResponse,
     ActionStatus,
     ActionTarget,
     BudgetPreference,
@@ -20,12 +23,15 @@ from app.v2.contracts import (
     Citation,
     Claim,
     ConversationCreateRequest,
+    ConversationDetailResponse,
     ConversationMode,
+    ConversationSummary,
     DialogueOutcome,
     EvidenceKind,
     EvidenceReference,
     ExecutionRecord,
     GenrePreference,
+    HistoryTurn,
     PlanRevision,
     PlanStep,
     PlanTrace,
@@ -70,6 +76,39 @@ def _evidence(suffix: str = "001", *, display_label: str = "[C1]") -> EvidenceRe
         title="Nguồn kiểm chứng",
         url="https://example.test/books/1",
         observed_at=NOW,
+    )
+
+
+def _action_card(
+    *,
+    status: ActionStatus = ActionStatus.PROPOSED,
+    action_id: str = "action_00000001",
+) -> ActionCard:
+    return ActionCard(
+        action_id=action_id,
+        proposal_id=action_id,
+        proposal_version=1,
+        kind=ActionKind.CHECKOUT,
+        status=status,
+        title="Xác nhận đơn hàng sandbox",
+        required_permission="ecommerce.write",
+        confirmation_required=True,
+        target=ActionTarget(
+            resource_type="cart",
+            resource_id="cart_00000001",
+            expected_resource_version=3,
+            data_version_ids=("snapshot_00000001",),
+        ),
+        changes=(
+            ActionChange(
+                resource_type="order",
+                resource_id="order_00000001",
+                field="status",
+                before_text="cart_active",
+                after_text="confirmed",
+            ),
+        ),
+        expires_at=NOW + timedelta(minutes=10),
     )
 
 
@@ -478,6 +517,184 @@ def test_action_confirmation_keeps_idempotency_in_the_header_contract() -> None:
         )
 
 
+def test_conversation_detail_uses_the_rich_history_turn_contract() -> None:
+    evidence = _evidence()
+    citation = Citation(
+        citation_id="citation_history_001",
+        claim_id="claim_history_001",
+        evidence_id=evidence.evidence_id,
+        span_id=evidence.span_id,
+        display_label=evidence.display_label,
+    )
+    claim = Claim(
+        claim_id="claim_history_001",
+        text="Đơn sandbox cần được xác nhận.",
+        citation_ids=(citation.citation_id,),
+    )
+    card = _action_card()
+    result = TurnResult(
+        outcome=DialogueOutcome.AWAITING_CONFIRMATION,
+        answer="Vui lòng xác nhận đơn hàng [C1].",
+        claims=(claim,),
+        citations=(citation,),
+        evidence=(evidence,),
+        action_cards=(card,),
+    )
+    history_turn = HistoryTurn(
+        turn_id="turn_history_001",
+        client_turn_id="client-history-1",
+        status=TurnStatus.COMPLETED,
+        outcome=result.outcome,
+        user_message="Tạo đơn hàng sandbox",
+        assistant_result=result,
+        action_cards=result.action_cards,
+        created_at=NOW,
+        completed_at=NOW + timedelta(seconds=1),
+    )
+    detail = ConversationDetailResponse(
+        conversation=ConversationSummary(
+            conversation_id="conversation_history_001",
+            mode=ConversationMode.SHOPPER,
+            store_id="store_001",
+            created_at=NOW,
+            updated_at=NOW + timedelta(seconds=1),
+        ),
+        turns=(history_turn,),
+    )
+
+    restored = ConversationDetailResponse.model_validate_json(detail.model_dump_json())
+    assert restored.turns[0].user_message == "Tạo đơn hàng sandbox"
+    assert restored.turns[0].assistant_result == result
+    definitions = ConversationDetailResponse.model_json_schema()["$defs"]
+    assert "HistoryTurn" in definitions
+    assert "TurnSummary" not in definitions
+    with pytest.raises(ValidationError):
+        HistoryTurn.model_validate(
+            history_turn.model_dump() | {"tenant_id": "attacker"}
+        )
+
+
+def test_action_read_response_unwraps_only_validated_public_results() -> None:
+    assert ActionReadResponse(action=_action_card()).result is None
+    action = _action_card(status=ActionStatus.EXECUTED)
+    persisted = {
+        "schema_version": 1,
+        "response": {
+            "action_id": action.action_id,
+            "status": "executed",
+            "resource_id": "order_00000001",
+            "resource_version": 1,
+            "reused_result": False,
+        },
+    }
+
+    response = ActionReadResponse.from_persistence(
+        action=action,
+        persisted_result=persisted,
+    )
+    assert isinstance(response.result, ActionExecutionResponse)
+    assert set(response.model_dump()) == {"action", "result"}
+    serialized = response.model_dump_json()
+    assert "schema_version" not in serialized
+    assert "tenant_id" not in serialized
+
+    rejected = _action_card(
+        status=ActionStatus.REJECTED,
+        action_id="action_rejected_001",
+    )
+    rejected_response = ActionReadResponse.from_persistence(
+        action=rejected,
+        persisted_result={
+            "schema_version": 1,
+            "response": {
+                "action_id": rejected.action_id,
+                "proposal_version": 1,
+                "status": "rejected",
+                "decided_at": NOW.isoformat(),
+                "reused_result": False,
+            },
+            "reason": "Không mua nữa",
+        },
+    )
+    assert isinstance(rejected_response.result, ActionDecisionResponse)
+    assert "Không mua nữa" not in rejected_response.model_dump_json()
+
+    deleted = _action_card(
+        status=ActionStatus.EXPIRED,
+        action_id="action_deleted_001",
+    )
+    assert (
+        ActionReadResponse.from_persistence(
+            action=deleted,
+            persisted_result={"code": "conversation_deleted"},
+        ).result
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "persisted_result",
+    [
+        {
+            "schema_version": 1,
+            "response": {
+                "action_id": "action_00000001",
+                "status": "executed",
+                "resource_id": "order_00000001",
+                "resource_version": 1,
+            },
+            "tenant_id": "attacker",
+        },
+        {
+            "schema_version": 1,
+            "response": {
+                "action_id": "action_00000001",
+                "status": "executed",
+                "resource_id": "order_00000001",
+                "resource_version": 1,
+                "principal_id": "attacker",
+            },
+        },
+        {
+            "schema_version": 1,
+            "response": {
+                "action_id": "action_00000001",
+                "status": "executed",
+                "resource_id": "order_00000001",
+                "resource_version": 1,
+            },
+            "raw_tool_payload": {"secret": "do-not-expose"},
+        },
+        {
+            "schema_version": 2,
+            "response": {
+                "action_id": "action_00000001",
+                "status": "executed",
+                "resource_id": "order_00000001",
+                "resource_version": 1,
+            },
+        },
+        {
+            "schema_version": 1,
+            "response": {
+                "action_id": "action_different_001",
+                "status": "executed",
+                "resource_id": "order_00000001",
+                "resource_version": 1,
+            },
+        },
+    ],
+)
+def test_action_read_response_fails_closed_on_storage_or_authority_fields(
+    persisted_result: dict[str, object],
+) -> None:
+    with pytest.raises(ValidationError):
+        ActionReadResponse.from_persistence(
+            action=_action_card(status=ActionStatus.EXECUTED),
+            persisted_result=persisted_result,
+        )
+
+
 def test_usage_rejects_inconsistent_or_hidden_reservations() -> None:
     with pytest.raises(ValidationError, match="reasoning tokens"):
         UsageSummary(output_tokens=1, reasoning_tokens=2, total_tokens=1)
@@ -569,6 +786,8 @@ def test_only_allowlisted_explicit_preferences_validate() -> None:
 
 def test_public_contract_schemas_do_not_expose_sensitive_runtime_payloads() -> None:
     schemas = (
+        ActionReadResponse.model_json_schema(),
+        ConversationDetailResponse.model_json_schema(),
         TurnResponse.model_json_schema(),
         TurnResult.model_json_schema(),
         PlanTrace.model_json_schema(),

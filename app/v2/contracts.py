@@ -6,6 +6,7 @@ model prompts, reasoning traces, or tool request/response payloads.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated, Literal
@@ -16,6 +17,8 @@ from pydantic import (
     ConfigDict,
     Field,
     HttpUrl,
+    JsonValue,
+    TypeAdapter,
     field_validator,
     model_validator,
 )
@@ -542,6 +545,55 @@ class TurnResult(V2Contract):
         return self
 
 
+class HistoryTurn(V2Contract):
+    """Safe public history projection without raw runtime or tool payloads."""
+
+    turn_id: str = Field(pattern=IDENTIFIER_PATTERN)
+    client_turn_id: str = Field(pattern=CLIENT_TURN_ID_PATTERN)
+    status: TurnStatus
+    outcome: DialogueOutcome | None = None
+    user_message: str | None = Field(default=None, max_length=MAX_MESSAGE_LENGTH)
+    assistant_result: TurnResult | None = None
+    error: SafeExecutionError | None = None
+    action_cards: tuple[ActionCard, ...] = ()
+    created_at: AwareDatetime
+    completed_at: AwareDatetime | None = None
+
+    @model_validator(mode="after")
+    def validate_state(self) -> HistoryTurn:
+        terminal = {
+            TurnStatus.COMPLETED,
+            TurnStatus.FAILED,
+            TurnStatus.CANCELLED,
+            TurnStatus.INTERRUPTED,
+        }
+        if self.status == TurnStatus.COMPLETED:
+            if self.assistant_result is None or self.outcome is None:
+                raise ValueError("completed history turns require a result")
+            if self.error is not None:
+                raise ValueError("completed history turns cannot expose an error")
+            if self.outcome != self.assistant_result.outcome:
+                raise ValueError("history outcome and result outcome must match")
+            if self.action_cards != self.assistant_result.action_cards:
+                raise ValueError("history action cards and result action cards differ")
+        elif self.assistant_result is not None or self.outcome is not None:
+            raise ValueError("only completed history turns expose results")
+
+        if self.status in {TurnStatus.FAILED, TurnStatus.INTERRUPTED}:
+            if self.error is None:
+                raise ValueError("failed history turns require a safe error")
+        elif self.error is not None:
+            raise ValueError("this history state cannot expose an error")
+
+        if self.status in terminal and self.completed_at is None:
+            raise ValueError("terminal history turns require completed_at")
+        if self.status not in terminal and self.completed_at is not None:
+            raise ValueError("non-terminal history turns cannot have completed_at")
+        if self.completed_at is not None and self.completed_at < self.created_at:
+            raise ValueError("history completion cannot precede creation")
+        return self
+
+
 class TurnSummary(V2Contract):
     turn_id: str = Field(pattern=IDENTIFIER_PATTERN)
     client_turn_id: str = Field(pattern=CLIENT_TURN_ID_PATTERN)
@@ -602,7 +654,7 @@ class ChatResponse(TurnResponse):
 
 class ConversationDetailResponse(V2Contract):
     conversation: ConversationSummary
-    turns: tuple[TurnSummary, ...]
+    turns: tuple[HistoryTurn, ...]
 
 
 class ActionConfirmRequest(V2Contract):
@@ -620,6 +672,82 @@ class ActionDecisionResponse(V2Contract):
     status: ActionStatus
     decided_at: AwareDatetime
     reused_result: bool = False
+
+
+class ActionExecutionResponse(V2Contract):
+    """Safe terminal result for a sandbox action execution attempt."""
+
+    action_id: str = Field(pattern=IDENTIFIER_PATTERN)
+    status: Literal[
+        ActionStatus.EXECUTED,
+        ActionStatus.EXPIRED,
+        ActionStatus.CONFLICTED,
+        ActionStatus.FAILED,
+    ]
+    resource_id: str = Field(pattern=IDENTIFIER_PATTERN)
+    resource_version: ResourceVersion
+    reused_result: bool = False
+
+
+ActionResult = Annotated[
+    ActionExecutionResponse | ActionDecisionResponse,
+    Field(union_mode="left_to_right"),
+]
+
+
+class ActionReadResponse(V2Contract):
+    """Public action state with a validated result and no storage metadata."""
+
+    action: ActionCard
+    result: ActionResult | None = None
+
+    @classmethod
+    def from_persistence(
+        cls,
+        *,
+        action: ActionCard,
+        persisted_result: Mapping[str, object] | None,
+    ) -> ActionReadResponse:
+        if persisted_result is None:
+            return cls(action=action)
+        if persisted_result == {"code": "conversation_deleted"}:
+            return cls(action=action)
+        envelope = _StoredActionResultEnvelope.model_validate(persisted_result)
+        result = _ACTION_RESULT_ADAPTER.validate_python(envelope.response)
+        return cls(action=action, result=result)
+
+    @model_validator(mode="after")
+    def validate_result_state(self) -> ActionReadResponse:
+        pending = {ActionStatus.PROPOSED, ActionStatus.CONFIRMED}
+        if self.action.status in pending:
+            if self.result is not None:
+                raise ValueError("pending actions cannot expose a terminal result")
+            return self
+        if self.result is None:
+            return self
+        if isinstance(
+            self.result, ActionDecisionResponse
+        ) and self.result.status not in {
+            ActionStatus.REJECTED,
+            ActionStatus.EXPIRED,
+        }:
+            raise ValueError("action decision result has an invalid status")
+        if self.result.action_id != self.action.action_id:
+            raise ValueError("action result ID must match the action card")
+        if self.result.status != self.action.status:
+            raise ValueError("action result status must match the action card")
+        return self
+
+
+class _StoredActionResultEnvelope(V2Contract):
+    """Internal allowlist for the versioned persistence wrapper."""
+
+    schema_version: Literal[1]
+    response: dict[str, JsonValue]
+    reason: str | None = Field(default=None, min_length=1, max_length=300)
+
+
+_ACTION_RESULT_ADAPTER: TypeAdapter[ActionResult] = TypeAdapter(ActionResult)
 
 
 class GenrePreference(V2Contract):

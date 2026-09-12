@@ -23,12 +23,20 @@ from app.models.v2 import (
 )
 from app.v2.authorization import ResourceNotFoundError
 from app.v2.contracts import (
+    ActionCard,
+    ActionChange,
+    ActionKind,
+    ActionStatus,
+    ActionTarget,
     BudgetPreference,
+    Citation,
+    Claim,
     ConversationMode,
     DialogueOutcome,
     EvidenceKind,
     EvidenceReference,
     GenrePreference,
+    HistoryTurn,
     LanguagePreference,
     PreferenceDeleteRequest,
     PreferenceKind,
@@ -146,6 +154,116 @@ def test_history_is_owner_scoped_bounded_and_restartable(
             TurnStatus.COMPLETED,
             TurnStatus.PENDING,
         ]
+
+
+def test_history_projects_rich_turns_and_isolates_tenant_and_principal(
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    owner = _auth("tenant_rich_history", "principal_rich_history", "ecommerce.read")
+    other_principal = _auth(
+        "tenant_rich_history",
+        "principal_other_history",
+        "ecommerce.read",
+    )
+    other_tenant = _auth(
+        "tenant_other_history",
+        "principal_rich_history",
+        "ecommerce.read",
+    )
+    conversation_id = "conv_rich_history"
+    now = datetime.now(UTC)
+    evidence = EvidenceReference(
+        evidence_id="evidence_rich_history",
+        source_id="source_rich_history",
+        source_version_id="version_rich_history",
+        chunk_id="chunk_rich_history",
+        span_id="span_rich_history",
+        display_label="[C1]",
+        kind=EvidenceKind.KNOWLEDGE,
+        title="Nguồn lịch sử",
+        observed_at=now,
+    )
+    citation = Citation(
+        citation_id="citation_rich_history",
+        claim_id="claim_rich_history",
+        evidence_id=evidence.evidence_id,
+        span_id=evidence.span_id,
+        display_label=evidence.display_label,
+    )
+    claim = Claim(
+        claim_id="claim_rich_history",
+        text="Đơn sandbox cần xác nhận.",
+        citation_ids=(citation.citation_id,),
+    )
+    action = ActionCard(
+        action_id="proposal_rich_history",
+        proposal_id="proposal_rich_history",
+        proposal_version=1,
+        kind=ActionKind.CHECKOUT,
+        status=ActionStatus.PROPOSED,
+        title="Xác nhận đơn hàng sandbox",
+        required_permission="ecommerce.write",
+        confirmation_required=True,
+        target=ActionTarget(
+            resource_type="cart",
+            resource_id="cart_rich_history",
+            expected_resource_version=1,
+            data_version_ids=("version_rich_history",),
+        ),
+        changes=(
+            ActionChange(
+                resource_type="order",
+                resource_id="order_rich_history",
+                field="status",
+                before_text="cart_active",
+                after_text="confirmed",
+            ),
+        ),
+        expires_at=now + timedelta(minutes=10),
+    )
+    result = TurnResult(
+        outcome=DialogueOutcome.AWAITING_CONFIRMATION,
+        answer="Vui lòng xác nhận đơn hàng [C1].",
+        claims=(claim,),
+        citations=(citation,),
+        evidence=(evidence,),
+        action_cards=(action,),
+        warnings=("sandbox_only",),
+    )
+
+    with postgres_sessions() as session:
+        V2Repository(session).create_conversation(
+            owner,
+            conversation_id=conversation_id,
+            mode=ConversationMode.SHOPPER,
+        )
+        _complete_turn(
+            session,
+            owner,
+            conversation_id=conversation_id,
+            turn_id="turn_rich_history",
+            client_turn_id="client-rich-history",
+            message="Tạo đơn hàng sandbox",
+            result=result,
+        )
+
+    with postgres_sessions() as session:
+        service = V2HistoryService(session)
+        turns = service.list_turns(owner, conversation_id)
+        assert len(turns) == 1
+        turn = turns[0]
+        assert isinstance(turn, HistoryTurn)
+        assert turn.user_message == "Tạo đơn hàng sandbox"
+        assert turn.assistant_result == result
+        assert turn.action_cards == (action,)
+        public_payload = turn.model_dump(mode="json")
+        assert "tenant_id" not in public_payload
+        assert "principal_id" not in public_payload
+        assert "request_payload" not in public_payload
+        with pytest.raises(ResourceNotFoundError):
+            service.list_turns(other_principal, conversation_id)
+        with pytest.raises(ResourceNotFoundError):
+            service.list_turns(other_tenant, conversation_id)
 
 
 def test_explicit_preferences_are_source_bound_owner_scoped_and_upserted(

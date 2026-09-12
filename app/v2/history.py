@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 from typing import Annotated, Callable, overload
 
 from pydantic import (
-    AwareDatetime,
     Field,
     StrictBool,
     StrictInt,
@@ -39,13 +38,10 @@ from app.v2.authorization import (
 )
 from app.v2.contracts import (
     ACTION_PATTERN,
-    CLIENT_TURN_ID_PATTERN,
-    IDENTIFIER_PATTERN,
     MAX_MESSAGE_LENGTH,
-    ActionCard,
     ConversationMode,
     ConversationSummary,
-    DialogueOutcome,
+    HistoryTurn,
     PreferenceDeleteRequest,
     PreferenceKind,
     PreferencePutRequest,
@@ -91,55 +87,6 @@ class ContextConstraint(V2Contract):
 
     key: str = Field(pattern=ACTION_PATTERN, max_length=80)
     value: ContextValue
-
-
-class HistoryTurn(V2Contract):
-    """Safe public history projection without raw runtime or tool payloads."""
-
-    turn_id: str = Field(pattern=IDENTIFIER_PATTERN)
-    client_turn_id: str = Field(pattern=CLIENT_TURN_ID_PATTERN)
-    status: TurnStatus
-    outcome: DialogueOutcome | None = None
-    user_message: str | None = Field(default=None, max_length=MAX_MESSAGE_LENGTH)
-    assistant_result: TurnResult | None = None
-    error: SafeExecutionError | None = None
-    action_cards: tuple[ActionCard, ...] = ()
-    created_at: AwareDatetime
-    completed_at: AwareDatetime | None = None
-
-    @model_validator(mode="after")
-    def validate_state(self) -> HistoryTurn:
-        terminal = {
-            TurnStatus.COMPLETED,
-            TurnStatus.FAILED,
-            TurnStatus.CANCELLED,
-            TurnStatus.INTERRUPTED,
-        }
-        if self.status == TurnStatus.COMPLETED:
-            if self.assistant_result is None or self.outcome is None:
-                raise ValueError("completed history turns require a result")
-            if self.error is not None:
-                raise ValueError("completed history turns cannot expose an error")
-            if self.outcome != self.assistant_result.outcome:
-                raise ValueError("history outcome and result outcome must match")
-            if self.action_cards != self.assistant_result.action_cards:
-                raise ValueError("history action cards and result action cards differ")
-        elif self.assistant_result is not None or self.outcome is not None:
-            raise ValueError("only completed history turns expose results")
-
-        if self.status in {TurnStatus.FAILED, TurnStatus.INTERRUPTED}:
-            if self.error is None:
-                raise ValueError("failed history turns require a safe error")
-        elif self.error is not None:
-            raise ValueError("this history state cannot expose an error")
-
-        if self.status in terminal and self.completed_at is None:
-            raise ValueError("terminal history turns require completed_at")
-        if self.status not in terminal and self.completed_at is not None:
-            raise ValueError("non-terminal history turns cannot have completed_at")
-        if self.completed_at is not None and self.completed_at < self.created_at:
-            raise ValueError("history completion cannot precede creation")
-        return self
 
 
 class ModelContext(V2Contract):

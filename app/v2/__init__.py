@@ -1,4 +1,4 @@
-"""Public Package 2 contracts and policy primitives for API v2."""
+"""Public contracts and policy primitives for API v2."""
 
 from app.v2.authorization import (
     DEMO_STORE_ID,
@@ -25,8 +25,11 @@ from app.v2.contracts import (
     ActionChange,
     ActionConfirmRequest,
     ActionDecisionResponse,
+    ActionExecutionResponse,
     ActionKind,
+    ActionReadResponse,
     ActionRejectRequest,
+    ActionResult,
     ActionStatus,
     ActionTarget,
     ChatRequest,
@@ -43,6 +46,7 @@ from app.v2.contracts import (
     EvidenceKind,
     EvidenceReference,
     ExecutionRecord,
+    HistoryTurn,
     MeResponse,
     PlanRevision,
     PlanStep,
@@ -84,8 +88,11 @@ __all__ = [
     "ActionChange",
     "ActionConfirmRequest",
     "ActionDecisionResponse",
+    "ActionExecutionResponse",
     "ActionKind",
+    "ActionReadResponse",
     "ActionRejectRequest",
+    "ActionResult",
     "ActionStatus",
     "ActionTarget",
     "AuthorizationDeniedError",
@@ -107,6 +114,7 @@ __all__ = [
     "EvidenceKind",
     "EvidenceReference",
     "ExecutionRecord",
+    "HistoryTurn",
     "IntentTemplate",
     "MeResponse",
     "PlanRevision",
