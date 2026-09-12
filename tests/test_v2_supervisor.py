@@ -25,12 +25,15 @@ from app.v2.contracts import (
     EvidenceKind,
     EvidenceReference,
     SafeExecutionError,
+    TurnResult,
+    TurnStatus,
 )
 from app.v2.execution import (
     DurableExecutionError,
     ModelRuntimeExpertReasoner,
     OperationBatch,
 )
+from app.v2.history import ContextConstraint, HistoryTurn, ModelContext
 from app.v2.planning import (
     BoundedV2Planner,
     ModelPlanRejectedError,
@@ -73,9 +76,11 @@ class _ChoiceRuntime:
         self.payload = payload
         self.error = error
         self.calls = 0
+        self.last_input_text: str | None = None
 
     async def generate_structured(self, **kwargs: Any) -> StructuredModelResult[Any]:
         self.calls += 1
+        self.last_input_text = kwargs["input_text"]
         if self.error is not None:
             raise self.error
         schema = kwargs["schema"]
@@ -343,6 +348,150 @@ async def test_catalog_query_extracts_entity_and_keeps_python_price_constraint()
     operation = planned.initial_operations[0]
     assert operation.parameters["query"] == "Sapiens"
     assert operation.parameters["max_price_vnd"] == 200_000
+
+
+@pytest.mark.asyncio
+async def test_history_supplies_products_and_constraints_when_current_absent() -> None:
+    context = _context().model_copy(
+        update={
+            "model_context": ModelContext(
+                active_constraints=(
+                    ContextConstraint(key="max_price_vnd", value=180_000),
+                ),
+                referenced_product_ids=(41, 42),
+            )
+        }
+    )
+    planned = await BoundedV2Planner(runtime_mode="off").plan(
+        "So sánh chúng",
+        context,
+    )
+    comparison = next(
+        item
+        for item in planned.initial_operations
+        if item.capability == "product.compare"
+    )
+    assert comparison.parameters["product_ids"] == [41, 42]
+    assert planned.max_price_vnd == 180_000
+
+
+@pytest.mark.asyncio
+async def test_max_budget_preference_constrains_catalog_when_price_is_absent() -> None:
+    context = _context().model_copy(
+        update={
+            "model_context": ModelContext(
+                active_constraints=(
+                    ContextConstraint(key="max_budget_vnd", value=175_000),
+                )
+            )
+        }
+    )
+    planned = await BoundedV2Planner(runtime_mode="off").plan(
+        "Tìm sách lịch sử",
+        context,
+    )
+    assert planned.max_price_vnd == 175_000
+    assert planned.initial_operations[0].parameters["max_price_vnd"] == 175_000
+
+
+@pytest.mark.asyncio
+async def test_current_products_and_one_sided_price_override_historical_context() -> (
+    None
+):
+    context = _context(resolved_product_ids=(7, 8)).model_copy(
+        update={
+            "model_context": ModelContext(
+                active_constraints=(
+                    ContextConstraint(key="min_price_vnd", value=50_000),
+                    ContextConstraint(key="max_price_vnd", value=100_000),
+                ),
+                referenced_product_ids=(41, 42),
+            )
+        }
+    )
+    planned = await BoundedV2Planner(runtime_mode="off").plan(
+        "So sánh 2 cuốn trên 300 nghìn",
+        context,
+    )
+    assert planned.min_price_vnd == 300_000
+    assert planned.max_price_vnd is None
+    comparison = next(
+        operation
+        for operation in planned.initial_operations
+        if operation.capability == "product.compare"
+    )
+    assert comparison.parameters["product_ids"] == [7, 8]
+
+
+@pytest.mark.asyncio
+async def test_explicit_current_limit_caps_historical_product_prefix() -> None:
+    context = _context().model_copy(
+        update={
+            "model_context": ModelContext(
+                referenced_product_ids=(41, 42, 43),
+            )
+        }
+    )
+    planned = await BoundedV2Planner(runtime_mode="off").plan(
+        "So sánh 2 cuốn",
+        context,
+    )
+    comparison = next(
+        operation
+        for operation in planned.initial_operations
+        if operation.capability == "product.compare"
+    )
+    assert planned.candidate_limit == 2
+    assert comparison.parameters["product_ids"] == [41, 42]
+
+
+@pytest.mark.asyncio
+async def test_model_history_projection_is_bounded_without_assistant_material() -> None:
+    now = datetime.now(UTC)
+    history = HistoryTurn(
+        turn_id="turn_history_projection",
+        client_turn_id="client-history-projection",
+        status=TurnStatus.COMPLETED,
+        outcome=DialogueOutcome.ANSWERED,
+        user_message="Earlier user filter " + "x" * 1_000,
+        assistant_result=TurnResult(
+            outcome=DialogueOutcome.ANSWERED,
+            answer="SECRET_ASSISTANT_ANSWER",
+        ),
+        created_at=now,
+        completed_at=now,
+    )
+    runtime = _ChoiceRuntime(
+        {
+            "template_id": "shopper_catalog",
+            "capabilities": ["product.catalog.search"],
+            "selected_product_ids": [41],
+            "candidate_limit": 1,
+        }
+    )
+    context = _context().model_copy(
+        update={
+            "model_context": ModelContext(
+                recent_turns=(history,),
+                active_constraints=(
+                    ContextConstraint(key="catalog_query", value="history"),
+                ),
+                referenced_product_ids=(41,),
+            )
+        }
+    )
+    with provider_budget_scope(_budget_context()):
+        await BoundedV2Planner(
+            model_runtime=runtime,
+            runtime_mode="hybrid",
+        ).plan("Tìm sách", context)
+    assert runtime.last_input_text is not None
+    assert len(runtime.last_input_text.encode("utf-8")) < 12_000
+    assert "planning context only" in runtime.last_input_text
+    assert "SECRET_ASSISTANT_ANSWER" not in runtime.last_input_text
+    assert '"claims"' not in runtime.last_input_text
+    assert '"citations"' not in runtime.last_input_text
+    assert '"assistant_result"' not in runtime.last_input_text
 
 
 @pytest.mark.asyncio

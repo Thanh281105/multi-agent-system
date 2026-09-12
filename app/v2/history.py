@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Collection, Mapping
 from datetime import UTC, datetime
-from typing import Annotated, overload
+from typing import Annotated, Callable, overload
 
 from pydantic import (
     AwareDatetime,
@@ -21,9 +22,15 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.contracts import AuthorizationContext
+from app.contracts import AuthorizationContext, TaskStatus
 from app.db.base import utc_now
-from app.models.v2 import V2Conversation, V2Preference, V2Proposal, V2Turn
+from app.models.v2 import (
+    V2Conversation,
+    V2Preference,
+    V2Proposal,
+    V2StepResult,
+    V2Turn,
+)
 from app.v2.authorization import (
     ResourceBinding,
     ResourceNotFoundError,
@@ -50,6 +57,7 @@ from app.v2.contracts import (
     TurnStatus,
     V2Contract,
 )
+from app.v2.runtime_contracts import ExpertResult
 
 MAX_CONVERSATION_LIST = 100
 MAX_HISTORY_TURNS = 100
@@ -57,11 +65,13 @@ MAX_CONTEXT_TURNS = 8
 MAX_CONTEXT_CONSTRAINTS = 16
 MAX_CONTEXT_PRODUCTS = 8
 MAX_CONTEXT_PREFERENCES = 4
+_PRODUCT_SUBJECT_PATTERN = re.compile(r"^product_(?P<product_id>[1-9][0-9]*)$")
 
 ContextValue = Annotated[
     StrictStr | StrictInt | StrictBool,
     Field(union_mode="left_to_right"),
 ]
+ConstraintParser = Callable[[str], Collection["ContextConstraint"]]
 
 
 class HistoryDataError(ValueError):
@@ -378,6 +388,7 @@ class V2HistoryService:
         current_referenced_product_ids: Collection[ProductId] = (),
         relevant_preference_keys: Collection[PreferenceKind] | None = None,
         turn_limit: int = MAX_CONTEXT_TURNS,
+        constraint_parser: ConstraintParser | None = None,
     ) -> ModelContext:
         """Build bounded context, overlaying validated current request data last."""
 
@@ -408,6 +419,20 @@ class V2HistoryService:
             )
         )
         recent_turns = tuple(_history_turn(row) for row in reversed(rows))
+        historical_constraints: tuple[ContextConstraint, ...] = ()
+        if constraint_parser is not None:
+            for turn in recent_turns:
+                if turn.user_message is None:
+                    continue
+                try:
+                    parsed = tuple(constraint_parser(turn.user_message))
+                    _validate_unique_constraint_keys(parsed)
+                except (TypeError, ValueError, RuntimeError):
+                    continue
+                historical_constraints = _overlay_constraints(
+                    historical_constraints,
+                    parsed,
+                )
         preference_constraints = tuple(
             ContextConstraint(
                 key=record.preference.kind.value,
@@ -417,14 +442,61 @@ class V2HistoryService:
         )
         active_constraints = _overlay_constraints(
             preference_constraints,
+            historical_constraints,
+        )
+        active_constraints = _overlay_constraints(
+            active_constraints,
             constraints,
         )
+        referenced_product_ids = product_ids or self._historical_product_ids(rows)
         return ModelContext(
             recent_turns=recent_turns,
             active_constraints=active_constraints,
-            referenced_product_ids=product_ids,
+            referenced_product_ids=referenced_product_ids,
             preferences=preferences,
         )
+
+    def _historical_product_ids(
+        self,
+        completed_turns_newest_first: tuple[V2Turn, ...],
+    ) -> tuple[ProductId, ...]:
+        product_ids: list[ProductId] = []
+        seen: set[int] = set()
+        for turn in completed_turns_newest_first:
+            rows = tuple(
+                self._session.scalars(
+                    select(V2StepResult)
+                    .where(V2StepResult.turn_id == turn.id)
+                    .order_by(V2StepResult.id)
+                )
+            )
+            for row in rows:
+                if not isinstance(row.result, Mapping):
+                    continue
+                try:
+                    result = ExpertResult.model_validate(row.result)
+                except (TypeError, ValueError):
+                    continue
+                if result.status not in {
+                    TaskStatus.SUCCESS,
+                    TaskStatus.PARTIAL_SUCCESS,
+                }:
+                    continue
+                for fact in result.evidence.facts:
+                    subject_id = fact.subject_id
+                    if subject_id is None:
+                        continue
+                    match = _PRODUCT_SUBJECT_PATTERN.fullmatch(subject_id)
+                    if match is None:
+                        continue
+                    product_id = int(match.group("product_id"))
+                    if product_id in seen:
+                        continue
+                    seen.add(product_id)
+                    product_ids.append(product_id)
+                    if len(product_ids) == MAX_CONTEXT_PRODUCTS:
+                        return tuple(product_ids)
+        return tuple(product_ids)
 
     def delete_conversation(
         self,

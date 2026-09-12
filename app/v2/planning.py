@@ -32,6 +32,7 @@ from app.v2.contracts import (
     StableId,
     V2Contract,
 )
+from app.v2.history import ContextConstraint, ModelContext
 from app.v2.registry import (
     CapabilityEffect,
     MarketDimension,
@@ -161,6 +162,7 @@ class PlanningContext(V2Contract):
         default=(), max_length=MAX_CANDIDATES
     )
     allowed_source_ids: frozenset[StableId] = frozenset()
+    model_context: ModelContext = Field(default_factory=ModelContext)
 
     @field_validator("resolved_product_ids")
     @classmethod
@@ -233,6 +235,18 @@ class _DeterministicRequest:
     clarification_code: str | None
 
 
+@dataclass(frozen=True, slots=True)
+class _ParsedRequestContext:
+    cleaned: str
+    candidate_limit: int
+    candidate_limit_explicit: bool
+    count_error: str | None
+    min_price_vnd: int | None
+    max_price_vnd: int | None
+    price_error: str | None
+    catalog_query: str | None
+
+
 class BoundedV2Planner:
     """Compile only read operations from registry and trusted request context."""
 
@@ -253,7 +267,11 @@ class BoundedV2Planner:
 
     async def plan(self, message: str, context: PlanningContext) -> PlannedTurn:
         request = _deterministic_request(message, context)
-        plan_id = _plan_id(message, context)
+        plan_id = _plan_id(
+            message,
+            context,
+            candidate_limit=request.candidate_limit,
+        )
         if request.clarification_code is not None:
             return PlannedTurn(
                 plan_id=plan_id,
@@ -327,7 +345,11 @@ class BoundedV2Planner:
             return ()
         if len(candidate_product_ids) > min(planned.candidate_limit, MAX_CANDIDATES):
             raise PlanningError("resolved_candidate_limit_exceeded")
-        if not set(context.resolved_product_ids) <= set(candidate_product_ids):
+        context_product_ids = _context_product_ids(
+            context,
+            candidate_limit=planned.candidate_limit,
+        )
+        if not set(context_product_ids) <= set(candidate_product_ids):
             raise PlanningError("resolved_context_product_missing")
         bound_context = context.model_copy(
             update={"resolved_product_ids": candidate_product_ids}
@@ -487,7 +509,16 @@ class BoundedV2Planner:
                     }
                     for template_id, capabilities in options
                 ],
-                "server_resolved_product_ids": list(context.resolved_product_ids),
+                "server_resolved_product_ids": list(
+                    _context_product_ids(
+                        context,
+                        candidate_limit=request.candidate_limit,
+                    )
+                ),
+                "planning_context_only": _model_context_projection(
+                    context,
+                    candidate_limit=request.candidate_limit,
+                ),
                 "required_obligations": [
                     {
                         "obligation_id": obligation.obligation_id,
@@ -570,11 +601,15 @@ class BoundedV2Planner:
             capability in _CANDIDATE_SOURCE_CAPABILITIES
             for capability in request.capabilities
         )
+        context_product_ids = _context_product_ids(
+            context,
+            candidate_limit=request.candidate_limit,
+        )
         for capability in request.capabilities:
             if (
                 capability in _PRODUCT_INPUT_CAPABILITIES
                 or (capability == "knowledge.retrieve" and resolves_candidates)
-            ) and not context.resolved_product_ids:
+            ) and not context_product_ids:
                 deferred.append(capability)
                 continue
             obligation_ids = tuple(
@@ -587,7 +622,7 @@ class BoundedV2Planner:
                 step_number=len(operations) + 1,
                 request=request,
                 context=context,
-                allowed_product_ids=context.resolved_product_ids,
+                allowed_product_ids=context_product_ids,
                 obligation_ids=obligation_ids,
             )
             if any(
@@ -652,10 +687,7 @@ class BoundedV2Planner:
         )
 
 
-def _deterministic_request(
-    message: str,
-    context: PlanningContext,
-) -> _DeterministicRequest:
+def _parse_request_context(message: str) -> _ParsedRequestContext:
     cleaned = " ".join(message.split()).strip()
     if not cleaned:
         raise PlanningError("message_empty")
@@ -681,6 +713,78 @@ def _deterministic_request(
         and min_price > max_price
     ):
         price_error = "price_range_invalid"
+    return _ParsedRequestContext(
+        cleaned=cleaned,
+        candidate_limit=candidate_limit,
+        candidate_limit_explicit=candidate_explicit,
+        count_error=count_error,
+        min_price_vnd=min_price,
+        max_price_vnd=max_price,
+        price_error=price_error,
+        catalog_query=_extract_catalog_query(cleaned),
+    )
+
+
+def context_constraints_from_message(message: str) -> tuple[ContextConstraint, ...]:
+    """Project only deterministically parsed request filters into history context."""
+
+    parsed = _parse_request_context(message)
+    constraints: list[ContextConstraint] = []
+    if parsed.candidate_limit_explicit and parsed.count_error is None:
+        constraints.append(
+            ContextConstraint(key="candidate_limit", value=parsed.candidate_limit)
+        )
+    if parsed.price_error is None:
+        if parsed.min_price_vnd is not None:
+            constraints.append(
+                ContextConstraint(key="min_price_vnd", value=parsed.min_price_vnd)
+            )
+        if parsed.max_price_vnd is not None:
+            constraints.append(
+                ContextConstraint(key="max_price_vnd", value=parsed.max_price_vnd)
+            )
+    if parsed.catalog_query is not None:
+        constraints.append(
+            ContextConstraint(key="catalog_query", value=parsed.catalog_query)
+        )
+    return tuple(constraints)
+
+
+def _deterministic_request(
+    message: str,
+    context: PlanningContext,
+) -> _DeterministicRequest:
+    parsed_context = _parse_request_context(message)
+    cleaned = parsed_context.cleaned
+    lowered = cleaned.casefold()
+    candidate_limit = parsed_context.candidate_limit
+    candidate_explicit = parsed_context.candidate_limit_explicit
+    count_error = parsed_context.count_error
+    min_price = parsed_context.min_price_vnd
+    max_price = parsed_context.max_price_vnd
+    price_error = parsed_context.price_error
+    catalog_query = parsed_context.catalog_query
+    historical = {
+        constraint.key: constraint.value
+        for constraint in context.model_context.active_constraints
+    }
+    if not candidate_explicit:
+        historical_limit = historical.get("candidate_limit")
+        if type(historical_limit) is int and 1 <= historical_limit <= MAX_CANDIDATES:
+            candidate_limit = historical_limit
+    if min_price is None and max_price is None and price_error is None:
+        historical_min = historical.get("min_price_vnd")
+        historical_max = historical.get("max_price_vnd")
+        if historical_max is None:
+            historical_max = historical.get("max_budget_vnd")
+        if type(historical_min) is int and historical_min >= 0:
+            min_price = historical_min
+        if type(historical_max) is int and historical_max >= 0:
+            max_price = historical_max
+    if catalog_query is None:
+        historical_query = historical.get("catalog_query")
+        if isinstance(historical_query, str) and historical_query:
+            catalog_query = historical_query[:300]
     write_requested = any(word in lowered for word in _WRITE_WORDS)
     has_compare = _contains(lowered, "so sánh", "compare", "khác nhau")
     has_recommendation = _contains(
@@ -723,10 +827,12 @@ def _deterministic_request(
     if has_inventory and mode != ConversationMode.MERCHANT:
         clarification = clarification or "inventory_requires_merchant_mode"
 
+    context_product_ids = _context_product_ids(
+        context,
+        candidate_limit=candidate_limit,
+    )
     candidate_scope = (
-        len(context.resolved_product_ids)
-        if context.resolved_product_ids
-        else candidate_limit
+        len(context_product_ids) if context_product_ids else candidate_limit
     )
     comparison_required = has_compare or (has_recommendation and candidate_scope >= 2)
     if has_compare and candidate_scope < 2:
@@ -851,11 +957,10 @@ def _deterministic_request(
             kind=kind,
             description=description,
             explicit=explicit,
-            product_ids=context.resolved_product_ids,
+            product_ids=context_product_ids,
         )
         for kind, explicit, description in dict.fromkeys(obligation_specs)
     )
-    catalog_query = _extract_catalog_query(cleaned)
     if (
         any(
             capability in {"product.catalog.search", "product.rank"}
@@ -976,13 +1081,17 @@ def _validate_model_choice(
     *,
     options: tuple[tuple[str, tuple[str, ...]], ...],
 ) -> None:
+    context_product_ids = _context_product_ids(
+        context,
+        candidate_limit=request.candidate_limit,
+    )
     if (choice.template_id, choice.capabilities) not in options:
         raise ValueError("model plan option is not authorized")
-    if choice.selected_product_ids != context.resolved_product_ids:
+    if choice.selected_product_ids != context_product_ids:
         raise ValueError("model product IDs are not the resolved context")
     if choice.candidate_limit > request.candidate_limit:
         raise ValueError("model cannot expand the candidate limit")
-    if choice.candidate_limit < len(context.resolved_product_ids):
+    if choice.candidate_limit < len(context_product_ids):
         raise ValueError("model cannot drop resolved products")
     if request.candidate_limit_explicit and (
         choice.candidate_limit != request.candidate_limit
@@ -1274,13 +1383,66 @@ def _contains(message: str, *needles: str) -> bool:
     return any(needle in message for needle in needles)
 
 
-def _plan_id(message: str, context: PlanningContext) -> str:
+def _context_product_ids(
+    context: PlanningContext,
+    *,
+    candidate_limit: int = MAX_CANDIDATES,
+) -> tuple[ProductId, ...]:
+    if context.resolved_product_ids:
+        return context.resolved_product_ids
+    return context.model_context.referenced_product_ids[
+        : min(candidate_limit, MAX_CANDIDATES)
+    ]
+
+
+def _model_context_projection(
+    context: PlanningContext,
+    *,
+    candidate_limit: int = MAX_CANDIDATES,
+) -> dict[str, object]:
+    """Bounded planning hints; never evidence or answer-supporting material."""
+
+    constraints = [
+        {
+            "key": item.key,
+            "value": item.value[:160] if isinstance(item.value, str) else item.value,
+        }
+        for item in context.model_context.active_constraints
+    ]
+    recent_requests = [
+        turn.user_message[:300]
+        for turn in context.model_context.recent_turns
+        if turn.user_message is not None
+    ]
+    return {
+        "notice": "planning context only; never evidence or citation support",
+        "recent_user_requests": recent_requests,
+        "active_constraints": constraints,
+        "referenced_product_ids": list(
+            _context_product_ids(context, candidate_limit=candidate_limit)
+        ),
+    }
+
+
+def _plan_id(
+    message: str,
+    context: PlanningContext,
+    *,
+    candidate_limit: int = MAX_CANDIDATES,
+) -> str:
     canonical = json.dumps(
         {
             "message": message,
             "mode": context.access.binding.mode.value,
             "versions": context.versions.model_dump(mode="json"),
-            "resolved_product_ids": context.resolved_product_ids,
+            "resolved_product_ids": _context_product_ids(
+                context,
+                candidate_limit=candidate_limit,
+            ),
+            "planning_constraints": [
+                item.model_dump(mode="json")
+                for item in context.model_context.active_constraints
+            ],
         },
         ensure_ascii=False,
         sort_keys=True,
@@ -1296,6 +1458,7 @@ def _text_token_bound(*values: str) -> int:
 
 __all__ = [
     "BoundedV2Planner",
+    "context_constraints_from_message",
     "ModelPlanChoice",
     "ModelPlanRejectedError",
     "PlannedTurn",

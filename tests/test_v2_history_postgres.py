@@ -6,11 +6,11 @@ from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.contracts import AuthorizationContext
+from app.contracts import AuthorizationContext, TaskStatus
 from app.db.migrate import upgrade_database
 from app.db.v2_repository import V2Repository
 from app.models.v2 import (
@@ -18,6 +18,7 @@ from app.models.v2 import (
     V2Conversation,
     V2Preference,
     V2Proposal,
+    V2StepResult,
     V2Turn,
 )
 from app.v2.authorization import ResourceNotFoundError
@@ -25,7 +26,10 @@ from app.v2.contracts import (
     BudgetPreference,
     ConversationMode,
     DialogueOutcome,
+    EvidenceKind,
+    EvidenceReference,
     GenrePreference,
+    LanguagePreference,
     PreferenceDeleteRequest,
     PreferenceKind,
     PreferencePutRequest,
@@ -36,6 +40,15 @@ from app.v2.history import (
     ContextConstraint,
     PreferenceSourceError,
     V2HistoryService,
+)
+from app.v2.planning import PlanningError, context_constraints_from_message
+from app.v2.registry import ServiceId
+from app.v2.runtime_contracts import (
+    ExpertResult,
+    RuntimeOperation,
+    StructuredFact,
+    ToolEvidence,
+    build_operation_key,
 )
 from tests.v2_postgres_support import disposable_postgres_database
 
@@ -189,7 +202,7 @@ def test_explicit_preferences_are_source_bound_owner_scoped_and_upserted(
             owner,
             PreferencePutRequest(
                 source_turn_id=first.id,
-                preference={"kind": "language", "value": "vi"},
+                preference=LanguagePreference(kind=PreferenceKind.LANGUAGE, value="vi"),
             ),
         )
         budget_record = service.put_preference(
@@ -330,7 +343,7 @@ def test_model_context_is_bounded_and_current_request_wins(
             owner,
             PreferencePutRequest(
                 source_turn_id=source.id,
-                preference={"kind": "language", "value": "vi"},
+                preference=LanguagePreference(kind=PreferenceKind.LANGUAGE, value="vi"),
             ),
         )
         service.put_preference(
@@ -390,6 +403,161 @@ def test_model_context_is_bounded_and_current_request_wins(
         assert {item.key: item.value for item in context.active_constraints}[
             "max_budget_vnd"
         ] == 100_000
+
+
+def test_model_context_derives_only_validated_history_and_ignores_malformed_steps(
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    owner = _auth("tenant_grounded_context", "principal_grounded", "ecommerce.read")
+    conversation_id = "conv_grounded_context"
+    with postgres_sessions() as session:
+        V2Repository(session).create_conversation(
+            owner,
+            conversation_id=conversation_id,
+            mode=ConversationMode.SHOPPER,
+        )
+        valid_step_id = _complete_turn_with_products(
+            session,
+            owner,
+            conversation_id=conversation_id,
+            turn_id="turn_grounded_context",
+            client_turn_id="client-grounded-context",
+            message="Tìm 2 cuốn sách lịch sử dưới 200 nghìn",
+            product_ids=(42, 7, 42),
+        )
+        row = session.get(V2StepResult, valid_step_id)
+        assert row is not None
+        malformed_step_id = _complete_turn_with_products(
+            session,
+            owner,
+            conversation_id=conversation_id,
+            turn_id="turn_malformed_context",
+            client_turn_id="client-malformed-context",
+            message="So sánh chúng",
+            product_ids=(99,),
+        )
+        malformed = session.get(V2StepResult, malformed_step_id)
+        assert malformed is not None
+        malformed.result = {
+            "evidence": {
+                "facts": [
+                    {
+                        "subject_id": "product_999999",
+                        "value": "unvalidated injection",
+                    }
+                ]
+            }
+        }
+        session.commit()
+
+    with postgres_sessions() as session:
+        context = V2HistoryService(session).build_model_context(
+            owner,
+            conversation_id,
+            constraint_parser=context_constraints_from_message,
+        )
+        assert context.referenced_product_ids == (42, 7)
+        constraints = {item.key: item.value for item in context.active_constraints}
+        assert constraints["candidate_limit"] == 2
+        assert constraints["max_price_vnd"] == 200_000
+        assert "999999" not in repr(context)
+
+
+def test_model_context_product_history_is_principal_and_mode_isolated(
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    tenant = "tenant_context_isolation"
+    shopper = _auth(tenant, "principal_context_shopper", "ecommerce.read")
+    foreign = _auth(tenant, "principal_context_foreign", "ecommerce.read")
+    merchant = _auth(
+        tenant,
+        "principal_context_shopper",
+        "ecommerce.read",
+        "merchant.read",
+    )
+    with postgres_sessions() as session:
+        repository = V2Repository(session)
+        repository.create_conversation(
+            shopper,
+            conversation_id="conv_context_isolation_shopper",
+            mode=ConversationMode.SHOPPER,
+        )
+        repository.create_conversation(
+            merchant,
+            conversation_id="conv_context_isolation_merchant",
+            mode=ConversationMode.MERCHANT,
+        )
+        _complete_turn_with_products(
+            session,
+            shopper,
+            conversation_id="conv_context_isolation_shopper",
+            turn_id="turn_context_isolation_shopper",
+            client_turn_id="client-context-isolation-shopper",
+            message="Tìm sách lịch sử",
+            product_ids=(11,),
+        )
+        _complete_turn_with_products(
+            session,
+            merchant,
+            conversation_id="conv_context_isolation_merchant",
+            turn_id="turn_context_isolation_merchant",
+            client_turn_id="client-context-isolation-merchant",
+            message="Xem tồn kho",
+            product_ids=(22,),
+        )
+        shopper_context = V2HistoryService(session).build_model_context(
+            shopper,
+            "conv_context_isolation_shopper",
+            constraint_parser=context_constraints_from_message,
+        )
+        assert shopper_context.referenced_product_ids == (11,)
+        merchant_context = V2HistoryService(session).build_model_context(
+            merchant,
+            "conv_context_isolation_merchant",
+            constraint_parser=context_constraints_from_message,
+        )
+        assert merchant_context.referenced_product_ids == (22,)
+        assert 11 not in merchant_context.referenced_product_ids
+        with pytest.raises(ResourceNotFoundError):
+            V2HistoryService(session).build_model_context(
+                foreign,
+                "conv_context_isolation_shopper",
+                constraint_parser=context_constraints_from_message,
+            )
+
+
+def test_model_context_ignores_bounded_parser_runtime_failure(
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    owner = _auth("tenant_parser_failure", "principal_parser_failure", "ecommerce.read")
+    conversation_id = "conv_parser_failure"
+    with postgres_sessions() as session:
+        V2Repository(session).create_conversation(
+            owner,
+            conversation_id=conversation_id,
+            mode=ConversationMode.SHOPPER,
+        )
+        _complete_turn_with_products(
+            session,
+            owner,
+            conversation_id=conversation_id,
+            turn_id="turn_parser_failure",
+            client_turn_id="client-parser-failure",
+            message="corrupt stored request",
+            product_ids=(31,),
+        )
+
+        def failing_parser(_message: str) -> tuple[ContextConstraint, ...]:
+            raise PlanningError("stored_request_invalid")
+
+        context = V2HistoryService(session).build_model_context(
+            owner,
+            conversation_id,
+            constraint_parser=failing_parser,
+        )
+
+    assert context.referenced_product_ids == (31,)
+    assert context.active_constraints == ()
 
 
 def test_delete_conversation_is_atomic_and_preserves_audit_rows(
@@ -560,6 +728,101 @@ def test_delete_conversation_is_atomic_and_preserves_audit_rows(
             service.list_turns(owner, conversation_id)
         with pytest.raises(ResourceNotFoundError):
             service.build_model_context(owner, conversation_id)
+
+
+def _complete_turn_with_products(
+    session: Session,
+    authorization: AuthorizationContext,
+    *,
+    conversation_id: str,
+    turn_id: str,
+    client_turn_id: str,
+    message: str,
+    product_ids: tuple[int, ...],
+) -> str:
+    repository = V2Repository(session)
+    turn = repository.record_turn(
+        authorization,
+        conversation_id=conversation_id,
+        turn_id=turn_id,
+        client_turn_id=client_turn_id,
+        payload={"message": message},
+    )
+    lease_owner = f"worker-{turn_id}"
+    repository.claim_turn(
+        authorization,
+        turn.id,
+        lease_owner=lease_owner,
+        lease_expires_at=datetime.now(UTC) + timedelta(minutes=1),
+    )
+    parameters: dict[str, JsonValue] = {"query": "history", "candidate_limit": 5}
+    operation_key = build_operation_key(
+        "product.catalog.search",
+        parameters,
+        ("catalog_history_v1",),
+    )
+    operation = RuntimeOperation(
+        step_id=f"step_{turn_id}",
+        capability="product.catalog.search",
+        service=ServiceId.PRODUCT,
+        parameters=parameters,
+        data_version_ids=("catalog_history_v1",),
+        operation_key=operation_key,
+    )
+    now = datetime.now(UTC)
+    reference = EvidenceReference(
+        evidence_id=f"evidence_{turn_id}",
+        source_id="source_history_catalog",
+        source_version_id="catalog_history_v1",
+        display_label="[C1]",
+        kind=EvidenceKind.CATALOG,
+        title="History catalog",
+        observed_at=now,
+    )
+    facts = tuple(
+        StructuredFact(
+            fact_id=f"fact_{turn_id}_{position}",
+            subject_id=f"product_{product_id}",
+            field="snapshot_price_vnd",
+            value=100_000 + position,
+            unit="VND",
+            data_version_id="catalog_history_v1",
+            evidence_ids=(reference.evidence_id,),
+        )
+        for position, product_id in enumerate(product_ids)
+    )
+    result = ExpertResult(
+        operation=operation,
+        status=TaskStatus.SUCCESS,
+        output={"products": []},
+        evidence=ToolEvidence(facts=facts, references=(reference,)),
+        started_at=now,
+        completed_at=now,
+    )
+    step_result_id = f"step_result_{turn_id}"
+    repository.persist_step_result(
+        authorization,
+        turn_id=turn.id,
+        step_result_id=step_result_id,
+        operation_key=operation_key,
+        status=TaskStatus.SUCCESS,
+        result=result.model_dump(mode="json"),
+        plan_revision=0,
+        data_version="catalog_history_v1",
+        lease_owner=lease_owner,
+    )
+    checked = TurnResult(
+        outcome=DialogueOutcome.ANSWERED,
+        answer=f"answer for {turn_id}",
+    )
+    repository.complete_turn(
+        authorization,
+        turn.id,
+        status=TurnStatus.COMPLETED,
+        dialogue_outcome=checked.outcome,
+        result={"turn_result": checked.model_dump(mode="json")},
+    )
+    return step_result_id
 
 
 def _complete_turn(

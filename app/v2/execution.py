@@ -65,7 +65,12 @@ from app.v2.contracts import (
     UsageSummary,
     V2Contract,
 )
-from app.v2.planning import PlanningContext, PlanningError
+from app.v2.history import V2HistoryService
+from app.v2.planning import (
+    PlanningContext,
+    PlanningError,
+    context_constraints_from_message,
+)
 from app.v2.registry import CapabilityEffect, V2CapabilityRegistry, default_v2_registry
 from app.v2.runtime_contracts import ExpertResult, RuntimeOperation
 
@@ -866,6 +871,17 @@ class DurableReadTurnExecutor:
                 if provider_budget is not None
                 else nullcontext()
             )
+            with self.session_factory() as session:
+                model_context = V2HistoryService(session).build_model_context(
+                    authorization,
+                    request.conversation_id,
+                    current_constraints=context_constraints_from_message(
+                        request.message
+                    ),
+                    current_referenced_product_ids=context.resolved_product_ids,
+                    constraint_parser=context_constraints_from_message,
+                )
+            context = context.model_copy(update={"model_context": model_context})
             with collect_model_calls() as model_calls, budget_scope:
                 async with asyncio.timeout(timeout_seconds):
                     computation = await self.handler.run_claimed(

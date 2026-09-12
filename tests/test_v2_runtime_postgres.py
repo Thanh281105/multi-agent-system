@@ -7,7 +7,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from time import monotonic
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from sqlalchemy import create_engine, select, update
@@ -27,7 +27,14 @@ from app.shared.budget import (
     default_pricing_manifest_path,
 )
 from app.v2.answers import GroundedAnswerProducer
-from app.v2.contracts import DialogueOutcome, TurnResult, TurnStatus
+from app.v2.contracts import (
+    BudgetPreference,
+    DialogueOutcome,
+    PreferenceKind,
+    PreferencePutRequest,
+    TurnResult,
+    TurnStatus,
+)
 from app.v2.execution import (
     DurableExecutionError,
     DurableOperationExecutor,
@@ -35,6 +42,7 @@ from app.v2.execution import (
     DurableTurnRequest,
     TurnComputation,
 )
+from app.v2.history import V2HistoryService
 from app.v2.planning import (
     BoundedV2Planner,
     PlanningContext,
@@ -127,6 +135,7 @@ class _SuccessHandler:
 @pytest.mark.asyncio
 async def test_record_claim_precede_handler_and_completed_retry_reuses_result(
     postgres_runtime_store: _RuntimeStore,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     store = postgres_runtime_store
     context = _context()
@@ -148,6 +157,12 @@ async def test_record_claim_precede_handler_and_completed_retry_reuses_result(
         context,
         provider_budget=budget,
     )
+
+    def reject_history(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise AssertionError("completed replay must not load history")
+
+    monkeypatch.setattr(V2HistoryService, "build_model_context", reject_history)
     retry = await runner.execute(
         _request(
             "conv_runtime_replay",
@@ -335,6 +350,7 @@ async def test_concurrent_retry_has_one_claimant_and_no_duplicate_handler(
 @pytest.mark.asyncio
 async def test_expired_running_turn_is_interrupted_and_never_reclaimed(
     postgres_runtime_store: _RuntimeStore,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     store = postgres_runtime_store
     context = _context()
@@ -358,6 +374,12 @@ async def test_expired_running_turn_is_interrupted_and_never_reclaimed(
         )
         session.commit()
     handler = _NeverHandler()
+
+    def reject_history(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise AssertionError("expired running replay must not load history")
+
+    monkeypatch.setattr(V2HistoryService, "build_model_context", reject_history)
     runner = DurableReadTurnExecutor(store.sessions, handler)
     outcome = await runner.execute(
         _request(
@@ -773,6 +795,113 @@ async def test_failed_repair_attempt_counter_survives_restart(
     assert handler.calls == 1
 
 
+class _PlanningContextHandler:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.context: PlanningContext | None = None
+        self.comparison_product_ids: tuple[int, ...] = ()
+
+    async def run_claimed(self, **kwargs: Any) -> TurnComputation:
+        self.calls += 1
+        context: PlanningContext = kwargs["context"]
+        self.context = context
+        planned = await BoundedV2Planner(runtime_mode="off").plan(
+            kwargs["message"], context
+        )
+        comparison = next(
+            operation
+            for operation in planned.initial_operations
+            if operation.capability == "product.compare"
+        )
+        raw_product_ids = comparison.parameters["product_ids"]
+        assert isinstance(raw_product_ids, list)
+        self.comparison_product_ids = tuple(
+            cast(int, product_id) for product_id in raw_product_ids
+        )
+        return _answered("History-aware follow-up")
+
+
+@pytest.mark.asyncio
+async def test_restarted_executor_loads_grounded_history_and_preferences(
+    postgres_runtime_store: _RuntimeStore,
+) -> None:
+    store = postgres_runtime_store
+    tools = read_tools(store.sessions)
+    access = tool_access(
+        scopes=frozenset({"ecommerce.read", "ecommerce.write", "merchant.read"})
+    )
+    context = PlanningContext(
+        access=access,
+        versions=RuntimeDataVersions(
+            catalog_version_id=tools.catalog_snapshot.version_id,
+            corpus_version_id="corpus_runtime_a",
+            index_manifest_id="index_runtime_a",
+        ),
+    )
+    conversation_id = "conv_runtime_history_followup"
+    _conversation(store.sessions, context, conversation_id)
+    supervisor = V2ReadSupervisor(
+        store.sessions,
+        planner=BoundedV2Planner(runtime_mode="off"),
+        operation_executor=DurableOperationExecutor(store.sessions, tools),
+        answer_producer=GroundedAnswerProducer(  # type: ignore[arg-type]
+            None, runtime_mode="off", model=None
+        ),
+    )
+    first = await DurableReadTurnExecutor(store.sessions, supervisor).execute(
+        _request(
+            conversation_id,
+            "turn_runtime_history_source",
+            "client-runtime-history-source",
+            "worker-runtime-history-source",
+            message="Tìm 2 cuốn sách dưới 200 nghìn",
+        ),
+        context,
+    )
+    assert first.status == TurnStatus.COMPLETED
+    with store.sessions() as session:
+        V2HistoryService(session).put_preference(
+            _authorization(context),
+            PreferencePutRequest(
+                source_turn_id=first.turn_id,
+                preference=BudgetPreference(
+                    kind=PreferenceKind.MAX_BUDGET_VND,
+                    value=175_000,
+                ),
+            ),
+        )
+
+    handler = _PlanningContextHandler()
+    follow_up = await DurableReadTurnExecutor(store.sessions, handler).execute(
+        _request(
+            conversation_id,
+            "turn_runtime_history_followup",
+            "client-runtime-history-followup",
+            "worker-runtime-history-followup",
+            message="So sánh chúng",
+        ),
+        context,
+    )
+    assert follow_up.status == TurnStatus.COMPLETED
+    assert handler.calls == 1
+    assert handler.context is not None
+    assert handler.context.model_context.recent_turns[-1].user_message == (
+        "Tìm 2 cuốn sách dưới 200 nghìn"
+    )
+    assert handler.context.model_context.preferences[0].preference.value == 175_000
+    assert handler.context.model_context.referenced_product_ids
+    assert (
+        handler.comparison_product_ids
+        == (handler.context.model_context.referenced_product_ids[:5])
+    )
+    constraints = {
+        item.key: item.value
+        for item in handler.context.model_context.active_constraints
+    }
+    assert constraints["max_budget_vnd"] == 175_000
+    assert constraints["max_price_vnd"] == 200_000
+
+
 @pytest.mark.asyncio
 async def test_actual_no_context_catalog_read_is_grounded_and_persisted(
     postgres_runtime_store: _RuntimeStore,
@@ -794,7 +923,7 @@ async def test_actual_no_context_catalog_read_is_grounded_and_persisted(
         store.sessions,
         planner=BoundedV2Planner(runtime_mode="off"),
         operation_executor=operation_executor,
-        answer_producer=GroundedAnswerProducer(
+        answer_producer=GroundedAnswerProducer(  # type: ignore[arg-type]
             None,
             runtime_mode="off",
             model=None,
