@@ -24,6 +24,7 @@ from app.v2.authorization import (
     bind_request_authorization,
 )
 from app.v2.contracts import (
+    CLIENT_TURN_ID_PATTERN,
     IDENTIFIER_PATTERN,
     MAX_DRAFT_REPAIRS,
     MAX_KNOWLEDGE_RETRIEVALS,
@@ -195,6 +196,26 @@ class V2Repository:
             return replay
         return turn
 
+    def admit_turn(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        conversation_id: str,
+        client_turn_id: str,
+        payload: Mapping[str, Any],
+        corpus_version_id: str | None = None,
+    ) -> V2Turn:
+        """Record the one canonical durable row for a public client turn."""
+
+        return self.record_turn(
+            authorization,
+            conversation_id=conversation_id,
+            turn_id=canonical_turn_id(conversation_id, client_turn_id),
+            client_turn_id=client_turn_id,
+            payload=payload,
+            corpus_version_id=corpus_version_id,
+        )
+
     def get_turn(
         self,
         authorization: AuthorizationContext,
@@ -346,6 +367,24 @@ class V2Repository:
             self._validate_turn_write_fence(turn, lease_owner=lease_owner)
         finally:
             self._session.rollback()
+
+    def turn_claim_is_current(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+        *,
+        lease_owner: str,
+    ) -> bool:
+        """Return whether a worker still owns a live claim by the database clock."""
+
+        turn = self._locked_turn(authorization, turn_id)
+        try:
+            self._validate_turn_write_fence(turn, lease_owner=lease_owner)
+        except TurnLeaseConflictError:
+            return False
+        finally:
+            self._session.rollback()
+        return True
 
     def persist_step_result(
         self,
@@ -534,6 +573,42 @@ class V2Repository:
         self._session.commit()
         return turn
 
+    def cancel_turn(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+    ) -> V2Turn:
+        """Cancel pending/running work under its row lock and replay the winner."""
+
+        terminal = {
+            TurnStatus.COMPLETED.value,
+            TurnStatus.FAILED.value,
+            TurnStatus.CANCELLED.value,
+            TurnStatus.INTERRUPTED.value,
+        }
+        turn = self._locked_turn(authorization, turn_id)
+        if turn.execution_state in terminal:
+            self._session.commit()
+            return turn
+        if turn.execution_state not in {
+            TurnStatus.PENDING.value,
+            TurnStatus.RUNNING.value,
+        }:
+            self._session.rollback()
+            raise TurnStateConflictError("turn has an invalid cancellable state")
+
+        now = self._database_now()
+        turn.execution_state = TurnStatus.CANCELLED.value
+        turn.dialogue_outcome = None
+        turn.result = None
+        turn.safe_error = None
+        turn.completed_at = now
+        turn.updated_at = now
+        turn.lease_owner = None
+        turn.lease_expires_at = None
+        self._session.commit()
+        return turn
+
     def _turn_for_retry(
         self,
         conversation_id: str,
@@ -651,6 +726,22 @@ def canonical_payload_hash(payload: Mapping[str, Any]) -> str:
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(canonical).hexdigest()
+
+
+def canonical_turn_id(conversation_id: str, client_turn_id: str) -> str:
+    """Derive the stable server-owned turn identity used by retries and budgets."""
+
+    if re.fullmatch(IDENTIFIER_PATTERN, conversation_id) is None:
+        raise ValueError("conversation_id must be a stable identifier")
+    if re.fullmatch(CLIENT_TURN_ID_PATTERN, client_turn_id) is None:
+        raise ValueError("client_turn_id must be a valid retry identifier")
+    canonical = json.dumps(
+        [conversation_id, client_turn_id],
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return f"turn_{hashlib.sha256(canonical).hexdigest()[:48]}"
 
 
 def _validated_runtime_versions(data_versions: Mapping[str, str]) -> dict[str, str]:

@@ -7,7 +7,7 @@ import hashlib
 import json
 from collections.abc import Callable
 from contextlib import nullcontext
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from time import monotonic
 from typing import Protocol, runtime_checkable
@@ -73,6 +73,16 @@ from app.v2.planning import (
     PlanningContext,
     PlanningError,
     context_constraints_from_message,
+)
+from app.v2.progress import (
+    CancellationProbe,
+    ProgressCallback,
+    TurnProgress,
+    TurnProgressPhase,
+    cancellation_requested,
+    emit_current_progress,
+    emit_progress,
+    turn_progress_scope,
 )
 from app.v2.registry import CapabilityEffect, V2CapabilityRegistry, default_v2_registry
 from app.v2.runtime_contracts import ExpertResult, RuntimeOperation
@@ -324,6 +334,21 @@ class DurableTurnOutcome(V2Contract):
         return self
 
 
+@dataclass(frozen=True, slots=True)
+class DurableTurnAdmission:
+    """Result of durable record/bind/claim admission for one execution caller."""
+
+    request: DurableTurnRequest
+    outcome: DurableTurnOutcome
+    claimed: bool
+
+    def __post_init__(self) -> None:
+        if self.request.turn_id != self.outcome.turn_id:
+            raise ValueError("admission request and durable outcome must match")
+        if self.claimed and self.outcome.status is not TurnStatus.RUNNING:
+            raise ValueError("claimed admissions require a running durable turn")
+
+
 class DurableOperationExecutor:
     """Dispatch new operations and durably store each terminal result at once."""
 
@@ -371,9 +396,27 @@ class DurableOperationExecutor:
                 results.append(existing)
                 results_by_step[operation.step_id] = existing
                 reused.append(operation.step_id)
+                await emit_current_progress(
+                    phase=TurnProgressPhase.STEP_FINISHED,
+                    turn_status=TurnStatus.RUNNING,
+                    step_id=operation.step_id,
+                    capability=operation.capability,
+                    plan_revision=plan_revision,
+                    step_status=existing.status,
+                    reused=True,
+                )
                 continue
 
             self._assert_claim(turn_id, lease_owner, access)
+            if cancellation_requested():
+                raise asyncio.CancelledError
+            await emit_current_progress(
+                phase=TurnProgressPhase.STEP_STARTED,
+                turn_status=TurnStatus.RUNNING,
+                step_id=operation.step_id,
+                capability=operation.capability,
+                plan_revision=plan_revision,
+            )
             failed_dependencies = tuple(
                 dependency
                 for dependency in operation.depends_on
@@ -399,6 +442,9 @@ class DurableOperationExecutor:
                 try:
                     if operation.capability == "knowledge.retrieve":
                         self._checkpoint_knowledge(turn_id, lease_owner, access)
+                    self._assert_claim(turn_id, lease_owner, access)
+                    if cancellation_requested():
+                        raise asyncio.CancelledError
                     did_dispatch = True
                     result = await self.dispatcher.execute(operation, access)
                 except asyncio.CancelledError:
@@ -524,6 +570,15 @@ class DurableOperationExecutor:
                 reused.append(operation.step_id)
             elif did_dispatch:
                 dispatched.append(operation.step_id)
+            await emit_current_progress(
+                phase=TurnProgressPhase.STEP_FINISHED,
+                turn_status=TurnStatus.RUNNING,
+                step_id=operation.step_id,
+                capability=operation.capability,
+                plan_revision=plan_revision,
+                step_status=persisted.status,
+                reused=was_reused,
+            )
         return OperationBatch(
             results=tuple(results),
             dispatched_step_ids=tuple(dispatched),
@@ -807,7 +862,37 @@ class DurableReadTurnExecutor:
         context: PlanningContext,
         *,
         provider_budget: ProviderBudgetContext | None = None,
+        progress: ProgressCallback | None = None,
+        cancellation_probe: CancellationProbe | None = None,
     ) -> DurableTurnOutcome:
+        """Compatibility entry point that admits once and runs only its SQL winner."""
+
+        admission = await self.admit(
+            request,
+            context,
+            provider_budget=provider_budget,
+            progress=progress,
+        )
+        if not admission.claimed:
+            return admission.outcome
+        return await self.run_admitted(
+            admission,
+            context,
+            provider_budget=provider_budget,
+            progress=progress,
+            cancellation_probe=cancellation_probe,
+        )
+
+    async def admit(
+        self,
+        request: DurableTurnRequest,
+        context: PlanningContext,
+        *,
+        provider_budget: ProviderBudgetContext | None = None,
+        progress: ProgressCallback | None = None,
+    ) -> DurableTurnAdmission:
+        """Persist, bind, and atomically claim before any provider or tool work."""
+
         access = context.access
         authorization = _authorization(access)
         stable_payload = _request_payload(request, context)
@@ -822,13 +907,28 @@ class DurableReadTurnExecutor:
             )
             snapshot = _snapshot_turn(recorded)
         _validate_turn_binding(snapshot, request.conversation_id, access)
+        request = request.model_copy(update={"turn_id": snapshot.turn_id})
 
         if snapshot.status != TurnStatus.PENDING:
-            return self._existing_outcome(
+            outcome = self._existing_outcome(
                 snapshot,
                 access,
                 provider_budget=provider_budget,
             )
+            await _emit_observed_progress(progress, outcome, attached=True)
+            return DurableTurnAdmission(
+                request=request,
+                outcome=outcome,
+                claimed=False,
+            )
+        await emit_progress(
+            progress,
+            TurnProgress(
+                turn_id=snapshot.turn_id,
+                phase=TurnProgressPhase.ADMITTED,
+                turn_status=TurnStatus.PENDING,
+            ),
+        )
         try:
             with self.session_factory() as session:
                 bound = V2Repository(session).bind_turn_runtime(
@@ -840,24 +940,32 @@ class DurableReadTurnExecutor:
         except TurnRuntimeConflictError:
             latest = self._load_turn(snapshot.turn_id, access)
             if latest.status != TurnStatus.PENDING:
-                return self._existing_outcome(
+                outcome = self._existing_outcome(
                     latest,
                     access,
                     provider_budget=provider_budget,
                 )
-            return self._persist_error(
-                snapshot.turn_id,
-                access,
-                status=TurnStatus.INTERRUPTED,
-                error=SafeExecutionError(
-                    code="turn_runtime_pin_conflict",
-                    message=(
-                        "The recorded turn is pinned to different runtime snapshots."
+            else:
+                outcome = self._persist_error(
+                    snapshot.turn_id,
+                    access,
+                    status=TurnStatus.INTERRUPTED,
+                    error=SafeExecutionError(
+                        code="turn_runtime_pin_conflict",
+                        message=(
+                            "The recorded turn is pinned to different runtime "
+                            "snapshots."
+                        ),
+                        retryable=False,
                     ),
-                    retryable=False,
-                ),
-                provider_budget=provider_budget,
-                expected_status=TurnStatus.PENDING,
+                    provider_budget=provider_budget,
+                    expected_status=TurnStatus.PENDING,
+                )
+            await _emit_observed_progress(progress, outcome, attached=True)
+            return DurableTurnAdmission(
+                request=request,
+                outcome=outcome,
+                claimed=False,
             )
 
         try:
@@ -871,8 +979,114 @@ class DurableReadTurnExecutor:
                 snapshot = _snapshot_turn(claimed)
         except TurnStateConflictError:
             snapshot = self._load_turn(snapshot.turn_id, access)
-            return self._existing_outcome(
+            outcome = self._existing_outcome(
                 snapshot,
+                access,
+                provider_budget=provider_budget,
+            )
+            await _emit_observed_progress(progress, outcome, attached=True)
+            return DurableTurnAdmission(
+                request=request,
+                outcome=outcome,
+                claimed=False,
+            )
+
+        outcome = self._outcome_from_snapshot(
+            snapshot,
+            provider_budget=provider_budget,
+        )
+        await emit_progress(
+            progress,
+            TurnProgress(
+                turn_id=snapshot.turn_id,
+                phase=TurnProgressPhase.CLAIMED,
+                turn_status=TurnStatus.RUNNING,
+            ),
+        )
+        return DurableTurnAdmission(
+            request=request,
+            outcome=outcome,
+            claimed=True,
+        )
+
+    async def run_admitted(
+        self,
+        admission: DurableTurnAdmission,
+        context: PlanningContext,
+        *,
+        provider_budget: ProviderBudgetContext | None = None,
+        progress: ProgressCallback | None = None,
+        cancellation_probe: CancellationProbe | None = None,
+    ) -> DurableTurnOutcome:
+        """Execute a won admission and emit its observed durable terminal state."""
+
+        try:
+            outcome = await self._run_admitted(
+                admission,
+                context,
+                provider_budget=provider_budget,
+                progress=progress,
+                cancellation_probe=cancellation_probe,
+            )
+        except asyncio.CancelledError:
+            latest = self.query(
+                admission.request.turn_id,
+                context.access,
+                provider_budget=provider_budget,
+            )
+            await _emit_observed_progress(progress, latest, attached=False)
+            raise
+        await _emit_observed_progress(progress, outcome, attached=False)
+        return outcome
+
+    async def _run_admitted(
+        self,
+        admission: DurableTurnAdmission,
+        context: PlanningContext,
+        *,
+        provider_budget: ProviderBudgetContext | None = None,
+        progress: ProgressCallback | None = None,
+        cancellation_probe: CancellationProbe | None = None,
+    ) -> DurableTurnOutcome:
+        """Run only the caller that won the durable SQL claim."""
+
+        if not admission.claimed:
+            return admission.outcome
+        request = admission.request
+        access = context.access
+        authorization = _authorization(access)
+        snapshot = self._load_turn(request.turn_id, access)
+        _validate_turn_binding(snapshot, request.conversation_id, access)
+        _validate_admitted_runtime(snapshot, context)
+
+        original_budget_cancellation = (
+            provider_budget.cancellation_requested
+            if provider_budget is not None
+            else None
+        )
+
+        def claim_cancelled() -> bool:
+            if cancellation_probe is not None and cancellation_probe():
+                return True
+            if (
+                original_budget_cancellation is not None
+                and original_budget_cancellation()
+            ):
+                return True
+            return not self._claim_is_current(
+                snapshot.turn_id,
+                request.lease_owner,
+                access,
+            )
+
+        if provider_budget is not None:
+            provider_budget = replace(
+                provider_budget,
+                cancellation_requested=claim_cancelled,
+            )
+        if claim_cancelled():
+            return self._existing_outcome(
+                self._load_turn(snapshot.turn_id, access),
                 access,
                 provider_budget=provider_budget,
             )
@@ -901,7 +1115,15 @@ class DurableReadTurnExecutor:
                     constraint_parser=context_constraints_from_message,
                 )
             context = context.model_copy(update={"model_context": model_context})
-            with collect_model_calls() as model_calls, budget_scope:
+            with (
+                collect_model_calls() as model_calls,
+                budget_scope,
+                turn_progress_scope(
+                    turn_id=snapshot.turn_id,
+                    callback=progress,
+                    cancellation_requested=claim_cancelled,
+                ),
+            ):
                 async with asyncio.timeout(timeout_seconds):
                     computation = await self.handler.run_claimed(
                         conversation_id=request.conversation_id,
@@ -1201,6 +1423,35 @@ class DurableReadTurnExecutor:
             turn = V2Repository(session).get_turn(_authorization(access), turn_id)
             return _snapshot_turn(turn)
 
+    def query(
+        self,
+        turn_id: str,
+        access: ResourceAuthorization,
+        *,
+        provider_budget: ProviderBudgetContext | None = None,
+    ) -> DurableTurnOutcome:
+        """Read or safely recover the current owner-authorized durable outcome."""
+
+        snapshot = self._load_turn(turn_id, access)
+        return self._existing_outcome(
+            snapshot,
+            access,
+            provider_budget=provider_budget,
+        )
+
+    def _claim_is_current(
+        self,
+        turn_id: str,
+        lease_owner: str,
+        access: ResourceAuthorization,
+    ) -> bool:
+        with self.session_factory() as session:
+            return V2Repository(session).turn_claim_is_current(
+                _authorization(access),
+                turn_id,
+                lease_owner=lease_owner,
+            )
+
     def _outcome_from_snapshot(
         self,
         snapshot: _TurnSnapshot,
@@ -1378,6 +1629,49 @@ def _validate_turn_binding(
         or snapshot.store_id != binding.store_id
     ):
         raise DurableExecutionError("recorded_turn_binding_invalid")
+
+
+def _validate_admitted_runtime(
+    snapshot: _TurnSnapshot,
+    context: PlanningContext,
+) -> None:
+    metadata = snapshot.runtime_metadata
+    versions = metadata.get("data_versions")
+    if (
+        metadata.get("schema_version") != 1
+        or not isinstance(versions, dict)
+        or versions != context.versions.model_dump(mode="json")
+    ):
+        raise DurableExecutionError("admitted_turn_runtime_invalid")
+
+
+async def _emit_observed_progress(
+    callback: ProgressCallback | None,
+    outcome: DurableTurnOutcome,
+    *,
+    attached: bool,
+) -> None:
+    terminal = outcome.status in {
+        TurnStatus.COMPLETED,
+        TurnStatus.FAILED,
+        TurnStatus.CANCELLED,
+        TurnStatus.INTERRUPTED,
+    }
+    phase = (
+        TurnProgressPhase.TERMINAL
+        if terminal
+        else TurnProgressPhase.ATTACHED
+        if attached or outcome.status is TurnStatus.RUNNING
+        else TurnProgressPhase.ADMITTED
+    )
+    await emit_progress(
+        callback,
+        TurnProgress(
+            turn_id=outcome.turn_id,
+            phase=phase,
+            turn_status=outcome.status,
+        ),
+    )
 
 
 def _authorization(access: ResourceAuthorization) -> AuthorizationContext:
@@ -1616,6 +1910,7 @@ __all__ = [
     "DurableExecutionError",
     "DurableOperationExecutor",
     "DurableReadTurnExecutor",
+    "DurableTurnAdmission",
     "DurableTurnOutcome",
     "DurableTurnRequest",
     "ExpertEvidenceSelection",
