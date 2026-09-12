@@ -10,13 +10,13 @@ from time import monotonic
 from typing import Any, cast
 
 import pytest
-from sqlalchemy import create_engine, select, update
+from sqlalchemy import create_engine, func, select, text, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.contracts import AuthorizationContext, TaskStatus
 from app.db.migrate import upgrade_database
 from app.db.v2_repository import V2Repository
-from app.models.v2 import V2KnowledgeCorpusVersion, V2StepResult, V2Turn
+from app.models.v2 import V2KnowledgeCorpusVersion, V2Proposal, V2StepResult, V2Turn
 from app.shared import ModelCallMetadata, ModelRuntimeError
 from app.shared.budget import (
     PricingManifest,
@@ -26,6 +26,7 @@ from app.shared.budget import (
     current_provider_budget,
     default_pricing_manifest_path,
 )
+from app.v2.actions import V2ActionService
 from app.v2.answers import GroundedAnswerProducer
 from app.v2.contracts import (
     BudgetPreference,
@@ -45,10 +46,11 @@ from app.v2.execution import (
 from app.v2.history import V2HistoryService
 from app.v2.planning import (
     BoundedV2Planner,
+    PlannedTurn,
     PlanningContext,
     RuntimeDataVersions,
 )
-from app.v2.registry import ProductResult
+from app.v2.registry import CheckoutInput, ProductResult, ProposalResult
 from app.v2.runtime_contracts import ExpertResult, RuntimeOperation, ToolEvidence
 from app.v2.supervisor import V2ReadSupervisor
 from tests.test_v2_tools import read_tools, seed_tool_catalog, tool_access
@@ -59,6 +61,52 @@ from tests.v2_postgres_support import disposable_postgres_database
 class _RuntimeStore:
     sessions: sessionmaker[Session]
     ledger: SQLProviderBudgetLedger
+
+
+class _CountingActionService(V2ActionService):
+    def __init__(
+        self,
+        sessions: sessionmaker[Session],
+        *,
+        catalog_version_id: str,
+    ) -> None:
+        super().__init__(sessions, catalog_version_id=catalog_version_id)
+        self.proposal_calls = 0
+
+    def propose_checkout(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        request: CheckoutInput,
+    ) -> ProposalResult:
+        self.proposal_calls += 1
+        return super().propose_checkout(
+            authorization,
+            conversation_id=conversation_id,
+            turn_id=turn_id,
+            request=request,
+        )
+
+
+class _CountingPlanner(BoundedV2Planner):
+    def __init__(self) -> None:
+        super().__init__(runtime_mode="off")
+        self.calls = 0
+
+    async def plan(self, message: str, context: PlanningContext) -> PlannedTurn:
+        self.calls += 1
+        return await super().plan(message, context)
+
+
+class _NeverAnswerProducer:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def produce(self, **_: Any) -> Any:
+        self.calls += 1
+        raise AssertionError("proposal turns must not dispatch grounding")
 
 
 @pytest.fixture(scope="module")
@@ -822,6 +870,76 @@ class _PlanningContextHandler:
 
 
 @pytest.mark.asyncio
+async def test_checkout_proposal_card_is_stored_and_replayed_without_recreation(
+    postgres_runtime_store: _RuntimeStore,
+) -> None:
+    store = postgres_runtime_store
+    access = tool_access(scopes=frozenset({"ecommerce.read", "ecommerce.write"}))
+    context = PlanningContext(
+        access=access,
+        versions=RuntimeDataVersions(
+            catalog_version_id="catalog_runtime_action",
+            corpus_version_id="corpus_runtime_a",
+            index_manifest_id="index_runtime_a",
+        ),
+    )
+    conversation_id = "conv_runtime_checkout_proposal"
+    _conversation(store.sessions, context, conversation_id)
+    _seed_checkout_cart(store.sessions, context)
+    planner = _CountingPlanner()
+    dispatcher = _CatalogDispatcher()
+    producer = _NeverAnswerProducer()
+    action_service = _CountingActionService(
+        store.sessions,
+        catalog_version_id=context.versions.catalog_version_id,
+    )
+    supervisor = V2ReadSupervisor(
+        store.sessions,
+        planner=planner,
+        operation_executor=DurableOperationExecutor(store.sessions, dispatcher),
+        answer_producer=producer,  # type: ignore[arg-type]
+        action_service=action_service,
+    )
+    runner = DurableReadTurnExecutor(store.sessions, supervisor)
+    request = _request(
+        conversation_id,
+        "turn_runtime_checkout_proposal",
+        "client-runtime-checkout-proposal",
+        "worker-runtime-checkout-proposal",
+        message="Thanh toán giỏ hàng",
+    )
+
+    first = await runner.execute(request, context)
+    retry = await runner.execute(
+        request.model_copy(
+            update={
+                "turn_id": "turn_runtime_checkout_proposal_retry",
+                "lease_owner": "worker-runtime-checkout-proposal-retry",
+            }
+        ),
+        context,
+    )
+
+    assert first.status == retry.status == TurnStatus.COMPLETED
+    assert first.outcome == retry.outcome == DialogueOutcome.AWAITING_CONFIRMATION
+    assert first.result is not None
+    assert first.result == retry.result
+    assert retry.reused is True
+    assert len(first.result.action_cards) == 1
+    assert planner.calls == 1
+    assert action_service.proposal_calls == 1
+    assert dispatcher.calls == 0
+    assert producer.calls == 0
+    with store.sessions() as session:
+        proposal_count = session.scalar(
+            select(func.count())
+            .select_from(V2Proposal)
+            .where(V2Proposal.turn_id == first.turn_id)
+        )
+    assert proposal_count == 1
+
+
+@pytest.mark.asyncio
 async def test_restarted_executor_loads_grounded_history_and_preferences(
     postgres_runtime_store: _RuntimeStore,
 ) -> None:
@@ -988,6 +1106,59 @@ def _conversation(
             _authorization(context),
             conversation_id=conversation_id,
             mode=context.access.binding.mode,
+        )
+
+
+def _seed_checkout_cart(
+    sessions: sessionmaker[Session],
+    context: PlanningContext,
+) -> None:
+    binding = context.access.binding
+    with sessions.begin() as session:
+        session.execute(
+            text(
+                "INSERT INTO products "
+                "(id, name, category, price, description, platform) VALUES "
+                "(1987654321, 'Runtime checkout book', 'Books', 100000, "
+                "'Runtime proposal fixture', 'Tiki')"
+            )
+        )
+        session.execute(
+            text(
+                "INSERT INTO v2_offers "
+                "(id, tenant_id, store_id, product_id, demo_price_vnd, stock, "
+                "version) VALUES "
+                "('offer_runtime_checkout', :tenant, :store, 1987654321, "
+                "100000, 10, 1)"
+            ),
+            {"tenant": binding.tenant_id, "store": binding.store_id},
+        )
+        session.execute(
+            text(
+                "INSERT INTO v2_carts "
+                "(id, tenant_id, principal_id, store_id, status, version) VALUES "
+                "('cart_runtime_checkout', :tenant, :principal, :store, "
+                "'active', 1)"
+            ),
+            {
+                "tenant": binding.tenant_id,
+                "principal": binding.principal_id,
+                "store": binding.store_id,
+            },
+        )
+        session.execute(
+            text(
+                "INSERT INTO v2_cart_lines "
+                "(id, cart_id, tenant_id, principal_id, store_id, offer_id, "
+                "quantity, offer_version) VALUES "
+                "('line_runtime_checkout', 'cart_runtime_checkout', :tenant, "
+                ":principal, :store, 'offer_runtime_checkout', 2, 1)"
+            ),
+            {
+                "tenant": binding.tenant_id,
+                "principal": binding.principal_id,
+                "store": binding.store_id,
+            },
         )
 
 

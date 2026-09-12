@@ -11,7 +11,7 @@ from typing import Protocol
 
 from sqlalchemy.orm import Session
 
-from app.contracts import TaskStatus
+from app.contracts import AuthorizationContext, TaskStatus
 from app.knowledge.v2_contracts import ResolvedKnowledgeEvidence
 from app.models.budget import ProviderBudgetScope
 from app.shared.budget import (
@@ -22,8 +22,9 @@ from app.shared.budget import (
     current_provider_budget,
     nano_usd_to_usd,
 )
+from app.v2.actions import ActionConflictError, V2ActionService
 from app.v2.answers import EvidenceRequirement
-from app.v2.authorization import ResourceAuthorization
+from app.v2.authorization import ResourceAuthorization, ResourceNotFoundError
 from app.v2.contracts import (
     MAX_DRAFT_REPAIRS,
     MAX_EXPERT_STEPS,
@@ -43,6 +44,12 @@ from app.v2.execution import (
     TurnComputation,
 )
 from app.v2.planning import BoundedV2Planner, PlannedTurn, PlanningContext
+from app.v2.registry import (
+    CartReadInput,
+    CheckoutInput,
+    MerchantOfferProposalInput,
+    MerchantReadInput,
+)
 from app.v2.runtime_contracts import (
     EvidenceAssessment,
     EvidenceExcerpt,
@@ -97,16 +104,19 @@ class V2ReadSupervisor:
         operation_executor: DurableOperationExecutor,
         answer_producer: GroundedAnswerProducer,
         knowledge_resolver: KnowledgeResolver | None = None,
+        action_service: V2ActionService | None = None,
     ) -> None:
         self.session_factory = session_factory
         self.planner = planner
         self.operation_executor = operation_executor
         self.answer_producer = answer_producer
         self.knowledge_resolver = knowledge_resolver
+        self.action_service = action_service
 
     async def run_claimed(
         self,
         *,
+        conversation_id: str,
         turn_id: str,
         lease_owner: str,
         message: str,
@@ -126,6 +136,15 @@ class V2ReadSupervisor:
             )
             return TurnComputation(
                 result=result,
+                fallback_reasons=fallback_reasons,
+            )
+
+        if planned.proposal is not None:
+            return self._create_proposal(
+                conversation_id=conversation_id,
+                turn_id=turn_id,
+                planned=planned,
+                context=context,
                 fallback_reasons=fallback_reasons,
             )
 
@@ -356,6 +375,121 @@ class V2ReadSupervisor:
             fallback_reasons=fallback_reasons,
             knowledge_retrievals=assessment.knowledge_retrievals_used,
             draft_repairs=grounded.draft_repairs,
+        )
+
+    def _create_proposal(
+        self,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        planned: PlannedTurn,
+        context: PlanningContext,
+        fallback_reasons: tuple[str, ...],
+    ) -> TurnComputation:
+        proposal = planned.proposal
+        assert proposal is not None
+        if self.action_service is None:
+            return _proposal_clarification(
+                planned,
+                "action_service_unavailable",
+                fallback_reasons,
+            )
+        authorization = AuthorizationContext(
+            tenant_id=context.access.binding.tenant_id,
+            principal_id=context.access.binding.principal_id,
+            scopes=context.access.scopes,
+        )
+        if proposal.kind == "checkout":
+            try:
+                cart = self.action_service.read_cart(
+                    authorization,
+                    CartReadInput(),
+                )
+            except ResourceNotFoundError:
+                return _proposal_clarification(
+                    planned,
+                    "checkout_cart_unavailable",
+                    fallback_reasons,
+                )
+            except ActionConflictError:
+                return _proposal_clarification(
+                    planned,
+                    "action_prerequisite_changed",
+                    fallback_reasons,
+                )
+            checkout_request = CheckoutInput(
+                cart_id=cart.cart_id,
+                expected_version=cart.version,
+            )
+            try:
+                result = self.action_service.propose_checkout(
+                    authorization,
+                    conversation_id=conversation_id,
+                    turn_id=turn_id,
+                    request=checkout_request,
+                )
+            except (ResourceNotFoundError, ActionConflictError):
+                return _proposal_clarification(
+                    planned,
+                    "action_prerequisite_changed",
+                    fallback_reasons,
+                )
+        else:
+            assert proposal.product_id is not None
+            try:
+                inventory = self.action_service.read_inventory(
+                    authorization,
+                    MerchantReadInput(product_ids=(proposal.product_id,)),
+                )
+            except ResourceNotFoundError:
+                return _proposal_clarification(
+                    planned,
+                    "merchant_offer_unavailable",
+                    fallback_reasons,
+                )
+            except ActionConflictError:
+                return _proposal_clarification(
+                    planned,
+                    "action_prerequisite_changed",
+                    fallback_reasons,
+                )
+            if len(inventory.offers) != 1:
+                return _proposal_clarification(
+                    planned,
+                    "merchant_offer_unavailable",
+                    fallback_reasons,
+                )
+            offer = inventory.offers[0]
+            offer_request = MerchantOfferProposalInput(
+                offer_id=offer.offer_id,
+                expected_version=offer.version,
+                new_price_vnd=proposal.new_price_vnd,
+                quantity_delta=proposal.quantity_delta,
+            )
+            try:
+                result = self.action_service.propose_offer_change(
+                    authorization,
+                    conversation_id=conversation_id,
+                    turn_id=turn_id,
+                    request=offer_request,
+                )
+            except (ResourceNotFoundError, ActionConflictError):
+                return _proposal_clarification(
+                    planned,
+                    "action_prerequisite_changed",
+                    fallback_reasons,
+                )
+        return TurnComputation(
+            result=TurnResult(
+                outcome=DialogueOutcome.AWAITING_CONFIRMATION,
+                answer=(
+                    "Vui lòng kiểm tra thẻ xác nhận bên dưới và dùng nút hành động "
+                    "để xác nhận hoặc từ chối."
+                ),
+                action_cards=(result.action,),
+                plan=_plan_trace(planned, (), None, None),
+            ),
+            fallback_reasons=fallback_reasons,
         )
 
     def _bound_resolver(
@@ -842,7 +976,56 @@ def _clarification_answer(code: str) -> str:
             "Lượt đọc này chưa thể thực hiện thay đổi; bạn muốn xem dữ liệu "
             "hiện có trước không?"
         )
+    if code == "action_confirmation_endpoint_required":
+        return "Hãy xác nhận hoặc từ chối bằng nút trên thẻ hành động tương ứng."
+    if code == "action_write_permission_required":
+        return "Bạn chưa có quyền tạo đề xuất thay đổi trong chế độ hội thoại này."
+    if code == "action_mode_mismatch":
+        return "Yêu cầu thay đổi này không phù hợp với chế độ hội thoại hiện tại."
+    if code == "action_request_ambiguous":
+        return "Bạn hãy yêu cầu riêng một thay đổi cần xác nhận trong mỗi lượt."
+    if code in {
+        "merchant_action_product_required",
+        "merchant_action_single_product_required",
+    }:
+        return "Bạn hãy chọn chính xác một sản phẩm trước khi tạo đề xuất thay đổi."
+    if code in {
+        "merchant_price_value_required",
+        "merchant_price_value_invalid",
+        "merchant_price_value_ambiguous",
+    }:
+        return "Bạn hãy nêu chính xác mức giá mới bằng số VND nguyên."
+    if code in {
+        "merchant_stock_delta_required",
+        "merchant_stock_delta_nonzero",
+        "merchant_stock_delta_invalid",
+    }:
+        return "Bạn hãy nêu chính xác mức tăng hoặc giảm tồn kho khác 0."
+    if code == "action_service_unavailable":
+        return "Dịch vụ tạo thẻ xác nhận hiện chưa sẵn sàng; vui lòng thử lại sau."
+    if code == "checkout_cart_unavailable":
+        return "Chưa có giỏ hàng đang hoạt động để tạo đề xuất thanh toán."
+    if code == "merchant_offer_unavailable":
+        return "Không tìm thấy đúng một offer hiện hành cho sản phẩm đã chọn."
+    if code == "action_prerequisite_changed":
+        return "Dữ liệu hiện tại đã thay đổi; vui lòng kiểm tra lại trước khi đề xuất."
     return "Bạn hãy nêu rõ hơn tên sách, tác giả hoặc tiêu chí cần kiểm tra."
+
+
+def _proposal_clarification(
+    planned: PlannedTurn,
+    code: str,
+    fallback_reasons: tuple[str, ...],
+) -> TurnComputation:
+    return TurnComputation(
+        result=TurnResult(
+            outcome=DialogueOutcome.NEEDS_CLARIFICATION,
+            answer=_clarification_answer(code),
+            plan=_plan_trace(planned, (), None, None),
+            warnings=(code,),
+        ),
+        fallback_reasons=fallback_reasons,
+    )
 
 
 def _aware(value: datetime | None) -> datetime | None:

@@ -8,7 +8,7 @@ import json
 import re
 from dataclasses import dataclass, replace
 from decimal import Decimal, InvalidOperation
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field, field_validator, model_validator
 
@@ -20,7 +20,7 @@ from app.shared import (
     mark_model_call_fallback,
 )
 from app.shared.budget import BudgetError, current_provider_budget
-from app.v2.authorization import ResourceAuthorization
+from app.v2.authorization import ResourceAuthorization, required_scopes_for_mode
 from app.v2.contracts import (
     ACTION_PATTERN,
     MAX_ADDED_READ_STEPS,
@@ -58,6 +58,50 @@ _WRITE_WORDS = (
     "đổi giá",
     "cập nhật giá",
     "điều chỉnh tồn",
+)
+_CONFIRMATION_ONLY_PATTERN = re.compile(
+    r"^(?:chấp nhận|confirm(?:ed)?|đồng ý|no|ok(?:ay)?|reject|từ chối|xác nhận|yes)"
+    r"(?:\s*(?:,\s*)?(?:please|thanks|thank you|nhé|nha|ạ|cảm ơn))?[.!?]*$",
+    re.IGNORECASE,
+)
+_CHECKOUT_ACTION_PATTERN = re.compile(
+    r"^(?:(?:hãy|vui lòng|giúp tôi|tôi muốn|mình muốn)\s+)*"
+    r"(?:checkout|thanh toán|đặt hàng|chốt đơn)"
+    r"(?:\s+(?:giỏ hàng|đơn hàng|cart)(?:\s+(?:này|của tôi))?)?[.!?]*$",
+    re.IGNORECASE,
+)
+_PRICE_ACTION_MARKER = re.compile(
+    r"^(?:(?:hãy|vui lòng|giúp tôi|tôi muốn|mình muốn)\s+)*"
+    r"(?:(?:đổi|cập nhật|đặt)\s+(?:mức\s+)?giá|"
+    r"(?:set|change|update)\s+(?:the\s+)?price)\b",
+    re.IGNORECASE,
+)
+_PRICE_ACTION_PATTERN = re.compile(
+    _PRICE_ACTION_MARKER.pattern + r"(?:\s+(?:sản phẩm|offer|sách)(?:\s+này)?)?"
+    r"\s+(?:thành|sang|lên|xuống|to|at|=)\s*"
+    r"(?P<amount>[0-9][0-9.,]*)\s*"
+    r"(?P<unit>k|nghìn|triệu|tr|đ|vnd)?[.!?]*$",
+    re.IGNORECASE,
+)
+_STOCK_ACTION_MARKER = re.compile(
+    r"^(?:(?:hãy|vui lòng|giúp tôi|tôi muốn|mình muốn)\s+)*"
+    r"(?:(?:tăng|giảm|điều chỉnh|cập nhật)\s+(?:số lượng\s+)?"
+    r"(?:tồn kho|tồn|stock)|(?:increase|decrease|adjust|update)\s+(?:the\s+)?stock)\b",
+    re.IGNORECASE,
+)
+_STOCK_DIRECTION_PATTERN = re.compile(
+    r"^(?:(?:hãy|vui lòng|giúp tôi|tôi muốn|mình muốn)\s+)*"
+    r"(?P<direction>tăng|giảm|increase|decrease)\s+(?:số lượng\s+)?"
+    r"(?:tồn kho|tồn|stock)(?:\s+(?:sản phẩm|offer|sách)(?:\s+này)?)?"
+    r"\s+(?:thêm|bớt|by)?\s*(?P<amount>[0-9]+)[.!?]*$",
+    re.IGNORECASE,
+)
+_STOCK_SIGNED_PATTERN = re.compile(
+    r"^(?:(?:hãy|vui lòng|giúp tôi|tôi muốn|mình muốn)\s+)*"
+    r"(?:điều chỉnh|cập nhật|adjust|update)\s+(?:số lượng\s+)?"
+    r"(?:tồn kho|tồn|stock)(?:\s+(?:sản phẩm|offer|sách)(?:\s+này)?)?"
+    r"\s+(?:by\s+)?(?P<amount>[+-][0-9]+)[.!?]*$",
+    re.IGNORECASE,
 )
 _COUNT_PATTERN = re.compile(
     r"\b(?P<count>[0-9]{1,3})\s*(?:cuốn|quyển|sách|books?)\b",
@@ -202,6 +246,39 @@ class ModelPlanChoice(V2Contract):
 
 
 @dataclass(frozen=True, slots=True)
+class PlannedProposal:
+    """Server-parsed action semantics; never model-authored action input."""
+
+    kind: Literal["checkout", "merchant_price", "merchant_stock"]
+    product_id: ProductId | None = None
+    new_price_vnd: int | None = None
+    quantity_delta: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.kind == "checkout":
+            valid = (
+                self.product_id is None
+                and self.new_price_vnd is None
+                and self.quantity_delta is None
+            )
+        elif self.kind == "merchant_price":
+            valid = (
+                self.product_id is not None
+                and self.new_price_vnd is not None
+                and self.quantity_delta is None
+            )
+        else:
+            valid = (
+                self.product_id is not None
+                and self.new_price_vnd is None
+                and self.quantity_delta is not None
+                and self.quantity_delta != 0
+            )
+        if not valid:
+            raise ValueError("planned proposal semantics are inconsistent")
+
+
+@dataclass(frozen=True, slots=True)
 class PlannedTurn:
     plan_id: str
     intent: str
@@ -218,6 +295,7 @@ class PlannedTurn:
     clarification_code: str | None = None
     model_selected_template_id: str | None = None
     fallback_reason: str | None = None
+    proposal: PlannedProposal | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -233,6 +311,7 @@ class _DeterministicRequest:
     min_price_vnd: int | None
     max_price_vnd: int | None
     clarification_code: str | None
+    proposal: PlannedProposal | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -287,7 +366,11 @@ class BoundedV2Planner:
                 min_price_vnd=request.min_price_vnd,
                 max_price_vnd=request.max_price_vnd,
                 clarification_code=request.clarification_code,
+                proposal=request.proposal,
             )
+
+        if request.proposal is not None:
+            _authorized_plan_options(request, context, self.registry)
 
         effective_request = request
         selected_template: str | None = None
@@ -310,7 +393,11 @@ class BoundedV2Planner:
                         candidate_limit=choice.candidate_limit,
                     )
 
-        operations, deferred = self._compile_initial(effective_request, context)
+        operations, deferred = (
+            ((), ())
+            if request.proposal is not None
+            else self._compile_initial(effective_request, context)
+        )
         return PlannedTurn(
             plan_id=plan_id,
             intent=effective_request.intent,
@@ -326,6 +413,7 @@ class BoundedV2Planner:
             max_price_vnd=request.max_price_vnd,
             model_selected_template_id=selected_template,
             fallback_reason=fallback_reason,
+            proposal=request.proposal,
         )
 
     def bind_initial_candidates(
@@ -510,10 +598,7 @@ class BoundedV2Planner:
                     for template_id, capabilities in options
                 ],
                 "server_resolved_product_ids": list(
-                    _context_product_ids(
-                        context,
-                        candidate_limit=request.candidate_limit,
-                    )
+                    _request_product_ids(request, context)
                 ),
                 "planning_context_only": _model_context_projection(
                     context,
@@ -533,14 +618,23 @@ class BoundedV2Planner:
             sort_keys=True,
             separators=(",", ":"),
         )
-        instructions = (
-            "Select exactly one supplied authorized plan option for this book read "
-            "request. Copy its template_id and complete capability sequence, and "
-            "copy server-resolved product IDs exactly. You may lower a non-explicit "
-            "candidate limit only when the selected plan still fulfills every "
-            "required obligation. Do not create IDs, parameters, actions, tools, "
-            "or data."
-        )
+        if request.proposal is not None:
+            instructions = (
+                "Copy the one supplied authorized proposal template, its complete "
+                "capability sequence, server-resolved product IDs, and candidate "
+                "limit exactly. Do not author parameters, cart or offer IDs, "
+                "versions, proposal IDs, approval, confirmation, execution, tools, "
+                "or data."
+            )
+        else:
+            instructions = (
+                "Select exactly one supplied authorized plan option for this book "
+                "read request. Copy its template_id and complete capability "
+                "sequence, and copy server-resolved product IDs exactly. You may "
+                "lower a non-explicit candidate limit only when the selected plan "
+                "still fulfills every required obligation. Do not create IDs, "
+                "parameters, actions, tools, or data."
+            )
         if _text_token_bound(instructions, input_payload) > _MODEL_INPUT_TOKEN_BOUND:
             raise PlanningError("planning_model_input_too_large")
         try:
@@ -728,6 +822,14 @@ def _parse_request_context(message: str) -> _ParsedRequestContext:
 def context_constraints_from_message(message: str) -> tuple[ContextConstraint, ...]:
     """Project only deterministically parsed request filters into history context."""
 
+    cleaned = message.strip()
+    if (
+        _is_confirmation_only(cleaned)
+        or _CHECKOUT_ACTION_PATTERN.fullmatch(cleaned) is not None
+        or _PRICE_ACTION_MARKER.search(cleaned) is not None
+        or _STOCK_ACTION_MARKER.search(cleaned) is not None
+    ):
+        return ()
     parsed = _parse_request_context(message)
     constraints: list[ContextConstraint] = []
     if parsed.candidate_limit_explicit and parsed.count_error is None:
@@ -754,6 +856,9 @@ def _deterministic_request(
     message: str,
     context: PlanningContext,
 ) -> _DeterministicRequest:
+    action_request = _deterministic_action_request(message, context)
+    if action_request is not None:
+        return action_request
     parsed_context = _parse_request_context(message)
     cleaned = parsed_context.cleaned
     lowered = cleaned.casefold()
@@ -986,6 +1091,200 @@ def _deterministic_request(
     )
 
 
+def _deterministic_action_request(
+    message: str,
+    context: PlanningContext,
+) -> _DeterministicRequest | None:
+    cleaned = message.strip()
+    if _is_confirmation_only(cleaned):
+        return _action_clarification_request(
+            cleaned,
+            "action_confirmation_endpoint_required",
+        )
+
+    checkout = _CHECKOUT_ACTION_PATTERN.fullmatch(cleaned) is not None
+    price_marker = _PRICE_ACTION_MARKER.search(cleaned) is not None
+    stock_marker = _STOCK_ACTION_MARKER.search(cleaned) is not None
+    if sum((checkout, price_marker, stock_marker)) > 1:
+        return _action_clarification_request(cleaned, "action_request_ambiguous")
+    if not checkout and not price_marker and not stock_marker:
+        return None
+
+    mode = context.access.binding.mode
+    if checkout:
+        if mode != ConversationMode.SHOPPER:
+            return _action_clarification_request(cleaned, "action_mode_mismatch")
+        if (
+            not required_scopes_for_mode(
+                ConversationMode.SHOPPER,
+                write=True,
+            )
+            <= context.access.scopes
+        ):
+            return _action_clarification_request(
+                cleaned,
+                "action_write_permission_required",
+            )
+        return _DeterministicRequest(
+            intent="checkout.proposal",
+            template_id="shopper_checkout_proposal",
+            obligations=(),
+            capabilities=(
+                "shopper.cart.read",
+                "shopper.checkout.preview",
+                "shopper.checkout.propose",
+            ),
+            candidate_limit=MAX_CANDIDATES,
+            candidate_limit_explicit=False,
+            query=cleaned[:500],
+            catalog_query=None,
+            min_price_vnd=None,
+            max_price_vnd=None,
+            clarification_code=None,
+            proposal=PlannedProposal(kind="checkout"),
+        )
+
+    if mode != ConversationMode.MERCHANT:
+        return _action_clarification_request(cleaned, "action_mode_mismatch")
+    if (
+        not required_scopes_for_mode(
+            ConversationMode.MERCHANT,
+            write=True,
+        )
+        <= context.access.scopes
+    ):
+        return _action_clarification_request(
+            cleaned,
+            "action_write_permission_required",
+        )
+    product_ids = context.resolved_product_ids
+    if not product_ids:
+        return _action_clarification_request(
+            cleaned,
+            "merchant_action_product_required",
+        )
+    if len(product_ids) != 1:
+        return _action_clarification_request(
+            cleaned,
+            "merchant_action_single_product_required",
+        )
+    product_id = product_ids[0]
+
+    proposal: PlannedProposal
+    if price_marker:
+        match = _PRICE_ACTION_PATTERN.fullmatch(cleaned)
+        if match is None:
+            return _action_clarification_request(
+                cleaned,
+                "merchant_price_value_required",
+            )
+        try:
+            amount = _action_price_vnd(match.group("amount"), match.group("unit"))
+        except PlanningError as exc:
+            return _action_clarification_request(cleaned, exc.code)
+        proposal = PlannedProposal(
+            kind="merchant_price",
+            product_id=product_id,
+            new_price_vnd=amount,
+        )
+    else:
+        direction = _STOCK_DIRECTION_PATTERN.fullmatch(cleaned)
+        signed = _STOCK_SIGNED_PATTERN.fullmatch(cleaned)
+        if direction is None and signed is None:
+            return _action_clarification_request(
+                cleaned,
+                "merchant_stock_delta_required",
+            )
+        if direction is not None:
+            amount = int(direction.group("amount"))
+            delta = (
+                -amount
+                if direction.group("direction").casefold() in {"giảm", "decrease"}
+                else amount
+            )
+        else:
+            assert signed is not None
+            delta = int(signed.group("amount"))
+        if delta == 0:
+            return _action_clarification_request(
+                cleaned,
+                "merchant_stock_delta_nonzero",
+            )
+        if not -1_000_000 <= delta <= 1_000_000:
+            return _action_clarification_request(
+                cleaned,
+                "merchant_stock_delta_invalid",
+            )
+        proposal = PlannedProposal(
+            kind="merchant_stock",
+            product_id=product_id,
+            quantity_delta=delta,
+        )
+
+    return _DeterministicRequest(
+        intent="merchant.proposal",
+        template_id="merchant_proposal",
+        obligations=(),
+        capabilities=("merchant.inventory.read", "merchant.offer.propose"),
+        candidate_limit=1,
+        candidate_limit_explicit=True,
+        query=cleaned[:500],
+        catalog_query=None,
+        min_price_vnd=None,
+        max_price_vnd=None,
+        clarification_code=None,
+        proposal=proposal,
+    )
+
+
+def _action_clarification_request(
+    message: str,
+    code: str,
+) -> _DeterministicRequest:
+    return _DeterministicRequest(
+        intent="action.clarification",
+        template_id="action_clarification",
+        obligations=(),
+        capabilities=(),
+        candidate_limit=MAX_CANDIDATES,
+        candidate_limit_explicit=False,
+        query=message[:500],
+        catalog_query=None,
+        min_price_vnd=None,
+        max_price_vnd=None,
+        clarification_code=code,
+    )
+
+
+def _action_price_vnd(amount_text: str, unit_text: str | None) -> int:
+    unit = (unit_text or "").casefold()
+    try:
+        number = _price_decimal(
+            amount_text.rstrip(".,"),
+            fractional_suffix=unit in {"k", "nghìn", "triệu", "tr"},
+        )
+    except PlanningError as exc:
+        if exc.code == "price_constraint_ambiguous":
+            raise PlanningError("merchant_price_value_ambiguous") from exc
+        raise
+    except (InvalidOperation, ValueError) as exc:
+        raise PlanningError("merchant_price_value_invalid") from exc
+    if unit in {"k", "nghìn"}:
+        number *= Decimal(1_000)
+    elif unit in {"triệu", "tr"}:
+        number *= Decimal(1_000_000)
+    if number != number.to_integral_value():
+        raise PlanningError("merchant_price_value_ambiguous")
+    amount = int(number)
+    if not 0 < amount <= 10_000_000_000:
+        raise PlanningError("merchant_price_value_invalid")
+    return amount
+
+
+def _is_confirmation_only(message: str) -> bool:
+    return _CONFIRMATION_ONLY_PATTERN.fullmatch(message.strip()) is not None
+
+
 def _request_from_plan(planned: PlannedTurn) -> _DeterministicRequest:
     return _DeterministicRequest(
         intent=planned.intent,
@@ -999,6 +1298,7 @@ def _request_from_plan(planned: PlannedTurn) -> _DeterministicRequest:
         min_price_vnd=planned.min_price_vnd,
         max_price_vnd=planned.max_price_vnd,
         clarification_code=planned.clarification_code,
+        proposal=planned.proposal,
     )
 
 
@@ -1081,10 +1381,7 @@ def _validate_model_choice(
     *,
     options: tuple[tuple[str, tuple[str, ...]], ...],
 ) -> None:
-    context_product_ids = _context_product_ids(
-        context,
-        candidate_limit=request.candidate_limit,
-    )
+    context_product_ids = _request_product_ids(request, context)
     if (choice.template_id, choice.capabilities) not in options:
         raise ValueError("model plan option is not authorized")
     if choice.selected_product_ids != context_product_ids:
@@ -1093,10 +1390,10 @@ def _validate_model_choice(
         raise ValueError("model cannot expand the candidate limit")
     if choice.candidate_limit < len(context_product_ids):
         raise ValueError("model cannot drop resolved products")
-    if request.candidate_limit_explicit and (
+    if (request.proposal is not None or request.candidate_limit_explicit) and (
         choice.candidate_limit != request.candidate_limit
     ):
-        raise ValueError("model cannot change an explicit candidate count")
+        raise ValueError("model cannot change the required candidate count")
     for obligation in request.obligations:
         if not any(
             _capability_satisfies(capability, obligation.kind)
@@ -1118,6 +1415,34 @@ def _authorized_plan_options(
     context: PlanningContext,
     registry: V2CapabilityRegistry,
 ) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    if request.proposal is not None:
+        template = next(
+            (
+                item
+                for item in registry.templates_for_mode(context.access.binding.mode)
+                if item.template_id == request.template_id
+            ),
+            None,
+        )
+        if template is None or template.capabilities != request.capabilities:
+            raise PlanningError("no_authorized_proposal_plan")
+        for capability in template.capabilities:
+            definition = registry.capability(capability)
+            if (
+                definition.effect == CapabilityEffect.EXECUTE
+                or definition.effect
+                not in {CapabilityEffect.READ, CapabilityEffect.PROPOSAL}
+                or context.access.binding.mode not in definition.allowed_modes
+                or not definition.required_permissions <= context.access.scopes
+            ):
+                raise PlanningError("no_authorized_proposal_plan")
+        if not any(
+            registry.capability(capability).effect == CapabilityEffect.PROPOSAL
+            for capability in template.capabilities
+        ):
+            raise PlanningError("no_authorized_proposal_plan")
+        return ((template.template_id, template.capabilities),)
+
     authorized: list[tuple[str, tuple[str, ...]]] = []
     templates = registry.templates_for_mode(context.access.binding.mode)
     candidates = [
@@ -1393,6 +1718,20 @@ def _context_product_ids(
     return context.model_context.referenced_product_ids[
         : min(candidate_limit, MAX_CANDIDATES)
     ]
+
+
+def _request_product_ids(
+    request: _DeterministicRequest,
+    context: PlanningContext,
+) -> tuple[ProductId, ...]:
+    if request.proposal is None:
+        return _context_product_ids(
+            context,
+            candidate_limit=request.candidate_limit,
+        )
+    if request.proposal.product_id is None:
+        return ()
+    return (request.proposal.product_id,)
 
 
 def _model_context_projection(

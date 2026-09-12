@@ -261,6 +261,7 @@ class ClaimedTurnHandler(Protocol):
     async def run_claimed(
         self,
         *,
+        conversation_id: str,
         turn_id: str,
         lease_owner: str,
         message: str,
@@ -885,6 +886,7 @@ class DurableReadTurnExecutor:
             with collect_model_calls() as model_calls, budget_scope:
                 async with asyncio.timeout(timeout_seconds):
                     computation = await self.handler.run_claimed(
+                        conversation_id=request.conversation_id,
                         turn_id=snapshot.turn_id,
                         lease_owner=request.lease_owner,
                         message=request.message,
