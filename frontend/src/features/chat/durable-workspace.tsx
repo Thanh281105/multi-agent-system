@@ -321,7 +321,7 @@ function DurableHeader({
           </p>
         </div>
         <div className="flex items-center gap-1.5">
-          <Button type="button" variant="outline" size="icon" className="size-11" onClick={onCreate} disabled={busy || !durable.selectedMode} aria-label="Tạo hội thoại mới">
+          <Button type="button" variant="outline" size="icon" className="size-11" onClick={onCreate} disabled={busy || activeBusy || !durable.selectedMode} aria-label="Tạo hội thoại mới">
             <Plus />
           </Button>
           <Button type="button" variant="ghost" size="icon" className="size-11" onClick={onDelete} disabled={busy || activeBusy || !conversation} aria-label="Xoá hội thoại hiện tại">
