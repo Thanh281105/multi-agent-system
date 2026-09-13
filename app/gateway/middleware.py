@@ -88,6 +88,14 @@ def install_gateway_middleware(application: FastAPI) -> None:
                     message="Không thể xử lý yêu cầu lúc này.",
                     retryable=True,
                 )
+            elif request.url.path.startswith("/api/v2/"):
+                response = _error_response(
+                    request,
+                    status_code=500,
+                    code="v2.internal_error",
+                    message="Không thể xử lý yêu cầu lúc này.",
+                    retryable=False,
+                )
             else:
                 response = JSONResponse(
                     status_code=500,
@@ -139,7 +147,9 @@ async def _validation_handler(
 ) -> Response:
     if not isinstance(exc, RequestValidationError):
         raise TypeError("unexpected validation exception type")
-    if not request.url.path.startswith("/api/v1/"):
+    is_v1 = request.url.path.startswith("/api/v1/")
+    is_v2 = request.url.path.startswith("/api/v2/")
+    if not is_v1 and not is_v2:
         return await request_validation_exception_handler(request, exc)
     safe_errors: tuple[dict[str, object], ...] = tuple(
         {
@@ -152,7 +162,7 @@ async def _validation_handler(
     return _error_response(
         request,
         status_code=422,
-        code="gateway.validation_failed",
+        code="gateway.validation_failed" if is_v1 else "v2.validation_failed",
         message="Payload không hợp lệ.",
         validation_errors=safe_errors,
     )
@@ -161,12 +171,14 @@ async def _validation_handler(
 async def _http_error_handler(request: Request, exc: Exception) -> Response:
     if not isinstance(exc, HTTPException):
         raise TypeError("unexpected HTTP exception type")
-    if not request.url.path.startswith("/api/v1/"):
+    is_v1 = request.url.path.startswith("/api/v1/")
+    is_v2 = request.url.path.startswith("/api/v2/")
+    if not is_v1 and not is_v2:
         return await http_exception_handler(request, exc)
     return _error_response(
         request,
         status_code=exc.status_code,
-        code="gateway.http_error",
+        code="gateway.http_error" if is_v1 else "v2.http_error",
         message="Yêu cầu không thể được xử lý.",
     )
 

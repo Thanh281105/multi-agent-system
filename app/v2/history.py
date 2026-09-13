@@ -76,6 +76,12 @@ class HistoryDataError(ValueError):
     code = "history_data_invalid"
 
 
+class HistoryConversationBusyError(RuntimeError):
+    """A conversation still owns pending or running durable work."""
+
+    code = "conversation_busy"
+
+
 class PreferenceSourceError(ValueError):
     """A preference was not sourced from a live completed owner turn."""
 
@@ -463,6 +469,23 @@ class V2HistoryService:
                 for_update=True,
                 write=True,
             )
+            active_turn = self._session.scalar(
+                select(V2Turn)
+                .where(
+                    V2Turn.conversation_id == conversation.id,
+                    V2Turn.tenant_id == conversation.tenant_id,
+                    V2Turn.principal_id == conversation.principal_id,
+                    V2Turn.mode == conversation.mode,
+                    V2Turn.store_id == conversation.store_id,
+                    V2Turn.execution_state.in_(
+                        (TurnStatus.PENDING.value, TurnStatus.RUNNING.value)
+                    ),
+                )
+                .limit(1)
+                .with_for_update()
+            )
+            if active_turn is not None:
+                raise HistoryConversationBusyError
             proposals = tuple(
                 self._session.scalars(
                     select(V2Proposal)
@@ -722,6 +745,7 @@ def _aware(value: datetime | None) -> datetime | None:
 
 __all__ = [
     "ContextConstraint",
+    "HistoryConversationBusyError",
     "HistoryDataError",
     "HistoryTurn",
     "MAX_CONTEXT_CONSTRAINTS",

@@ -106,13 +106,16 @@ class V2Repository:
         self,
         authorization: AuthorizationContext,
         conversation_id: str,
+        *,
+        for_update: bool = False,
     ) -> V2Conversation:
-        conversation = self._session.scalar(
-            select(V2Conversation).where(
-                V2Conversation.id == conversation_id,
-                V2Conversation.deleted_at.is_(None),
-            )
+        statement = select(V2Conversation).where(
+            V2Conversation.id == conversation_id,
+            V2Conversation.deleted_at.is_(None),
         )
+        if for_update:
+            statement = statement.with_for_update()
+        conversation = self._session.scalar(statement)
         if conversation is None:
             raise ResourceNotFoundError
         self._authorize(authorization, conversation)
@@ -153,7 +156,11 @@ class V2Repository:
         payload: Mapping[str, Any],
         corpus_version_id: str | None = None,
     ) -> V2Turn:
-        conversation = self.get_conversation(authorization, conversation_id)
+        conversation = self.get_conversation(
+            authorization,
+            conversation_id,
+            for_update=True,
+        )
         payload_copy = dict(payload)
         payload_hash = canonical_payload_hash(payload_copy)
         existing = self._turn_for_retry(conversation_id, client_turn_id)

@@ -5,13 +5,17 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from threading import Lock
 from typing import TypeAlias, cast
+from uuid import uuid4
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.contracts import AuthorizationContext
 from app.core.config import Settings
+from app.db.v2_repository import V2Repository
 from app.knowledge.postgres import PostgresKnowledgeStore
 from app.knowledge.retrieval import (
     HybridKnowledgeRetriever,
@@ -21,6 +25,7 @@ from app.knowledge.retrieval import (
 from app.knowledge.runtime import build_knowledge_embedder
 from app.knowledge.service import KnowledgeService
 from app.knowledge.v2_contracts import PublishedKnowledgeSnapshot
+from app.models.v2 import V2Conversation, V2Proposal, V2Turn
 from app.shared import EmbeddingRuntime, ModelRuntime, ModelRuntimeMode
 from app.shared.budget import (
     PricingManifest,
@@ -29,8 +34,15 @@ from app.shared.budget import (
 )
 from app.v2.actions import V2ActionService
 from app.v2.answers import GroundedAnswerProducer
-from app.v2.authorization import ResourceAuthorization, bind_request_authorization
-from app.v2.contracts import ConversationMode
+from app.v2.authorization import (
+    DEMO_STORE_ID,
+    ResourceAuthorization,
+    ResourceBinding,
+    ResourceNotFoundError,
+    authorize_resource_access,
+    bind_request_authorization,
+)
+from app.v2.contracts import ConversationMode, ConversationSummary
 from app.v2.execution import (
     DurableOperationExecutor,
     DurableReadTurnExecutor,
@@ -175,6 +187,114 @@ class V2RuntimeFactory:
             planning_context=context,
             services=services,
         )
+
+    def create_conversation(
+        self,
+        authorization: AuthorizationContext,
+        *,
+        mode: ConversationMode,
+    ) -> ConversationSummary:
+        """Create a conversation from current server-owned identity and policy."""
+
+        bind_request_authorization(authorization, ConversationMode(mode))
+        services = self._resolve_services()
+        with services.session_factory() as session:
+            conversation = V2Repository(session).create_conversation(
+                authorization,
+                conversation_id=f"conversation_{uuid4().hex}",
+                mode=ConversationMode(mode),
+            )
+            return _conversation_summary(conversation)
+
+    def conversation_summary(
+        self,
+        authorization: AuthorizationContext,
+        conversation_id: str,
+    ) -> ConversationSummary:
+        """Read one live owner-scoped conversation projection."""
+
+        services = self._resolve_services()
+        with services.session_factory() as session:
+            conversation = V2Repository(session).get_conversation(
+                authorization,
+                conversation_id,
+            )
+            return _conversation_summary(conversation)
+
+    def resolve_for_conversation(
+        self,
+        authorization: AuthorizationContext,
+        conversation_id: str,
+        *,
+        write: bool = False,
+    ) -> ResolvedV2Runtime:
+        """Resolve mode and binding from a live owner-scoped conversation row."""
+
+        services = self._resolve_services()
+        with services.session_factory() as session:
+            conversation = V2Repository(session).get_conversation(
+                authorization,
+                conversation_id,
+            )
+            access = authorize_resource_access(
+                authorization,
+                _resource_binding(conversation),
+                write=write,
+            )
+        return _resolved_runtime(services, access)
+
+    def resolve_for_turn(
+        self,
+        authorization: AuthorizationContext,
+        turn_id: str,
+        *,
+        write: bool = False,
+    ) -> ResolvedV2Runtime:
+        """Resolve mode and binding from a live owner-scoped turn row."""
+
+        services = self._resolve_services()
+        with services.session_factory() as session:
+            turn = V2Repository(session).get_turn(authorization, turn_id)
+            access = authorize_resource_access(
+                authorization,
+                _resource_binding(turn),
+                write=write,
+            )
+        return _resolved_runtime(services, access)
+
+    def resolve_for_action(
+        self,
+        authorization: AuthorizationContext,
+        action_id: str,
+        *,
+        write: bool = False,
+    ) -> ResolvedV2Runtime:
+        """Resolve mode and binding from a live owner-scoped action row."""
+
+        services = self._resolve_services()
+        with services.session_factory() as session:
+            proposal = session.scalar(
+                select(V2Proposal)
+                .join(
+                    V2Conversation,
+                    V2Conversation.id == V2Proposal.conversation_id,
+                )
+                .where(
+                    V2Proposal.id == action_id,
+                    V2Proposal.tenant_id == authorization.tenant_id,
+                    V2Proposal.principal_id == authorization.principal_id,
+                    V2Proposal.store_id == DEMO_STORE_ID,
+                    V2Conversation.deleted_at.is_(None),
+                )
+            )
+            if proposal is None:
+                raise ResourceNotFoundError
+            access = authorize_resource_access(
+                authorization,
+                _resource_binding(proposal),
+                write=write,
+            )
+        return _resolved_runtime(services, access)
 
     def _resolve_services(self) -> V2ServiceGraph:
         services = self._services
@@ -422,6 +542,43 @@ def _default_knowledge_store_factory(
 
 def _default_pricing_manifest_loader() -> PricingManifest:
     return PricingManifest.load(default_pricing_manifest_path())
+
+
+def _resolved_runtime(
+    services: V2ServiceGraph,
+    access: ResourceAuthorization,
+) -> ResolvedV2Runtime:
+    return ResolvedV2Runtime(
+        access=access,
+        planning_context=PlanningContext(access=access, versions=services.versions),
+        services=services,
+    )
+
+
+def _resource_binding(
+    resource: V2Conversation | V2Turn | V2Proposal,
+) -> ResourceBinding:
+    return ResourceBinding(
+        tenant_id=str(resource.tenant_id),
+        principal_id=str(resource.principal_id),
+        mode=ConversationMode(str(resource.mode)),
+        store_id=str(resource.store_id),
+    )
+
+
+def _conversation_summary(conversation: V2Conversation) -> ConversationSummary:
+    return ConversationSummary(
+        conversation_id=conversation.id,
+        mode=ConversationMode(conversation.mode),
+        store_id=conversation.store_id,
+        title=conversation.title,
+        created_at=_aware(conversation.created_at),
+        updated_at=_aware(conversation.updated_at),
+    )
+
+
+def _aware(value: datetime) -> datetime:
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 __all__ = [

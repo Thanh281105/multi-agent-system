@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
+from threading import Event
 
 import pytest
 from pydantic import JsonValue, ValidationError
@@ -46,6 +48,7 @@ from app.v2.contracts import (
 )
 from app.v2.history import (
     ContextConstraint,
+    HistoryConversationBusyError,
     PreferenceSourceError,
     V2HistoryService,
 )
@@ -852,6 +855,190 @@ def test_delete_conversation_is_atomic_and_preserves_audit_rows(
             service.list_turns(owner, conversation_id)
         with pytest.raises(ResourceNotFoundError):
             service.build_model_context(owner, conversation_id)
+
+
+@pytest.mark.parametrize("active_status", [TurnStatus.PENDING, TurnStatus.RUNNING])
+def test_delete_conversation_rejects_active_turn_then_succeeds_after_cancel(
+    postgres_sessions: sessionmaker[Session],
+    active_status: TurnStatus,
+) -> None:
+    owner = _auth(
+        f"tenant_delete_busy_{active_status.value}",
+        f"principal_delete_busy_{active_status.value}",
+        "ecommerce.read",
+        "ecommerce.write",
+    )
+    conversation_id = f"conv_delete_busy_{active_status.value}"
+    turn_id = f"turn_delete_busy_{active_status.value}"
+
+    with postgres_sessions() as session:
+        repository = V2Repository(session)
+        repository.create_conversation(
+            owner,
+            conversation_id=conversation_id,
+            mode=ConversationMode.SHOPPER,
+        )
+        repository.record_turn(
+            owner,
+            conversation_id=conversation_id,
+            turn_id=turn_id,
+            client_turn_id=f"client-delete-busy-{active_status.value}",
+            payload={"message": "active work"},
+        )
+        if active_status is TurnStatus.RUNNING:
+            repository.claim_turn(
+                owner,
+                turn_id,
+                lease_owner=f"worker-delete-busy-{active_status.value}",
+                lease_duration=timedelta(minutes=1),
+            )
+
+        service = V2HistoryService(session)
+        with pytest.raises(HistoryConversationBusyError):
+            service.delete_conversation(owner, conversation_id)
+
+        assert repository.get_conversation(owner, conversation_id).deleted_at is None
+        repository.cancel_turn(owner, turn_id)
+        summary = service.delete_conversation(owner, conversation_id)
+
+        assert summary.conversation_id == conversation_id
+        with pytest.raises(ResourceNotFoundError):
+            repository.get_conversation(owner, conversation_id)
+
+
+def test_admission_first_serializes_delete_to_busy_and_preserves_retry(
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    owner = _auth(
+        "tenant_admission_first",
+        "principal_admission_first",
+        "ecommerce.read",
+        "ecommerce.write",
+    )
+    conversation_id = "conv_admission_first"
+    turn_id = "turn_admission_first"
+    client_turn_id = "client-admission-first"
+    payload = {"message": "serialize admission before delete"}
+    with postgres_sessions() as session:
+        V2Repository(session).create_conversation(
+            owner,
+            conversation_id=conversation_id,
+            mode=ConversationMode.SHOPPER,
+        )
+
+    delete_started = Event()
+
+    def delete_while_admission_holds_lock() -> str:
+        delete_started.set()
+        with postgres_sessions() as session:
+            try:
+                V2HistoryService(session).delete_conversation(owner, conversation_id)
+            except HistoryConversationBusyError:
+                return "busy"
+        return "deleted"
+
+    with postgres_sessions() as admission_session:
+        locked = admission_session.scalar(
+            select(V2Conversation)
+            .where(V2Conversation.id == conversation_id)
+            .with_for_update()
+        )
+        assert locked is not None
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            deletion = executor.submit(delete_while_admission_holds_lock)
+            assert delete_started.wait(timeout=10)
+            recorded = V2Repository(admission_session).record_turn(
+                owner,
+                conversation_id=conversation_id,
+                turn_id=turn_id,
+                client_turn_id=client_turn_id,
+                payload=payload,
+            )
+            assert recorded.id == turn_id
+            assert deletion.result(timeout=10) == "busy"
+
+        replay = V2Repository(admission_session).record_turn(
+            owner,
+            conversation_id=conversation_id,
+            turn_id="turn_admission_first_replay",
+            client_turn_id=client_turn_id,
+            payload=payload,
+        )
+        assert replay.id == turn_id
+        V2Repository(admission_session).cancel_turn(owner, turn_id)
+        V2HistoryService(admission_session).delete_conversation(owner, conversation_id)
+
+    with postgres_sessions() as session:
+        conversation = session.get(V2Conversation, conversation_id)
+        turn = session.get(V2Turn, turn_id)
+        assert conversation is not None and conversation.deleted_at is not None
+        assert turn is not None and turn.execution_state == TurnStatus.CANCELLED.value
+
+
+def test_delete_first_makes_waiting_admission_not_found_without_orphan(
+    postgres_sessions: sessionmaker[Session],
+) -> None:
+    owner = _auth(
+        "tenant_delete_first",
+        "principal_delete_first",
+        "ecommerce.read",
+        "ecommerce.write",
+    )
+    conversation_id = "conv_delete_first"
+    with postgres_sessions() as session:
+        V2Repository(session).create_conversation(
+            owner,
+            conversation_id=conversation_id,
+            mode=ConversationMode.SHOPPER,
+        )
+
+    admission_started = Event()
+
+    def admit_while_delete_holds_lock() -> str:
+        admission_started.set()
+        with postgres_sessions() as session:
+            try:
+                V2Repository(session).record_turn(
+                    owner,
+                    conversation_id=conversation_id,
+                    turn_id="turn_delete_first",
+                    client_turn_id="client-delete-first",
+                    payload={"message": "must not become orphaned"},
+                )
+            except ResourceNotFoundError:
+                return "not_found"
+        return "recorded"
+
+    with postgres_sessions() as delete_session:
+        locked = delete_session.scalar(
+            select(V2Conversation)
+            .where(V2Conversation.id == conversation_id)
+            .with_for_update()
+        )
+        assert locked is not None
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            admission = executor.submit(admit_while_delete_holds_lock)
+            assert admission_started.wait(timeout=10)
+            V2HistoryService(delete_session).delete_conversation(
+                owner,
+                conversation_id,
+            )
+            assert admission.result(timeout=10) == "not_found"
+
+    with postgres_sessions() as session:
+        conversation = session.get(V2Conversation, conversation_id)
+        active_turn_count = session.scalar(
+            select(func.count())
+            .select_from(V2Turn)
+            .where(
+                V2Turn.conversation_id == conversation_id,
+                V2Turn.execution_state.in_(
+                    (TurnStatus.PENDING.value, TurnStatus.RUNNING.value)
+                ),
+            )
+        )
+        assert conversation is not None and conversation.deleted_at is not None
+        assert active_turn_count == 0
 
 
 def _complete_turn_with_products(
