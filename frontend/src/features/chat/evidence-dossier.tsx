@@ -37,7 +37,12 @@ import {
   provenanceAnchorId,
   shortenIdentifier,
   statusLabels,
+  selectDossierView,
+  type DossierView,
+  type EvidenceView,
   type ProvenanceAnchorScope,
+  type RouteStepView,
+  type UsageView,
 } from "@/features/chat/presentation"
 import { cn } from "@/lib/utils"
 import type {
@@ -53,6 +58,7 @@ interface EvidenceDossierProps {
   compact?: boolean
   anchorScope: ProvenanceAnchorScope
   selectedSourceId?: string
+  selectedTurnId?: string
 }
 
 export function EvidenceDossier({
@@ -60,8 +66,10 @@ export function EvidenceDossier({
   compact = false,
   anchorScope,
   selectedSourceId,
+  selectedTurnId,
 }: EvidenceDossierProps) {
   const titleId = useId()
+  const dossier = selectDossierView(state, selectedTurnId)
   const result =
     state.request.phase === "completed" ? state.request.result : undefined
   return (
@@ -81,10 +89,21 @@ export function EvidenceDossier({
             Dữ liệu Tiki Books lịch sử
           </p>
         </div>
-        <DossierStatus state={state} />
+        {dossier.protocol === "v2" ? (
+          <DurableDossierStatus dossier={dossier} />
+        ) : (
+          <DossierStatus state={state} />
+        )}
       </header>
 
       <ScrollArea className={cn("min-h-0", !compact && "flex-1")}>
+        {dossier.protocol === "v2" ? (
+          <DurableDossier
+            dossier={dossier}
+            anchorScope={anchorScope}
+            selectedEvidenceId={selectedSourceId}
+          />
+        ) : (
         <div className="flex flex-col gap-5 px-4 py-4">
           <DossierSection
             icon={GitFork}
@@ -124,6 +143,7 @@ export function EvidenceDossier({
             <TraceLedger result={result} sessionId={state.sessionId} />
           </DossierSection>
         </div>
+        )}
       </ScrollArea>
 
       <footer className="border-t bg-muted/40 px-4 py-3">
@@ -134,6 +154,242 @@ export function EvidenceDossier({
         </div>
       </footer>
     </section>
+  )
+}
+
+function DurableDossier({
+  dossier,
+  anchorScope,
+  selectedEvidenceId,
+}: {
+  dossier: DossierView
+  anchorScope: ProvenanceAnchorScope
+  selectedEvidenceId?: string
+}) {
+  return (
+    <div className="flex flex-col gap-5 px-4 py-4">
+      <DossierSection
+        icon={GitFork}
+        title="Kế hoạch thực thi (DAG)"
+        count={dossier.route.length}
+      >
+        <DurableRoute route={dossier.route} />
+      </DossierSection>
+
+      <Separator />
+
+      <DossierSection icon={Microchip} title="Mức sử dụng runtime">
+        <DurableUsage usage={dossier.usage} />
+      </DossierSection>
+
+      <Separator />
+
+      <DossierSection
+        icon={Database}
+        title="Nguồn bằng chứng"
+        count={dossier.evidence.length}
+      >
+        <DurableEvidenceIndex
+          sources={dossier.evidence}
+          anchorScope={anchorScope}
+          selectedEvidenceId={selectedEvidenceId}
+        />
+      </DossierSection>
+
+      <Separator />
+
+      <DossierSection icon={Hash} title="Request, trace, conversation, turn IDs">
+        <dl className="flex flex-col gap-2">
+          {dossier.identifiers.map(({ label, value }) => (
+            <div
+              key={label}
+              className="grid grid-cols-[5rem_minmax(0,1fr)_2.75rem] items-center gap-2 xl:grid-cols-[5rem_minmax(0,1fr)_2rem]"
+            >
+              <dt className="text-xs font-semibold text-muted-foreground">
+                {label}
+              </dt>
+              <dd className="truncate font-mono text-xs" title={value ?? undefined}>
+                {value ? shortenIdentifier(value) : "—"}
+              </dd>
+              <dd>
+                <CopyButton label={label} value={value} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </DossierSection>
+    </div>
+  )
+}
+
+function DurableDossierStatus({ dossier }: { dossier: DossierView }) {
+  if (dossier.status === "running" || dossier.status === "pending") {
+    return (
+      <Badge variant="accent">
+        <span className="size-1.5 animate-pulse rounded-full bg-current" />
+        {dossier.statusLabel}
+      </Badge>
+    )
+  }
+  if (dossier.status === "success") {
+    return (
+      <Badge variant="success">
+        <Check data-icon="inline-start" />
+        {dossier.statusLabel}
+      </Badge>
+    )
+  }
+  if (dossier.status === "partial_success") {
+    return (
+      <Badge variant="accent">
+        <CircleAlert data-icon="inline-start" />
+        {dossier.statusLabel}
+      </Badge>
+    )
+  }
+  if (dossier.status === "failed" || dossier.status === "cancelled") {
+    return <Badge variant="destructive">{dossier.statusLabel}</Badge>
+  }
+  return <Badge variant="outline">{dossier.statusLabel}</Badge>
+}
+
+function DurableRoute({ route }: { route: RouteStepView[] }) {
+  if (!route.length) {
+    return (
+      <EmptyDossier
+        icon={Route}
+        title="Chưa có tuyến"
+        detail="Tuyến chỉ hiện khi runtime công bố các bước đã quan sát."
+      />
+    )
+  }
+  return (
+    <ol className="flex flex-col gap-2">
+      {route.map((step, index) => (
+        <li key={step.stepId} className="rounded-lg border bg-muted/35 px-2.5 py-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-bold">
+                <span className="mr-1.5 font-mono text-accent">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                {step.label}
+              </p>
+              <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
+                {step.stepId}
+              </p>
+            </div>
+            <StatusDot status={step.status} />
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span className="truncate">
+              phụ thuộc · {step.dependsOn.length ? step.dependsOn.join(", ") : "bắt đầu"}
+            </span>
+            <span className="shrink-0 font-mono tabular-nums">
+              {step.durationMs === null ? "—" : formatDuration(step.durationMs)}
+            </span>
+          </div>
+          {step.reused || step.errorMessage ? (
+            <p className={cn("mt-2 text-xs leading-5", step.errorMessage ? "text-destructive" : "text-accent")}>
+              {step.errorMessage ?? "Đã dùng lại kết quả bền vững."}
+            </p>
+          ) : null}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function DurableUsage({ usage }: { usage: UsageView | null }) {
+  if (!usage) {
+    return (
+      <EmptyDossier
+        icon={Microchip}
+        title="Chưa có ledger"
+        detail="Số liệu chỉ hiện khi terminal event cung cấp usage đã xác thực."
+      />
+    )
+  }
+  const entries = [
+    ["tổng token", usage.totalTokens.toLocaleString("vi-VN")],
+    ["input / output", `${usage.inputTokens.toLocaleString("vi-VN")} / ${usage.outputTokens.toLocaleString("vi-VN")}`],
+    ["lần sinh / provider", `${usage.generationCalls} / ${usage.providerAttempts}`],
+    ["truy xuất tri thức", usage.knowledgeRetrievals.toLocaleString("vi-VN")],
+    ["chi phí ước tính", `$${usage.estimatedCostUsd}`],
+  ] as const
+  return (
+    <dl className="grid grid-cols-2 gap-2">
+      {entries.map(([label, value]) => (
+        <div key={label} className="rounded-lg border bg-card px-2.5 py-2">
+          <dt className="text-xs text-muted-foreground">{label}</dt>
+          <dd className="mt-1 font-mono text-xs font-semibold tabular-nums">{value}</dd>
+        </div>
+      ))}
+      {usage.fallbackUsed ? (
+        <div className="col-span-2 rounded-lg border border-accent/30 bg-accent/5 px-2.5 py-2 text-xs text-accent">
+          Runtime đã dùng fallback và vẫn ghi đủ usage.
+        </div>
+      ) : null}
+    </dl>
+  )
+}
+
+function DurableEvidenceIndex({
+  sources,
+  anchorScope,
+  selectedEvidenceId,
+}: {
+  sources: EvidenceView[]
+  anchorScope: ProvenanceAnchorScope
+  selectedEvidenceId?: string
+}) {
+  if (!sources.length) {
+    return (
+      <EmptyDossier
+        icon={Database}
+        title="Chưa có nguồn"
+        detail="Nguồn chỉ hiện khi kết quả chứa evidence reference hợp lệ."
+      />
+    )
+  }
+  return (
+    <ol className="flex flex-col gap-2">
+      {sources.map((source) => (
+        <li
+          key={source.evidenceId}
+          id={provenanceAnchorId(anchorScope, source.evidenceId)}
+          tabIndex={-1}
+          aria-current={selectedEvidenceId === source.evidenceId ? "true" : undefined}
+          className={cn(
+            "rounded-lg border bg-card px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40",
+            selectedEvidenceId === source.evidenceId && "border-accent/50 bg-accent/5",
+          )}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              {source.url ? (
+                <a className="line-clamp-2 text-xs font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={source.url} target="_blank" rel="noreferrer">
+                  {source.title}
+                </a>
+              ) : (
+                <p className="line-clamp-2 text-xs font-semibold">{source.title}</p>
+              )}
+              <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                {source.displayLabel} · {source.sourceVersionId ?? "không có version"}
+              </p>
+            </div>
+            <Badge variant={source.sampleData ? "accent" : "outline"}>
+              {source.kindLabel}
+            </Badge>
+          </div>
+          {source.fields.length ? (
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+              trường · {source.fields.join(", ")}
+            </p>
+          ) : null}
+        </li>
+      ))}
+    </ol>
   )
 }
 

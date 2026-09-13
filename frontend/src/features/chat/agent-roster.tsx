@@ -12,82 +12,50 @@ import {
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import {
+  createLegacyRosterItems,
+  statusLabels,
+  type PresentationTaskStatus,
+  type RosterIcon,
+  type RosterItemView,
+} from "@/features/chat/presentation"
 import { cn } from "@/lib/utils"
-import type {
-  AgentExecution,
-  GatewayStatusEvent,
-  TaskStatus,
-} from "@/lib/contracts"
-import { statusLabels } from "@/features/chat/presentation"
+import type { AgentExecution, GatewayStatusEvent } from "@/lib/contracts"
 
 interface AgentRosterProps {
-  executions: AgentExecution[]
-  statuses: GatewayStatusEvent[]
-  requestPhase: "idle" | "streaming" | "completed" | "failed" | "cancelled"
+  items?: RosterItemView[]
+  executions?: AgentExecution[]
+  statuses?: GatewayStatusEvent[]
+  requestPhase?: "idle" | "streaming" | "completed" | "failed" | "cancelled"
   compact?: boolean
 }
 
-interface AgentDefinition {
-  id: string
-  name: string
-  role: string
-  index: string
-  icon: LucideIcon
-}
-
-type RosterStatus = TaskStatus | "cancelled" | "not_run"
-
-const rosterStatusLabels: Record<RosterStatus, string> = {
+const rosterStatusLabels: Record<PresentationTaskStatus, string> = {
   ...statusLabels,
   cancelled: "Đã dừng",
   not_run: "Không chạy",
 }
 
-const agents: AgentDefinition[] = [
-  {
-    id: "orchestrator",
-    name: "Orchestrator",
-    role: "Định tuyến · DAG · tổng hợp",
-    index: "00",
-    icon: Compass,
-  },
-  {
-    id: "product_agent",
-    name: "Danh mục sách",
-    role: "Tựa sách · giá · thuộc tính",
-    index: "01",
-    icon: BookOpenCheck,
-  },
-  {
-    id: "review_agent",
-    name: "Đánh giá độc giả",
-    role: "Nhận xét · khía cạnh · tóm tắt",
-    index: "02",
-    icon: MessageSquareText,
-  },
-  {
-    id: "trust_agent",
-    name: "Trust signals",
-    role: "Phản hồi tiêu cực · tín hiệu rủi ro",
-    index: "03",
-    icon: ShieldCheck,
-  },
-  {
-    id: "market_agent",
-    name: "Snapshot stats",
-    role: "Thể loại · giá · thống kê cắt ngang",
-    index: "04",
-    icon: ChartNoAxesCombined,
-  },
-]
+const rosterIcons: Record<RosterIcon, LucideIcon> = {
+  orchestrator: Compass,
+  catalog: BookOpenCheck,
+  review: MessageSquareText,
+  trust: ShieldCheck,
+  market: ChartNoAxesCombined,
+  generic: Compass,
+}
 
 export function AgentRoster({
-  executions,
-  statuses,
-  requestPhase,
+  items,
+  executions = [],
+  statuses = [],
+  requestPhase = "idle",
   compact = false,
 }: AgentRosterProps) {
   const titleId = useId()
+  const rosterItems =
+    items ??
+    createLegacyRosterItems(executions, statuses, requestPhase)
   return (
     <section
       aria-labelledby={titleId}
@@ -105,18 +73,15 @@ export function AgentRoster({
             Agent và quyền đã cấu hình
           </p>
         </div>
-        <span className="atlas-data text-muted-foreground">5 AGENTS</span>
+        <span className="atlas-data text-muted-foreground">
+          {rosterItems.length} AGENTS
+        </span>
       </header>
 
       <ol className="relative px-3 py-2 before:absolute before:top-9 before:bottom-9 before:left-[2.08rem] before:w-px before:bg-border before:content-['']">
-        {agents.map((agent) => {
-          const status = resolveAgentStatus(
-            agent.id,
-            executions,
-            statuses,
-            requestPhase,
-          )
-          const Icon = agent.icon
+        {rosterItems.map((agent) => {
+          const status = agent.status
+          const Icon = rosterIcons[agent.icon]
           const active = status === "running"
           return (
             <li key={agent.id} className="relative">
@@ -195,28 +160,4 @@ export function AgentRoster({
       </footer>
     </section>
   )
-}
-
-function resolveAgentStatus(
-  agentId: string,
-  executions: AgentExecution[],
-  statuses: GatewayStatusEvent[],
-  requestPhase: AgentRosterProps["requestPhase"],
-): RosterStatus {
-  if (agentId === "orchestrator") {
-    if (requestPhase === "streaming") return "running"
-    if (requestPhase === "completed") return "success"
-    if (requestPhase === "failed") return "failed"
-    if (requestPhase === "cancelled") return "cancelled"
-    return "pending"
-  }
-
-  const execution = executions.find((item) => item.agent_id === agentId)
-  if (execution) return execution.status
-
-  if (requestPhase === "cancelled" || requestPhase === "failed")
-    return "not_run"
-
-  const progress = statuses.findLast((item) => item.agent_id === agentId)
-  return progress?.status ?? "pending"
 }
