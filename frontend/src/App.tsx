@@ -35,7 +35,10 @@ import {
 } from "@/features/chat/use-chat-controller"
 import {
   provenanceAnchorId,
+  selectRosterItems,
+  selectTurnView,
   shortenIdentifier,
+  type RosterItemView,
   type ProvenanceAnchorScope,
 } from "@/features/chat/presentation"
 import { cn } from "@/lib/utils"
@@ -52,6 +55,7 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
   const credentialReturnFocus = useRef<HTMLElement | null>(null)
   const [agentOpen, setAgentOpen] = useState(false)
   const [evidenceOpen, setEvidenceOpen] = useState(false)
+  const [selectedTurnId, setSelectedTurnId] = useState<string>()
   const desktopRailsVisible = useMediaQuery(XL_MEDIA_QUERY, true)
   const [sourceTarget, setSourceTarget] = useState<{
     scope: ProvenanceAnchorScope
@@ -63,6 +67,21 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
   const executions = result?.executions ?? []
   const statuses =
     state.request.phase === "streaming" ? state.request.statuses : []
+  const selectedTurn = selectTurnView(state, selectedTurnId)
+  const effectiveTurnId =
+    selectedTurn?.turnId ?? selectedTurn?.clientTurnId ?? undefined
+  const rosterItems = selectRosterItems(state, effectiveTurnId)
+
+  useEffect(() => {
+    if (
+      !controller.durable ||
+      !state.credentialConfigured ||
+      controller.durable.phase !== "idle"
+    ) {
+      return
+    }
+    void controller.durable.bootstrap()
+  }, [controller.durable, state.credentialConfigured])
 
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return
@@ -131,6 +150,8 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
           selectedSourceId={
             sourceTarget?.scope === "mobile" ? sourceTarget.sourceId : undefined
           }
+          selectedTurnId={effectiveTurnId}
+          rosterItems={controller.durable ? rosterItems : undefined}
         />
 
         <div className="mx-auto grid w-full max-w-[100rem] gap-2 px-2 pb-2 xl:grid-cols-[17.5rem_minmax(32rem,1fr)_23rem]">
@@ -143,6 +164,8 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
               controller={controller}
               onCredentialRequest={openCredentialDialog}
               onProvenanceRequest={revealProvenance}
+              selectedTurnId={effectiveTurnId}
+              onTurnSelect={setSelectedTurnId}
             />
           </main>
 
@@ -153,6 +176,7 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
                 className="hidden min-w-0 xl:col-start-1 xl:row-start-1 xl:block"
               >
                 <AgentRoster
+                  items={controller.durable ? rosterItems : undefined}
                   executions={executions}
                   statuses={statuses}
                   requestPhase={state.request.phase}
@@ -171,6 +195,7 @@ export function EvidenceAtlas({ controller }: { controller: ChatController }) {
                       ? sourceTarget.sourceId
                       : undefined
                   }
+                  selectedTurnId={effectiveTurnId}
                 />
               </aside>
             </>
@@ -217,6 +242,8 @@ function TopBar({
   evidenceOpen,
   onEvidenceOpenChange,
   selectedSourceId,
+  selectedTurnId,
+  rosterItems,
 }: {
   controller: ChatController
   onCredentialRequest(returnFocus?: HTMLElement): void
@@ -226,6 +253,8 @@ function TopBar({
   evidenceOpen: boolean
   onEvidenceOpenChange(open: boolean): void
   selectedSourceId?: string
+  selectedTurnId?: string
+  rosterItems?: RosterItemView[]
 }) {
   const { state } = controller
   const result =
@@ -319,6 +348,7 @@ function TopBar({
                 </SheetDescription>
               </SheetHeader>
               <AgentRoster
+                items={rosterItems}
                 executions={executions}
                 statuses={statuses}
                 requestPhase={state.request.phase}
@@ -360,6 +390,7 @@ function TopBar({
                 compact
                 anchorScope="mobile"
                 selectedSourceId={selectedSourceId}
+                selectedTurnId={selectedTurnId}
               />
             </SheetContent>
           </Sheet>

@@ -52,6 +52,7 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
 import type { ChatController } from "@/features/chat/use-chat-controller"
+import { DurableWorkspace } from "@/features/chat/durable-workspace"
 import { friendlyAgent, friendlyPhase } from "@/features/chat/presentation"
 import { cn } from "@/lib/utils"
 import type { Provenance } from "@/lib/contracts"
@@ -60,6 +61,8 @@ interface ConversationWorkspaceProps {
   controller: ChatController
   onCredentialRequest(returnFocus?: HTMLElement): void
   onProvenanceRequest(sourceId: string): void
+  selectedTurnId?: string
+  onTurnSelect?(turnId: string): void
 }
 
 const prompts = [
@@ -69,6 +72,37 @@ const prompts = [
 ]
 
 export function ConversationWorkspace({
+  controller,
+  onCredentialRequest,
+  onProvenanceRequest,
+  selectedTurnId,
+  onTurnSelect,
+}: ConversationWorkspaceProps) {
+  if (controller.durable) {
+    return (
+      <DurableWorkspace
+        controller={
+          controller as ChatController & {
+            durable: NonNullable<ChatController["durable"]>
+          }
+        }
+        onCredentialRequest={onCredentialRequest}
+        onProvenanceRequest={onProvenanceRequest}
+        selectedTurnId={selectedTurnId}
+        onTurnSelect={onTurnSelect ?? (() => undefined)}
+      />
+    )
+  }
+  return (
+    <LegacyConversationWorkspace
+      controller={controller}
+      onCredentialRequest={onCredentialRequest}
+      onProvenanceRequest={onProvenanceRequest}
+    />
+  )
+}
+
+function LegacyConversationWorkspace({
   controller,
   onCredentialRequest,
   onProvenanceRequest,
