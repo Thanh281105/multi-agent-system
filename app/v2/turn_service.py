@@ -167,6 +167,10 @@ class V2TurnService:
         callback: ProgressCallback | None,
     ) -> ProgressCallback:
         async def publish(event: TurnProgress) -> None:
+            if event.phase is TurnProgressPhase.CLAIMED:
+                await emit_progress(callback, event)
+                await self.progress_hub.publish(event)
+                return
             await self.progress_hub.publish(event)
             await emit_progress(callback, event)
 
