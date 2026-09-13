@@ -6,6 +6,7 @@ import {
   turnResponseSchema,
   turnResultSchema,
   turnSseEventSchema,
+  turnSseTerminalEventSchema,
   usageSummarySchema,
 } from "@/lib/v2-contracts"
 
@@ -420,7 +421,9 @@ export const v2ProgressEvents = v2ProgressEventsWire.map((event) =>
   turnSseEventSchema.parse(event),
 )
 export const v2TextDeltaEvent = turnSseEventSchema.parse(v2TextDeltaEventWire)
-export const v2TerminalEvent = turnSseEventSchema.parse(v2TerminalEventWire)
+export const v2TerminalEvent = turnSseTerminalEventSchema.parse(
+  v2TerminalEventWire,
+)
 
 export const v2PreferenceRecordWire = {
   preference_id: "preference_demo_001",
