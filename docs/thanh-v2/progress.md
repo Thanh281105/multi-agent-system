@@ -373,3 +373,70 @@ and 1 warning in 727.75 seconds (12:07)**. The two deselected cases are the
 optional integration-marked provider tests. The warning is the existing
 Starlette `TestClient` deprecation warning for the installed `httpx` transport.
 All required PostgreSQL cases ran without skips, and Package 6 may now begin.
+
+## Package 6 kickoff
+
+Package 6 started from the passed Package 5 gate at `a329e50`. The lead split
+the public API, durable turn lifecycle, frontend transport/state, presentation
+and application wiring into exclusive backend/frontend slices. UI work followed
+the UI UX Pro Max, Impeccable and shadcn project pipeline and preserved the
+warm paper/indigo/oxide constitution in `DESIGN.md`.
+
+The package exposes authenticated v2 identity, conversation/history, chat,
+turn read/cancel, action decision/read and explicit memory endpoints. JSON and
+SSE share strict snake-case contracts; the frontend converts them once into
+camel-case state. Conversation admission and deletion serialize on the same
+authorized row, and retries retain a stable conversation/client-turn identity.
+The final scope is 42 tracked source/test files across the planned API and UI
+areas. No migration, dependency or architectural deviation was needed.
+
+## Package 6 reviewed slices and remediation
+
+The reviewed implementation commits are `8083f57`, `741a9b3`, `44d6ddd`,
+`e07de5f`, `84db1eb`, `1495011`, `62dece3`, `4ffce81`, `d6c1f5c`, `cd85cea`,
+`3c92c83` and `aaa27cd`. They add the public contracts, durable admission and
+cancellation, lazy production composition, JSON/SSE routes, strict frontend
+transport/state, recovery controller, grounded presentation and responsive v2
+workspace.
+
+A final read-only Sol XHigh gate audit found that passive SSE timeout emitted a
+synthetic interrupted terminal while the durable turn remained live. The client
+previously treated that event as settled, cleared recovery metadata and could no
+longer reattach correctly. Sol Max implemented the backend settlement contract;
+Sol XHigh implemented the frontend recovery/action corrections. The lead reviewed
+and reproduced both. Commit `bdcfd1a` requires `server_settled` on every terminal,
+marks passive timeout false without cancelling or overwriting the live lease, and
+marks durable outcomes true. Commit `95c9ddf` keeps the same recovery tuple,
+resets only the per-connection event sequence, blocks a new intent until durable
+settlement, and reports action rejection success only after a `rejected` readback.
+Direct UI tests cover cancelled, interrupted, expired and conflicted states.
+
+The audit also corrected documentation: session storage contains selected mode,
+conversation and bounded pending-recovery data including the unsettled user
+message, but no credential, assistant content or raw tool payload. The production
+application mounts v2; the v1 controller adapter remains a compatibility/test
+boundary. The reachable v1 OpenAPI projection is byte-identical to Package 5:
+5 paths, 8 referenced schemas and SHA256
+`9530a0d564840c54c5900e234b44e21bfe6a0d40ed10165ed158e59fa7a643a0`.
+The older `1B0C...` value covered all component schemas then present rather than
+the v1-only reachable projection.
+
+## Package 6 gate decision
+
+Package 6 passed on 2026-09-14. Primary verification ran 49 contract/SSE tests
+against PostgreSQL 18.4 after the settlement fix, then the complete
+`pytest -m "not integration" -q` gate: **750 passed, 2 deselected and 1 warning
+in 935.00 seconds**. No PostgreSQL test was skipped. The deselected tests are the
+two optional live-provider integration cases; the warning is the existing
+Starlette/httpx deprecation.
+
+Frontend verification passed **116 tests**, Oxlint and the TypeScript/Vite
+production build. Ruff lint passed and Ruff format checked 273 files; mypy passed
+149 source files. The unified verifier reported `VERIFY_STATUS=SUCCESS` with
+language-specific tests recorded separately. The exact v1 comparison passed.
+Chromium QA at 375, 768, 1024 and 1440 CSS pixels, 200% device scale and reduced
+motion passed at `95c9ddf`: no duplicate IDs, unnamed buttons, horizontal
+overflow, console errors or page errors. Strict fixtures were used only for the
+visual browser run because the disposable Package 6 database has no published
+Package 3 corpus/index; real API, locking and recovery behavior ran against
+PostgreSQL in the backend gate. Package 7 may now begin.
