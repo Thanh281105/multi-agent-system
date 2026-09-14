@@ -1,0 +1,159 @@
+{
+  "schema_version": "3.0",
+  "experiment_id": "package7_evaluation_v3",
+  "random_seed": 42,
+  "pilot_repeats": 1,
+  "warmup_repeats": 1,
+  "warmup_case_id": "dev_multi_constraint_01",
+  "variants": [
+    {
+      "variant_id": "sa_shared_tools_rag",
+      "description": "Single controller using the shared Package 7 tools and frozen RAG binding.",
+      "agent_topology": "single",
+      "planning_mode": "shared",
+      "max_continuations": 0,
+      "rag_enabled": true,
+      "generation_binding": {
+        "provider": "openai",
+        "model": "gpt-5.4-mini-2026-03-17",
+        "reasoning_effort": "low"
+      }
+    },
+    {
+      "variant_id": "ma_fixed_rag",
+      "description": "Multiple specialists using a fixed plan with the shared tools and frozen RAG binding.",
+      "agent_topology": "multi",
+      "planning_mode": "fixed",
+      "max_continuations": 0,
+      "rag_enabled": true,
+      "generation_binding": {
+        "provider": "openai",
+        "model": "gpt-5.4-mini-2026-03-17",
+        "reasoning_effort": "low"
+      }
+    },
+    {
+      "variant_id": "ma_adaptive_rag",
+      "description": "Multiple specialists using evidence-adaptive planning with at most one continuation and frozen RAG.",
+      "agent_topology": "multi",
+      "planning_mode": "adaptive",
+      "max_continuations": 1,
+      "rag_enabled": true,
+      "generation_binding": {
+        "provider": "openai",
+        "model": "gpt-5.4-mini-2026-03-17",
+        "reasoning_effort": "low"
+      }
+    },
+    {
+      "variant_id": "ma_adaptive_no_rag",
+      "description": "The evidence-adaptive multi-specialist variant with only the declared RAG switch disabled.",
+      "agent_topology": "multi",
+      "planning_mode": "adaptive",
+      "max_continuations": 1,
+      "rag_enabled": false,
+      "generation_binding": {
+        "provider": "openai",
+        "model": "gpt-5.4-mini-2026-03-17",
+        "reasoning_effort": "low"
+      }
+    }
+  ],
+  "pilot_cases": [
+    {
+      "case_id": "dev_multi_constraint_01",
+      "work_group_id": "dev_multi_constraint_01",
+      "split": "development"
+    },
+    {
+      "case_id": "dev_multi_constraint_02",
+      "work_group_id": "dev_multi_constraint_02",
+      "split": "development"
+    },
+    {
+      "case_id": "dev_knowledge_source_01",
+      "work_group_id": "dev_knowledge_source_01",
+      "split": "development"
+    },
+    {
+      "case_id": "dev_knowledge_source_02",
+      "work_group_id": "dev_knowledge_source_02",
+      "split": "development"
+    },
+    {
+      "case_id": "dev_multi_expert_01",
+      "work_group_id": "dev_multi_expert_01",
+      "split": "development"
+    },
+    {
+      "case_id": "dev_multi_turn_memory_01",
+      "work_group_id": "dev_multi_turn_memory_01",
+      "split": "development"
+    },
+    {
+      "case_id": "dev_insufficient_conflict_injection_01",
+      "work_group_id": "dev_insufficient_conflict_injection_01",
+      "split": "development"
+    },
+    {
+      "case_id": "dev_shopping_merchant_01",
+      "work_group_id": "dev_shopping_merchant_01",
+      "split": "development"
+    }
+  ],
+  "metrics": [
+    "task_completion",
+    "answerability_abstention",
+    "claim_support",
+    "citation_precision",
+    "citation_coverage",
+    "document_recall",
+    "authorization",
+    "valid_plan",
+    "useful_continuation",
+    "duplicate_dispatch",
+    "end_to_end_latency_ms",
+    "total_tokens",
+    "effective_cost_usd"
+  ],
+  "gold_policy": {
+    "authorship": "automated_pre_sut_spec",
+    "human_author_ids": []
+  },
+  "judgment_policy": {
+    "mode": "model_judge",
+    "model_binding": {
+      "provider": "openai",
+      "model": "gpt-5.4-mini-2026-03-17",
+      "reasoning_effort": "low"
+    },
+    "human_judge_ids": []
+  },
+  "budget": {
+    "corpus_allocation_usd": "5",
+    "pilot_allocation_usd": "10",
+    "benchmark_allocation_usd": "70",
+    "reserve_allocation_usd": "15",
+    "account_warning_usd": "50",
+    "reservation_cap_usd": "100",
+    "per_turn_limit_usd": "0.25",
+    "max_generation_calls_per_turn": 10,
+    "max_provider_attempts_per_turn": 16,
+    "provider_concurrency": 2,
+    "max_retries": 1,
+    "attempt_timeout_seconds": 18.0,
+    "turn_deadline_seconds": 60.0,
+    "max_input_tokens_per_generation": 12000,
+    "max_output_tokens_per_generation": 1200
+  },
+  "repeat_policy": {
+    "decision_scope": "global",
+    "heldout_conversation_count": 60,
+    "candidate_repeats": [3, 2],
+    "benchmark_limit_usd": "70",
+    "effective_cost_rule": "known_plus_unresolved_reserved_maximum",
+    "warmup_counts_toward_pilot": true,
+    "warmup_excluded_from_projection": true,
+    "missing_or_invalid_ledger_policy": "block"
+  }
+}
