@@ -305,6 +305,7 @@ async def test_completed_stream_maps_progress_and_emits_only_persisted_text() ->
     )
     assert [record["event"] for record in data_records].count("terminal") == 1
     assert data_records[-1]["event"] == "terminal"
+    assert data_records[-1]["data"]["server_settled"] is True
     _assert_order_and_correlation(data_records, turn_id=turn_id)
     wire = b"".join(chunks)
     assert payload.message.encode() not in wire
@@ -344,6 +345,7 @@ async def test_each_durable_terminal_status_is_typed_once_and_final(
     assert len(terminals) == 1
     assert records[-1] == terminals[0]
     assert terminals[0]["data"]["payload"]["status"] == expected_status
+    assert terminals[0]["data"]["server_settled"] is True
     assert not any(record["event"] == "text_delta" for record in records)
     assert "private" not in json.dumps(records)
     _assert_order_and_correlation(records, turn_id=turn_id)
@@ -379,6 +381,7 @@ async def test_timeout_heartbeats_do_not_consume_sequence_and_cancel_owner(
     assert [record["data"]["sequence"] for record in data_records] == [1, 2, 3]
     assert data_records[-1]["event"] == "terminal"
     assert data_records[-1]["data"]["payload"]["status"] == "cancelled"
+    assert data_records[-1]["data"]["server_settled"] is True
     assert service.cancel_calls == 1
     assert service.execution_cancelled is True
 
@@ -407,6 +410,7 @@ async def test_cross_process_live_retry_polls_without_rerunning_or_cancelling(
     assert service.cancel_calls == 0
     assert records[0]["data"]["phase"] == "attached"
     assert records[-1]["event"] == "terminal"
+    assert records[-1]["data"]["server_settled"] is True
     assert records[-1]["data"]["reused_result"] is True
     assert (
         "".join(
@@ -436,11 +440,16 @@ async def test_passive_timeout_does_not_overwrite_a_live_lease(
 
     records = _data_records(await _collect(_response(service, payload)))
 
+    assert service.execute_calls == 1
     assert service.query_calls > 0
     assert service.cancel_calls == 0
+    assert service.persisted is False
+    assert service.outcome.status is TurnStatus.RUNNING
     assert [record["event"] for record in records] == ["progress", "terminal"]
     assert records[0]["data"]["phase"] == "attached"
     terminal_payload = records[-1]["data"]["payload"]
+    assert records[-1]["data"]["server_settled"] is False
+    assert records[-1]["data"]["reused_result"] is False
     assert terminal_payload["status"] == "interrupted"
     assert terminal_payload["error"] == {
         "code": "stream.interrupted",
@@ -747,6 +756,7 @@ def test_crlf_frames_survive_arbitrary_byte_chunk_boundaries() -> None:
         request_id="request_sse_chunk",
         trace_id="trace_sse_chunk",
         claimed_by_this_stream=True,
+        server_settled=True,
     )
     assert event is not None
     _, frames = event
@@ -757,6 +767,7 @@ def test_crlf_frames_survive_arbitrary_byte_chunk_boundaries() -> None:
 
     assert [record["event"] for record in restored] == ["text_delta", "terminal"]
     assert restored[0]["data"]["delta"] == "Tiếng Việt 📚"
+    assert restored[-1]["data"]["server_settled"] is True
 
 
 async def _body(response: StreamingResponse) -> AsyncIterator[bytes]:

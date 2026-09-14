@@ -942,6 +942,7 @@ TurnTerminalPayload = Annotated[
 class TurnSSETerminalEvent(TurnSSEEnvelope):
     event: Literal[TurnSSEEventKind.TERMINAL] = TurnSSEEventKind.TERMINAL
     payload: TurnTerminalPayload
+    server_settled: bool = Field(strict=True)
     reused_result: bool = False
 
 

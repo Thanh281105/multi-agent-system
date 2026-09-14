@@ -933,6 +933,7 @@ def test_sse_sequence_covers_real_progress_and_post_grounding_text() -> None:
     )
     terminal = TurnSSETerminalEvent(
         **_sse_correlation(7),
+        server_settled=True,
         payload=TurnCompletedTerminal(
             status=TurnStatus.COMPLETED,
             result=TurnResult(
@@ -960,6 +961,7 @@ def test_sse_events_reject_bad_sequence_correlation_and_untrusted_fields() -> No
     )
     terminal = TurnSSETerminalEvent(
         **_sse_correlation(2),
+        server_settled=True,
         payload=TurnCancelledTerminal(status=TurnStatus.CANCELLED),
     )
 
@@ -1037,14 +1039,17 @@ def test_sse_terminal_payloads_are_status_discriminated_and_strict() -> None:
     for index, payload in enumerate(payloads, start=1):
         event = TurnSSETerminalEvent(
             **_sse_correlation(index),
+            server_settled=True,
             payload=payload,
         )
         restored = TurnSSETerminalEvent.model_validate_json(event.model_dump_json())
         assert restored.payload.status == payload.status
+        assert restored.server_settled is True
     assert (
         '"estimated_cost_usd":"0.001"'
         in TurnSSETerminalEvent(
             **_sse_correlation(1),
+            server_settled=True,
             payload=payloads[0],
         ).model_dump_json()
     )
@@ -1065,9 +1070,29 @@ def test_sse_terminal_payloads_are_status_discriminated_and_strict() -> None:
                 {
                     **_sse_correlation(1),
                     "event": "terminal",
+                    "server_settled": True,
                     "payload": invalid,
                 }
             )
+
+    valid_payload = payloads[0].model_dump(mode="json")
+    with pytest.raises(ValidationError):
+        TurnSSETerminalEvent.model_validate(
+            {
+                **_sse_correlation(1),
+                "event": "terminal",
+                "payload": valid_payload,
+            }
+        )
+    with pytest.raises(ValidationError):
+        TurnSSETerminalEvent.model_validate(
+            {
+                **_sse_correlation(1),
+                "event": "terminal",
+                "server_settled": 1,
+                "payload": valid_payload,
+            }
+        )
 
 
 def test_usage_rejects_inconsistent_or_hidden_reservations() -> None:

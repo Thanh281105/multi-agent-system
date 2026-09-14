@@ -168,6 +168,7 @@ async def _stream_v2_turn(
                         request_id=request_id,
                         trace_id=trace_id,
                         claimed_by_this_stream=claimed_by_this_stream,
+                        server_settled=True,
                     )
                     sequence, frames = terminal
                     for frame in frames:
@@ -199,6 +200,7 @@ async def _stream_v2_turn(
                             request_id=request_id,
                             trace_id=trace_id,
                             claimed_by_this_stream=claimed_by_this_stream,
+                            server_settled=True,
                         )
                         sequence, frames = terminal
                         for frame in frames:
@@ -226,17 +228,20 @@ async def _stream_v2_turn(
                     if timed_out is not None and timed_out.status in _TERMINAL_STATUSES:
                         durable_terminal_seen = True
                         terminal_outcome = timed_out
+                        server_settled = True
                     else:
                         terminal_outcome = _safe_interrupted_outcome(
                             turn_id,
                             timed_out or outcome,
                         )
+                        server_settled = False
                     terminal = _terminal_frames_or_safe(
                         terminal_outcome,
                         start_sequence=sequence,
                         request_id=request_id,
                         trace_id=trace_id,
                         claimed_by_this_stream=claimed_by_this_stream,
+                        server_settled=server_settled,
                     )
                     sequence, frames = terminal
                     for frame in frames:
@@ -375,6 +380,7 @@ def _terminal_frames(
     request_id: str,
     trace_id: str,
     claimed_by_this_stream: bool,
+    server_settled: bool,
 ) -> tuple[int, tuple[bytes, ...]] | None:
     sequence = start_sequence
     frames: list[bytes] = []
@@ -431,6 +437,7 @@ def _terminal_frames(
             TurnSSETerminalEvent(
                 sequence=sequence,
                 payload=payload,
+                server_settled=server_settled,
                 reused_result=outcome.reused and not claimed_by_this_stream,
                 request_id=request_id,
                 trace_id=trace_id,
@@ -448,6 +455,7 @@ def _terminal_frames_or_safe(
     request_id: str,
     trace_id: str,
     claimed_by_this_stream: bool,
+    server_settled: bool,
 ) -> tuple[int, tuple[bytes, ...]]:
     terminal = _terminal_frames(
         outcome,
@@ -455,6 +463,7 @@ def _terminal_frames_or_safe(
         request_id=request_id,
         trace_id=trace_id,
         claimed_by_this_stream=claimed_by_this_stream,
+        server_settled=server_settled,
     )
     if terminal is not None:
         return terminal
@@ -464,6 +473,7 @@ def _terminal_frames_or_safe(
         request_id=request_id,
         trace_id=trace_id,
         claimed_by_this_stream=claimed_by_this_stream,
+        server_settled=server_settled,
     )
     if safe_terminal is None:
         raise AssertionError("safe interrupted terminal must serialize")
