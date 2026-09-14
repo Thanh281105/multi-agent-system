@@ -105,13 +105,17 @@ class V2ReadSupervisor:
         answer_producer: GroundedAnswerProducer,
         knowledge_resolver: KnowledgeResolver | None = None,
         action_service: V2ActionService | None = None,
+        continuation_enabled: bool = True,
     ) -> None:
+        if type(continuation_enabled) is not bool:
+            raise TypeError("continuation_enabled must be a bool")
         self.session_factory = session_factory
         self.planner = planner
         self.operation_executor = operation_executor
         self.answer_producer = answer_producer
         self.knowledge_resolver = knowledge_resolver
         self.action_service = action_service
+        self.continuation_enabled = continuation_enabled
 
     def read_turn_proposal(
         self,
@@ -250,11 +254,15 @@ class V2ReadSupervisor:
             draft_repairs_used=0,
         )
 
-        continuation_operations = self.planner.continue_plan(
-            planned,
-            assessment,
-            context,
-            all_operations,
+        continuation_operations = (
+            self.planner.continue_plan(
+                planned,
+                assessment,
+                context,
+                all_operations,
+            )
+            if self.continuation_enabled
+            else ()
         )
         continuation: OperationBatch | None = None
         if continuation_operations:

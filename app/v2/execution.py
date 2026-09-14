@@ -28,6 +28,7 @@ from app.db.v2_repository import (
 from app.models.budget import ProviderBudgetScope
 from app.models.v2 import V2Turn
 from app.shared import (
+    ModelCallMetadata,
     ModelRuntime,
     ModelRuntimeError,
     ModelRuntimeMode,
@@ -88,6 +89,7 @@ from app.v2.registry import CapabilityEffect, V2CapabilityRegistry, default_v2_r
 from app.v2.runtime_contracts import ExpertResult, RuntimeOperation
 
 SessionFactory = Callable[[], Session]
+FinalizedModelCallObserver = Callable[[tuple[ModelCallMetadata, ...]], None]
 _TURN_DEADLINE_SECONDS = float(DEFAULT_SCOPE_DEADLINE_SECONDS)
 _LEASE_SECONDS = _TURN_DEADLINE_SECONDS + 5.0
 _EXPERT_MODEL_INPUT_BOUND = 12_000
@@ -359,11 +361,15 @@ class DurableOperationExecutor:
         *,
         registry: V2CapabilityRegistry = default_v2_registry,
         expert_reasoner: ExpertReasoner | None = None,
+        rag_enabled: bool = True,
     ) -> None:
+        if type(rag_enabled) is not bool:
+            raise TypeError("rag_enabled must be a bool")
         self.session_factory = session_factory
         self.dispatcher = dispatcher
         self.registry = registry
         self.expert_reasoner = expert_reasoner
+        self.rag_enabled = rag_enabled
 
     async def execute(
         self,
@@ -678,6 +684,8 @@ class DurableOperationExecutor:
         # Frozen Pydantic models do not deep-freeze dictionaries. Rebuilding here
         # verifies the canonical key immediately before every dispatch/persist.
         validated = RuntimeOperation.model_validate(operation.model_dump(mode="python"))
+        if validated.capability == "knowledge.retrieve" and not self.rag_enabled:
+            raise DurableExecutionError("knowledge_capability_disabled")
         definition = self.registry.capability(validated.capability)
         if definition.service != validated.service:
             raise DurableExecutionError("operation_service_binding_invalid")
@@ -848,6 +856,7 @@ class DurableReadTurnExecutor:
         handler: ClaimedTurnHandler,
         *,
         budget_ledger: SQLProviderBudgetLedger | None = None,
+        model_call_observer: FinalizedModelCallObserver | None = None,
     ) -> None:
         self.session_factory = session_factory
         self.handler = handler
@@ -855,6 +864,7 @@ class DurableReadTurnExecutor:
             handler if isinstance(handler, ExpiredTurnProposalRecoverer) else None
         )
         self.budget_ledger = budget_ledger
+        self.model_call_observer = model_call_observer
 
     async def execute(
         self,
@@ -1115,42 +1125,47 @@ class DurableReadTurnExecutor:
                     constraint_parser=context_constraints_from_message,
                 )
             context = context.model_copy(update={"model_context": model_context})
-            with (
-                collect_model_calls() as model_calls,
-                budget_scope,
-                turn_progress_scope(
-                    turn_id=snapshot.turn_id,
-                    callback=progress,
-                    cancellation_requested=claim_cancelled,
-                ),
-            ):
-                async with asyncio.timeout(timeout_seconds):
-                    computation = await self.handler.run_claimed(
-                        conversation_id=request.conversation_id,
+            model_calls: list[ModelCallMetadata] = []
+            try:
+                with (
+                    collect_model_calls() as model_calls,
+                    budget_scope,
+                    turn_progress_scope(
                         turn_id=snapshot.turn_id,
-                        lease_owner=request.lease_owner,
-                        message=request.message,
-                        context=context,
-                        deadline_monotonic=deadline_monotonic,
-                    )
-                fallback_reasons = tuple(
-                    dict.fromkeys(
-                        (
-                            *computation.fallback_reasons,
-                            *(
-                                item.fallback_reason
-                                for item in model_calls
-                                if item.fallback_used and item.fallback_reason
-                            ),
+                        callback=progress,
+                        cancellation_requested=claim_cancelled,
+                    ),
+                ):
+                    async with asyncio.timeout(timeout_seconds):
+                        computation = await self.handler.run_claimed(
+                            conversation_id=request.conversation_id,
+                            turn_id=snapshot.turn_id,
+                            lease_owner=request.lease_owner,
+                            message=request.message,
+                            context=context,
+                            deadline_monotonic=deadline_monotonic,
+                        )
+                    fallback_reasons = tuple(
+                        dict.fromkeys(
+                            (
+                                *computation.fallback_reasons,
+                                *(
+                                    item.fallback_reason
+                                    for item in model_calls
+                                    if item.fallback_used and item.fallback_reason
+                                ),
+                            )
                         )
                     )
-                )
-                computation = TurnComputation(
-                    result=computation.result,
-                    fallback_reasons=fallback_reasons,
-                    knowledge_retrievals=computation.knowledge_retrievals,
-                    draft_repairs=computation.draft_repairs,
-                )
+                    computation = TurnComputation(
+                        result=computation.result,
+                        fallback_reasons=fallback_reasons,
+                        knowledge_retrievals=computation.knowledge_retrievals,
+                        draft_repairs=computation.draft_repairs,
+                    )
+            finally:
+                if self.model_call_observer is not None:
+                    self.model_call_observer(tuple(model_calls))
         except asyncio.CancelledError:
             self._persist_cancelled(
                 snapshot.turn_id,

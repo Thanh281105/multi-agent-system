@@ -160,12 +160,22 @@ _model_call_collector: ContextVar[list[ModelCallMetadata] | None] = ContextVar(
 def collect_model_calls() -> Iterator[list[ModelCallMetadata]]:
     """Collect model calls for one orchestration turn without global state."""
 
+    parent = _model_call_collector.get()
     calls: list[ModelCallMetadata] = []
     token = _model_call_collector.set(calls)
     try:
         yield calls
     finally:
         _model_call_collector.reset(token)
+        if parent is not None:
+            positions = {item.call_id: index for index, item in enumerate(parent)}
+            for item in calls:
+                index = positions.get(item.call_id)
+                if index is None:
+                    positions[item.call_id] = len(parent)
+                    parent.append(item)
+                else:
+                    parent[index] = item
 
 
 def mark_model_call_fallback(

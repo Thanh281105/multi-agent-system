@@ -337,15 +337,20 @@ class BoundedV2Planner:
         runtime_mode: ModelRuntimeMode = "off",
         model: str = "gpt-5.4-mini",
         reasoning_effort: ReasoningEffort = "low",
+        rag_enabled: bool = True,
     ) -> None:
+        if type(rag_enabled) is not bool:
+            raise TypeError("rag_enabled must be a bool")
         self.registry = registry
         self.model_runtime = model_runtime
         self.runtime_mode = runtime_mode
         self.model = model
         self.reasoning_effort = reasoning_effort
+        self.rag_enabled = rag_enabled
 
     async def plan(self, message: str, context: PlanningContext) -> PlannedTurn:
         request = _deterministic_request(message, context)
+        policy_request = self._apply_rag_policy(request)
         plan_id = _plan_id(
             message,
             context,
@@ -357,9 +362,9 @@ class BoundedV2Planner:
                 intent=request.intent,
                 template_id=request.template_id,
                 obligations=request.obligations,
-                desired_capabilities=request.capabilities,
+                desired_capabilities=policy_request.capabilities,
                 initial_operations=(),
-                deferred_capabilities=request.capabilities,
+                deferred_capabilities=policy_request.capabilities,
                 candidate_limit=request.candidate_limit,
                 query=request.query,
                 catalog_query=request.catalog_query,
@@ -370,23 +375,28 @@ class BoundedV2Planner:
             )
 
         if request.proposal is not None:
-            _authorized_plan_options(request, context, self.registry)
+            _authorized_plan_options(
+                policy_request,
+                context,
+                self.registry,
+                rag_enabled=self.rag_enabled,
+            )
 
-        effective_request = request
+        effective_request = policy_request
         selected_template: str | None = None
         fallback_reason: str | None = None
-        if self.runtime_mode != "off":
-            choice, fallback_reason = await self._model_choice(request, context)
+        if self.runtime_mode != "off" and policy_request.capabilities:
+            choice, fallback_reason = await self._model_choice(policy_request, context)
             if choice is not None:
                 selected_template = choice.template_id
                 if self.runtime_mode in {"hybrid", "required"}:
                     effective_request = replace(
-                        request,
+                        policy_request,
                         intent=_intent_for_template(
                             self.registry,
                             context.access.binding.mode,
                             choice.template_id,
-                            request.intent,
+                            policy_request.intent,
                         ),
                         template_id=choice.template_id,
                         capabilities=choice.capabilities,
@@ -414,6 +424,30 @@ class BoundedV2Planner:
             model_selected_template_id=selected_template,
             fallback_reason=fallback_reason,
             proposal=request.proposal,
+        )
+
+    def _apply_rag_policy(
+        self, request: _DeterministicRequest
+    ) -> _DeterministicRequest:
+        if self.rag_enabled:
+            return request
+        capabilities = tuple(
+            capability
+            for capability in request.capabilities
+            if capability != "knowledge.retrieve"
+        )
+        model_obligations = tuple(
+            obligation
+            for obligation in request.obligations
+            if any(
+                _capability_satisfies(capability, obligation.kind)
+                for capability in capabilities
+            )
+        )
+        return replace(
+            request,
+            capabilities=capabilities,
+            obligations=model_obligations,
         )
 
     def bind_initial_candidates(
@@ -584,7 +618,12 @@ class BoundedV2Planner:
         if current_provider_budget() is None:
             return self._unavailable_model("provider_budget_unavailable")
 
-        options = _authorized_plan_options(request, context, self.registry)
+        options = _authorized_plan_options(
+            request,
+            context,
+            self.registry,
+            rag_enabled=self.rag_enabled,
+        )
 
         input_payload = json.dumps(
             {
@@ -739,6 +778,8 @@ class BoundedV2Planner:
         obligation_ids: tuple[str, ...] = (),
         expanded_knowledge: bool = False,
     ) -> RuntimeOperation:
+        if capability == "knowledge.retrieve" and not self.rag_enabled:
+            raise PlanningError("knowledge_capability_disabled")
         definition = self.registry.capability(capability)
         if definition.effect != CapabilityEffect.READ:
             raise PlanningError("write_capability_forbidden")
@@ -1414,6 +1455,8 @@ def _authorized_plan_options(
     request: _DeterministicRequest,
     context: PlanningContext,
     registry: V2CapabilityRegistry,
+    *,
+    rag_enabled: bool = True,
 ) -> tuple[tuple[str, tuple[str, ...]], ...]:
     if request.proposal is not None:
         template = next(
@@ -1446,7 +1489,14 @@ def _authorized_plan_options(
     authorized: list[tuple[str, tuple[str, ...]]] = []
     templates = registry.templates_for_mode(context.access.binding.mode)
     candidates = [
-        (template.template_id, template.capabilities)
+        (
+            template.template_id,
+            tuple(
+                capability
+                for capability in template.capabilities
+                if rag_enabled or capability != "knowledge.retrieve"
+            ),
+        )
         for template in templates
         if set(template.capabilities) <= _P4_IMPLEMENTED_READ_CAPABILITIES
     ]
