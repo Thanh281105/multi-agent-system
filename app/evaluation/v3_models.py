@@ -329,6 +329,35 @@ class EvaluationAssetBindingsV3(FrozenContractV3):
     pricing_sha256: Sha256V3
     ledger_contract_sha256: Sha256V3
     scoring_rubric_sha256: Sha256V3
+    evaluator_configuration_sha256: Sha256V3
+    judge_prompt_sha256: Sha256V3
+    judge_schema_sha256: Sha256V3
+    embedding_model_dimensions_sha256: Sha256V3
+    pricing_manifest_sha256: Sha256V3
+    usage_ledger_sha256: Sha256V3
+    rubric_sha256: Sha256V3
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_explicit_provenance_aliases(cls, value: object) -> object:
+        """Keep old constructors valid while serializing every v3 binding explicitly."""
+
+        if not isinstance(value, dict):
+            return value
+        payload = dict(value)
+        aliases = {
+            "evaluator_configuration_sha256": "evaluator_sha256",
+            "judge_prompt_sha256": "prompt_bundle_sha256",
+            "judge_schema_sha256": "evaluator_sha256",
+            "embedding_model_dimensions_sha256": "embedding_sha256",
+            "pricing_manifest_sha256": "pricing_sha256",
+            "usage_ledger_sha256": "ledger_contract_sha256",
+            "rubric_sha256": "scoring_rubric_sha256",
+        }
+        for explicit_name, legacy_name in aliases.items():
+            if explicit_name not in payload and legacy_name in payload:
+                payload[explicit_name] = payload[legacy_name]
+        return payload
 
 
 class EvaluationProtocolV3(FrozenContractV3):

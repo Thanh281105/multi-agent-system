@@ -76,6 +76,16 @@ class ArtifactBindingsV3(FrozenAnalysisContractV3):
     split_sha256: str = Field(pattern=_SHA256)
     schedule_sha256: str = Field(pattern=_SHA256)
     repeat_decision_sha256: str = Field(pattern=_SHA256)
+    evaluator_configuration_sha256: str = Field(pattern=_SHA256)
+    judge_prompt_sha256: str = Field(pattern=_SHA256)
+    judge_schema_sha256: str = Field(pattern=_SHA256)
+    tool_contract_sha256: str = Field(pattern=_SHA256)
+    corpus_sha256: str = Field(pattern=_SHA256)
+    index_sha256: str = Field(pattern=_SHA256)
+    embedding_model_dimensions_sha256: str = Field(pattern=_SHA256)
+    pricing_manifest_sha256: str = Field(pattern=_SHA256)
+    usage_ledger_sha256: str = Field(pattern=_SHA256)
+    rubric_sha256: str = Field(pattern=_SHA256)
 
 
 class EvaluationStopV3(FrozenAnalysisContractV3):
@@ -409,6 +419,18 @@ def analyze_evaluation_v3(
         split_sha256=split_sha256,
         schedule_sha256=schedule_sha256,
         repeat_decision_sha256=canonical_sha256(repeat_decision),
+        evaluator_configuration_sha256=(protocol.assets.evaluator_configuration_sha256),
+        judge_prompt_sha256=protocol.assets.judge_prompt_sha256,
+        judge_schema_sha256=protocol.assets.judge_schema_sha256,
+        tool_contract_sha256=protocol.assets.tool_contract_sha256,
+        corpus_sha256=protocol.assets.corpus_sha256,
+        index_sha256=protocol.assets.index_sha256,
+        embedding_model_dimensions_sha256=(
+            protocol.assets.embedding_model_dimensions_sha256
+        ),
+        pricing_manifest_sha256=protocol.assets.pricing_manifest_sha256,
+        usage_ledger_sha256=_usage_ledger_evidence_sha256(observations),
+        rubric_sha256=protocol.assets.rubric_sha256,
     )
     heldout = tuple(
         entry for entry in split.entries if entry.split == EvaluationSplitV3.HELD_OUT
@@ -626,6 +648,24 @@ def metric_value_v3(
     if metric == EvaluationMetricV3.EFFECTIVE_COST_USD:
         return float(observation.effective_cost_usd)
     raise ValueError(f"unsupported Evaluation v3 metric: {metric}")
+
+
+def _usage_ledger_evidence_sha256(
+    observations: Sequence[EvaluationObservationV3],
+) -> str:
+    """Bind the exact ledger attribution used by this analysis capture."""
+
+    return canonical_sha256(
+        [
+            {
+                "observation_id": item.observation_id,
+                "ledger_event_ids": item.ledger_event_ids,
+                "known_cost_usd": str(item.known_cost_usd),
+                "unresolved_reserved_cost_usd": str(item.unresolved_reserved_cost_usd),
+            }
+            for item in sorted(observations, key=lambda item: item.observation_id)
+        ]
+    )
 
 
 def _work_group_bootstrap_interval(

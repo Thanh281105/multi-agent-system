@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from app.contracts import TaskStatus
+from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_artifacts import (
     AnswerEvidenceInputV3,
     CitationForReviewV3,
@@ -17,7 +18,7 @@ from app.evaluation.v3_artifacts import (
     validate_evaluation_artifacts_v3,
     write_evaluation_artifacts_v3,
 )
-from app.evaluation.v3_comparison import analyze_evaluation_v3
+from app.evaluation.v3_comparison import EvaluationAnalysisV3, analyze_evaluation_v3
 from app.evaluation.v3_gold import load_evaluation_gold_v3
 from app.evaluation.v3_models import (
     PACKAGE7_VARIANT_ORDER,
@@ -186,11 +187,70 @@ def test_written_artifacts_have_stable_canonical_hashes_and_validate(
     )
 
     assert first == second
-    assert validate_evaluation_artifacts_v3(first_dir) == first
+    assert (
+        validate_evaluation_artifacts_v3(
+            first_dir,
+            expected_bindings=analysis.bindings,
+        )
+        == first
+    )
     assert validate_evaluation_artifacts_v3(second_dir) == second
+    with pytest.raises(ValueError, match="provenance differs"):
+        validate_evaluation_artifacts_v3(
+            first_dir,
+            expected_bindings=analysis.bindings.model_copy(
+                update={"usage_ledger_sha256": "f" * 64}
+            ),
+        )
     assert {path.name: path.read_bytes() for path in first_dir.iterdir()} == {
         path.name: path.read_bytes() for path in second_dir.iterdir()
     }
+
+
+def test_complete_bundle_requires_judgments_but_partial_pre_review_is_allowed(
+    tmp_path: Path,
+) -> None:
+    protocol, loaded_gold, _, partial, observations = _partial_analysis()
+    blinded = build_blinded_answer_packet_v3(
+        protocol,
+        loaded_gold.gold,
+        partial,
+        _answer_inputs(observations),
+        random_seed=17,
+    )
+
+    partial_directory = tmp_path / "partial-pre-review"
+    partial_manifest = write_evaluation_artifacts_v3(
+        partial_directory,
+        analysis=partial,
+        report=build_evaluation_report_v3(partial),
+        blinded=blinded,
+    )
+    assert partial_manifest.completion_status == "partial"
+    assert validate_evaluation_artifacts_v3(partial_directory) == partial_manifest
+
+    complete_payload = partial.model_dump(mode="json", exclude={"analysis_sha256"})
+    complete_payload.update(
+        {
+            "completion_status": "complete",
+            "expected_observation_count": partial.accepted_observation_count,
+            "missing_observation_ids": (),
+            "issues": (),
+        }
+    )
+    complete = EvaluationAnalysisV3.model_validate(
+        {
+            **complete_payload,
+            "analysis_sha256": canonical_sha256(complete_payload),
+        }
+    )
+    with pytest.raises(ValueError, match="complete evaluation artifacts require"):
+        write_evaluation_artifacts_v3(
+            tmp_path / "complete-without-judgments",
+            analysis=complete,
+            report=build_evaluation_report_v3(complete),
+            blinded=blinded,
+        )
 
 
 def _partial_analysis():

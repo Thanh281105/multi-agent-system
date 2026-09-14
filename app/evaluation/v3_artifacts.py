@@ -93,9 +93,17 @@ class BlindedAnswerV3(FrozenArtifactContractV3):
     citations: tuple[CitationForReviewV3, ...]
     rubric_context: RubricContextV3
 
+    @model_validator(mode="after")
+    def validate_citations(self) -> BlindedAnswerV3:
+        labels = [item.label for item in self.citations]
+        if len(labels) != len(set(labels)):
+            raise ValueError("blinded answer citation labels must be unique")
+        return self
+
 
 class BlindedAnswerPacketV3(FrozenArtifactContractV3):
     schema_version: Literal["3.0"] = "3.0"
+    split: Literal[EvaluationSplitV3.HELD_OUT] = EvaluationSplitV3.HELD_OUT
     bindings: ArtifactBindingsV3
     randomization_seed: int = Field(ge=0, le=2**32 - 1)
     answer_count: int = Field(ge=0)
@@ -175,6 +183,13 @@ class JudgmentRecordV3(FrozenArtifactContractV3):
     reviewer_id: str | None = Field(default=None, pattern=_IDENTIFIER)
     model_binding: GenerationBindingV3 | None = None
     scores: dict[EvaluationMetricV3, float] = Field(min_length=1)
+    score_sources: dict[
+        EvaluationMetricV3,
+        Literal["deterministic", "model_judge", "human_review"],
+    ] = Field(default_factory=dict)
+    judge_configuration_sha256: str | None = Field(default=None, pattern=_SHA256)
+    calibration_sha256: str | None = Field(default=None, pattern=_SHA256)
+    judge_output_sha256: str | None = Field(default=None, pattern=_SHA256)
     notes: str | None = Field(default=None, max_length=4_000)
     judgment_sha256: str = Field(pattern=_SHA256)
 
@@ -192,6 +207,24 @@ class JudgmentRecordV3(FrozenArtifactContractV3):
             )
         if any(value < 0 or value > 1 for value in self.scores.values()):
             raise ValueError("judgment scores must be between zero and one")
+        if self.score_sources and set(self.score_sources) != set(self.scores):
+            raise ValueError("judgment score sources must cover every score exactly")
+        structured_model_hashes = (
+            self.judge_configuration_sha256,
+            self.calibration_sha256,
+            self.judge_output_sha256,
+        )
+        if any(value is not None for value in structured_model_hashes):
+            if not all(value is not None for value in structured_model_hashes):
+                raise ValueError("calibrated model judgment hashes are incomplete")
+            if not is_review:
+                if (
+                    not self.score_sources
+                    or "human_review" in self.score_sources.values()
+                ):
+                    raise ValueError("calibrated model judgment attribution is invalid")
+            else:
+                raise ValueError("human review cannot carry model calibration hashes")
         expected_hash = canonical_sha256(
             self.model_dump(mode="json", exclude={"judgment_sha256"})
         )
@@ -410,6 +443,7 @@ def build_blinded_answer_packet_v3(
 
     packet_payload = {
         "schema_version": "3.0",
+        "split": EvaluationSplitV3.HELD_OUT,
         "bindings": analysis.bindings.model_dump(mode="json"),
         "randomization_seed": random_seed,
         "answer_count": len(packet_answers),
@@ -453,8 +487,17 @@ def build_judgment_record_v3(
     scores: dict[EvaluationMetricV3, float],
     reviewer_id: str | None = None,
     model_binding: GenerationBindingV3 | None = None,
+    score_sources: dict[
+        EvaluationMetricV3,
+        Literal["deterministic", "model_judge", "human_review"],
+    ]
+    | None = None,
+    judge_configuration_sha256: str | None = None,
+    calibration_sha256: str | None = None,
+    judge_output_sha256: str | None = None,
     notes: str | None = None,
 ) -> JudgmentRecordV3:
+    normalized_score_sources = score_sources or {}
     payload = {
         "schema_version": "3.0",
         "bindings": bindings.model_dump(mode="json"),
@@ -466,6 +509,10 @@ def build_judgment_record_v3(
             None if model_binding is None else model_binding.model_dump(mode="json")
         ),
         "scores": scores,
+        "score_sources": normalized_score_sources,
+        "judge_configuration_sha256": judge_configuration_sha256,
+        "calibration_sha256": calibration_sha256,
+        "judge_output_sha256": judge_output_sha256,
         "notes": notes,
     }
     return JudgmentRecordV3(
@@ -476,6 +523,10 @@ def build_judgment_record_v3(
         reviewer_id=reviewer_id,
         model_binding=model_binding,
         scores=scores,
+        score_sources=normalized_score_sources,
+        judge_configuration_sha256=judge_configuration_sha256,
+        calibration_sha256=calibration_sha256,
+        judge_output_sha256=judge_output_sha256,
         notes=notes,
         judgment_sha256=canonical_sha256(payload),
     )
@@ -493,12 +544,23 @@ def write_evaluation_artifacts_v3(
 
     if output_directory.exists():
         raise FileExistsError(f"evaluation output already exists: {output_directory}")
+    analysis = EvaluationAnalysisV3.model_validate(analysis.model_dump(mode="json"))
+    report = EvaluationReportV3.model_validate(report.model_dump(mode="json"))
+    blinded = BlindedAnswerArtifactsV3.model_validate(blinded.model_dump(mode="json"))
     if report.bindings != analysis.bindings or report.analysis_sha256 != (
         analysis.analysis_sha256
     ):
         raise ValueError("report does not bind the supplied analysis")
     if blinded.packet.bindings != analysis.bindings:
         raise ValueError("blind artifacts do not bind the supplied analysis")
+    if (
+        analysis.completion_status == "complete"
+        and blinded.packet.answer_count
+        and not judgments
+    ):
+        raise ValueError(
+            "complete evaluation artifacts require judgments for every blind answer"
+        )
     collection = _judgment_collection(blinded.packet, judgments)
 
     output_directory.parent.mkdir(parents=True, exist_ok=True)
@@ -545,6 +607,8 @@ def write_evaluation_artifacts_v3(
 
 def validate_evaluation_artifacts_v3(
     output_directory: Path,
+    *,
+    expected_bindings: ArtifactBindingsV3 | None = None,
 ) -> EvaluationArtifactManifestV3:
     if output_directory.is_symlink() or not output_directory.is_dir():
         raise ValueError("evaluation artifact directory is missing or unsafe")
@@ -554,6 +618,12 @@ def validate_evaluation_artifacts_v3(
     manifest = EvaluationArtifactManifestV3.model_validate_json(
         manifest_path.read_text(encoding="utf-8")
     )
+    if expected_bindings is not None:
+        expected_bindings = ArtifactBindingsV3.model_validate(
+            expected_bindings.model_dump(mode="json")
+        )
+        if manifest.bindings != expected_bindings:
+            raise ValueError("artifact provenance differs from expected bindings")
     expected_names = {
         "analysis.json",
         "report.json",
@@ -607,6 +677,14 @@ def validate_evaluation_artifacts_v3(
     BlindedAnswerArtifactsV3(packet=packet, unblinding_key=key)
     if collection.blinded_packet_sha256 != packet.packet_sha256:
         raise ValueError("judgment collection references a different blind packet")
+    record_counts = {
+        "blinded_answers.json": packet.answer_count,
+        "unblinding_key.json": len(key.entries),
+        "judgments.json": len(collection.judgments),
+    }
+    for item in manifest.files:
+        if item.path in record_counts and item.record_count != record_counts[item.path]:
+            raise ValueError(f"artifact record count mismatch: {item.path}")
     return manifest
 
 
@@ -699,6 +777,11 @@ def _judgment_collection(
     packet: BlindedAnswerPacketV3,
     judgments: Sequence[JudgmentRecordV3],
 ) -> JudgmentCollectionV3:
+    packet = BlindedAnswerPacketV3.model_validate(packet.model_dump(mode="json"))
+    judgments = tuple(
+        JudgmentRecordV3.model_validate(item.model_dump(mode="json"))
+        for item in judgments
+    )
     packet_ids = {item.opaque_answer_id for item in packet.answers}
     judgment_keys: set[tuple[str, JudgmentModeV3, str | None]] = set()
     for item in judgments:
@@ -707,7 +790,16 @@ def _judgment_collection(
         key = (item.opaque_answer_id, item.judgment_mode, item.reviewer_id)
         if key in judgment_keys:
             raise ValueError("judgment collection contains duplicate attribution")
+        if item.calibration_sha256 is not None:
+            from app.evaluation.v3_judge import COMPLETE_JUDGED_METRICS_V3
+
+            if set(item.scores) != set(COMPLETE_JUDGED_METRICS_V3):
+                raise ValueError("calibrated model judgment metric set is incomplete")
         judgment_keys.add(key)
+    if judgments:
+        judged_ids = {item.opaque_answer_id for item in judgments}
+        if judged_ids != packet_ids:
+            raise ValueError("judgment collection is incomplete for the blind packet")
     payload = {
         "schema_version": "3.0",
         "bindings": packet.bindings.model_dump(mode="json"),
