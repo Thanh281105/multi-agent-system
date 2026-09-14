@@ -434,6 +434,46 @@ class ScopeUsageSummary:
     attempts_without_usage: int
 
 
+@dataclass(frozen=True, slots=True)
+class ProviderAttemptSnapshot:
+    """Immutable, read-only projection of one authoritative SQL attempt row."""
+
+    attempt_id: str
+    scope_id: str
+    call_id: str
+    attempt_number: int
+    attempt_sequence: int
+    logical_call_sequence: int | None
+    operation: ProviderOperation
+    purpose: BudgetPurpose
+    provider: str
+    requested_model: str
+    resolved_model: str
+    pricing_manifest_sha256: str
+    pricing_profile: str
+    request_fingerprint_sha256: str
+    input_token_bound: int
+    output_token_bound: int
+    attempt_timeout_seconds: float
+    reserved_nano_usd: int
+    usage_status: Literal["reserved", "known", "unknown"]
+    result_status: Literal["pending", "success", "error", "timeout", "cancelled"]
+    input_tokens: int | None
+    cached_input_tokens: int | None
+    output_tokens: int | None
+    reasoning_tokens: int | None
+    total_tokens: int | None
+    actual_cost_nano_usd: int | None
+    response_id: str | None
+    response_model: str | None
+    response_service_tier: str | None
+    error_code: str | None
+    transport_started_at: datetime | None
+    settled_at: datetime | None
+    result_recorded_at: datetime | None
+    created_at: datetime
+
+
 class BudgetLedger(Protocol):
     manifest: PricingManifest
 
@@ -493,6 +533,10 @@ class BudgetLedger(Protocol):
     def recover_expired_attempts(self, *, scope_id: str) -> int: ...
 
     def scope_usage_summary(self, scope_id: str) -> ScopeUsageSummary: ...
+
+    def scope_attempt_snapshots(
+        self, scope_id: str
+    ) -> tuple[ProviderAttemptSnapshot, ...]: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -1267,6 +1311,79 @@ class SQLProviderBudgetLedger:
                 attempts_without_usage=sum(
                     item.input_tokens is None for item in attempts
                 ),
+            )
+
+    def scope_attempt_snapshots(
+        self, scope_id: str
+    ) -> tuple[ProviderAttemptSnapshot, ...]:
+        """Return authoritative attempt rows in their durable scope order."""
+
+        with self._session_factory() as session:
+            if session.get(ProviderBudgetScope, scope_id) is None:
+                raise BudgetNotFoundError("budget_scope_not_found")
+            attempts = tuple(
+                session.scalars(
+                    select(ProviderAttempt)
+                    .where(ProviderAttempt.scope_id == scope_id)
+                    .order_by(ProviderAttempt.attempt_sequence)
+                )
+            )
+            return tuple(
+                ProviderAttemptSnapshot(
+                    attempt_id=item.attempt_id,
+                    scope_id=item.scope_id,
+                    call_id=item.call_id,
+                    attempt_number=item.attempt_number,
+                    attempt_sequence=item.attempt_sequence,
+                    logical_call_sequence=item.logical_call_sequence,
+                    operation=cast(ProviderOperation, item.operation),
+                    purpose=cast(BudgetPurpose, item.purpose),
+                    provider=item.provider,
+                    requested_model=item.requested_model,
+                    resolved_model=item.resolved_model,
+                    pricing_manifest_sha256=item.pricing_manifest_sha256,
+                    pricing_profile=item.pricing_profile,
+                    request_fingerprint_sha256=item.request_fingerprint_sha256,
+                    input_token_bound=item.input_token_bound,
+                    output_token_bound=item.output_token_bound,
+                    attempt_timeout_seconds=item.attempt_timeout_ms / 1_000,
+                    reserved_nano_usd=item.reserved_nano_usd,
+                    usage_status=cast(
+                        Literal["reserved", "known", "unknown"],
+                        item.usage_status,
+                    ),
+                    result_status=cast(
+                        Literal["pending", "success", "error", "timeout", "cancelled"],
+                        item.result_status,
+                    ),
+                    input_tokens=item.input_tokens,
+                    cached_input_tokens=item.cached_input_tokens,
+                    output_tokens=item.output_tokens,
+                    reasoning_tokens=item.reasoning_tokens,
+                    total_tokens=item.total_tokens,
+                    actual_cost_nano_usd=item.actual_cost_nano_usd,
+                    response_id=item.response_id,
+                    response_model=item.response_model,
+                    response_service_tier=item.response_service_tier,
+                    error_code=item.error_code,
+                    transport_started_at=(
+                        _as_aware(item.transport_started_at)
+                        if item.transport_started_at is not None
+                        else None
+                    ),
+                    settled_at=(
+                        _as_aware(item.settled_at)
+                        if item.settled_at is not None
+                        else None
+                    ),
+                    result_recorded_at=(
+                        _as_aware(item.result_recorded_at)
+                        if item.result_recorded_at is not None
+                        else None
+                    ),
+                    created_at=_as_aware(item.created_at),
+                )
+                for item in attempts
             )
 
     def _lock_attempt_graph(

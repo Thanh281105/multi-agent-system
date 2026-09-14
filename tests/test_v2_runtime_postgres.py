@@ -79,6 +79,11 @@ from tests.test_v2_tools import read_tools, seed_tool_catalog, tool_access
 from tests.v2_postgres_support import disposable_postgres_database
 
 
+def test_durable_executor_defaults_to_chat_budget_purpose() -> None:
+    executor = DurableReadTurnExecutor(cast(Any, object()), cast(Any, object()))
+    assert executor.allowed_budget_purposes == frozenset({"chat"})
+
+
 @dataclass(frozen=True, slots=True)
 class _RuntimeStore:
     sessions: sessionmaker[Session]

@@ -171,6 +171,13 @@ def test_known_settlement_moves_exact_cost_and_keeps_retry_usage(
     assert summary.costs.unknown_nano_usd == 0
     assert summary.reasoning_tokens == 3
     assert summary.total_tokens == 110
+    attempts = ledger.scope_attempt_snapshots("turn-1")
+    assert len(attempts) == 1
+    assert attempts[0].attempt_sequence == 1
+    assert attempts[0].usage_status == "known"
+    assert attempts[0].actual_cost_nano_usd == 106_500
+    with pytest.raises((AttributeError, TypeError)):
+        attempts[0].result_status = "error"  # type: ignore[misc]
     with pytest.raises(BudgetConflictError, match="known_settlement_conflict"):
         ledger.settle_known_usage(**{**settlement, "response_id": "resp_different"})
 

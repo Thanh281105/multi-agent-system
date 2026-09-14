@@ -12,6 +12,10 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.contracts import AuthorizationContext
+from app.evaluation.v3_executor import (
+    EvaluationV3ObservationExecutor,
+    EvaluationV3ObservationExecutorFactory,
+)
 from app.evaluation.v3_models import AgentTopologyV3, PlanningModeV3
 from app.evaluation.v3_variant_runtime import (
     CONTROLLER_ACTOR_ID_V3,
@@ -65,6 +69,7 @@ from app.v2.runtime_contracts import GroundingResult, RuntimeOperation
 from app.v2.supervisor import V2ReadSupervisor
 from app.v2.tools import CatalogSnapshot, V2ReadTools
 from app.v2.turn_service import V2TurnService
+from tests.test_evaluation_v3_executor import _context_and_case
 
 CORPUS_ID = f"cor_{'a' * 60}"
 INDEX_ID = f"idx_{'b' * 60}"
@@ -489,6 +494,7 @@ def test_composer_maps_all_topologies_over_one_shared_resource_graph() -> None:
     assert single.planner.rag_enabled is True
     assert single.supervisor.continuation_enabled is False
     assert single.executor.model_call_observer is not None
+    assert single.executor.allowed_budget_purposes == frozenset({"warmup", "benchmark"})
 
     assert fixed.planner.runtime_mode == "off"
     assert fixed.operation_executor.expert_reasoner is not None
@@ -506,6 +512,28 @@ def test_composer_maps_all_topologies_over_one_shared_resource_graph() -> None:
     assert no_rag.planner.rag_enabled is False
     assert no_rag.operation_executor.rag_enabled is False
     assert no_rag.supervisor.knowledge_resolver is None
+
+
+def test_concrete_executor_factory_composes_all_four_variants_fresh() -> None:
+    shared = _shared_services()
+    factory = EvaluationV3ObservationExecutorFactory(
+        shared,
+        model_runtime=cast(ModelRuntime, _RecordingRuntime()),
+    )
+
+    for policy in PACKAGE7_VARIANT_POLICIES:
+        variant_id = policy.variant_id
+        context, case = _context_and_case(
+            variant_id=variant_id,
+            run_id=f"run_factory_{variant_id}",
+        )
+        first = factory(context=context, case=case)
+        second = factory(context=context, case=case)
+
+        assert isinstance(first, EvaluationV3ObservationExecutor)
+        assert first.runtime is not second.runtime
+        assert first.runtime.shared_services is shared
+        assert first.runtime.policy == policy
 
 
 @pytest.mark.asyncio

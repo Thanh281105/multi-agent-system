@@ -437,6 +437,7 @@ class EvaluationV3VariantComposer:
             supervisor,
             budget_ledger=self.shared_services.budget_ledger,
             model_call_observer=model_calls.record,
+            allowed_budget_purposes=frozenset({"warmup", "benchmark"}),
         )
         return EvaluationV3VariantRuntime(
             policy=policy,

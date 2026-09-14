@@ -50,6 +50,7 @@ from app.shared.budget import (
     BudgetDeadlineError,
     BudgetError,
     BudgetLimitExceededError,
+    BudgetPurpose,
     ProviderBudgetContext,
     SQLProviderBudgetLedger,
     current_provider_budget,
@@ -857,7 +858,17 @@ class DurableReadTurnExecutor:
         *,
         budget_ledger: SQLProviderBudgetLedger | None = None,
         model_call_observer: FinalizedModelCallObserver | None = None,
+        allowed_budget_purposes: frozenset[BudgetPurpose] = frozenset({"chat"}),
     ) -> None:
+        if not allowed_budget_purposes or not allowed_budget_purposes <= {
+            "chat",
+            "ingestion",
+            "benchmark",
+            "warmup",
+            "embedding",
+            "judge",
+        }:
+            raise ValueError("allowed budget purposes are invalid")
         self.session_factory = session_factory
         self.handler = handler
         self.proposal_recoverer = (
@@ -865,6 +876,7 @@ class DurableReadTurnExecutor:
         )
         self.budget_ledger = budget_ledger
         self.model_call_observer = model_call_observer
+        self.allowed_budget_purposes = allowed_budget_purposes
 
     async def execute(
         self,
@@ -1507,7 +1519,10 @@ class DurableReadTurnExecutor:
         *,
         turn_id: str,
     ) -> float:
-        if budget.scope_id != turn_id or budget.purpose != "chat":
+        if (
+            budget.scope_id != turn_id
+            or budget.purpose not in self.allowed_budget_purposes
+        ):
             raise DurableExecutionError("provider_budget_scope_invalid")
         if not isinstance(budget.ledger, SQLProviderBudgetLedger):
             raise DurableExecutionError("provider_budget_ledger_not_authoritative")
@@ -1529,7 +1544,8 @@ class DurableReadTurnExecutor:
             )
         purpose, hard_limit, generations, attempts, concurrency, deadline_at = snapshot
         if (
-            purpose != "chat"
+            purpose != budget.purpose
+            or purpose not in self.allowed_budget_purposes
             or hard_limit > DEFAULT_TURN_LIMIT_NANO_USD
             or generations > DEFAULT_MAX_GENERATION_CALLS
             or attempts > DEFAULT_MAX_PROVIDER_ATTEMPTS
