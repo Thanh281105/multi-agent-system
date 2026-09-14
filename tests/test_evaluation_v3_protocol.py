@@ -19,6 +19,8 @@ from app.evaluation.v3_models import (
     canonical_turn_id_v3,
 )
 from app.evaluation.v3_protocol import (
+    PilotObservationCostEvidenceV3,
+    PilotUserTurnCostEvidenceV3,
     RepeatDecisionBlockedV3,
     build_evaluation_protocol_v3,
     choose_global_repeat_decision_v3,
@@ -119,6 +121,50 @@ def test_repeat_rule_counts_unresolved_maxima_and_excludes_warmup_projection() -
     assert decision.selected_repeats == 2
     assert decision.projected_benchmark_cost_usd == Decimal("48.00")
     assert decision.pilot_effective_cost_usd == Decimal("4.00")
+
+
+def test_repeat_rule_validates_user_turn_costs_but_projects_observation_total() -> None:
+    protocol = _protocol()
+    costs: list[PilotTurnCostV3 | PilotObservationCostEvidenceV3] = list(
+        _pilot_costs(protocol, Decimal("0.05"))
+    )
+    original = costs[4]
+    assert isinstance(original, PilotTurnCostV3)
+    aggregate = PilotTurnCostV3.model_validate(
+        {
+            **original.model_dump(mode="json"),
+            "known_cost_usd": "0.40",
+            "ledger_event_ids": ("ledger_multi_1", "ledger_multi_2"),
+        }
+    )
+    costs[4] = PilotObservationCostEvidenceV3(
+        pilot_cost=aggregate,
+        user_turn_costs=(
+            PilotUserTurnCostEvidenceV3(
+                canonical_turn_id=aggregate.turn_id,
+                execution_turn_id=f"eturn_{'1' * 64}",
+                known_cost_usd=Decimal("0.20"),
+                ledger_event_ids=("ledger_multi_1",),
+            ),
+            PilotUserTurnCostEvidenceV3(
+                canonical_turn_id=aggregate.turn_id,
+                execution_turn_id=f"eturn_{'2' * 64}",
+                known_cost_usd=Decimal("0.20"),
+                ledger_event_ids=("ledger_multi_2",),
+            ),
+        ),
+    )
+
+    decision = choose_global_repeat_decision_v3(protocol, costs)
+
+    assert decision.selected_repeats == 2
+    assert decision.pilot_effective_cost_usd == Decimal("1.99")
+    assert decision.per_variant[0].maximum_pilot_observation_cost_usd == Decimal("0.40")
+    assert decision.projected_benchmark_cost_usd == Decimal("66.00")
+
+    costs[4] = aggregate
+    with pytest.raises(RepeatDecisionBlockedV3, match="0.25 USD turn limit"):
+        choose_global_repeat_decision_v3(protocol, costs)
 
 
 def test_repeat_rule_blocks_over_budget_missing_cells_and_invalid_ledger() -> None:

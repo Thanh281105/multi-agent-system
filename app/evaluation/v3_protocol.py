@@ -7,6 +7,8 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Literal, NoReturn, Sequence
 
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
 from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_models import (
     PACKAGE7_VARIANT_ORDER,
@@ -31,6 +33,97 @@ class LoadedEvaluationExperimentV3:
 
 class RepeatDecisionBlockedV3(RuntimeError):
     """Raised when the frozen global repeat rule cannot make a safe decision."""
+
+
+class PilotUserTurnCostEvidenceV3(BaseModel):
+    """Authoritative ledger partition for one user turn in an observation."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+
+    canonical_turn_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,127}$")
+    execution_turn_id: str = Field(pattern=r"^eturn_[a-f0-9]{64}$")
+    known_cost_usd: Decimal = Field(ge=0)
+    unresolved_reservation_maxima_usd: tuple[Decimal, ...] = ()
+    ledger_event_ids: tuple[str, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_evidence(self) -> PilotUserTurnCostEvidenceV3:
+        if len(self.ledger_event_ids) != len(set(self.ledger_event_ids)):
+            raise ValueError("user-turn cost evidence reuses ledger event IDs")
+        if any(
+            not event_id
+            or len(event_id) > 128
+            or not event_id[0].isalpha()
+            or any(
+                character not in "abcdefghijklmnopqrstuvwxyz0123456789_.-"
+                for character in event_id
+            )
+            for event_id in self.ledger_event_ids
+        ):
+            raise ValueError("user-turn cost evidence has an invalid ledger event ID")
+        if any(
+            value < 0 or not value.is_finite()
+            for value in self.unresolved_reservation_maxima_usd
+        ):
+            raise ValueError(
+                "user-turn unresolved reservation maxima must be finite "
+                "and non-negative"
+            )
+        return self
+
+    @property
+    def effective_cost_usd(self) -> Decimal:
+        return self.known_cost_usd + sum(
+            self.unresolved_reservation_maxima_usd,
+            Decimal("0"),
+        )
+
+
+class PilotObservationCostEvidenceV3(BaseModel):
+    """Aggregate pilot cost reconciled to every constituent user turn."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+
+    pilot_cost: PilotTurnCostV3
+    user_turn_costs: tuple[PilotUserTurnCostEvidenceV3, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def reconcile_user_turns(self) -> PilotObservationCostEvidenceV3:
+        pilot_cost = self.pilot_cost
+        if any(
+            item.canonical_turn_id != pilot_cost.turn_id
+            for item in self.user_turn_costs
+        ):
+            raise ValueError("user-turn cost evidence belongs to a foreign observation")
+        execution_turn_ids = tuple(
+            item.execution_turn_id for item in self.user_turn_costs
+        )
+        if len(execution_turn_ids) != len(set(execution_turn_ids)):
+            raise ValueError("pilot observation reuses execution turn IDs")
+        ledger_event_ids = tuple(
+            event_id
+            for item in self.user_turn_costs
+            for event_id in item.ledger_event_ids
+        )
+        if ledger_event_ids != pilot_cost.ledger_event_ids:
+            raise ValueError("pilot observation ledger partition does not reconcile")
+        known_cost = sum(
+            (item.known_cost_usd for item in self.user_turn_costs),
+            Decimal("0"),
+        )
+        if known_cost != pilot_cost.known_cost_usd:
+            raise ValueError("pilot observation known cost does not reconcile")
+        unresolved_maxima = tuple(
+            maximum
+            for item in self.user_turn_costs
+            for maximum in item.unresolved_reservation_maxima_usd
+        )
+        if unresolved_maxima != pilot_cost.unresolved_reservation_maxima_usd:
+            raise ValueError("pilot observation reservation maxima do not reconcile")
+        return self
+
+
+PilotCostEvidenceV3 = PilotTurnCostV3 | PilotObservationCostEvidenceV3
 
 
 def load_evaluation_experiment_v3(path: Path) -> LoadedEvaluationExperimentV3:
@@ -103,17 +196,21 @@ def evaluation_protocol_sha256_v3(protocol: EvaluationProtocolV3) -> str:
 
 def choose_global_repeat_decision_v3(
     protocol: EvaluationProtocolV3,
-    costs: Sequence[PilotTurnCostV3],
+    costs: Sequence[PilotCostEvidenceV3],
 ) -> RepeatDecisionV3:
     """Apply the frozen Package 7 pilot-cost rule once for all variants."""
 
     validate_evaluation_protocol_v3(protocol)
-    _validate_pilot_cost_evidence(protocol, costs)
-    pilot_cost = sum((item.effective_cost_usd for item in costs), Decimal("0"))
+    aggregate_costs = tuple(_aggregate_cost(item) for item in costs)
+    _validate_pilot_cost_evidence(protocol, costs, aggregate_costs)
+    pilot_cost = sum(
+        (item.effective_cost_usd for item in aggregate_costs),
+        Decimal("0"),
+    )
     if pilot_cost > protocol.experiment.budget.pilot_allocation_usd:
         _block("pilot effective cost exceeds the 10 USD pilot allocation")
 
-    measured = tuple(item for item in costs if not item.is_warmup)
+    measured = tuple(item for item in aggregate_costs if not item.is_warmup)
     projections = tuple(
         VariantCostProjectionV3(
             variant_id=variant_id,
@@ -146,10 +243,16 @@ def choose_global_repeat_decision_v3(
         selected_repeats = 2
         projected_cost = projected_two
 
-    ordered_costs = sorted(
-        (item.model_dump(mode="json") for item in costs),
-        key=lambda item: str(item["turn_id"]),
-    )
+    ordered_costs = [
+        document
+        for _, document in sorted(
+            (
+                (_aggregate_cost(item).turn_id, _cost_evidence_document(item))
+                for item in costs
+            ),
+            key=lambda item: item[0],
+        )
+    ]
     return RepeatDecisionV3(
         protocol_sha256=evaluation_protocol_sha256_v3(protocol),
         repeat_rule_sha256=protocol.repeat_rule_sha256,
@@ -163,6 +266,7 @@ def choose_global_repeat_decision_v3(
 
 def _validate_pilot_cost_evidence(
     protocol: EvaluationProtocolV3,
+    evidence: Sequence[PilotCostEvidenceV3],
     costs: Sequence[PilotTurnCostV3],
 ) -> None:
     protocol_hash = evaluation_protocol_sha256_v3(protocol)
@@ -183,9 +287,12 @@ def _validate_pilot_cost_evidence(
     turn_ids = [item.turn_id for item in costs]
     if len(turn_ids) != len(set(turn_ids)):
         _block("pilot cost evidence contains duplicate turn IDs")
+    per_user_turn_costs = tuple(
+        user_turn for item in evidence for user_turn in _user_turn_costs(item)
+    )
     if any(
         item.effective_cost_usd > protocol.experiment.budget.per_turn_limit_usd
-        for item in costs
+        for item in per_user_turn_costs
     ):
         _block("pilot turn exceeds the frozen 0.25 USD turn limit")
 
@@ -244,6 +351,29 @@ def _validate_pilot_cost_evidence(
         _block("pilot cost evidence must cover every 8x4 measured cell once")
 
 
+def _aggregate_cost(evidence: PilotCostEvidenceV3) -> PilotTurnCostV3:
+    if isinstance(evidence, PilotObservationCostEvidenceV3):
+        return evidence.pilot_cost
+    return evidence
+
+
+def _user_turn_costs(
+    evidence: PilotCostEvidenceV3,
+) -> tuple[PilotUserTurnCostEvidenceV3 | PilotTurnCostV3, ...]:
+    if isinstance(evidence, PilotObservationCostEvidenceV3):
+        return evidence.user_turn_costs
+    return (evidence,)
+
+
+def _cost_evidence_document(evidence: PilotCostEvidenceV3) -> dict[str, object]:
+    if isinstance(evidence, PilotObservationCostEvidenceV3):
+        return evidence.model_dump(mode="json")
+    return {
+        "pilot_cost": evidence.model_dump(mode="json"),
+        "user_turn_costs": None,
+    }
+
+
 def _case_bindings_sha256(config: EvaluationExperimentConfigV3) -> str:
     return canonical_sha256(
         [case.model_dump(mode="json") for case in config.pilot_cases]
@@ -263,6 +393,9 @@ def _repeat_rule_sha256(config: EvaluationExperimentConfigV3) -> str:
         "pilot_coverage": "eight_cases_by_four_variants_once_plus_warmup",
         "effective_observation_cost": (
             "known_cost_plus_each_unresolved_reservation_at_reserved_maximum"
+        ),
+        "per_user_turn_cost_gate": (
+            "authoritative_ledger_partitions_each_at_or_below_0.25_usd"
         ),
         "variant_projection_basis": "maximum_measured_pilot_observation_cost",
         "projection_formula": (
