@@ -465,7 +465,6 @@ export function createDurableRecoveryRequest(
   if (
     !active ||
     active.serverSettled ||
-    !isLiveTurnStatus(active.status) ||
     active.message.length === 0
   ) {
     return null
@@ -611,7 +610,6 @@ function reduceDurableAction(
     if (
       !active ||
       active.serverSettled ||
-      !isLiveTurnStatus(active.status) ||
       action.generation <= durable.generation
     ) {
       return state
@@ -624,6 +622,7 @@ function reduceDurableAction(
         activeTurn: {
           ...active,
           generation: action.generation,
+          lastSequence: 0,
           cancellationPending: false,
         },
         failure: null,
@@ -777,7 +776,10 @@ function reduceDurableTurnEvent(
     }
   }
 
-  const result = event.payload.status === "completed" ? event.payload.result : null
+  const result =
+    event.serverSettled && event.payload.status === "completed"
+      ? event.payload.result
+      : null
   return {
     ...state,
     durable: {
@@ -788,7 +790,7 @@ function reduceDurableTurnEvent(
         lastSequence: event.sequence,
         terminal: event,
         cancellationPending: false,
-        serverSettled: true,
+        serverSettled: event.serverSettled,
       },
       terminalResult: result,
       resources: result
@@ -936,10 +938,7 @@ function hasDurableWorkspace(durable: DurableChatState): boolean {
 }
 
 function isLiveDurableTurn(turn: DurableActiveTurn | null): boolean {
-  return (
-    turn !== null &&
-    (isLiveTurnStatus(turn.status) || turn.cancellationPending)
-  )
+  return turn !== null && (!turn.serverSettled || turn.cancellationPending)
 }
 
 function isLiveTurnStatus(status: DurableTurnStatus): boolean {

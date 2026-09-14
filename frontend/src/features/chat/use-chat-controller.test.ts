@@ -436,6 +436,89 @@ describe("useChatController durable v2", () => {
     )
   })
 
+  it("reattaches passive timeouts with one identity and keeps recovery until settled", async () => {
+    const unsettledTerminal = {
+      ...v2TerminalEvent,
+      serverSettled: false,
+      payload: {
+        status: "interrupted",
+        error: {
+          code: "stream.interrupted",
+          message: "Luồng kết quả bị gián đoạn. Vui lòng thử lại.",
+          retryable: true,
+        },
+        usage: v2TerminalEvent.payload.usage,
+      },
+    } as Extract<TurnSseEvent, { event: "terminal" }>
+    const streamChat = vi
+      .fn<V2ApiClient["streamChat"]>()
+      .mockImplementationOnce(async (options) => {
+        options.onEvent?.(unsettledTerminal)
+        return unsettledTerminal
+      })
+      .mockImplementationOnce(async (options) => {
+        options.onEvent?.(unsettledTerminal)
+        return unsettledTerminal
+      })
+      .mockImplementationOnce(async (options) => {
+        options.onEvent?.(v2TerminalEvent)
+        return v2TerminalEvent
+      })
+    const storage = createStorage()
+    const createClientTurnId = vi.fn(() => "browser:passive-timeout")
+    const api = createV2Api({ streamChat })
+    const { result } = renderHook(() =>
+      useChatController({
+        storage,
+        v2Api: api,
+        createClientTurnId,
+        createStorageScopeId: () => "scope-test",
+      }),
+    )
+    act(() => result.current.configureCredential("v2-secret-key"))
+    await act(async () => void (await result.current.durable.bootstrap()))
+
+    await act(async () => {
+      expect(await result.current.durable.sendMessage("Giữ nguyên turn này")).toBe(
+        "failed",
+      )
+    })
+    expect(streamChat).toHaveBeenCalledTimes(2)
+    expect(createClientTurnId).toHaveBeenCalledTimes(1)
+    expect(result.current.state.durable.activeTurn).toMatchObject({
+      clientTurnId: "browser:passive-timeout",
+      status: "interrupted",
+      serverSettled: false,
+    })
+    expect(result.current.state.durable.terminalResult).toBeNull()
+    expect(JSON.parse(storage.dump()["thuong-tri.chat-metadata.v2"])).toMatchObject({
+      pendingRecovery: {
+        conversationId: v2ConversationSummary.conversationId,
+        clientTurnId: "browser:passive-timeout",
+        message: "Giữ nguyên turn này",
+      },
+    })
+    await act(async () => {
+      expect(await result.current.durable.sendMessage("Không tạo turn mới")).toBe("busy")
+    })
+    expect(createClientTurnId).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      expect(await result.current.durable.retryPendingTurn()).toBe("completed")
+    })
+    expect(streamChat).toHaveBeenCalledTimes(3)
+    for (const [options] of streamChat.mock.calls) {
+      expect(options.request).toEqual({
+        conversationId: v2ConversationSummary.conversationId,
+        clientTurnId: "browser:passive-timeout",
+        message: "Giữ nguyên turn này",
+      })
+    }
+    expect(JSON.parse(storage.dump()["thuong-tri.chat-metadata.v2"])).toMatchObject({
+      pendingRecovery: null,
+    })
+  })
+
   it("cancels durably and ignores a stale stream terminal", async () => {
     let finishStream: (() => void) | undefined
     let staleCallback: ((event: TurnSseEvent) => void) | undefined
@@ -697,6 +780,46 @@ describe("useChatController durable v2", () => {
     expect(
       result.current.state.durable.resources.actions[v2ActionCard.actionId].status,
     ).toBe("rejected")
+  })
+
+  it("keeps a proposed action uncertain after an ambiguous reject readback", async () => {
+    const proposedReadback = { action: v2ActionCard, result: null }
+    const rejectAction = vi.fn<V2ApiClient["rejectAction"]>(async () => {
+      throw new V2ApiError("v2.network_error", "Mất kết nối sau khi gửi.", {
+        retryable: true,
+      })
+    })
+    const getAction = vi
+      .fn<V2ApiClient["getAction"]>()
+      .mockResolvedValue(proposedReadback)
+    const api = createV2Api({
+      getConversation: vi.fn(async () => ({
+        conversation: v2ConversationSummary,
+        turns: [v2HistoryTurn],
+      })),
+      getAction,
+      rejectAction,
+    })
+    const { result } = renderHook(() =>
+      useChatController({ storage: createStorage(), v2Api: api }),
+    )
+    act(() => result.current.configureCredential("v2-secret-key"))
+    await act(async () => void (await result.current.durable.bootstrap()))
+    await act(async () => void (await result.current.durable.getAction(v2ActionCard.actionId)))
+
+    await act(async () => {
+      expect(
+        await result.current.durable.rejectAction(
+          v2ActionCard.actionId,
+          v2ActionCard.proposalVersion,
+        ),
+      ).toBeNull()
+    })
+    expect(rejectAction).toHaveBeenCalledOnce()
+    expect(getAction).toHaveBeenCalledTimes(2)
+    expect(
+      result.current.state.durable.resources.actions[v2ActionCard.actionId].status,
+    ).toBe("proposed")
   })
 
   it("enforces source-turn preference CRUD and refreshes reducer state", async () => {

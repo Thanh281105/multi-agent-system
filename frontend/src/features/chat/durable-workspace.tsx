@@ -103,9 +103,9 @@ export function DurableWorkspace({
   const [busy, setBusy] = useState(false)
   const [action, setAction] = useState<ActionCardView | null>(null)
   const turns = selectConversationTurnViews(state)
-  const activeBusy =
-    state.durable.activeTurn?.status === "pending" ||
-    state.durable.activeTurn?.status === "running"
+  const activeBusy = Boolean(
+    state.durable.activeTurn && !state.durable.activeTurn.serverSettled,
+  )
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -162,10 +162,18 @@ export function DurableWorkspace({
         : await durable.rejectAction(action.actionId, action.proposalVersion)
     setBusy(false)
     if (!response) {
-      toast.error("Không thể xác nhận trạng thái đề xuất.")
+      toast.error(
+        decision === "reject"
+          ? "Chưa thể xác nhận đề xuất đã được từ chối. Trạng thái hiện tại được giữ lại."
+          : "Không thể xác nhận trạng thái đề xuất.",
+      )
       return
     }
     setAction(projectActionCard(response.action))
+    if (decision === "reject" && response.action.status !== "rejected") {
+      toast.error("Chưa thể xác nhận đề xuất đã được từ chối. Trạng thái hiện tại được giữ lại.")
+      return
+    }
     toast.success(
       decision === "confirm"
         ? "Đã ghi nhận kết quả hành động."

@@ -229,6 +229,19 @@ describe("v2 public contracts", () => {
     ]) {
       expect(turnSseEventSchema.safeParse(event).success).toBe(true)
     }
+    const unsettled = turnSseEventSchema.parse({
+      ...v2TerminalStatesWire[3],
+      server_settled: false,
+    })
+    expect(unsettled).toMatchObject({
+      event: "terminal",
+      serverSettled: false,
+    })
+    const missingServerSettled: Record<string, unknown> = {
+      ...v2TerminalEventWire,
+    }
+    delete missingServerSettled.server_settled
+    expect(turnSseEventSchema.safeParse(missingServerSettled).success).toBe(false)
     expect(turnSseEventSchema.safeParse({
       ...v2ProgressEventsWire[2],
       step_id: null,

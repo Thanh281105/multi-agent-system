@@ -383,6 +383,7 @@ export const v2TerminalEventWire = {
     usage: v2UsageSummaryWire,
   },
   reused_result: false,
+  server_settled: true,
 } as const
 
 export const v2TerminalStatesWire = [

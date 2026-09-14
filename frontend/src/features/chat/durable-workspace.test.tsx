@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { toast } from "sonner"
 import { describe, expect, it, vi } from "vitest"
 
 import {
@@ -8,12 +9,21 @@ import {
 } from "@/features/chat/chat-state"
 import { DurableWorkspace } from "@/features/chat/durable-workspace"
 import type { ChatController } from "@/features/chat/use-chat-controller"
+import type { HistoryTurn } from "@/lib/v2-contracts"
 import {
   v2ActionCard,
   v2ConversationSummary,
   v2HistoryTurn,
   v2PreferenceRecord,
 } from "@/test/v2-fixtures"
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: vi.fn(),
+    info: vi.fn(),
+    success: vi.fn(),
+  },
+}))
 
 describe("DurableWorkspace", () => {
   it("renders authoritative history, evidence, artifacts, and an exact action review", async () => {
@@ -95,17 +105,112 @@ describe("DurableWorkspace", () => {
       value: "Lịch sử",
     })
   })
+
+  it("does not report reject success while readback is still proposed", async () => {
+    vi.mocked(toast.error).mockClear()
+    vi.mocked(toast.success).mockClear()
+    const rejectAction = vi.fn(async () => ({ action: v2ActionCard, result: null }))
+    const controller = createDurableController({ rejectAction })
+    render(
+      <DurableWorkspace
+        controller={controller}
+        onCredentialRequest={vi.fn()}
+        onProvenanceRequest={vi.fn()}
+        onTurnSelect={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "Xem đề xuất" }))
+    const dialog = await screen.findByRole("dialog", { name: v2ActionCard.title })
+    fireEvent.click(within(dialog).getByRole("button", { name: "Từ chối" }))
+    await waitFor(() => {
+      expect(rejectAction).toHaveBeenCalledWith(v2ActionCard.actionId, 1)
+    })
+    expect(toast.success).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith(
+      "Chưa thể xác nhận đề xuất đã được từ chối. Trạng thái hiện tại được giữ lại.",
+    )
+    expect(within(dialog).getByRole("button", { name: "Từ chối" })).toBeEnabled()
+  })
+
+  it("renders cancelled, interrupted, expired, and conflicted states explicitly", () => {
+    const cancelledTurn: HistoryTurn = {
+      ...v2HistoryTurn,
+      turnId: "turn_cancelled_001",
+      clientTurnId: "browser:cancelled",
+      status: "cancelled",
+      outcome: null,
+      assistantResult: null,
+      error: null,
+      actionCards: [],
+    }
+    const interruptedTurn: HistoryTurn = {
+      ...cancelledTurn,
+      turnId: "turn_interrupted_001",
+      clientTurnId: "browser:interrupted",
+      status: "interrupted",
+      error: {
+        code: "stream.interrupted",
+        message: "Luồng kết quả bị gián đoạn. Vui lòng thử lại.",
+        retryable: true,
+      },
+    }
+    const expiredAction = {
+      ...v2ActionCard,
+      actionId: "action_expired_001",
+      proposalId: "proposal_expired_001",
+      status: "expired" as const,
+    }
+    const conflictedAction = {
+      ...v2ActionCard,
+      actionId: "action_conflicted_001",
+      proposalId: "proposal_conflicted_001",
+      status: "conflicted" as const,
+    }
+    const completedTurn: HistoryTurn = {
+      ...v2HistoryTurn,
+      turnId: "turn_actions_001",
+      clientTurnId: "browser:actions",
+      assistantResult: {
+        ...v2HistoryTurn.assistantResult!,
+        actionCards: [expiredAction, conflictedAction],
+      },
+      actionCards: [expiredAction, conflictedAction],
+    }
+    const state = chatReducer(createInitialChatState({ credentialConfigured: true }), {
+      type: "durable.history.hydrated",
+      generation: 1,
+      conversation: v2ConversationSummary,
+      turns: [cancelledTurn, interruptedTurn, completedTurn],
+    })
+    render(
+      <DurableWorkspace
+        controller={createDurableController({}, state)}
+        onCredentialRequest={vi.fn()}
+        onProvenanceRequest={vi.fn()}
+        onTurnSelect={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText("Đã dừng")).toBeInTheDocument()
+    expect(screen.getByText("Bị gián đoạn")).toBeInTheDocument()
+    expect(screen.getByText(/Đã hết hạn/)).toBeInTheDocument()
+    expect(screen.getByText(/Có xung đột/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Thử nối lại" })).toBeInTheDocument()
+  })
 })
 
 function createDurableController(
   overrides: Partial<NonNullable<ChatController["durable"]>> = {},
+  stateOverride?: ChatController["state"],
 ): ChatController & { durable: NonNullable<ChatController["durable"]> } {
-  const state = chatReducer(createInitialChatState({ credentialConfigured: true }), {
-    type: "durable.history.hydrated",
-    generation: 1,
-    conversation: v2ConversationSummary,
-    turns: [v2HistoryTurn],
-  })
+  const state = stateOverride ??
+    chatReducer(createInitialChatState({ credentialConfigured: true }), {
+      type: "durable.history.hydrated",
+      generation: 1,
+      conversation: v2ConversationSummary,
+      turns: [v2HistoryTurn],
+    })
   const durable: NonNullable<ChatController["durable"]> = {
     identity: {
       principalId: "principal@example.test",

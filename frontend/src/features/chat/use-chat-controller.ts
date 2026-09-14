@@ -535,7 +535,9 @@ export function useChatController(
                 turn.resolveTurnId(event.turnId)
               }
               dispatch({ type: "durable.turn.event", generation, event })
-              if (event.event === "terminal") turn.settled = true
+              if (event.event === "terminal" && event.serverSettled) {
+                turn.settled = true
+              }
             },
           })
           if (
@@ -555,7 +557,11 @@ export function useChatController(
             turn.resolveTurnId(terminal.turnId)
           }
           dispatch({ type: "durable.turn.event", generation, event: terminal })
-          turn.settled = true
+          turn.settled = terminal.serverSettled
+          if (!turn.settled) {
+            if (attempt === 1) return "failed"
+            continue
+          }
           activeTurnIdentityRef.current = null
           persistDurableMetadata(recovery.conversationId, null)
           return outcomeFromTerminal(terminal)
@@ -1024,6 +1030,13 @@ export function useChatController(
       if (!credentialRef.current) return "credential_required"
       if (!stateRef.current.online) return "offline"
       if (durableStreamRef.current) return "busy"
+      if (
+        (activeTurnIdentityRef.current && !activeTurnIdentityRef.current.settled) ||
+        (stateRef.current.durable.activeTurn &&
+          !stateRef.current.durable.activeTurn.serverSettled)
+      ) {
+        return "busy"
+      }
       if (cleaned.length === 0 || cleaned.length > 2_000) return "invalid_message"
       const conversation = stateRef.current.durable.activeConversation
       const snapshot = durableSnapshotRef.current
@@ -1277,7 +1290,10 @@ export function useChatController(
       if (!credentialRef.current || !stateRef.current.online) return null
       const card = stateRef.current.durable.resources.actions[actionId]
       if (!card || card.proposalVersion !== proposalVersion) return null
-      if (isTerminalAction(card)) return getAction(actionId)
+      if (isTerminalAction(card)) {
+        const readback = await getAction(actionId)
+        return readback?.action.status === "rejected" ? readback : null
+      }
       const generation = durableGenerationRef.current
       const controller = registerDurableController()
       try {
@@ -1294,11 +1310,12 @@ export function useChatController(
           type: "durable.action.updated",
           action: { ...card, status: decision.status },
         })
-        return await getAction(actionId)
+        const readback = await getAction(actionId)
+        return readback?.action.status === "rejected" ? readback : null
       } catch (error) {
         if (isRecoverableTurnFailure(error)) {
           const readback = await getAction(actionId)
-          if (readback) return readback
+          if (readback?.action.status === "rejected") return readback
         }
         if (!isV2AbortError(error)) handleV2Failure(error)
         return null

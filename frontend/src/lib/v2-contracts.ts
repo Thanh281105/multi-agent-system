@@ -836,6 +836,7 @@ export const wireTurnSseTerminalEventSchema = z.strictObject({
   event: z.literal("terminal"),
   payload: wireTurnTerminalPayloadSchema,
   reused_result: z.boolean(),
+  server_settled: z.boolean(),
 })
 
 export const wireTurnSseEventSchema = z.discriminatedUnion("event", [

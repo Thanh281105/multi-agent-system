@@ -360,6 +360,58 @@ describe("durable v2 chat state", () => {
     expect(duplicate).toBe(completed)
   })
 
+  it("keeps an unsettled terminal recoverable and accepts the same sequence after reattach", () => {
+    const progressed = chatReducer(startDurableTurn(1), {
+      type: "durable.turn.event",
+      generation: 1,
+      event: durableProgressEvent,
+    })
+    const interrupted = chatReducer(progressed, {
+      type: "durable.turn.event",
+      generation: 1,
+      event: unsettledInterruptedTerminalEvent,
+    })
+
+    expect(interrupted.durable.activeTurn).toMatchObject({
+      status: "interrupted",
+      serverSettled: false,
+      lastSequence: 2,
+    })
+    expect(interrupted.durable.terminalResult).toBeNull()
+    expect(selectDurableWorkspaceState(interrupted)).toBe("error")
+    expect(canSubmitMessage(interrupted)).toBe(false)
+    expect(createDurableRecoveryRequest(interrupted)).toEqual({
+      conversationId: "conversation_123",
+      clientTurnId: "client-turn:stable.123",
+      message: "Tìm sách bền vững",
+    })
+
+    const retried = chatReducer(interrupted, {
+      type: "durable.turn.retried",
+      generation: 2,
+    })
+    expect(retried.durable.activeTurn).toMatchObject({
+      generation: 2,
+      lastSequence: 0,
+      serverSettled: false,
+    })
+    const settled = chatReducer(retried, {
+      type: "durable.turn.event",
+      generation: 2,
+      event: completedTerminalEvent,
+    })
+    expect(settled.durable.activeTurn?.serverSettled).toBe(true)
+    expect(settled.durable.terminalResult).toBe(durableResult)
+
+    const cancelled = chatReducer(progressed, {
+      type: "durable.turn.event",
+      generation: 1,
+      event: { ...cancelledTerminalEvent, serverSettled: false },
+    })
+    expect(selectDurableWorkspaceState(cancelled)).toBe("cancelled")
+    expect(canSubmitMessage(cancelled)).toBe(false)
+  })
+
   it("replaces local replay state with authoritative hydrated server history", () => {
     const localCompleted = chatReducer(
       chatReducer(startDurableTurn(1), {
@@ -652,7 +704,22 @@ const completedTerminalEvent = {
     usage: emptyUsage(),
   },
   reusedResult: false,
-} as TurnSseEvent
+  serverSettled: true,
+} as Extract<TurnSseEvent, { event: "terminal" }>
+
+const unsettledInterruptedTerminalEvent = {
+  ...completedTerminalEvent,
+  serverSettled: false,
+  payload: {
+    status: "interrupted",
+    error: {
+      code: "stream.interrupted",
+      message: "Luồng kết quả bị gián đoạn. Vui lòng thử lại.",
+      retryable: true,
+    },
+    usage: emptyUsage(),
+  },
+} as Extract<TurnSseEvent, { event: "terminal" }>
 
 const cancelledTerminalEvent = {
   ...completedTerminalEvent,
@@ -661,7 +728,7 @@ const cancelledTerminalEvent = {
     status: "cancelled",
     usage: emptyUsage(),
   },
-} as TurnSseEvent
+} as Extract<TurnSseEvent, { event: "terminal" }>
 
 const serverHistoryTurn = {
   turnId: "turn_server",
