@@ -288,7 +288,15 @@ def test_baseline_win_is_reported_as_candidate_loss() -> None:
 
     assert comparison.mean_delta == -1.0
     assert comparison.candidate_wins == 0
-    assert comparison.candidate_losses == 60
+    heldout_work_group_count = len(
+        {
+            entry.work_group_id
+            for entry in split.entries
+            if entry.split == EvaluationSplitV3.HELD_OUT
+        }
+    )
+    assert comparison.paired_conversation_count == 60
+    assert comparison.candidate_losses == heldout_work_group_count
     assert ("exact" + "_plan") not in analysis.model_dump_json()
 
 
