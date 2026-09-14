@@ -2,9 +2,9 @@
   "schema_version": "3.0",
   "split_id": "evaluation_v3_frozen_split",
   "corpus_id": "evaluation_v3_80_conversations",
-  "gold_sha256": "8aab3d14e32feb1e0caab698b3663a1528123e5d46c503ab64297b443bcf9638",
+  "gold_sha256": "31bcb31c2cfaf1f009c8f036973cd057c6ab881bd8438b7e9c99b93ead7c1852",
   "source_identities_sha256": "b80d831d98d8cbb17972031fb33cb20d8a2224dd57d5dc6b64d7e39f9c869604",
-  "roster_sha256": "b6b3917ed1762d83dbcf742d419dca6a125205f62c0afce0d4808a9481f9c4a9",
+  "roster_sha256": "5d8cee365db1e208a23691d82d68231f0e26cb3acb144f994cf0a598c7169471",
   "category_order": [
     "multi_constraint",
     "knowledge_source",
@@ -93,7 +93,7 @@
       "conversation_id": "dev_multi_constraint_01",
       "split": "development",
       "category": "multi_constraint",
-      "work_group_id": "dev_multi_constraint_01",
+      "work_group_id": "work_sapiens_yuval_noah_harari",
       "product_ids": [
         80
       ],
@@ -103,21 +103,23 @@
       "source_ids": [
         "src_sapiens_author"
       ],
-      "prompt_family_id": "pf_dev_mc_1",
-      "scenario_family_id": "sf_dev_filtered_discovery",
-      "paraphrase_family_id": "pp_dev_mc_1",
+      "prompt_family_id": "prompt_named_title_exact_rating_topic_filter",
+      "scenario_family_id": "scenario_exact_rating_and_work_context_discovery",
+      "paraphrase_family_id": "paraphrase_exact_price_rating_plus_topic",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_mc_1"
+          "value": "prompt_named_title_exact_rating_topic_filter"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_filtered_discovery"
+          "value": "scenario_exact_rating_and_work_context_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_mc_1"
+          "value": "paraphrase_exact_price_rating_plus_topic"
         },
         {
           "kind": "product",
@@ -135,15 +137,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_multi_constraint_02",
       "split": "development",
       "category": "multi_constraint",
-      "work_group_id": "dev_multi_constraint_02",
+      "work_group_id": "work_de_men_phieu_luu_ky_to_hoai",
       "product_ids": [
         168
       ],
@@ -153,21 +153,23 @@
       "source_ids": [
         "src_de_men_kim_dong"
       ],
-      "prompt_family_id": "pf_dev_mc_2",
-      "scenario_family_id": "sf_dev_filtered_discovery",
-      "paraphrase_family_id": "pp_dev_mc_2",
+      "prompt_family_id": "prompt_named_title_exact_rating_topic_filter",
+      "scenario_family_id": "scenario_exact_rating_and_work_context_discovery",
+      "paraphrase_family_id": "paraphrase_exact_price_rating_plus_topic",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_mc_2"
+          "value": "prompt_named_title_exact_rating_topic_filter"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_filtered_discovery"
+          "value": "scenario_exact_rating_and_work_context_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_mc_2"
+          "value": "paraphrase_exact_price_rating_plus_topic"
         },
         {
           "kind": "product",
@@ -185,15 +187,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_multi_constraint_03",
       "split": "development",
       "category": "multi_constraint",
-      "work_group_id": "dev_multi_constraint_03",
+      "work_group_id": "work_zero_to_one_peter_thiel_blake_masters",
       "product_ids": [
         179
       ],
@@ -203,21 +203,23 @@
       "source_ids": [
         "src_zero_to_one_prh"
       ],
-      "prompt_family_id": "pf_dev_mc_3",
-      "scenario_family_id": "sf_dev_filtered_discovery",
-      "paraphrase_family_id": "pp_dev_mc_3",
+      "prompt_family_id": "prompt_named_title_exact_rating_topic_filter",
+      "scenario_family_id": "scenario_exact_rating_and_work_context_discovery",
+      "paraphrase_family_id": "paraphrase_exact_price_rating_plus_topic",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_mc_3"
+          "value": "prompt_named_title_exact_rating_topic_filter"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_filtered_discovery"
+          "value": "scenario_exact_rating_and_work_context_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_mc_3"
+          "value": "paraphrase_exact_price_rating_plus_topic"
         },
         {
           "kind": "product",
@@ -235,15 +237,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_multi_constraint_04",
       "split": "development",
       "category": "multi_constraint",
-      "work_group_id": "dev_multi_constraint_04",
+      "work_group_id": "work_flour_water_salt_yeast_ken_forkish",
       "product_ids": [
         101
       ],
@@ -253,21 +253,23 @@
       "source_ids": [
         "src_flour_water_salt_yeast_prh"
       ],
-      "prompt_family_id": "pf_dev_mc_4",
-      "scenario_family_id": "sf_dev_filtered_discovery",
-      "paraphrase_family_id": "pp_dev_mc_4",
+      "prompt_family_id": "prompt_named_title_exact_rating_topic_filter",
+      "scenario_family_id": "scenario_exact_rating_and_work_context_discovery",
+      "paraphrase_family_id": "paraphrase_exact_price_rating_plus_topic",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_mc_4"
+          "value": "prompt_named_title_exact_rating_topic_filter"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_filtered_discovery"
+          "value": "scenario_exact_rating_and_work_context_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_mc_4"
+          "value": "paraphrase_exact_price_rating_plus_topic"
         },
         {
           "kind": "product",
@@ -285,15 +287,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_knowledge_source_01",
       "split": "development",
       "category": "knowledge_source",
-      "work_group_id": "dev_knowledge_source_01",
+      "work_group_id": "work_sapiens_yuval_noah_harari",
       "product_ids": [
         80
       ],
@@ -303,21 +303,23 @@
       "source_ids": [
         "src_sapiens_author"
       ],
-      "prompt_family_id": "pf_dev_ks_1",
-      "scenario_family_id": "sf_dev_work_metadata",
-      "paraphrase_family_id": "pp_dev_ks_1",
+      "prompt_family_id": "prompt_source_author_and_subject_summary",
+      "scenario_family_id": "scenario_direct_source_work_summary",
+      "paraphrase_family_id": "paraphrase_ask_author_and_theme_from_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_ks_1"
+          "value": "prompt_source_author_and_subject_summary"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_work_metadata"
+          "value": "scenario_direct_source_work_summary"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_ks_1"
+          "value": "paraphrase_ask_author_and_theme_from_source"
         },
         {
           "kind": "product",
@@ -335,15 +337,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_knowledge_source_02",
       "split": "development",
       "category": "knowledge_source",
-      "work_group_id": "dev_knowledge_source_02",
+      "work_group_id": "work_de_men_phieu_luu_ky_to_hoai",
       "product_ids": [
         168
       ],
@@ -353,21 +353,23 @@
       "source_ids": [
         "src_de_men_kim_dong"
       ],
-      "prompt_family_id": "pf_dev_ks_2",
-      "scenario_family_id": "sf_dev_work_metadata",
-      "paraphrase_family_id": "pp_dev_ks_2",
+      "prompt_family_id": "prompt_source_author_and_subject_summary",
+      "scenario_family_id": "scenario_direct_source_work_summary",
+      "paraphrase_family_id": "paraphrase_ask_author_and_theme_from_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_ks_2"
+          "value": "prompt_source_author_and_subject_summary"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_work_metadata"
+          "value": "scenario_direct_source_work_summary"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_ks_2"
+          "value": "paraphrase_ask_author_and_theme_from_source"
         },
         {
           "kind": "product",
@@ -385,15 +387,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_knowledge_source_03",
       "split": "development",
       "category": "knowledge_source",
-      "work_group_id": "dev_knowledge_source_03",
+      "work_group_id": "work_zero_to_one_peter_thiel_blake_masters",
       "product_ids": [
         179
       ],
@@ -403,21 +403,23 @@
       "source_ids": [
         "src_zero_to_one_prh"
       ],
-      "prompt_family_id": "pf_dev_ks_3",
-      "scenario_family_id": "sf_dev_work_metadata",
-      "paraphrase_family_id": "pp_dev_ks_3",
+      "prompt_family_id": "prompt_source_author_and_subject_summary",
+      "scenario_family_id": "scenario_direct_source_work_summary",
+      "paraphrase_family_id": "paraphrase_ask_author_and_theme_from_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_ks_3"
+          "value": "prompt_source_author_and_subject_summary"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_work_metadata"
+          "value": "scenario_direct_source_work_summary"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_ks_3"
+          "value": "paraphrase_ask_author_and_theme_from_source"
         },
         {
           "kind": "product",
@@ -435,15 +437,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_knowledge_source_04",
       "split": "development",
       "category": "knowledge_source",
-      "work_group_id": "dev_knowledge_source_04",
+      "work_group_id": "work_flour_water_salt_yeast_ken_forkish",
       "product_ids": [
         101
       ],
@@ -453,21 +453,23 @@
       "source_ids": [
         "src_flour_water_salt_yeast_prh"
       ],
-      "prompt_family_id": "pf_dev_ks_4",
-      "scenario_family_id": "sf_dev_work_metadata",
-      "paraphrase_family_id": "pp_dev_ks_4",
+      "prompt_family_id": "prompt_source_author_and_subject_summary",
+      "scenario_family_id": "scenario_direct_source_work_summary",
+      "paraphrase_family_id": "paraphrase_ask_author_and_theme_from_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_ks_4"
+          "value": "prompt_source_author_and_subject_summary"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_work_metadata"
+          "value": "scenario_direct_source_work_summary"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_ks_4"
+          "value": "paraphrase_ask_author_and_theme_from_source"
         },
         {
           "kind": "product",
@@ -485,15 +487,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_multi_expert_01",
       "split": "development",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "dev_multi_expert_01",
+      "work_group_id": "pair_sapiens_social_contract",
       "product_ids": [
         80,
         59
@@ -506,33 +506,27 @@
         "src_sapiens_author",
         "src_social_contract_gutenberg"
       ],
-      "prompt_family_id": "pf_dev_me_1",
-      "scenario_family_id": "sf_dev_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_dev_me_1",
+      "prompt_family_id": "prompt_two_title_catalog_and_source_comparison",
+      "scenario_family_id": "scenario_direct_two_book_source_comparison",
+      "paraphrase_family_id": "paraphrase_compare_price_rating_and_work_scope",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_me_1"
+          "value": "prompt_two_title_catalog_and_source_comparison"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_compare_price_rating_subject"
+          "value": "scenario_direct_two_book_source_comparison"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_me_1"
+          "value": "paraphrase_compare_price_rating_and_work_scope"
         },
         {
           "kind": "product",
           "value": "80"
-        },
-        {
-          "kind": "work",
-          "value": "work_sapiens_yuval_noah_harari"
-        },
-        {
-          "kind": "source",
-          "value": "src_sapiens_author"
         },
         {
           "kind": "product",
@@ -540,7 +534,15 @@
         },
         {
           "kind": "work",
+          "value": "work_sapiens_yuval_noah_harari"
+        },
+        {
+          "kind": "work",
           "value": "work_the_social_contract_jean_jacques_rousseau"
+        },
+        {
+          "kind": "source",
+          "value": "src_sapiens_author"
         },
         {
           "kind": "source",
@@ -550,15 +552,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_multi_expert_02",
       "split": "development",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "dev_multi_expert_02",
+      "work_group_id": "pair_the_prince_social_contract",
       "product_ids": [
         59,
         60
@@ -571,33 +571,27 @@
         "src_social_contract_gutenberg",
         "src_the_prince_gutenberg"
       ],
-      "prompt_family_id": "pf_dev_me_2",
-      "scenario_family_id": "sf_dev_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_dev_me_2",
+      "prompt_family_id": "prompt_two_title_catalog_and_source_comparison",
+      "scenario_family_id": "scenario_direct_two_book_source_comparison",
+      "paraphrase_family_id": "paraphrase_compare_price_rating_and_work_scope",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_me_2"
+          "value": "prompt_two_title_catalog_and_source_comparison"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_compare_price_rating_subject"
+          "value": "scenario_direct_two_book_source_comparison"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_me_2"
+          "value": "paraphrase_compare_price_rating_and_work_scope"
         },
         {
           "kind": "product",
           "value": "59"
-        },
-        {
-          "kind": "work",
-          "value": "work_the_social_contract_jean_jacques_rousseau"
-        },
-        {
-          "kind": "source",
-          "value": "src_social_contract_gutenberg"
         },
         {
           "kind": "product",
@@ -605,7 +599,15 @@
         },
         {
           "kind": "work",
+          "value": "work_the_social_contract_jean_jacques_rousseau"
+        },
+        {
+          "kind": "work",
           "value": "work_the_prince_niccolo_machiavelli"
+        },
+        {
+          "kind": "source",
+          "value": "src_social_contract_gutenberg"
         },
         {
           "kind": "source",
@@ -615,15 +617,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_multi_expert_03",
       "split": "development",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "dev_multi_expert_03",
+      "work_group_id": "pair_de_men_striped_pajamas",
       "product_ids": [
         168,
         137
@@ -636,33 +636,27 @@
         "src_de_men_kim_dong",
         "src_boy_striped_pajamas_prh"
       ],
-      "prompt_family_id": "pf_dev_me_3",
-      "scenario_family_id": "sf_dev_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_dev_me_3",
+      "prompt_family_id": "prompt_two_title_catalog_and_source_comparison",
+      "scenario_family_id": "scenario_direct_two_book_source_comparison",
+      "paraphrase_family_id": "paraphrase_compare_price_rating_and_work_scope",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_me_3"
+          "value": "prompt_two_title_catalog_and_source_comparison"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_compare_price_rating_subject"
+          "value": "scenario_direct_two_book_source_comparison"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_me_3"
+          "value": "paraphrase_compare_price_rating_and_work_scope"
         },
         {
           "kind": "product",
           "value": "168"
-        },
-        {
-          "kind": "work",
-          "value": "work_de_men_phieu_luu_ky_to_hoai"
-        },
-        {
-          "kind": "source",
-          "value": "src_de_men_kim_dong"
         },
         {
           "kind": "product",
@@ -670,7 +664,15 @@
         },
         {
           "kind": "work",
+          "value": "work_de_men_phieu_luu_ky_to_hoai"
+        },
+        {
+          "kind": "work",
           "value": "work_the_boy_in_the_striped_pajamas_john_boyne"
+        },
+        {
+          "kind": "source",
+          "value": "src_de_men_kim_dong"
         },
         {
           "kind": "source",
@@ -680,15 +682,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_multi_expert_04",
       "split": "development",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "dev_multi_expert_04",
+      "work_group_id": "pair_flour_water_salt_yeast_zero_to_one",
       "product_ids": [
         179,
         101
@@ -701,33 +701,27 @@
         "src_zero_to_one_prh",
         "src_flour_water_salt_yeast_prh"
       ],
-      "prompt_family_id": "pf_dev_me_4",
-      "scenario_family_id": "sf_dev_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_dev_me_4",
+      "prompt_family_id": "prompt_two_title_catalog_and_source_comparison",
+      "scenario_family_id": "scenario_direct_two_book_source_comparison",
+      "paraphrase_family_id": "paraphrase_compare_price_rating_and_work_scope",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_me_4"
+          "value": "prompt_two_title_catalog_and_source_comparison"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_compare_price_rating_subject"
+          "value": "scenario_direct_two_book_source_comparison"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_me_4"
+          "value": "paraphrase_compare_price_rating_and_work_scope"
         },
         {
           "kind": "product",
           "value": "179"
-        },
-        {
-          "kind": "work",
-          "value": "work_zero_to_one_peter_thiel_blake_masters"
-        },
-        {
-          "kind": "source",
-          "value": "src_zero_to_one_prh"
         },
         {
           "kind": "product",
@@ -735,7 +729,15 @@
         },
         {
           "kind": "work",
+          "value": "work_zero_to_one_peter_thiel_blake_masters"
+        },
+        {
+          "kind": "work",
           "value": "work_flour_water_salt_yeast_ken_forkish"
+        },
+        {
+          "kind": "source",
+          "value": "src_zero_to_one_prh"
         },
         {
           "kind": "source",
@@ -745,15 +747,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_multi_turn_memory_01",
       "split": "development",
       "category": "multi_turn_memory",
-      "work_group_id": "dev_multi_turn_memory_01",
+      "work_group_id": "work_sapiens_yuval_noah_harari",
       "product_ids": [
         80
       ],
@@ -763,21 +763,23 @@
       "source_ids": [
         "src_sapiens_author"
       ],
-      "prompt_family_id": "pf_dev_mem_1",
-      "scenario_family_id": "sf_dev_anaphoric_followup",
-      "paraphrase_family_id": "pp_dev_mem_1",
+      "prompt_family_id": "prompt_two_turn_catalog_source_followup",
+      "scenario_family_id": "scenario_two_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_two_turn_referent_resolution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_mem_1"
+          "value": "prompt_two_turn_catalog_source_followup"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_anaphoric_followup"
+          "value": "scenario_two_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_mem_1"
+          "value": "paraphrase_two_turn_referent_resolution"
         },
         {
           "kind": "product",
@@ -795,15 +797,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_multi_turn_memory_02",
       "split": "development",
       "category": "multi_turn_memory",
-      "work_group_id": "dev_multi_turn_memory_02",
+      "work_group_id": "work_zero_to_one_peter_thiel_blake_masters",
       "product_ids": [
         179
       ],
@@ -813,21 +813,23 @@
       "source_ids": [
         "src_zero_to_one_prh"
       ],
-      "prompt_family_id": "pf_dev_mem_2",
-      "scenario_family_id": "sf_dev_anaphoric_followup",
-      "paraphrase_family_id": "pp_dev_mem_2",
+      "prompt_family_id": "prompt_two_turn_catalog_source_followup",
+      "scenario_family_id": "scenario_two_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_two_turn_referent_resolution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_mem_2"
+          "value": "prompt_two_turn_catalog_source_followup"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_anaphoric_followup"
+          "value": "scenario_two_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_mem_2"
+          "value": "paraphrase_two_turn_referent_resolution"
         },
         {
           "kind": "product",
@@ -845,15 +847,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_multi_turn_memory_03",
       "split": "development",
       "category": "multi_turn_memory",
-      "work_group_id": "dev_multi_turn_memory_03",
+      "work_group_id": "work_the_boy_in_the_striped_pajamas_john_boyne",
       "product_ids": [
         137
       ],
@@ -863,21 +863,23 @@
       "source_ids": [
         "src_boy_striped_pajamas_prh"
       ],
-      "prompt_family_id": "pf_dev_mem_3",
-      "scenario_family_id": "sf_dev_anaphoric_followup",
-      "paraphrase_family_id": "pp_dev_mem_3",
+      "prompt_family_id": "prompt_two_turn_catalog_source_followup",
+      "scenario_family_id": "scenario_two_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_two_turn_referent_resolution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_mem_3"
+          "value": "prompt_two_turn_catalog_source_followup"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_anaphoric_followup"
+          "value": "scenario_two_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_mem_3"
+          "value": "paraphrase_two_turn_referent_resolution"
         },
         {
           "kind": "product",
@@ -895,47 +897,45 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_insufficient_conflict_injection_01",
       "split": "development",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "dev_insufficient_conflict_injection_01",
+      "work_group_id": "unbound_exact_title_price_probe",
       "product_ids": [],
       "work_ids": [],
       "source_ids": [],
-      "prompt_family_id": "pf_dev_missing_01",
-      "scenario_family_id": "sf_dev_missing_catalog",
-      "paraphrase_family_id": "pp_dev_missing_01",
+      "prompt_family_id": "prompt_missing_title_exact_price",
+      "scenario_family_id": "scenario_missing_catalog_exact_price",
+      "paraphrase_family_id": "paraphrase_unknown_title_price_lookup",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_missing_01"
+          "value": "prompt_missing_title_exact_price"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_missing_catalog"
+          "value": "scenario_missing_catalog_exact_price"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_missing_01"
+          "value": "paraphrase_unknown_title_price_lookup"
         },
         {
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_insufficient_conflict_injection_02",
       "split": "development",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "dev_insufficient_conflict_injection_02",
+      "work_group_id": "work_the_prince_niccolo_machiavelli",
       "product_ids": [
         60
       ],
@@ -945,21 +945,23 @@
       "source_ids": [
         "src_the_prince_gutenberg"
       ],
-      "prompt_family_id": "pf_dev_conflict_01",
-      "scenario_family_id": "sf_dev_conflicting_constraints",
-      "paraphrase_family_id": "pp_dev_conflict_01",
+      "prompt_family_id": "prompt_inconsistent_budget_immediate_choice",
+      "scenario_family_id": "scenario_overlapping_budget_conflict",
+      "paraphrase_family_id": "paraphrase_conflicting_price_bounds",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_conflict_01"
+          "value": "prompt_inconsistent_budget_immediate_choice"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_conflicting_constraints"
+          "value": "scenario_overlapping_budget_conflict"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_conflict_01"
+          "value": "paraphrase_conflicting_price_bounds"
         },
         {
           "kind": "product",
@@ -977,15 +979,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_insufficient_conflict_injection_03",
       "split": "development",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "dev_insufficient_conflict_injection_03",
+      "work_group_id": "work_de_men_phieu_luu_ky_to_hoai",
       "product_ids": [
         168
       ],
@@ -995,21 +995,23 @@
       "source_ids": [
         "src_de_men_kim_dong"
       ],
-      "prompt_family_id": "pf_dev_injection_01",
-      "scenario_family_id": "sf_dev_fabricate_discount",
-      "paraphrase_family_id": "pp_dev_injection_01",
+      "prompt_family_id": "prompt_fabricated_discount_claim",
+      "scenario_family_id": "scenario_requested_catalog_fabrication",
+      "paraphrase_family_id": "paraphrase_source_bypass_discount_fabrication",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_injection_01"
+          "value": "prompt_fabricated_discount_claim"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_fabricate_discount"
+          "value": "scenario_requested_catalog_fabrication"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_injection_01"
+          "value": "paraphrase_source_bypass_discount_fabrication"
         },
         {
           "kind": "product",
@@ -1027,15 +1029,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "dev_shopping_merchant_01",
       "split": "development",
       "category": "shopping_merchant",
-      "work_group_id": "dev_shopping_merchant_01",
+      "work_group_id": "pair_sapiens_zero_to_one",
       "product_ids": [
         80,
         179
@@ -1048,33 +1048,27 @@
         "src_sapiens_author",
         "src_zero_to_one_prh"
       ],
-      "prompt_family_id": "pf_dev_shop_01",
-      "scenario_family_id": "sf_dev_shopper_readonly",
-      "paraphrase_family_id": "pp_dev_shop_01",
+      "prompt_family_id": "prompt_cart_preview_and_checkout_request",
+      "scenario_family_id": "scenario_cart_preview_before_checkout",
+      "paraphrase_family_id": "paraphrase_review_total_then_checkout",
+      "sandbox_fixture_id": "sandbox_dev_shopping_merchant_01",
+      "sandbox_fixture_sha256": "2d9e7077e63d1550ce67693d97166ebcf4089d4a82c0b641c0b2d60b34973148",
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_shop_01"
+          "value": "prompt_cart_preview_and_checkout_request"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_shopper_readonly"
+          "value": "scenario_cart_preview_before_checkout"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_shop_01"
+          "value": "paraphrase_review_total_then_checkout"
         },
         {
           "kind": "product",
           "value": "80"
-        },
-        {
-          "kind": "work",
-          "value": "work_sapiens_yuval_noah_harari"
-        },
-        {
-          "kind": "source",
-          "value": "src_sapiens_author"
         },
         {
           "kind": "product",
@@ -1082,7 +1076,15 @@
         },
         {
           "kind": "work",
+          "value": "work_sapiens_yuval_noah_harari"
+        },
+        {
+          "kind": "work",
           "value": "work_zero_to_one_peter_thiel_blake_masters"
+        },
+        {
+          "kind": "source",
+          "value": "src_sapiens_author"
         },
         {
           "kind": "source",
@@ -1092,15 +1094,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": "sandbox_dev_shopping_merchant_01",
-      "sandbox_fixture_sha256": "2d9e7077e63d1550ce67693d97166ebcf4089d4a82c0b641c0b2d60b34973148"
+      ]
     },
     {
       "conversation_id": "dev_shopping_merchant_02",
       "split": "development",
       "category": "shopping_merchant",
-      "work_group_id": "dev_shopping_merchant_02",
+      "work_group_id": "pair_the_prince_social_contract",
       "product_ids": [
         59,
         60
@@ -1113,33 +1113,27 @@
         "src_social_contract_gutenberg",
         "src_the_prince_gutenberg"
       ],
-      "prompt_family_id": "pf_dev_merchant_01",
-      "scenario_family_id": "sf_dev_merchant_readonly",
-      "paraphrase_family_id": "pp_dev_merchant_01",
+      "prompt_family_id": "prompt_inventory_review_and_price_change",
+      "scenario_family_id": "scenario_inventory_read_before_price_proposal",
+      "paraphrase_family_id": "paraphrase_review_inventory_then_change_price",
+      "sandbox_fixture_id": "sandbox_dev_shopping_merchant_02",
+      "sandbox_fixture_sha256": "9f1792a7f814dd198a6658328957b0556a608c01c66de0b12dfa3e151e62eb75",
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_dev_merchant_01"
+          "value": "prompt_inventory_review_and_price_change"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_dev_merchant_readonly"
+          "value": "scenario_inventory_read_before_price_proposal"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_dev_merchant_01"
+          "value": "paraphrase_review_inventory_then_change_price"
         },
         {
           "kind": "product",
           "value": "59"
-        },
-        {
-          "kind": "work",
-          "value": "work_the_social_contract_jean_jacques_rousseau"
-        },
-        {
-          "kind": "source",
-          "value": "src_social_contract_gutenberg"
         },
         {
           "kind": "product",
@@ -1147,7 +1141,15 @@
         },
         {
           "kind": "work",
+          "value": "work_the_social_contract_jean_jacques_rousseau"
+        },
+        {
+          "kind": "work",
           "value": "work_the_prince_niccolo_machiavelli"
+        },
+        {
+          "kind": "source",
+          "value": "src_social_contract_gutenberg"
         },
         {
           "kind": "source",
@@ -1157,15 +1159,13 @@
           "kind": "split_namespace",
           "value": "development"
         }
-      ],
-      "sandbox_fixture_id": "sandbox_dev_shopping_merchant_02",
-      "sandbox_fixture_sha256": "9f1792a7f814dd198a6658328957b0556a608c01c66de0b12dfa3e151e62eb75"
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_01",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_01",
+      "work_group_id": "work_little_women_louisa_may_alcott",
       "product_ids": [
         38
       ],
@@ -1175,21 +1175,23 @@
       "source_ids": [
         "src_little_women_prh"
       ],
-      "prompt_family_id": "pf_held_mc_1",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_1",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_1"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_1"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1207,15 +1209,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_02",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_02",
+      "work_group_id": "work_start_up_nation_dan_senor_saul_singer",
       "product_ids": [
         51
       ],
@@ -1225,21 +1225,23 @@
       "source_ids": [
         "src_start_up_nation_hachette"
       ],
-      "prompt_family_id": "pf_held_mc_2",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_2",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_2"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_2"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1257,15 +1259,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_03",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_03",
+      "work_group_id": "work_becoming_michelle_obama",
       "product_ids": [
         52
       ],
@@ -1275,21 +1275,23 @@
       "source_ids": [
         "src_becoming_prh"
       ],
-      "prompt_family_id": "pf_held_mc_3",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_3",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_3"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_3"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1307,15 +1309,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_04",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_04",
+      "work_group_id": "work_einstein_his_life_and_universe_walter_isaacson",
       "product_ids": [
         68
       ],
@@ -1325,21 +1325,23 @@
       "source_ids": [
         "src_einstein_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_mc_4",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_4",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_4"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_4"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1357,15 +1359,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_05",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_05",
+      "work_group_id": "work_the_devotion_of_suspect_x_keigo_higashino",
       "product_ids": [
         71
       ],
@@ -1375,21 +1375,23 @@
       "source_ids": [
         "src_devotion_suspect_x_macmillan"
       ],
-      "prompt_family_id": "pf_held_mc_5",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_5",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_5"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_5"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1407,15 +1409,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_06",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_06",
+      "work_group_id": "work_the_7_habits_of_highly_effective_people_stephen_r_covey",
       "product_ids": [
         76
       ],
@@ -1425,21 +1425,23 @@
       "source_ids": [
         "src_7_habits_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_mc_6",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_6",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_6"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_6"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1457,15 +1459,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_07",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_07",
+      "work_group_id": "work_the_phoenix_project_gene_kim_kevin_behr_george_spafford",
       "product_ids": [
         78
       ],
@@ -1475,21 +1475,23 @@
       "source_ids": [
         "src_phoenix_project_it_revolution"
       ],
-      "prompt_family_id": "pf_held_mc_7",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_7",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_7"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_7"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1507,15 +1509,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_08",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_08",
+      "work_group_id": "work_the_socrates_express_eric_weiner",
       "product_ids": [
         96
       ],
@@ -1525,21 +1525,23 @@
       "source_ids": [
         "src_socrates_express_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_mc_8",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_8",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_8"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_8"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1557,15 +1559,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_09",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_09",
+      "work_group_id": "work_show_your_work_austin_kleon",
       "product_ids": [
         99
       ],
@@ -1575,21 +1575,23 @@
       "source_ids": [
         "src_show_your_work_alphabooks"
       ],
-      "prompt_family_id": "pf_held_mc_9",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_9",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_9"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_9"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1607,15 +1609,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_10",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_10",
+      "work_group_id": "work_morisaki_shoten_no_hibi_satoshi_yagisawa",
       "product_ids": [
         108
       ],
@@ -1625,21 +1625,23 @@
       "source_ids": [
         "src_morisaki_nlv"
       ],
-      "prompt_family_id": "pf_held_mc_10",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_10",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_10"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_10"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1657,15 +1659,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_11",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_11",
+      "work_group_id": "work_economix_michael_goodwin",
       "product_ids": [
         141
       ],
@@ -1675,21 +1675,23 @@
       "source_ids": [
         "src_economix_abrams"
       ],
-      "prompt_family_id": "pf_held_mc_11",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_11",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_11"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_11"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1707,15 +1709,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_constraint_12",
       "split": "held_out",
       "category": "multi_constraint",
-      "work_group_id": "held_multi_constraint_12",
+      "work_group_id": "work_steve_jobs_walter_isaacson",
       "product_ids": [
         158
       ],
@@ -1725,21 +1725,23 @@
       "source_ids": [
         "src_steve_jobs_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_mc_12",
-      "scenario_family_id": "sf_held_filtered_discovery",
-      "paraphrase_family_id": "pp_held_mc_12",
+      "prompt_family_id": "prompt_named_title_thresholds_and_work_detail",
+      "scenario_family_id": "scenario_price_ceiling_rating_attribution_discovery",
+      "paraphrase_family_id": "paraphrase_price_ceiling_min_rating_plus_attribution",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mc_12"
+          "value": "prompt_named_title_thresholds_and_work_detail"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_filtered_discovery"
+          "value": "scenario_price_ceiling_rating_attribution_discovery"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mc_12"
+          "value": "paraphrase_price_ceiling_min_rating_plus_attribution"
         },
         {
           "kind": "product",
@@ -1757,15 +1759,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_01",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_01",
+      "work_group_id": "work_start_up_nation_dan_senor_saul_singer",
       "product_ids": [
         51
       ],
@@ -1775,21 +1775,23 @@
       "source_ids": [
         "src_start_up_nation_hachette"
       ],
-      "prompt_family_id": "pf_held_ks_1",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_1",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_1"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_1"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -1807,15 +1809,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_02",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_02",
+      "work_group_id": "work_becoming_michelle_obama",
       "product_ids": [
         52
       ],
@@ -1825,21 +1825,23 @@
       "source_ids": [
         "src_becoming_prh"
       ],
-      "prompt_family_id": "pf_held_ks_2",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_2",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_2"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_2"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -1857,15 +1859,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_03",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_03",
+      "work_group_id": "work_einstein_his_life_and_universe_walter_isaacson",
       "product_ids": [
         68
       ],
@@ -1875,21 +1875,23 @@
       "source_ids": [
         "src_einstein_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_ks_3",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_3",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_3"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_3"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -1907,15 +1909,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_04",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_04",
+      "work_group_id": "work_the_devotion_of_suspect_x_keigo_higashino",
       "product_ids": [
         71
       ],
@@ -1925,21 +1925,23 @@
       "source_ids": [
         "src_devotion_suspect_x_macmillan"
       ],
-      "prompt_family_id": "pf_held_ks_4",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_4",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_4"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_4"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -1957,15 +1959,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_05",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_05",
+      "work_group_id": "work_the_7_habits_of_highly_effective_people_stephen_r_covey",
       "product_ids": [
         76
       ],
@@ -1975,21 +1975,23 @@
       "source_ids": [
         "src_7_habits_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_ks_5",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_5",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_5"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_5"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -2007,15 +2009,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_06",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_06",
+      "work_group_id": "work_the_phoenix_project_gene_kim_kevin_behr_george_spafford",
       "product_ids": [
         78
       ],
@@ -2025,21 +2025,23 @@
       "source_ids": [
         "src_phoenix_project_it_revolution"
       ],
-      "prompt_family_id": "pf_held_ks_6",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_6",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_6"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_6"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -2057,15 +2059,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_07",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_07",
+      "work_group_id": "work_the_socrates_express_eric_weiner",
       "product_ids": [
         96
       ],
@@ -2075,21 +2075,23 @@
       "source_ids": [
         "src_socrates_express_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_ks_7",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_7",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_7"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_7"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -2107,15 +2109,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_08",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_08",
+      "work_group_id": "work_show_your_work_austin_kleon",
       "product_ids": [
         99
       ],
@@ -2125,21 +2125,23 @@
       "source_ids": [
         "src_show_your_work_alphabooks"
       ],
-      "prompt_family_id": "pf_held_ks_8",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_8",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_8"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_8"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -2157,15 +2159,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_09",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_09",
+      "work_group_id": "work_morisaki_shoten_no_hibi_satoshi_yagisawa",
       "product_ids": [
         108
       ],
@@ -2175,21 +2175,23 @@
       "source_ids": [
         "src_morisaki_nlv"
       ],
-      "prompt_family_id": "pf_held_ks_9",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_9",
+      "prompt_family_id": "prompt_bibliographic_author_translation_identity",
+      "scenario_family_id": "scenario_source_bound_bibliographic_identity",
+      "paraphrase_family_id": "paraphrase_source_author_translator_original_title",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_9"
+          "value": "prompt_bibliographic_author_translation_identity"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_source_bound_bibliographic_identity"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_9"
+          "value": "paraphrase_source_author_translator_original_title"
         },
         {
           "kind": "product",
@@ -2207,15 +2209,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_10",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_10",
+      "work_group_id": "work_economix_michael_goodwin",
       "product_ids": [
         141
       ],
@@ -2225,21 +2225,23 @@
       "source_ids": [
         "src_economix_abrams"
       ],
-      "prompt_family_id": "pf_held_ks_10",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_10",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_10"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_10"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -2257,15 +2259,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_11",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_11",
+      "work_group_id": "work_steve_jobs_walter_isaacson",
       "product_ids": [
         158
       ],
@@ -2275,21 +2275,23 @@
       "source_ids": [
         "src_steve_jobs_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_ks_11",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_11",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_11"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_11"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -2307,15 +2309,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_knowledge_source_12",
       "split": "held_out",
       "category": "knowledge_source",
-      "work_group_id": "held_knowledge_source_12",
+      "work_group_id": "work_fahrenheit_451_ray_bradbury",
       "product_ids": [
         190
       ],
@@ -2325,21 +2325,23 @@
       "source_ids": [
         "src_fahrenheit_451_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_ks_12",
-      "scenario_family_id": "sf_held_work_metadata",
-      "paraphrase_family_id": "pp_held_ks_12",
+      "prompt_family_id": "prompt_locked_source_work_attribution",
+      "scenario_family_id": "scenario_locked_source_author_and_subject_verification",
+      "paraphrase_family_id": "paraphrase_verify_author_and_theme_from_bound_source",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_ks_12"
+          "value": "prompt_locked_source_work_attribution"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_work_metadata"
+          "value": "scenario_locked_source_author_and_subject_verification"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_ks_12"
+          "value": "paraphrase_verify_author_and_theme_from_bound_source"
         },
         {
           "kind": "product",
@@ -2357,15 +2359,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_01",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_01",
+      "work_group_id": "pair_little_women_start_up_nation",
       "product_ids": [
         38,
         51
@@ -2378,33 +2378,27 @@
         "src_little_women_prh",
         "src_start_up_nation_hachette"
       ],
-      "prompt_family_id": "pf_held_me_1",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_1",
+      "prompt_family_id": "prompt_catalog_source_compare_then_need_fit",
+      "scenario_family_id": "scenario_need_based_catalog_source_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_source_then_recommend",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_1"
+          "value": "prompt_catalog_source_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_need_based_catalog_source_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_1"
+          "value": "paraphrase_compare_catalog_source_then_recommend"
         },
         {
           "kind": "product",
           "value": "38"
-        },
-        {
-          "kind": "work",
-          "value": "work_little_women_louisa_may_alcott"
-        },
-        {
-          "kind": "source",
-          "value": "src_little_women_prh"
         },
         {
           "kind": "product",
@@ -2412,7 +2406,15 @@
         },
         {
           "kind": "work",
+          "value": "work_little_women_louisa_may_alcott"
+        },
+        {
+          "kind": "work",
           "value": "work_start_up_nation_dan_senor_saul_singer"
+        },
+        {
+          "kind": "source",
+          "value": "src_little_women_prh"
         },
         {
           "kind": "source",
@@ -2422,15 +2424,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_02",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_02",
+      "work_group_id": "pair_becoming_start_up_nation",
       "product_ids": [
         51,
         52
@@ -2443,33 +2443,27 @@
         "src_start_up_nation_hachette",
         "src_becoming_prh"
       ],
-      "prompt_family_id": "pf_held_me_2",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_2",
+      "prompt_family_id": "prompt_catalog_source_compare_then_need_fit",
+      "scenario_family_id": "scenario_need_based_catalog_source_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_source_then_recommend",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_2"
+          "value": "prompt_catalog_source_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_need_based_catalog_source_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_2"
+          "value": "paraphrase_compare_catalog_source_then_recommend"
         },
         {
           "kind": "product",
           "value": "51"
-        },
-        {
-          "kind": "work",
-          "value": "work_start_up_nation_dan_senor_saul_singer"
-        },
-        {
-          "kind": "source",
-          "value": "src_start_up_nation_hachette"
         },
         {
           "kind": "product",
@@ -2477,7 +2471,15 @@
         },
         {
           "kind": "work",
+          "value": "work_start_up_nation_dan_senor_saul_singer"
+        },
+        {
+          "kind": "work",
           "value": "work_becoming_michelle_obama"
+        },
+        {
+          "kind": "source",
+          "value": "src_start_up_nation_hachette"
         },
         {
           "kind": "source",
@@ -2487,15 +2489,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_03",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_03",
+      "work_group_id": "pair_becoming_einstein",
       "product_ids": [
         52,
         68
@@ -2508,33 +2508,27 @@
         "src_becoming_prh",
         "src_einstein_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_me_3",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_3",
+      "prompt_family_id": "prompt_catalog_source_compare_then_need_fit",
+      "scenario_family_id": "scenario_need_based_catalog_source_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_source_then_recommend",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_3"
+          "value": "prompt_catalog_source_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_need_based_catalog_source_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_3"
+          "value": "paraphrase_compare_catalog_source_then_recommend"
         },
         {
           "kind": "product",
           "value": "52"
-        },
-        {
-          "kind": "work",
-          "value": "work_becoming_michelle_obama"
-        },
-        {
-          "kind": "source",
-          "value": "src_becoming_prh"
         },
         {
           "kind": "product",
@@ -2542,7 +2536,15 @@
         },
         {
           "kind": "work",
+          "value": "work_becoming_michelle_obama"
+        },
+        {
+          "kind": "work",
           "value": "work_einstein_his_life_and_universe_walter_isaacson"
+        },
+        {
+          "kind": "source",
+          "value": "src_becoming_prh"
         },
         {
           "kind": "source",
@@ -2552,15 +2554,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_04",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_04",
+      "work_group_id": "pair_einstein_suspect_x",
       "product_ids": [
         68,
         71
@@ -2573,33 +2573,27 @@
         "src_einstein_simon_schuster",
         "src_devotion_suspect_x_macmillan"
       ],
-      "prompt_family_id": "pf_held_me_4",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_4",
+      "prompt_family_id": "prompt_catalog_source_compare_then_need_fit",
+      "scenario_family_id": "scenario_need_based_catalog_source_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_source_then_recommend",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_4"
+          "value": "prompt_catalog_source_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_need_based_catalog_source_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_4"
+          "value": "paraphrase_compare_catalog_source_then_recommend"
         },
         {
           "kind": "product",
           "value": "68"
-        },
-        {
-          "kind": "work",
-          "value": "work_einstein_his_life_and_universe_walter_isaacson"
-        },
-        {
-          "kind": "source",
-          "value": "src_einstein_simon_schuster"
         },
         {
           "kind": "product",
@@ -2607,7 +2601,15 @@
         },
         {
           "kind": "work",
+          "value": "work_einstein_his_life_and_universe_walter_isaacson"
+        },
+        {
+          "kind": "work",
           "value": "work_the_devotion_of_suspect_x_keigo_higashino"
+        },
+        {
+          "kind": "source",
+          "value": "src_einstein_simon_schuster"
         },
         {
           "kind": "source",
@@ -2617,15 +2619,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_05",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_05",
+      "work_group_id": "pair_seven_habits_suspect_x",
       "product_ids": [
         71,
         76
@@ -2638,33 +2638,27 @@
         "src_devotion_suspect_x_macmillan",
         "src_7_habits_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_me_5",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_5",
+      "prompt_family_id": "prompt_catalog_source_compare_then_need_fit",
+      "scenario_family_id": "scenario_need_based_catalog_source_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_source_then_recommend",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_5"
+          "value": "prompt_catalog_source_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_need_based_catalog_source_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_5"
+          "value": "paraphrase_compare_catalog_source_then_recommend"
         },
         {
           "kind": "product",
           "value": "71"
-        },
-        {
-          "kind": "work",
-          "value": "work_the_devotion_of_suspect_x_keigo_higashino"
-        },
-        {
-          "kind": "source",
-          "value": "src_devotion_suspect_x_macmillan"
         },
         {
           "kind": "product",
@@ -2672,7 +2666,15 @@
         },
         {
           "kind": "work",
+          "value": "work_the_devotion_of_suspect_x_keigo_higashino"
+        },
+        {
+          "kind": "work",
           "value": "work_the_7_habits_of_highly_effective_people_stephen_r_covey"
+        },
+        {
+          "kind": "source",
+          "value": "src_devotion_suspect_x_macmillan"
         },
         {
           "kind": "source",
@@ -2682,15 +2684,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_06",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_06",
+      "work_group_id": "pair_seven_habits_phoenix_project",
       "product_ids": [
         76,
         78
@@ -2703,33 +2703,27 @@
         "src_7_habits_simon_schuster",
         "src_phoenix_project_it_revolution"
       ],
-      "prompt_family_id": "pf_held_me_6",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_6",
+      "prompt_family_id": "prompt_catalog_source_compare_then_need_fit",
+      "scenario_family_id": "scenario_need_based_catalog_source_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_source_then_recommend",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_6"
+          "value": "prompt_catalog_source_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_need_based_catalog_source_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_6"
+          "value": "paraphrase_compare_catalog_source_then_recommend"
         },
         {
           "kind": "product",
           "value": "76"
-        },
-        {
-          "kind": "work",
-          "value": "work_the_7_habits_of_highly_effective_people_stephen_r_covey"
-        },
-        {
-          "kind": "source",
-          "value": "src_7_habits_simon_schuster"
         },
         {
           "kind": "product",
@@ -2737,7 +2731,15 @@
         },
         {
           "kind": "work",
+          "value": "work_the_7_habits_of_highly_effective_people_stephen_r_covey"
+        },
+        {
+          "kind": "work",
           "value": "work_the_phoenix_project_gene_kim_kevin_behr_george_spafford"
+        },
+        {
+          "kind": "source",
+          "value": "src_7_habits_simon_schuster"
         },
         {
           "kind": "source",
@@ -2747,15 +2749,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_07",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_07",
+      "work_group_id": "pair_phoenix_project_socrates_express",
       "product_ids": [
         78,
         96
@@ -2768,33 +2768,27 @@
         "src_phoenix_project_it_revolution",
         "src_socrates_express_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_me_7",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_7",
+      "prompt_family_id": "prompt_catalog_source_compare_then_need_fit",
+      "scenario_family_id": "scenario_need_based_catalog_source_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_source_then_recommend",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_7"
+          "value": "prompt_catalog_source_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_need_based_catalog_source_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_7"
+          "value": "paraphrase_compare_catalog_source_then_recommend"
         },
         {
           "kind": "product",
           "value": "78"
-        },
-        {
-          "kind": "work",
-          "value": "work_the_phoenix_project_gene_kim_kevin_behr_george_spafford"
-        },
-        {
-          "kind": "source",
-          "value": "src_phoenix_project_it_revolution"
         },
         {
           "kind": "product",
@@ -2802,7 +2796,15 @@
         },
         {
           "kind": "work",
+          "value": "work_the_phoenix_project_gene_kim_kevin_behr_george_spafford"
+        },
+        {
+          "kind": "work",
           "value": "work_the_socrates_express_eric_weiner"
+        },
+        {
+          "kind": "source",
+          "value": "src_phoenix_project_it_revolution"
         },
         {
           "kind": "source",
@@ -2812,15 +2814,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_08",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_08",
+      "work_group_id": "pair_show_your_work_socrates_express",
       "product_ids": [
         96,
         99
@@ -2833,33 +2833,27 @@
         "src_socrates_express_simon_schuster",
         "src_show_your_work_alphabooks"
       ],
-      "prompt_family_id": "pf_held_me_8",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_8",
+      "prompt_family_id": "prompt_catalog_source_compare_then_need_fit",
+      "scenario_family_id": "scenario_need_based_catalog_source_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_source_then_recommend",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_8"
+          "value": "prompt_catalog_source_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_need_based_catalog_source_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_8"
+          "value": "paraphrase_compare_catalog_source_then_recommend"
         },
         {
           "kind": "product",
           "value": "96"
-        },
-        {
-          "kind": "work",
-          "value": "work_the_socrates_express_eric_weiner"
-        },
-        {
-          "kind": "source",
-          "value": "src_socrates_express_simon_schuster"
         },
         {
           "kind": "product",
@@ -2867,7 +2861,15 @@
         },
         {
           "kind": "work",
+          "value": "work_the_socrates_express_eric_weiner"
+        },
+        {
+          "kind": "work",
           "value": "work_show_your_work_austin_kleon"
+        },
+        {
+          "kind": "source",
+          "value": "src_socrates_express_simon_schuster"
         },
         {
           "kind": "source",
@@ -2877,15 +2879,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_09",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_09",
+      "work_group_id": "pair_morisaki_show_your_work",
       "product_ids": [
         99,
         108
@@ -2898,33 +2898,27 @@
         "src_show_your_work_alphabooks",
         "src_morisaki_nlv"
       ],
-      "prompt_family_id": "pf_held_me_9",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_9",
+      "prompt_family_id": "prompt_catalog_bibliography_compare_then_need_fit",
+      "scenario_family_id": "scenario_bibliographic_catalog_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_with_bibliographic_identity",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_9"
+          "value": "prompt_catalog_bibliography_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_bibliographic_catalog_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_9"
+          "value": "paraphrase_compare_catalog_with_bibliographic_identity"
         },
         {
           "kind": "product",
           "value": "99"
-        },
-        {
-          "kind": "work",
-          "value": "work_show_your_work_austin_kleon"
-        },
-        {
-          "kind": "source",
-          "value": "src_show_your_work_alphabooks"
         },
         {
           "kind": "product",
@@ -2932,7 +2926,15 @@
         },
         {
           "kind": "work",
+          "value": "work_show_your_work_austin_kleon"
+        },
+        {
+          "kind": "work",
           "value": "work_morisaki_shoten_no_hibi_satoshi_yagisawa"
+        },
+        {
+          "kind": "source",
+          "value": "src_show_your_work_alphabooks"
         },
         {
           "kind": "source",
@@ -2942,15 +2944,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_10",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_10",
+      "work_group_id": "pair_economix_morisaki",
       "product_ids": [
         108,
         141
@@ -2963,33 +2963,27 @@
         "src_morisaki_nlv",
         "src_economix_abrams"
       ],
-      "prompt_family_id": "pf_held_me_10",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_10",
+      "prompt_family_id": "prompt_catalog_bibliography_compare_then_need_fit",
+      "scenario_family_id": "scenario_bibliographic_catalog_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_with_bibliographic_identity",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_10"
+          "value": "prompt_catalog_bibliography_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_bibliographic_catalog_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_10"
+          "value": "paraphrase_compare_catalog_with_bibliographic_identity"
         },
         {
           "kind": "product",
           "value": "108"
-        },
-        {
-          "kind": "work",
-          "value": "work_morisaki_shoten_no_hibi_satoshi_yagisawa"
-        },
-        {
-          "kind": "source",
-          "value": "src_morisaki_nlv"
         },
         {
           "kind": "product",
@@ -2997,7 +2991,15 @@
         },
         {
           "kind": "work",
+          "value": "work_morisaki_shoten_no_hibi_satoshi_yagisawa"
+        },
+        {
+          "kind": "work",
           "value": "work_economix_michael_goodwin"
+        },
+        {
+          "kind": "source",
+          "value": "src_morisaki_nlv"
         },
         {
           "kind": "source",
@@ -3007,15 +3009,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_11",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_11",
+      "work_group_id": "pair_economix_steve_jobs",
       "product_ids": [
         141,
         158
@@ -3028,33 +3028,27 @@
         "src_economix_abrams",
         "src_steve_jobs_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_me_11",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_11",
+      "prompt_family_id": "prompt_catalog_source_compare_then_need_fit",
+      "scenario_family_id": "scenario_need_based_catalog_source_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_source_then_recommend",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_11"
+          "value": "prompt_catalog_source_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_need_based_catalog_source_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_11"
+          "value": "paraphrase_compare_catalog_source_then_recommend"
         },
         {
           "kind": "product",
           "value": "141"
-        },
-        {
-          "kind": "work",
-          "value": "work_economix_michael_goodwin"
-        },
-        {
-          "kind": "source",
-          "value": "src_economix_abrams"
         },
         {
           "kind": "product",
@@ -3062,7 +3056,15 @@
         },
         {
           "kind": "work",
+          "value": "work_economix_michael_goodwin"
+        },
+        {
+          "kind": "work",
           "value": "work_steve_jobs_walter_isaacson"
+        },
+        {
+          "kind": "source",
+          "value": "src_economix_abrams"
         },
         {
           "kind": "source",
@@ -3072,15 +3074,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_expert_12",
       "split": "held_out",
       "category": "multi_expert_compare_recommendation",
-      "work_group_id": "held_multi_expert_12",
+      "work_group_id": "pair_fahrenheit_451_steve_jobs",
       "product_ids": [
         158,
         190
@@ -3093,33 +3093,27 @@
         "src_steve_jobs_simon_schuster",
         "src_fahrenheit_451_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_me_12",
-      "scenario_family_id": "sf_held_compare_price_rating_subject",
-      "paraphrase_family_id": "pp_held_me_12",
+      "prompt_family_id": "prompt_catalog_source_compare_then_need_fit",
+      "scenario_family_id": "scenario_need_based_catalog_source_recommendation",
+      "paraphrase_family_id": "paraphrase_compare_catalog_source_then_recommend",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_me_12"
+          "value": "prompt_catalog_source_compare_then_need_fit"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_compare_price_rating_subject"
+          "value": "scenario_need_based_catalog_source_recommendation"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_me_12"
+          "value": "paraphrase_compare_catalog_source_then_recommend"
         },
         {
           "kind": "product",
           "value": "158"
-        },
-        {
-          "kind": "work",
-          "value": "work_steve_jobs_walter_isaacson"
-        },
-        {
-          "kind": "source",
-          "value": "src_steve_jobs_simon_schuster"
         },
         {
           "kind": "product",
@@ -3127,7 +3121,15 @@
         },
         {
           "kind": "work",
+          "value": "work_steve_jobs_walter_isaacson"
+        },
+        {
+          "kind": "work",
           "value": "work_fahrenheit_451_ray_bradbury"
+        },
+        {
+          "kind": "source",
+          "value": "src_steve_jobs_simon_schuster"
         },
         {
           "kind": "source",
@@ -3137,15 +3139,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_turn_memory_01",
       "split": "held_out",
       "category": "multi_turn_memory",
-      "work_group_id": "held_multi_turn_memory_01",
+      "work_group_id": "work_becoming_michelle_obama",
       "product_ids": [
         52
       ],
@@ -3155,21 +3155,23 @@
       "source_ids": [
         "src_becoming_prh"
       ],
-      "prompt_family_id": "pf_held_mem_1",
-      "scenario_family_id": "sf_held_anaphoric_followup",
-      "paraphrase_family_id": "pp_held_mem_1",
+      "prompt_family_id": "prompt_three_turn_reference_and_sourced_recall",
+      "scenario_family_id": "scenario_three_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_persist_referent_across_three_turns",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mem_1"
+          "value": "prompt_three_turn_reference_and_sourced_recall"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_anaphoric_followup"
+          "value": "scenario_three_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mem_1"
+          "value": "paraphrase_persist_referent_across_three_turns"
         },
         {
           "kind": "product",
@@ -3187,15 +3189,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_turn_memory_02",
       "split": "held_out",
       "category": "multi_turn_memory",
-      "work_group_id": "held_multi_turn_memory_02",
+      "work_group_id": "work_einstein_his_life_and_universe_walter_isaacson",
       "product_ids": [
         68
       ],
@@ -3205,21 +3205,23 @@
       "source_ids": [
         "src_einstein_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_mem_2",
-      "scenario_family_id": "sf_held_anaphoric_followup",
-      "paraphrase_family_id": "pp_held_mem_2",
+      "prompt_family_id": "prompt_three_turn_reference_and_sourced_recall",
+      "scenario_family_id": "scenario_three_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_persist_referent_across_three_turns",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mem_2"
+          "value": "prompt_three_turn_reference_and_sourced_recall"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_anaphoric_followup"
+          "value": "scenario_three_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mem_2"
+          "value": "paraphrase_persist_referent_across_three_turns"
         },
         {
           "kind": "product",
@@ -3237,15 +3239,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_turn_memory_03",
       "split": "held_out",
       "category": "multi_turn_memory",
-      "work_group_id": "held_multi_turn_memory_03",
+      "work_group_id": "work_the_devotion_of_suspect_x_keigo_higashino",
       "product_ids": [
         71
       ],
@@ -3255,21 +3255,23 @@
       "source_ids": [
         "src_devotion_suspect_x_macmillan"
       ],
-      "prompt_family_id": "pf_held_mem_3",
-      "scenario_family_id": "sf_held_anaphoric_followup",
-      "paraphrase_family_id": "pp_held_mem_3",
+      "prompt_family_id": "prompt_three_turn_reference_and_sourced_recall",
+      "scenario_family_id": "scenario_three_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_persist_referent_across_three_turns",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mem_3"
+          "value": "prompt_three_turn_reference_and_sourced_recall"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_anaphoric_followup"
+          "value": "scenario_three_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mem_3"
+          "value": "paraphrase_persist_referent_across_three_turns"
         },
         {
           "kind": "product",
@@ -3287,15 +3289,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_turn_memory_04",
       "split": "held_out",
       "category": "multi_turn_memory",
-      "work_group_id": "held_multi_turn_memory_04",
+      "work_group_id": "work_the_7_habits_of_highly_effective_people_stephen_r_covey",
       "product_ids": [
         76
       ],
@@ -3305,21 +3305,23 @@
       "source_ids": [
         "src_7_habits_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_mem_4",
-      "scenario_family_id": "sf_held_anaphoric_followup",
-      "paraphrase_family_id": "pp_held_mem_4",
+      "prompt_family_id": "prompt_three_turn_reference_and_sourced_recall",
+      "scenario_family_id": "scenario_three_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_persist_referent_across_three_turns",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mem_4"
+          "value": "prompt_three_turn_reference_and_sourced_recall"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_anaphoric_followup"
+          "value": "scenario_three_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mem_4"
+          "value": "paraphrase_persist_referent_across_three_turns"
         },
         {
           "kind": "product",
@@ -3337,15 +3339,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_turn_memory_05",
       "split": "held_out",
       "category": "multi_turn_memory",
-      "work_group_id": "held_multi_turn_memory_05",
+      "work_group_id": "work_the_phoenix_project_gene_kim_kevin_behr_george_spafford",
       "product_ids": [
         78
       ],
@@ -3355,21 +3355,23 @@
       "source_ids": [
         "src_phoenix_project_it_revolution"
       ],
-      "prompt_family_id": "pf_held_mem_5",
-      "scenario_family_id": "sf_held_anaphoric_followup",
-      "paraphrase_family_id": "pp_held_mem_5",
+      "prompt_family_id": "prompt_three_turn_reference_and_sourced_recall",
+      "scenario_family_id": "scenario_three_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_persist_referent_across_three_turns",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mem_5"
+          "value": "prompt_three_turn_reference_and_sourced_recall"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_anaphoric_followup"
+          "value": "scenario_three_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mem_5"
+          "value": "paraphrase_persist_referent_across_three_turns"
         },
         {
           "kind": "product",
@@ -3387,15 +3389,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_turn_memory_06",
       "split": "held_out",
       "category": "multi_turn_memory",
-      "work_group_id": "held_multi_turn_memory_06",
+      "work_group_id": "work_the_socrates_express_eric_weiner",
       "product_ids": [
         96
       ],
@@ -3405,21 +3405,23 @@
       "source_ids": [
         "src_socrates_express_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_mem_6",
-      "scenario_family_id": "sf_held_anaphoric_followup",
-      "paraphrase_family_id": "pp_held_mem_6",
+      "prompt_family_id": "prompt_three_turn_reference_and_sourced_recall",
+      "scenario_family_id": "scenario_three_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_persist_referent_across_three_turns",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mem_6"
+          "value": "prompt_three_turn_reference_and_sourced_recall"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_anaphoric_followup"
+          "value": "scenario_three_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mem_6"
+          "value": "paraphrase_persist_referent_across_three_turns"
         },
         {
           "kind": "product",
@@ -3437,15 +3439,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_turn_memory_07",
       "split": "held_out",
       "category": "multi_turn_memory",
-      "work_group_id": "held_multi_turn_memory_07",
+      "work_group_id": "work_show_your_work_austin_kleon",
       "product_ids": [
         99
       ],
@@ -3455,21 +3455,23 @@
       "source_ids": [
         "src_show_your_work_alphabooks"
       ],
-      "prompt_family_id": "pf_held_mem_7",
-      "scenario_family_id": "sf_held_anaphoric_followup",
-      "paraphrase_family_id": "pp_held_mem_7",
+      "prompt_family_id": "prompt_three_turn_reference_and_sourced_recall",
+      "scenario_family_id": "scenario_three_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_persist_referent_across_three_turns",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mem_7"
+          "value": "prompt_three_turn_reference_and_sourced_recall"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_anaphoric_followup"
+          "value": "scenario_three_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mem_7"
+          "value": "paraphrase_persist_referent_across_three_turns"
         },
         {
           "kind": "product",
@@ -3487,15 +3489,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_multi_turn_memory_08",
       "split": "held_out",
       "category": "multi_turn_memory",
-      "work_group_id": "held_multi_turn_memory_08",
+      "work_group_id": "work_morisaki_shoten_no_hibi_satoshi_yagisawa",
       "product_ids": [
         108
       ],
@@ -3505,21 +3505,23 @@
       "source_ids": [
         "src_morisaki_nlv"
       ],
-      "prompt_family_id": "pf_held_mem_8",
-      "scenario_family_id": "sf_held_anaphoric_followup",
-      "paraphrase_family_id": "pp_held_mem_8",
+      "prompt_family_id": "prompt_three_turn_reference_and_sourced_recall",
+      "scenario_family_id": "scenario_three_turn_catalog_source_recall",
+      "paraphrase_family_id": "paraphrase_persist_referent_across_three_turns",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_mem_8"
+          "value": "prompt_three_turn_reference_and_sourced_recall"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_anaphoric_followup"
+          "value": "scenario_three_turn_catalog_source_recall"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_mem_8"
+          "value": "paraphrase_persist_referent_across_three_turns"
         },
         {
           "kind": "product",
@@ -3537,47 +3539,45 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_insufficient_conflict_injection_01",
       "split": "held_out",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "held_insufficient_conflict_injection_01",
+      "work_group_id": "unbound_snapshot_price_missing_title",
       "product_ids": [],
       "work_ids": [],
       "source_ids": [],
-      "prompt_family_id": "pf_held_missing_1",
-      "scenario_family_id": "sf_held_missing_family_1",
-      "paraphrase_family_id": "pp_held_missing_1",
+      "prompt_family_id": "prompt_unknown_title_snapshot_price",
+      "scenario_family_id": "scenario_absent_catalog_title_snapshot_lookup",
+      "paraphrase_family_id": "paraphrase_missing_title_exact_snapshot_price",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_missing_1"
+          "value": "prompt_unknown_title_snapshot_price"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_missing_family_1"
+          "value": "scenario_absent_catalog_title_snapshot_lookup"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_missing_1"
+          "value": "paraphrase_missing_title_exact_snapshot_price"
         },
         {
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_insufficient_conflict_injection_02",
       "split": "held_out",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "held_insufficient_conflict_injection_02",
+      "work_group_id": "work_the_7_habits_of_highly_effective_people_stephen_r_covey",
       "product_ids": [
         76
       ],
@@ -3587,21 +3587,23 @@
       "source_ids": [
         "src_7_habits_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_conflict_2",
-      "scenario_family_id": "sf_held_conflicting_constraints",
-      "paraphrase_family_id": "pp_held_conflict_2",
+      "prompt_family_id": "prompt_contradictory_budget_forced_choice",
+      "scenario_family_id": "scenario_disjoint_budget_bounds",
+      "paraphrase_family_id": "paraphrase_impossible_price_window_forced_selection",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_conflict_2"
+          "value": "prompt_contradictory_budget_forced_choice"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_conflicting_constraints"
+          "value": "scenario_disjoint_budget_bounds"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_conflict_2"
+          "value": "paraphrase_impossible_price_window_forced_selection"
         },
         {
           "kind": "product",
@@ -3619,15 +3621,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_insufficient_conflict_injection_03",
       "split": "held_out",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "held_insufficient_conflict_injection_03",
+      "work_group_id": "work_the_socrates_express_eric_weiner",
       "product_ids": [
         96
       ],
@@ -3637,21 +3637,23 @@
       "source_ids": [
         "src_socrates_express_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_injection_3",
-      "scenario_family_id": "sf_held_fabricate_discount",
-      "paraphrase_family_id": "pp_held_injection_3",
+      "prompt_family_id": "prompt_source_bypass_fabricated_stock",
+      "scenario_family_id": "scenario_discount_and_stock_fabrication_request",
+      "paraphrase_family_id": "paraphrase_ignore_evidence_invent_discount_and_stock",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_injection_3"
+          "value": "prompt_source_bypass_fabricated_stock"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_fabricate_discount"
+          "value": "scenario_discount_and_stock_fabrication_request"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_injection_3"
+          "value": "paraphrase_ignore_evidence_invent_discount_and_stock"
         },
         {
           "kind": "product",
@@ -3669,47 +3671,45 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_insufficient_conflict_injection_04",
       "split": "held_out",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "held_insufficient_conflict_injection_04",
+      "work_group_id": "unbound_snapshot_price_missing_title",
       "product_ids": [],
       "work_ids": [],
       "source_ids": [],
-      "prompt_family_id": "pf_held_missing_4",
-      "scenario_family_id": "sf_held_missing_family_2",
-      "paraphrase_family_id": "pp_held_missing_4",
+      "prompt_family_id": "prompt_unknown_title_snapshot_price",
+      "scenario_family_id": "scenario_absent_catalog_title_snapshot_lookup",
+      "paraphrase_family_id": "paraphrase_missing_title_exact_snapshot_price",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_missing_4"
+          "value": "prompt_unknown_title_snapshot_price"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_missing_family_2"
+          "value": "scenario_absent_catalog_title_snapshot_lookup"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_missing_4"
+          "value": "paraphrase_missing_title_exact_snapshot_price"
         },
         {
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_insufficient_conflict_injection_05",
       "split": "held_out",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "held_insufficient_conflict_injection_05",
+      "work_group_id": "work_show_your_work_austin_kleon",
       "product_ids": [
         99
       ],
@@ -3719,21 +3719,23 @@
       "source_ids": [
         "src_show_your_work_alphabooks"
       ],
-      "prompt_family_id": "pf_held_conflict_5",
-      "scenario_family_id": "sf_held_conflicting_constraints",
-      "paraphrase_family_id": "pp_held_conflict_5",
+      "prompt_family_id": "prompt_contradictory_budget_forced_choice",
+      "scenario_family_id": "scenario_disjoint_budget_bounds",
+      "paraphrase_family_id": "paraphrase_impossible_price_window_forced_selection",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_conflict_5"
+          "value": "prompt_contradictory_budget_forced_choice"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_conflicting_constraints"
+          "value": "scenario_disjoint_budget_bounds"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_conflict_5"
+          "value": "paraphrase_impossible_price_window_forced_selection"
         },
         {
           "kind": "product",
@@ -3751,15 +3753,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_insufficient_conflict_injection_06",
       "split": "held_out",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "held_insufficient_conflict_injection_06",
+      "work_group_id": "work_economix_michael_goodwin",
       "product_ids": [
         141
       ],
@@ -3769,21 +3769,23 @@
       "source_ids": [
         "src_economix_abrams"
       ],
-      "prompt_family_id": "pf_held_injection_6",
-      "scenario_family_id": "sf_held_fabricate_discount",
-      "paraphrase_family_id": "pp_held_injection_6",
+      "prompt_family_id": "prompt_source_bypass_fabricated_stock",
+      "scenario_family_id": "scenario_discount_and_stock_fabrication_request",
+      "paraphrase_family_id": "paraphrase_ignore_evidence_invent_discount_and_stock",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_injection_6"
+          "value": "prompt_source_bypass_fabricated_stock"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_fabricate_discount"
+          "value": "scenario_discount_and_stock_fabrication_request"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_injection_6"
+          "value": "paraphrase_ignore_evidence_invent_discount_and_stock"
         },
         {
           "kind": "product",
@@ -3801,47 +3803,45 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_insufficient_conflict_injection_07",
       "split": "held_out",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "held_insufficient_conflict_injection_07",
+      "work_group_id": "unbound_snapshot_price_missing_title",
       "product_ids": [],
       "work_ids": [],
       "source_ids": [],
-      "prompt_family_id": "pf_held_missing_7",
-      "scenario_family_id": "sf_held_missing_family_3",
-      "paraphrase_family_id": "pp_held_missing_7",
+      "prompt_family_id": "prompt_unknown_title_snapshot_price",
+      "scenario_family_id": "scenario_absent_catalog_title_snapshot_lookup",
+      "paraphrase_family_id": "paraphrase_missing_title_exact_snapshot_price",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_missing_7"
+          "value": "prompt_unknown_title_snapshot_price"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_missing_family_3"
+          "value": "scenario_absent_catalog_title_snapshot_lookup"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_missing_7"
+          "value": "paraphrase_missing_title_exact_snapshot_price"
         },
         {
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_insufficient_conflict_injection_08",
       "split": "held_out",
       "category": "insufficient_conflict_injection",
-      "work_group_id": "held_insufficient_conflict_injection_08",
+      "work_group_id": "work_steve_jobs_walter_isaacson",
       "product_ids": [
         158
       ],
@@ -3851,21 +3851,23 @@
       "source_ids": [
         "src_steve_jobs_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_conflict_8",
-      "scenario_family_id": "sf_held_conflicting_constraints",
-      "paraphrase_family_id": "pp_held_conflict_8",
+      "prompt_family_id": "prompt_contradictory_budget_forced_choice",
+      "scenario_family_id": "scenario_disjoint_budget_bounds",
+      "paraphrase_family_id": "paraphrase_impossible_price_window_forced_selection",
+      "sandbox_fixture_id": null,
+      "sandbox_fixture_sha256": null,
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_conflict_8"
+          "value": "prompt_contradictory_budget_forced_choice"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_conflicting_constraints"
+          "value": "scenario_disjoint_budget_bounds"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_conflict_8"
+          "value": "paraphrase_impossible_price_window_forced_selection"
         },
         {
           "kind": "product",
@@ -3883,15 +3885,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": null,
-      "sandbox_fixture_sha256": null
+      ]
     },
     {
       "conversation_id": "held_shopping_merchant_01",
       "split": "held_out",
       "category": "shopping_merchant",
-      "work_group_id": "held_shopping_merchant_01",
+      "work_group_id": "pair_phoenix_project_socrates_express",
       "product_ids": [
         78,
         96
@@ -3904,33 +3904,27 @@
         "src_phoenix_project_it_revolution",
         "src_socrates_express_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_shop_1",
-      "scenario_family_id": "sf_held_shopper_readonly",
-      "paraphrase_family_id": "pp_held_commerce_1",
+      "prompt_family_id": "prompt_buy_current_cart",
+      "scenario_family_id": "scenario_checkout_proposal_with_write_scope",
+      "paraphrase_family_id": "paraphrase_checkout_current_cart",
+      "sandbox_fixture_id": "sandbox_held_shopping_merchant_01",
+      "sandbox_fixture_sha256": "df96193b23c189b0ca6a922c0eca6113d1f23dd580ae8c1ad71ee0b1eadd000b",
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_shop_1"
+          "value": "prompt_buy_current_cart"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_shopper_readonly"
+          "value": "scenario_checkout_proposal_with_write_scope"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_commerce_1"
+          "value": "paraphrase_checkout_current_cart"
         },
         {
           "kind": "product",
           "value": "78"
-        },
-        {
-          "kind": "work",
-          "value": "work_the_phoenix_project_gene_kim_kevin_behr_george_spafford"
-        },
-        {
-          "kind": "source",
-          "value": "src_phoenix_project_it_revolution"
         },
         {
           "kind": "product",
@@ -3938,7 +3932,15 @@
         },
         {
           "kind": "work",
+          "value": "work_the_phoenix_project_gene_kim_kevin_behr_george_spafford"
+        },
+        {
+          "kind": "work",
           "value": "work_the_socrates_express_eric_weiner"
+        },
+        {
+          "kind": "source",
+          "value": "src_phoenix_project_it_revolution"
         },
         {
           "kind": "source",
@@ -3948,15 +3950,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": "sandbox_held_shopping_merchant_01",
-      "sandbox_fixture_sha256": "df96193b23c189b0ca6a922c0eca6113d1f23dd580ae8c1ad71ee0b1eadd000b"
+      ]
     },
     {
       "conversation_id": "held_shopping_merchant_02",
       "split": "held_out",
       "category": "shopping_merchant",
-      "work_group_id": "held_shopping_merchant_02",
+      "work_group_id": "pair_show_your_work_socrates_express",
       "product_ids": [
         96,
         99
@@ -3969,33 +3969,27 @@
         "src_socrates_express_simon_schuster",
         "src_show_your_work_alphabooks"
       ],
-      "prompt_family_id": "pf_held_merchant_2",
-      "scenario_family_id": "sf_held_merchant_readonly",
-      "paraphrase_family_id": "pp_held_commerce_2",
+      "prompt_family_id": "prompt_set_listing_price",
+      "scenario_family_id": "scenario_offer_proposal_with_write_scope",
+      "paraphrase_family_id": "paraphrase_change_inventory_price",
+      "sandbox_fixture_id": "sandbox_held_shopping_merchant_02",
+      "sandbox_fixture_sha256": "da1480b6d89e9d3ffd0de73560f513adf902071e4c98286fccc89bd4b9e58e8c",
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_merchant_2"
+          "value": "prompt_set_listing_price"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_merchant_readonly"
+          "value": "scenario_offer_proposal_with_write_scope"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_commerce_2"
+          "value": "paraphrase_change_inventory_price"
         },
         {
           "kind": "product",
           "value": "96"
-        },
-        {
-          "kind": "work",
-          "value": "work_the_socrates_express_eric_weiner"
-        },
-        {
-          "kind": "source",
-          "value": "src_socrates_express_simon_schuster"
         },
         {
           "kind": "product",
@@ -4003,7 +3997,15 @@
         },
         {
           "kind": "work",
+          "value": "work_the_socrates_express_eric_weiner"
+        },
+        {
+          "kind": "work",
           "value": "work_show_your_work_austin_kleon"
+        },
+        {
+          "kind": "source",
+          "value": "src_socrates_express_simon_schuster"
         },
         {
           "kind": "source",
@@ -4013,15 +4015,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": "sandbox_held_shopping_merchant_02",
-      "sandbox_fixture_sha256": "da1480b6d89e9d3ffd0de73560f513adf902071e4c98286fccc89bd4b9e58e8c"
+      ]
     },
     {
       "conversation_id": "held_shopping_merchant_03",
       "split": "held_out",
       "category": "shopping_merchant",
-      "work_group_id": "held_shopping_merchant_03",
+      "work_group_id": "pair_morisaki_show_your_work",
       "product_ids": [
         99,
         108
@@ -4034,33 +4034,27 @@
         "src_show_your_work_alphabooks",
         "src_morisaki_nlv"
       ],
-      "prompt_family_id": "pf_held_shop_3",
-      "scenario_family_id": "sf_held_shopper_readonly",
-      "paraphrase_family_id": "pp_held_commerce_3",
+      "prompt_family_id": "prompt_buy_current_cart",
+      "scenario_family_id": "scenario_checkout_request_readonly_shopper",
+      "paraphrase_family_id": "paraphrase_checkout_current_cart",
+      "sandbox_fixture_id": "sandbox_held_shopping_merchant_03",
+      "sandbox_fixture_sha256": "2b73fcb1a0f89ee861c1851d68d7de252bf84d8ea02a0035f4bf3d9036aed217",
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_shop_3"
+          "value": "prompt_buy_current_cart"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_shopper_readonly"
+          "value": "scenario_checkout_request_readonly_shopper"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_commerce_3"
+          "value": "paraphrase_checkout_current_cart"
         },
         {
           "kind": "product",
           "value": "99"
-        },
-        {
-          "kind": "work",
-          "value": "work_show_your_work_austin_kleon"
-        },
-        {
-          "kind": "source",
-          "value": "src_show_your_work_alphabooks"
         },
         {
           "kind": "product",
@@ -4068,7 +4062,15 @@
         },
         {
           "kind": "work",
+          "value": "work_show_your_work_austin_kleon"
+        },
+        {
+          "kind": "work",
           "value": "work_morisaki_shoten_no_hibi_satoshi_yagisawa"
+        },
+        {
+          "kind": "source",
+          "value": "src_show_your_work_alphabooks"
         },
         {
           "kind": "source",
@@ -4078,15 +4080,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": "sandbox_held_shopping_merchant_03",
-      "sandbox_fixture_sha256": "2b73fcb1a0f89ee861c1851d68d7de252bf84d8ea02a0035f4bf3d9036aed217"
+      ]
     },
     {
       "conversation_id": "held_shopping_merchant_04",
       "split": "held_out",
       "category": "shopping_merchant",
-      "work_group_id": "held_shopping_merchant_04",
+      "work_group_id": "pair_economix_morisaki",
       "product_ids": [
         108,
         141
@@ -4099,33 +4099,27 @@
         "src_morisaki_nlv",
         "src_economix_abrams"
       ],
-      "prompt_family_id": "pf_held_merchant_4",
-      "scenario_family_id": "sf_held_merchant_readonly",
-      "paraphrase_family_id": "pp_held_commerce_4",
+      "prompt_family_id": "prompt_set_listing_price",
+      "scenario_family_id": "scenario_offer_request_readonly_merchant",
+      "paraphrase_family_id": "paraphrase_change_inventory_price",
+      "sandbox_fixture_id": "sandbox_held_shopping_merchant_04",
+      "sandbox_fixture_sha256": "ab5b8bb33b80363790acfabe13cf7e4000c1581c46fa85c2c839cbc295ea2490",
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_merchant_4"
+          "value": "prompt_set_listing_price"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_merchant_readonly"
+          "value": "scenario_offer_request_readonly_merchant"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_commerce_4"
+          "value": "paraphrase_change_inventory_price"
         },
         {
           "kind": "product",
           "value": "108"
-        },
-        {
-          "kind": "work",
-          "value": "work_morisaki_shoten_no_hibi_satoshi_yagisawa"
-        },
-        {
-          "kind": "source",
-          "value": "src_morisaki_nlv"
         },
         {
           "kind": "product",
@@ -4133,7 +4127,15 @@
         },
         {
           "kind": "work",
+          "value": "work_morisaki_shoten_no_hibi_satoshi_yagisawa"
+        },
+        {
+          "kind": "work",
           "value": "work_economix_michael_goodwin"
+        },
+        {
+          "kind": "source",
+          "value": "src_morisaki_nlv"
         },
         {
           "kind": "source",
@@ -4143,15 +4145,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": "sandbox_held_shopping_merchant_04",
-      "sandbox_fixture_sha256": "ab5b8bb33b80363790acfabe13cf7e4000c1581c46fa85c2c839cbc295ea2490"
+      ]
     },
     {
       "conversation_id": "held_shopping_merchant_05",
       "split": "held_out",
       "category": "shopping_merchant",
-      "work_group_id": "held_shopping_merchant_05",
+      "work_group_id": "pair_economix_steve_jobs",
       "product_ids": [
         141,
         158
@@ -4164,33 +4164,27 @@
         "src_economix_abrams",
         "src_steve_jobs_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_shop_5",
-      "scenario_family_id": "sf_held_shopper_readonly",
-      "paraphrase_family_id": "pp_held_commerce_5",
+      "prompt_family_id": "prompt_set_listing_price",
+      "scenario_family_id": "scenario_offer_request_from_shopper_identity",
+      "paraphrase_family_id": "paraphrase_change_inventory_price",
+      "sandbox_fixture_id": "sandbox_held_shopping_merchant_05",
+      "sandbox_fixture_sha256": "5f8646f123e68eb2e6209061b7a0e2a99fefb5dd877b2828f7913e7c71f8c642",
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_shop_5"
+          "value": "prompt_set_listing_price"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_shopper_readonly"
+          "value": "scenario_offer_request_from_shopper_identity"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_commerce_5"
+          "value": "paraphrase_change_inventory_price"
         },
         {
           "kind": "product",
           "value": "141"
-        },
-        {
-          "kind": "work",
-          "value": "work_economix_michael_goodwin"
-        },
-        {
-          "kind": "source",
-          "value": "src_economix_abrams"
         },
         {
           "kind": "product",
@@ -4198,7 +4192,15 @@
         },
         {
           "kind": "work",
+          "value": "work_economix_michael_goodwin"
+        },
+        {
+          "kind": "work",
           "value": "work_steve_jobs_walter_isaacson"
+        },
+        {
+          "kind": "source",
+          "value": "src_economix_abrams"
         },
         {
           "kind": "source",
@@ -4208,15 +4210,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": "sandbox_held_shopping_merchant_05",
-      "sandbox_fixture_sha256": "5f8646f123e68eb2e6209061b7a0e2a99fefb5dd877b2828f7913e7c71f8c642"
+      ]
     },
     {
       "conversation_id": "held_shopping_merchant_06",
       "split": "held_out",
       "category": "shopping_merchant",
-      "work_group_id": "held_shopping_merchant_06",
+      "work_group_id": "pair_fahrenheit_451_steve_jobs",
       "product_ids": [
         158,
         190
@@ -4229,33 +4229,27 @@
         "src_steve_jobs_simon_schuster",
         "src_fahrenheit_451_simon_schuster"
       ],
-      "prompt_family_id": "pf_held_merchant_6",
-      "scenario_family_id": "sf_held_merchant_readonly",
-      "paraphrase_family_id": "pp_held_commerce_6",
+      "prompt_family_id": "prompt_buy_current_cart",
+      "scenario_family_id": "scenario_checkout_request_from_merchant_identity",
+      "paraphrase_family_id": "paraphrase_checkout_current_cart",
+      "sandbox_fixture_id": "sandbox_held_shopping_merchant_06",
+      "sandbox_fixture_sha256": "ee8b55cf1614f656e943c6f788a731cfe6ace0e91b751802580e5e227f0c173b",
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_merchant_6"
+          "value": "prompt_buy_current_cart"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_merchant_readonly"
+          "value": "scenario_checkout_request_from_merchant_identity"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_commerce_6"
+          "value": "paraphrase_checkout_current_cart"
         },
         {
           "kind": "product",
           "value": "158"
-        },
-        {
-          "kind": "work",
-          "value": "work_steve_jobs_walter_isaacson"
-        },
-        {
-          "kind": "source",
-          "value": "src_steve_jobs_simon_schuster"
         },
         {
           "kind": "product",
@@ -4263,7 +4257,15 @@
         },
         {
           "kind": "work",
+          "value": "work_steve_jobs_walter_isaacson"
+        },
+        {
+          "kind": "work",
           "value": "work_fahrenheit_451_ray_bradbury"
+        },
+        {
+          "kind": "source",
+          "value": "src_steve_jobs_simon_schuster"
         },
         {
           "kind": "source",
@@ -4273,15 +4275,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": "sandbox_held_shopping_merchant_06",
-      "sandbox_fixture_sha256": "ee8b55cf1614f656e943c6f788a731cfe6ace0e91b751802580e5e227f0c173b"
+      ]
     },
     {
       "conversation_id": "held_shopping_merchant_07",
       "split": "held_out",
       "category": "shopping_merchant",
-      "work_group_id": "held_shopping_merchant_07",
+      "work_group_id": "pair_fahrenheit_451_little_women",
       "product_ids": [
         190,
         38
@@ -4294,33 +4294,27 @@
         "src_fahrenheit_451_simon_schuster",
         "src_little_women_prh"
       ],
-      "prompt_family_id": "pf_held_shop_7",
-      "scenario_family_id": "sf_held_shopper_readonly",
-      "paraphrase_family_id": "pp_held_commerce_7",
+      "prompt_family_id": "prompt_complete_checkout_immediately",
+      "scenario_family_id": "scenario_checkout_execute_without_confirmed_proposal",
+      "paraphrase_family_id": "paraphrase_immediate_checkout_execution",
+      "sandbox_fixture_id": "sandbox_held_shopping_merchant_07",
+      "sandbox_fixture_sha256": "d97621a2baf9825fff736416cabcaa4f8fdc9be421b38f89a87f53a1a78a023a",
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_shop_7"
+          "value": "prompt_complete_checkout_immediately"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_shopper_readonly"
+          "value": "scenario_checkout_execute_without_confirmed_proposal"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_commerce_7"
+          "value": "paraphrase_immediate_checkout_execution"
         },
         {
           "kind": "product",
           "value": "190"
-        },
-        {
-          "kind": "work",
-          "value": "work_fahrenheit_451_ray_bradbury"
-        },
-        {
-          "kind": "source",
-          "value": "src_fahrenheit_451_simon_schuster"
         },
         {
           "kind": "product",
@@ -4328,7 +4322,15 @@
         },
         {
           "kind": "work",
+          "value": "work_fahrenheit_451_ray_bradbury"
+        },
+        {
+          "kind": "work",
           "value": "work_little_women_louisa_may_alcott"
+        },
+        {
+          "kind": "source",
+          "value": "src_fahrenheit_451_simon_schuster"
         },
         {
           "kind": "source",
@@ -4338,15 +4340,13 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": "sandbox_held_shopping_merchant_07",
-      "sandbox_fixture_sha256": "d97621a2baf9825fff736416cabcaa4f8fdc9be421b38f89a87f53a1a78a023a"
+      ]
     },
     {
       "conversation_id": "held_shopping_merchant_08",
       "split": "held_out",
       "category": "shopping_merchant",
-      "work_group_id": "held_shopping_merchant_08",
+      "work_group_id": "pair_little_women_start_up_nation",
       "product_ids": [
         38,
         51
@@ -4359,33 +4359,27 @@
         "src_little_women_prh",
         "src_start_up_nation_hachette"
       ],
-      "prompt_family_id": "pf_held_merchant_8",
-      "scenario_family_id": "sf_held_merchant_readonly",
-      "paraphrase_family_id": "pp_held_commerce_8",
+      "prompt_family_id": "prompt_apply_listing_offer_immediately",
+      "scenario_family_id": "scenario_offer_execute_without_confirmed_proposal",
+      "paraphrase_family_id": "paraphrase_immediate_offer_execution",
+      "sandbox_fixture_id": "sandbox_held_shopping_merchant_08",
+      "sandbox_fixture_sha256": "ccc981b01cd706e3ede335adaa10e5dfd90ee112908b0902c662ab302cb25e5d",
       "leakage_keys": [
         {
           "kind": "prompt_family",
-          "value": "pf_held_merchant_8"
+          "value": "prompt_apply_listing_offer_immediately"
         },
         {
           "kind": "scenario_family",
-          "value": "sf_held_merchant_readonly"
+          "value": "scenario_offer_execute_without_confirmed_proposal"
         },
         {
           "kind": "paraphrase_family",
-          "value": "pp_held_commerce_8"
+          "value": "paraphrase_immediate_offer_execution"
         },
         {
           "kind": "product",
           "value": "38"
-        },
-        {
-          "kind": "work",
-          "value": "work_little_women_louisa_may_alcott"
-        },
-        {
-          "kind": "source",
-          "value": "src_little_women_prh"
         },
         {
           "kind": "product",
@@ -4393,7 +4387,15 @@
         },
         {
           "kind": "work",
+          "value": "work_little_women_louisa_may_alcott"
+        },
+        {
+          "kind": "work",
           "value": "work_start_up_nation_dan_senor_saul_singer"
+        },
+        {
+          "kind": "source",
+          "value": "src_little_women_prh"
         },
         {
           "kind": "source",
@@ -4403,9 +4405,7 @@
           "kind": "split_namespace",
           "value": "held_out"
         }
-      ],
-      "sandbox_fixture_id": "sandbox_held_shopping_merchant_08",
-      "sandbox_fixture_sha256": "ccc981b01cd706e3ede335adaa10e5dfd90ee112908b0902c662ab302cb25e5d"
+      ]
     }
   ]
 }

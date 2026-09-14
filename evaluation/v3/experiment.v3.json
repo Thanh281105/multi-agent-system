@@ -62,42 +62,42 @@
   "pilot_cases": [
     {
       "case_id": "dev_multi_constraint_01",
-      "work_group_id": "dev_multi_constraint_01",
+      "work_group_id": "work_sapiens_yuval_noah_harari",
       "split": "development"
     },
     {
       "case_id": "dev_multi_constraint_02",
-      "work_group_id": "dev_multi_constraint_02",
+      "work_group_id": "work_de_men_phieu_luu_ky_to_hoai",
       "split": "development"
     },
     {
       "case_id": "dev_knowledge_source_01",
-      "work_group_id": "dev_knowledge_source_01",
+      "work_group_id": "work_sapiens_yuval_noah_harari",
       "split": "development"
     },
     {
       "case_id": "dev_knowledge_source_02",
-      "work_group_id": "dev_knowledge_source_02",
+      "work_group_id": "work_de_men_phieu_luu_ky_to_hoai",
       "split": "development"
     },
     {
       "case_id": "dev_multi_expert_01",
-      "work_group_id": "dev_multi_expert_01",
+      "work_group_id": "pair_sapiens_social_contract",
       "split": "development"
     },
     {
       "case_id": "dev_multi_turn_memory_01",
-      "work_group_id": "dev_multi_turn_memory_01",
+      "work_group_id": "work_sapiens_yuval_noah_harari",
       "split": "development"
     },
     {
       "case_id": "dev_insufficient_conflict_injection_01",
-      "work_group_id": "dev_insufficient_conflict_injection_01",
+      "work_group_id": "unbound_exact_title_price_probe",
       "split": "development"
     },
     {
       "case_id": "dev_shopping_merchant_01",
-      "work_group_id": "dev_shopping_merchant_01",
+      "work_group_id": "pair_sapiens_zero_to_one",
       "split": "development"
     }
   ],

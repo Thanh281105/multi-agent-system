@@ -183,7 +183,7 @@ def test_repeat_rule_blocks_over_budget_missing_cells_and_invalid_ledger() -> No
     wrong_cell[-1] = _replace_cost_identity(
         wrong_cell[-1],
         case_id="dev_multi_constraint_01",
-        work_group_id="dev_multi_constraint_01",
+        work_group_id="work_sapiens_yuval_noah_harari",
     )
     with pytest.raises(RepeatDecisionBlockedV3, match="duplicate turn IDs"):
         choose_global_repeat_decision_v3(protocol, wrong_cell)

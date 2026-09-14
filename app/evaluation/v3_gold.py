@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from enum import StrEnum
@@ -80,6 +81,7 @@ PACKAGE7_DEVELOPMENT_NEGATIVE_FAMILIES = (
     "origami_dragon_folding",
     "clothing_zipper_repair",
 )
+PACKAGE7_REQUIRED_FACT_COUNT = 264
 _BLOCKED_PROVENANCE_FRAGMENTS = (
     "evaluation/results",
     "evaluation\\results",
@@ -94,6 +96,50 @@ _BLOCKED_PROVENANCE_KEYS = {
     "model_output",
     "observation",
     "result_artifact",
+}
+_OUTCOME_LEAKAGE_FRAGMENTS = (
+    "chờ tôi xác nhận",
+    "dừng chờ",
+    "không thực hiện giao dịch",
+    "không áp dụng ưu đãi",
+    "không có quyền",
+    "từ chối",
+    "không tạo đề xuất",
+    "chưa có đề xuất",
+    "wait for confirmation",
+    "missing permission",
+    "must deny",
+    "no confirmed proposal",
+    "refuse",
+)
+_INTERNAL_PROMPT_FRAGMENTS = (
+    "trong sandbox",
+    "identity_fixture_id",
+    "target_capability_id",
+    "expected_version",
+    "confirmed_proposal_id",
+    "proposal_parameters",
+    "work_group_id",
+    "prompt_family_id",
+)
+_SPLIT_ALIAS_TOKENS = frozenset({"dev", "development", "held", "heldout", "test"})
+_PROMPT_FILLER_PATTERNS = (
+    r"\bxin\s+vui\s+lòng\b",
+    r"\bvui\s+lòng\b",
+    r"\blàm\s+ơn\b",
+    r"\bgiúp\s+(?:tôi|mình)\b",
+    r"\btôi\s+muốn\b",
+    r"\bhãy\b",
+)
+_SEMANTIC_TEMPLATE_SIMILARITY_THRESHOLD = 0.60
+_CATALOG_FIELDS_BY_CAPABILITY = {
+    "product.catalog.search": frozenset({"name", "price_vnd", "rating"}),
+    "product.compare": frozenset({"name", "price_vnd", "rating"}),
+    "product.rank": frozenset({"name", "price_vnd", "rating"}),
+    "merchant.catalog.read": frozenset({"name", "price_vnd", "rating"}),
+    "shopper.cart.read": frozenset({"name", "price_vnd"}),
+    "shopper.checkout.preview": frozenset({"name", "price_vnd"}),
+    "merchant.inventory.read": frozenset({"price_vnd"}),
 }
 
 
@@ -305,9 +351,16 @@ class ActionCapabilityBlueprintV3(FrozenGoldContractV3):
             raise ValueError("required actions must be allowed")
         if allowed & forbidden:
             raise ValueError("allowed and forbidden actions cannot overlap")
+        attempted_ids = {item.capability_id for item in self.attempted}
         if self.expected_outcome == ActionBoundaryOutcomeV3.DENIED:
-            if required or self.allowed or not self.attempted:
-                raise ValueError("denied boundaries cannot allow or require actions")
+            if required or not self.attempted:
+                raise ValueError("denied boundaries cannot require actions")
+            if any(item.effect != CapabilityEffect.READ for item in self.allowed):
+                raise ValueError("denied boundaries may retain read capabilities only")
+            if not attempted_ids.issubset(forbidden):
+                raise ValueError("denied attempts must remain forbidden")
+        elif attempted_ids != required:
+            raise ValueError("successful attempts must equal required capabilities")
         if len({item.capability_id for item in self.attempted}) != len(self.attempted):
             raise ValueError("attempted capabilities must be unique")
         proposal_required = any(
@@ -603,7 +656,15 @@ class GoldConversationV3(FrozenGoldContractV3):
             }[self.answerability]
         if self.required_response_mode != expected_mode:
             raise ValueError("answerability and required response mode disagree")
-        if self.answerability in {
+        if (
+            self.action_capability_blueprint.expected_outcome
+            == ActionBoundaryOutcomeV3.DENIED
+        ):
+            if self.answerability != AnswerabilityV3.UNANSWERABLE:
+                raise ValueError("denied actions must be marked unanswerable")
+            if self.required_fact_blueprints:
+                raise ValueError("denied actions cannot require informational facts")
+        elif self.answerability in {
             AnswerabilityV3.ANSWERABLE,
             AnswerabilityV3.PARTIALLY_ANSWERABLE,
         }:
@@ -701,11 +762,12 @@ class EvaluationGoldV3(FrozenGoldContractV3):
             self.frozen_pilot_ids,
         )
         _validate_conversation_roster(self.conversations)
+        _validate_semantic_validity(self.conversations)
         if (
             sum(len(case.required_fact_blueprints) for case in self.conversations)
-            != 312
+            != PACKAGE7_REQUIRED_FACT_COUNT
         ):
-            raise ValueError("Evaluation v3 requires exactly 312 supported gold facts")
+            raise ValueError("Evaluation v3 supported gold fact count has drifted")
         return self
 
 
@@ -782,12 +844,6 @@ class EvaluationSplitManifestV3(FrozenGoldContractV3):
                 raise ValueError("held-out roster contains a development work")
             if set(PACKAGE7_DEVELOPMENT_SOURCE_IDS) & set(entry.source_ids):
                 raise ValueError("held-out roster contains a development source")
-        for pilot_id in PACKAGE7_PILOT_CASE_ORDER:
-            pilot = next(
-                entry for entry in self.entries if entry.conversation_id == pilot_id
-            )
-            if pilot.work_group_id != pilot_id:
-                raise ValueError("pilot work-group identities must match the protocol")
         return self
 
 
@@ -845,7 +901,7 @@ def load_evaluation_gold_v3(
     root = project_root or gold_path.resolve().parents[2]
     assets = _load_and_validate_source_assets(gold.source_assets, root)
     required_fact_count = _validate_evidence_and_mappings(gold, assets)
-    if required_fact_count != 312:
+    if required_fact_count != PACKAGE7_REQUIRED_FACT_COUNT:
         raise ValueError("resolved evidence count differs from frozen gold count")
     return LoadedEvaluationGoldV3(
         gold=gold,
@@ -969,6 +1025,7 @@ def _validate_conversation_roster(
         )
         for case in conversations
     )
+    _validate_real_grouping(conversations)
     _validate_sandbox_fixture_repeats(conversations)
     known = {case.conversation_id: case for case in conversations}
     for pilot_id in PACKAGE7_PILOT_CASE_ORDER:
@@ -979,21 +1036,15 @@ def _validate_conversation_roster(
 def _validate_sandbox_fixture_repeats(
     conversations: tuple[GoldConversationV3, ...],
 ) -> None:
-    fingerprints: dict[tuple[str, str], str] = {}
+    fingerprints: dict[str, str] = {}
     for case in conversations:
         if case.sandbox_fixture is None:
             continue
         fingerprint = canonical_sha256(case.sandbox_fixture.model_dump(mode="json"))
-        family_keys = [
-            ("fixture", case.sandbox_fixture.fixture_id),
-            ("work_group", case.work_group_id),
-        ]
-        if case.paraphrase_family_id is not None:
-            family_keys.append(("paraphrase", case.paraphrase_family_id))
-        for key in family_keys:
-            previous = fingerprints.setdefault(key, fingerprint)
-            if previous != fingerprint:
-                raise ValueError("sandbox fixture drifted across variants or repeats")
+        fixture_id = case.sandbox_fixture.fixture_id
+        if fixture_id in fingerprints:
+            raise ValueError("sandbox fixture IDs must be unique per conversation")
+        fingerprints[fixture_id] = fingerprint
 
 
 def _validate_split_entries(entries: tuple[SplitEntryV3, ...]) -> None:
@@ -1004,6 +1055,7 @@ def _validate_split_entries(entries: tuple[SplitEntryV3, ...]) -> None:
     _validate_no_cross_split_groups(
         (entry.split, entry.work_group_id, entry.leakage_keys) for entry in entries
     )
+    _validate_real_grouping(entries)
 
 
 def _validate_counts(
@@ -1034,6 +1086,57 @@ def _validate_no_cross_split_groups(rows: Any) -> None:
         raise ValueError(f"cross-split leakage groups detected: {leaked[:5]}")
 
 
+def _validate_real_grouping(
+    rows: tuple[GoldConversationV3, ...] | tuple[SplitEntryV3, ...],
+) -> None:
+    work_sets_by_group: dict[str, set[tuple[str, ...]]] = defaultdict(set)
+    groups_by_work_set: dict[tuple[str, ...], set[str]] = defaultdict(set)
+    for row in rows:
+        work_set = tuple(sorted(row.work_ids))
+        work_sets_by_group[row.work_group_id].add(work_set)
+        if work_set:
+            groups_by_work_set[work_set].add(row.work_group_id)
+        if row.work_group_id == row.conversation_id:
+            raise ValueError("work groups cannot be conversation-ID singletons")
+        if _has_split_alias(row.work_group_id):
+            raise ValueError("work-group IDs cannot encode split labels")
+        if len(work_set) == 1 and row.work_group_id != work_set[0]:
+            raise ValueError("single-work groups must use the bound work ID")
+        if len(work_set) > 1 and not row.work_group_id.startswith("pair_"):
+            raise ValueError("multi-work groups must use a semantic pair ID")
+        for family_id in (
+            row.prompt_family_id,
+            row.scenario_family_id,
+            row.paraphrase_family_id,
+        ):
+            if family_id is None:
+                raise ValueError("every conversation requires a paraphrase family")
+            if _has_split_alias(family_id):
+                raise ValueError("semantic family IDs cannot encode split labels")
+            if family_id == row.conversation_id:
+                raise ValueError("semantic families cannot be conversation-ID aliases")
+    if any(len(work_sets) != 1 for work_sets in work_sets_by_group.values()):
+        raise ValueError("work-group IDs must bind exactly one work set")
+    if any(len(groups) != 1 for groups in groups_by_work_set.values()):
+        raise ValueError("the same work set cannot be split across work groups")
+    _require_non_vacuous_groups(rows, "work_group_id")
+    _require_non_vacuous_groups(rows, "prompt_family_id")
+    _require_non_vacuous_groups(rows, "scenario_family_id")
+    _require_non_vacuous_groups(rows, "paraphrase_family_id")
+
+
+def _require_non_vacuous_groups(rows: tuple[Any, ...], field: str) -> None:
+    counts = Counter(getattr(row, field) for row in rows)
+    grouped_cases = sum(count for count in counts.values() if count > 1)
+    if grouped_cases < (len(rows) * 3) // 4:
+        raise ValueError(f"{field} grouping is vacuous or mostly singleton")
+
+
+def _has_split_alias(value: str) -> bool:
+    tokens = set(re.split(r"[_.-]+", value.casefold()))
+    return bool(tokens & _SPLIT_ALIAS_TOKENS)
+
+
 def _split_entry_from_gold(case: GoldConversationV3) -> SplitEntryV3:
     fixture = case.sandbox_fixture
     return SplitEntryV3(
@@ -1055,6 +1158,220 @@ def _split_entry_from_gold(case: GoldConversationV3) -> SplitEntryV3:
         ),
         leakage_keys=case.leakage_keys,
     )
+
+
+def _validate_semantic_validity(
+    conversations: tuple[GoldConversationV3, ...],
+) -> None:
+    registry = build_default_v2_registry()
+    registry_ids = {
+        definition.capability for definition in registry.list_capabilities()
+    }
+    prompt_template_bindings: dict[
+        str,
+        set[tuple[EvaluationSplitV3, str, str]],
+    ] = defaultdict(set)
+    near_duplicate_groups: dict[
+        tuple[EvaluationCategoryV3, str | None],
+        list[tuple[GoldConversationV3, frozenset[str]]],
+    ] = defaultdict(list)
+    for case in conversations:
+        prompt = "\n".join(turn.message for turn in case.user_turns)
+        normalized_prompt = prompt.casefold()
+        paraphrase_family_id = case.paraphrase_family_id
+        if paraphrase_family_id is None:
+            raise ValueError("every conversation requires a paraphrase family")
+        prompt_template_bindings[_semantic_prompt_template(case)].add(
+            (
+                case.split,
+                case.prompt_family_id,
+                paraphrase_family_id,
+            )
+        )
+        comparison_intent = (
+            case.sandbox_fixture.target_capability_id
+            if case.category == EvaluationCategoryV3.SHOPPING_MERCHANT
+            and case.sandbox_fixture is not None
+            else None
+        )
+        near_duplicate_groups[(case.category, comparison_intent)].append(
+            (case, _semantic_prompt_tokens(case))
+        )
+        if any(
+            fragment in normalized_prompt for fragment in _OUTCOME_LEAKAGE_FRAGMENTS
+        ):
+            raise ValueError("user prompt leaks the hidden expected outcome")
+        if any(
+            fragment in normalized_prompt for fragment in _INTERNAL_PROMPT_FRAGMENTS
+        ):
+            raise ValueError("user prompt exposes internal sandbox or rubric state")
+        if case.category == EvaluationCategoryV3.SHOPPING_MERCHANT and (
+            "phiên bản" in normalized_prompt
+            or re.search(r"\b(?:cart|offer)_[a-z0-9_.-]+", normalized_prompt)
+        ):
+            raise ValueError("shopping prompt exposes internal resource fields")
+        if any(capability_id in prompt for capability_id in registry_ids):
+            raise ValueError("user prompt exposes a registry capability ID")
+
+        boundary = case.action_capability_blueprint
+        allowed_ids = {item.capability_id for item in boundary.allowed}
+        for capability_id in boundary.required:
+            if not _capability_has_gold_obligation(
+                case,
+                capability_id,
+                normalized_prompt,
+            ):
+                message = (
+                    "required capability has no prompt/gold obligation: "
+                    f"{capability_id}"
+                )
+                raise ValueError(message)
+        for fact in case.required_fact_blueprints:
+            if isinstance(fact.support, SourceExcerptSupportV3):
+                if "knowledge.retrieve" not in allowed_ids:
+                    raise ValueError(
+                        "source fact is not obtainable through an allowed capability"
+                    )
+                continue
+            field = fact.support.json_pointer.removeprefix("/")
+            if not any(
+                field in _CATALOG_FIELDS_BY_CAPABILITY.get(capability_id, ())
+                for capability_id in allowed_ids
+            ):
+                raise ValueError(
+                    "catalog fact is not obtainable through an allowed capability"
+                )
+
+        if case.category == EvaluationCategoryV3.MULTI_EXPERT_COMPARE_RECOMMENDATION:
+            required = set(boundary.required)
+            if not {"product.compare", "knowledge.retrieve"}.issubset(required):
+                raise ValueError(
+                    "multi-expert cases require catalog comparison and knowledge"
+                )
+            if required & {"review.retrieve", "review.compare"}:
+                raise ValueError(
+                    "multi-expert cases cannot claim review use without review gold"
+                )
+            if len(case.product_ids) < 2 or "so sánh" not in normalized_prompt:
+                raise ValueError("multi-expert prompt must request a real comparison")
+            services = {
+                registry.capability(capability_id).service for capability_id in required
+            }
+            if len(services) < 2:
+                raise ValueError("multi-expert cases require two expert services")
+
+        if "src_morisaki_nlv" in case.source_ids:
+            if "chủ đề" in normalized_prompt or "topic" in normalized_prompt:
+                raise ValueError("Morisaki source does not support a topic claim")
+            for fact in case.required_fact_blueprints:
+                if (
+                    isinstance(fact.support, SourceExcerptSupportV3)
+                    and fact.support.record_id == "src_morisaki_nlv"
+                ):
+                    blueprint = fact.claim_blueprint.casefold()
+                    if "tác giả" not in blueprint or "dịch" not in blueprint:
+                        raise ValueError(
+                            "Morisaki claim must stay within author/translation support"
+                        )
+
+    for bindings in prompt_template_bindings.values():
+        splits = {split for split, _, _ in bindings}
+        if len(splits) > 1:
+            raise ValueError("semantic prompt template overlaps across splits")
+        prompt_families = {prompt_family for _, prompt_family, _ in bindings}
+        paraphrase_families = {
+            paraphrase_family for _, _, paraphrase_family in bindings
+        }
+        if len(prompt_families) > 1 or len(paraphrase_families) > 1:
+            raise ValueError("semantic prompt template has divergent family IDs")
+
+    for rows in near_duplicate_groups.values():
+        for index, (left_case, left_tokens) in enumerate(rows):
+            for right_case, right_tokens in rows[index + 1 :]:
+                if left_case.split == right_case.split:
+                    continue
+                similarity = _semantic_template_similarity(left_tokens, right_tokens)
+                if similarity >= _SEMANTIC_TEMPLATE_SIMILARITY_THRESHOLD:
+                    raise ValueError(
+                        "near-duplicate semantic prompt template overlaps across "
+                        f"splits: {left_case.conversation_id} / "
+                        f"{right_case.conversation_id} ({similarity:.3f})"
+                    )
+
+
+def _semantic_prompt_template(case: GoldConversationV3) -> str:
+    template = "\n".join(turn.message for turn in case.user_turns).casefold()
+    product_names = {
+        str(fact.expected_value).casefold()
+        for fact in case.required_fact_blueprints
+        if isinstance(fact.support, CatalogPointerSupportV3)
+        and fact.support.json_pointer == "/name"
+    }
+    for product_name in sorted(product_names, key=len, reverse=True):
+        template = template.replace(product_name, "<entity>")
+    template = re.sub(r'[“"][^”"]+[”"]', "<entity>", template)
+    template = re.sub(r"\d+(?:[.,]\d+)*", "<number>", template)
+    return " ".join(template.split())
+
+
+def _semantic_prompt_tokens(case: GoldConversationV3) -> frozenset[str]:
+    template = _semantic_prompt_template(case)
+    for pattern in _PROMPT_FILLER_PATTERNS:
+        template = re.sub(pattern, " ", template)
+    return frozenset(
+        re.findall(r"<entity>|<number>|[^\W\d_]+", template, flags=re.UNICODE)
+    )
+
+
+def _semantic_template_similarity(
+    left: frozenset[str],
+    right: frozenset[str],
+) -> float:
+    union = left | right
+    if not union:
+        return 1.0
+    return len(left & right) / len(union)
+
+
+def _capability_has_gold_obligation(
+    case: GoldConversationV3,
+    capability_id: str,
+    normalized_prompt: str,
+) -> bool:
+    supports = tuple(fact.support for fact in case.required_fact_blueprints)
+    has_catalog_fact = any(
+        isinstance(support, CatalogPointerSupportV3) for support in supports
+    )
+    has_source_fact = any(
+        isinstance(support, SourceExcerptSupportV3) for support in supports
+    )
+    if capability_id == "knowledge.retrieve":
+        return has_source_fact
+    if capability_id in {"product.catalog.search", "product.rank"}:
+        return has_catalog_fact or (
+            case.category == EvaluationCategoryV3.INSUFFICIENT_CONFLICT_INJECTION
+            and "tìm" in normalized_prompt
+        )
+    if capability_id == "product.compare":
+        return len(case.product_ids) >= 2 and "so sánh" in normalized_prompt
+    fixture = case.sandbox_fixture
+    if capability_id == "shopper.cart.read":
+        return fixture is not None and fixture.cart is not None
+    if capability_id == "shopper.checkout.preview":
+        return fixture is not None and fixture.cart is not None
+    if capability_id == "shopper.checkout.propose":
+        return fixture is not None and isinstance(
+            fixture.proposal_parameters,
+            SandboxCheckoutProposalV3,
+        )
+    if capability_id == "merchant.inventory.read":
+        return fixture is not None and fixture.merchant is not None
+    if capability_id == "merchant.offer.propose":
+        return fixture is not None and isinstance(
+            fixture.proposal_parameters,
+            SandboxOfferProposalV3,
+        )
+    return False
 
 
 def _reject_result_or_sut_provenance(value: object) -> None:
@@ -1223,20 +1540,11 @@ def _validate_sandbox_fixtures_against_catalog(
                         "sandbox offer price differs from catalog snapshot"
                     )
         proposal = fixture.proposal_parameters
-        required_tokens: tuple[str, ...]
-        if isinstance(proposal, SandboxCheckoutProposalV3):
+        required_tokens: tuple[str, ...] = ()
+        if isinstance(proposal, SandboxOfferProposalV3):
             required_tokens = (
-                proposal.cart_id,
-                f"phiên bản {proposal.expected_version}",
-            )
-        elif isinstance(proposal, SandboxOfferProposalV3):
-            required_tokens = (
-                proposal.offer_id,
-                f"phiên bản {proposal.expected_version}",
                 f"{proposal.new_price_vnd:,}".replace(",", ".") + " đồng",
             )
-        else:
-            required_tokens = ("Chưa có đề xuất nào được xác nhận",)
         if any(token not in messages for token in required_tokens):
             raise ValueError("shopping prompt omits frozen action parameters")
 

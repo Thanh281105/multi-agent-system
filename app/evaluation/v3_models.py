@@ -295,10 +295,6 @@ class EvaluationExperimentConfigV3(FrozenContractV3):
             raise ValueError("Package 7 pilot cases must use the frozen order")
         if self.warmup_case_id not in case_order:
             raise ValueError("warmup case must be one of the pilot cases")
-        if len({case.work_group_id for case in self.pilot_cases}) != len(
-            self.pilot_cases
-        ):
-            raise ValueError("pilot cases must represent eight distinct work groups")
         bindings = {variant.generation_binding for variant in self.variants}
         if len(bindings) != 1:
             raise ValueError("all Package 7 variants must share one model snapshot")

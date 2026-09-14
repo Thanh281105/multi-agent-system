@@ -44,7 +44,16 @@ def test_experiment_freezes_variants_cases_models_metrics_and_labels() -> None:
     assert tuple(case.case_id for case in config.pilot_cases) == (
         PACKAGE7_PILOT_CASE_ORDER
     )
-    assert len({case.work_group_id for case in config.pilot_cases}) == 8
+    assert tuple(case.work_group_id for case in config.pilot_cases) == (
+        "work_sapiens_yuval_noah_harari",
+        "work_de_men_phieu_luu_ky_to_hoai",
+        "work_sapiens_yuval_noah_harari",
+        "work_de_men_phieu_luu_ky_to_hoai",
+        "pair_sapiens_social_contract",
+        "work_sapiens_yuval_noah_harari",
+        "unbound_exact_title_price_probe",
+        "pair_sapiens_zero_to_one",
+    )
     assert config.pilot_repeats == config.warmup_repeats == 1
     assert {variant.generation_binding.model for variant in config.variants} == {
         "gpt-5.4-mini-2026-03-17"
