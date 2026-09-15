@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import NoReturn, Sequence
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pydantic import BaseModel
 
@@ -1208,8 +1209,22 @@ def _build_package7_live_executor_factory(
     if inputs.protocol != expected_protocol:
         raise FrozenPackage7DriftError("package7_live_protocol_binding_drift")
     return v3_cli._build_live_executor_factory(
-        replace(inputs, database_url=database_url)
+        replace(
+            inputs,
+            database_url=_with_utc_session_timezone(database_url),
+        )
     )
+
+
+def _with_utc_session_timezone(database_url: str) -> str:
+    """Bind P8's PostgreSQL session to UTC without changing frozen P7 sources."""
+
+    parsed = urlsplit(database_url)
+    query = parse_qsl(parsed.query, keep_blank_values=True)
+    options = [value for key, value in query if key == "options"]
+    retained = [(key, value) for key, value in query if key != "options"]
+    retained.append(("options", " ".join((*options, "-c TimeZone=UTC"))))
+    return urlunsplit(parsed._replace(query=urlencode(retained)))
 
 
 def _run_id(arguments: argparse.Namespace, protocol_sha256: str) -> str:

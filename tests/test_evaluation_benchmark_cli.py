@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.parse import parse_qsl, urlsplit
 
 import pytest
 from pydantic import BaseModel
@@ -146,6 +147,25 @@ def test_run_requires_network_consent_before_live_factory(
         == 2
     )
     assert not called
+
+
+def test_package7_runtime_url_pins_utc_and_preserves_connection_options() -> None:
+    source = (
+        "postgresql+psycopg://operator@example.invalid:5432/evaluation"
+        "?application_name=p8&options=-c%20search_path%3Devaluation"
+    )
+
+    rewritten = benchmark_cli._with_utc_session_timezone(source)
+    parsed = urlsplit(rewritten)
+    query = parse_qsl(parsed.query, keep_blank_values=True)
+
+    assert parsed.scheme == "postgresql+psycopg"
+    assert parsed.netloc == "operator@example.invalid:5432"
+    assert parsed.path == "/evaluation"
+    assert query == [
+        ("application_name", "p8"),
+        ("options", "-c search_path=evaluation -c TimeZone=UTC"),
+    ]
 
 
 def test_operate_requires_network_consent_before_loading_any_checkpoint(
