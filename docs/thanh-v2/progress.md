@@ -11,7 +11,7 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | 5 — history, memory, sandbox actions | Gate passed | 703 tests pass; real PostgreSQL recovery/concurrency, clock skew and exact v1 OpenAPI verified. |
 | 6 — API and frontend | Gate passed | JSON/SSE/UI consistency; v1 regression; PostgreSQL-backed v2 boundary |
 | 7 — evaluation v3, gold, pilot, freeze | Frozen pilot complete | Protocol, split and repeat decision frozen; 4 warmups + 32 measurements; no held-out result |
-| 8 — benchmark, error analysis, final checks/docs | Local lifecycle ready / held-out not run | Additive held-out, exact-evidence, calibration, judge and publication contracts locally verified; provider benchmark/final gates remain open |
+| 8 — benchmark, error analysis, final checks/docs | Terminal partial / final gate open | 692/720 SUT cells completed; immutable partial record accounts 28 failures, 451 attempts and 0.53009550 USD; no scoring or quality claim |
 
 ## Execution rules
 
@@ -480,9 +480,18 @@ authority. The driver builds the exact `60 × 4 × 3 = 720` held-out measurement
 schedule and uses append-only checkpoint/resume behavior. Local commands do not
 call a provider.
 
-No held-out benchmark has run. There is no complete held-out checkpoint, judged
-observation set, analysis report or final result to claim. A partial checkpoint
-must remain partial and must never be reported as complete.
+The held-out SUT run `run_p8_heldout_utc` reached a terminal partial checkpoint:
+692 of 720 cells completed and 28 failed, with no pending, ambiguous or orphan
+cells. Its immutable `partial-execution-report.p8.json` accounts 451 provider
+attempts and 0.53009550 USD known SUT cost. Safe terminal error counts are one
+`model_response_incomplete`, 13 `provider_cost_limit_exceeded`, and 14
+`turn_execution_failed`; no raw provider payload is carried into the report.
+
+`partial-report` reads that checkpoint with a forbidden live executor and writes
+or validates the immutable partial record. It does not dispatch a provider,
+score receipts, reopen citation authority, calibrate the judge, or publish a
+benchmark result. The append-only checkpoint cannot redispatch settled cells, so
+this run cannot become a complete result through `resume`.
 
 Package 8 remains open until all of the following are complete and independently
 validated: calibrated automated judge and frozen bindings; exact immutable

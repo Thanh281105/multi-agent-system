@@ -369,6 +369,9 @@ python -m app.evaluation.benchmark_cli validate
 python -m app.evaluation.benchmark_cli dry-run --run-id run_p8_dry
 python -m app.evaluation.benchmark_cli prepare `
   --output output/evaluation-v3/heldout
+python -m app.evaluation.benchmark_cli partial-report `
+  --output output/evaluation-v3/heldout-utc-v1 `
+  --run-id run_p8_heldout_utc
 ```
 
 Live execution phải truyền explicit consent và durable database URL:
@@ -397,8 +400,11 @@ và publish final report. Nó require explicit per-job budget; shared ledger v�
 account tất cả attempt, retry và reservation. Citation catalog/review chưa có
 authority exact immutable sẽ block lifecycle thay vì tự dựng evidence.
 
-P8 hiện chưa chạy held-out benchmark. Không báo cáo partial checkpoint như
-complete và không gọi một dry-run, pilot hay development calibration là
-held-out result. Hoàn tất P8 còn cần đủ 720 matrix cells (60 cases × 4 variants ×
-3 repeats), calibrated automated judge, exact immutable evidence resolver,
-complete blind/judgment join, analysis/report artifact và các final gates.
+P8 đã có một SUT run terminal partial ở `run_p8_heldout_utc`: 692/720 cells
+completed và 28 failed. Dùng `partial-report` để persist hoặc tái xác thực
+coverage/ledger/checkpoint hash của run đó; lệnh local-only và không mở live
+runtime. Không báo cáo partial checkpoint như complete và không gọi một dry-run,
+pilot hay development calibration là held-out result. Hoàn tất P8 vẫn cần đủ 720
+matrix cells (60 cases × 4 variants × 3 repeats), calibrated automated judge,
+exact immutable evidence resolver, complete blind/judgment join, analysis/report
+artifact và các final gates.

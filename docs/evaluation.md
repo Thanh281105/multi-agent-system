@@ -23,7 +23,7 @@ Repository có ba lane cần giữ tách biệt:
 | --- | --- | --- |
 | v1 scripted/reference | Compatibility regression trên catalog/review snapshot | Đã có evidence lịch sử |
 | v2 paired | Historical deterministic/model-assisted comparison với `tiki_books_vi_28_v1` | Đã có protocol/capture lịch sử; không dùng làm P7/P8 result |
-| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7 frozen + pilot; P8 held-out chưa chạy |
+| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7 frozen + pilot; P8 SUT terminal partial, không có score |
 
 ## 2. Frozen inputs và provenance
 
@@ -248,9 +248,24 @@ partial. `operate` hash-bind preparation, calibration, journal, judgment và
 publication; catalog/review citation thiếu exact immutable authority sẽ dừng
 fail-closed, không dùng text từ answer hay gold thay thế evidence.
 
-Held-out benchmark hiện **chưa chạy**: repository không có held-out checkpoint,
-judged result, analysis report hay final benchmark claim. Partial run cũng không
-được báo cáo là complete.
+Khi checkpoint terminal nhưng incomplete, lệnh local-only sau tạo hoặc tái xác
+thực một record bất biến `partial-execution-report.p8.json`; lệnh không dựng
+runtime live, không dispatch provider và không đưa receipt failed vào scoring:
+
+```powershell
+python -m app.evaluation.benchmark_cli partial-report `
+  --output output/evaluation-v3/heldout-utc-v1 `
+  --run-id run_p8_heldout_utc
+```
+
+Held-out SUT `run_p8_heldout_utc` đã terminal partial: 692/720 cells completed,
+28 failed, không có pending, ambiguous hoặc orphan cell. Record partial account
+451 provider attempts và `0.53009550 USD` known SUT cost. Các safe failure code
+được ghi nhận là 1 `model_response_incomplete`, 13
+`provider_cost_limit_exceeded` và 14 `turn_execution_failed`; raw provider
+payload hay fabricated citation không được đưa vào report. Checkpoint append-only
+không được resume để redispatch các terminal cell. Không có calibration/judge
+journal, final result, paired metric hay benchmark-quality claim từ run này.
 
 Để đóng Package 8, phải có đủ các gate sau:
 
