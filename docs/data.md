@@ -149,11 +149,39 @@ Database lưu metadata ở `dataset_sources`; facts trả về dùng provenance 
 `tiki-books:kaggle-v4:<profile>`, ví dụ `tiki-books:kaggle-v4:eval`, và vẫn gắn
 `sample_data=true` vì đây là một mẫu lịch sử chứ không phải feed hiện tại.
 
-Migration schema hiện hành là `20260909_0005`. Các bảng `v2_` bổ sung hội thoại,
-sandbox, knowledge có phiên bản và ledger ngân sách; không thay semantics dữ
-liệu snapshot v1. Xem [foundation v2](thanh-v2/package-2-foundation.md).
+Migration schema production hiện hành là `20260910_0008`, khớp
+`app.db.migrate.EXPECTED_DATABASE_REVISION`. Các bảng `v2_` bổ sung hội thoại,
+sandbox, knowledge có phiên bản, runtime metadata và ledger ngân sách; không
+thay semantics dữ liệu snapshot v1. Xem [foundation v2](thanh-v2/package-2-foundation.md).
 
-## 6. Dữ liệu legacy
+## 6. Published corpus/index cho API v2
+
+API v2 dùng durable PostgreSQL cho conversation, turn, action, usage ledger và
+knowledge store. Runtime chỉ resolve corpus/index đã publish và pin hai identity
+này vào mỗi turn; không lấy benchmark fixture làm knowledge source.
+
+Snapshot hiện hành là `books-v1-calibrated-20260909`:
+
+| Thuộc tính | Giá trị đã xác minh |
+| --- | --- |
+| Corpus ID | `cor_e06f6abbf338cfcf5fe17d450eec52ed961975e0fa8ee6bae32369ed3956` |
+| Index ID | `idx_69af0802b50991c371bcb1f2954e79de82ccdc7855e15d3e602126b3b9c4` |
+| Sources / chunks / vectors | 20 / 20 / 20 |
+| Product mappings | 200: 20 exact work, 17 ambiguous, 163 unmatched |
+| Embedding | `text-embedding-3-small`, 1.536 dimensions |
+| Chunker / enrichment | `table_chunker_v1` / `source_keywords_v1` |
+
+Corpus gồm các source notes được curate, chunks, vectors và mapping/provenance
+records. Benchmark questions, answers, development probes, calibration labels
+và calibration outputs bị loại khỏi corpus/index; chúng chỉ là evaluation
+inputs hoặc verification artifacts. `ambiguous` và `unmatched` mappings không
+được nâng thành exact evidence trong runtime.
+
+Publication is immutable: v2 phải resolve đúng corpus/index đã publish, kiểm tra
+đủ vector count và khớp embedding model/dimension trước retrieval. Rebuild với
+fingerprint khác tạo index identity mới; không overwrite index đang được pin.
+
+## 7. Dữ liệu legacy
 
 Seed tổng hợp cũ 5 shop/30 sản phẩm/150 review không còn là bootstrap runtime hay
 đầu vào test/evaluation hiện hành. Một số artifact evaluation v1 generic vẫn
