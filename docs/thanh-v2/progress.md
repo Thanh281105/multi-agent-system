@@ -9,9 +9,9 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | 3 — corpus, mapping, retrieval, citations | Committed `7c9d86d` | 462 tests pass; published 20-work/200-mapping corpus, real embeddings/ledger and development no-answer calibration verified. |
 | 4 — supervisor, continuation, deduplication, grounding | Committed `93c7cf7` | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
 | 5 — history, memory, sandbox actions | Gate passed | 703 tests pass; real PostgreSQL recovery/concurrency, clock skew and exact v1 OpenAPI verified. |
-| 6 — API and frontend | Not started | JSON/SSE/UI consistency; v1 regression |
-| 7 — evaluation v3, gold, pilot, freeze | Not started | Budget projection and immutable protocol |
-| 8 — benchmark, error analysis, final checks/docs | Not started | Full acceptance checklist; honest completeness state |
+| 6 — API and frontend | Gate passed | JSON/SSE/UI consistency; v1 regression; PostgreSQL-backed v2 boundary |
+| 7 — evaluation v3, gold, pilot, freeze | Frozen pilot complete | Protocol, split and repeat decision frozen; 4 warmups + 32 measurements; no held-out result |
+| 8 — benchmark, error analysis, final checks/docs | Local lifecycle ready / held-out not run | Additive held-out, exact-evidence, calibration, judge and publication contracts locally verified; provider benchmark/final gates remain open |
 
 ## Execution rules
 
@@ -439,4 +439,54 @@ motion passed at `95c9ddf`: no duplicate IDs, unnamed buttons, horizontal
 overflow, console errors or page errors. Strict fixtures were used only for the
 visual browser run because the disposable Package 6 database has no published
 Package 3 corpus/index; real API, locking and recovery behavior ran against
-PostgreSQL in the backend gate. Package 7 may now begin.
+PostgreSQL in the backend gate. Package 6 is therefore closed; the P7 freeze and
+pilot handoff follows below.
+
+## Package 7 freeze and pilot handoff
+
+The P7 evaluation inputs are frozen in committed `evaluation/v3/`; operator-local
+pilot artifacts are written under `output/evaluation-v3/pilot/` and are not
+committed. The canonical protocol SHA256 is
+`f91cd3a730f1e8bd61020a4770a568462d8b3729144d0fb728a19ad2736f17d3`. It binds
+four variants: `sa_shared_tools_rag`, `ma_fixed_rag`, `ma_adaptive_rag` and
+`ma_adaptive_no_rag`. The frozen split contains 20 development cases and 60
+held-out cases.
+
+The completed P7 pilot contains four warmups and 32 measured observations. The
+global repeat decision selects three repeats for the held-out matrix. Actual
+pilot effective cost is `0.02660175 USD`; projected held-out SUT cost is
+`1.06015500 USD`. The semantic judge is the declared automated `model_judge`
+contract; it is not a human judge. Gold authorship is `automated_pre_sut_spec`,
+with no human author or judge IDs.
+
+These artifacts establish frozen inputs and a budget projection only. They do
+not establish held-out quality, semantic grounding, or a completed benchmark.
+The published v2 runtime remains PostgreSQL-backed and pins corpus
+`books-v1-calibrated-20260909` with 20 sources/chunks/vectors, 200 mappings
+(20 exact work, 17 ambiguous, 163 unmatched), and
+`text-embedding-3-small` at 1,536 dimensions. Benchmark Q/A and calibration
+artifacts remain outside that corpus.
+
+## Package 8 current state
+
+Package 8 is additive. `python -m app.evaluation.benchmark_cli` provides local
+`validate`, `dry-run`, `prepare`; guarded SUT `run`/`resume`; and guarded
+post-SUT `operate`. `operate` rebuilds exact-evidence preparation under the
+receipt authorization, calibrates on the frozen 32 P7 pilot measurements,
+freezes the judge, runs the blind held-out journal and publishes final artifacts.
+It requires explicit `--allow-network`, `--database-url` and a per-job judge
+budget; it fails closed when a catalog/review citation lacks an immutable exact
+authority. The driver builds the exact `60 × 4 × 3 = 720` held-out measurement
+schedule and uses append-only checkpoint/resume behavior. Local commands do not
+call a provider.
+
+No held-out benchmark has run. There is no complete held-out checkpoint, judged
+observation set, analysis report or final result to claim. A partial checkpoint
+must remain partial and must never be reported as complete.
+
+Package 8 remains open until all of the following are complete and independently
+validated: calibrated automated judge and frozen bindings; exact immutable
+evidence resolver over source/version/chunk/span; all 720 receipt cells with
+valid ledger attribution and no missing/ambiguous work; blind-answer/judgment
+join; analysis/report artifacts; real PostgreSQL transactional/replay checks;
+frontend checks when affected; package gates; and final documentation review.

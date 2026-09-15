@@ -6,13 +6,17 @@
   cluster, kind chỉ dùng smoke disposable.
 - Reverse proxy TLS; backend chỉ bind loopback/private network.
 - Secret manager hoặc `.env` có quyền đọc giới hạn và không commit.
-- PostgreSQL bền; Redis authenticated cho session/state production.
+- PostgreSQL bền; Redis authenticated cho v1 session/state production. API v2
+  dùng PostgreSQL làm authority cho conversation, turn, action, ledger và
+  published corpus/index.
 - Backup/restore drill trước migration hoặc thay snapshot.
 - External monitoring gọi `/readyz` và scrape `/metrics` bằng operations key.
 
 Runtime mặc định dùng snapshot lịch sử Tiki Books eval (200 sách/1.773 review),
-không phải feed Tiki trực tiếp. Qdrant/RAG không phải prerequisite: knowledge
-mặc định `disabled` và repository không seed knowledge corpus.
+không phải feed Tiki trực tiếp. Qdrant không phải prerequisite cho v1:
+knowledge mặc định của v1 là `disabled`; khi dùng v2 knowledge retrieval, runtime
+phải resolve published PostgreSQL corpus/index đã pin. Repository không seed
+Qdrant knowledge corpus.
 
 ## 2. Cấu hình
 
@@ -21,6 +25,8 @@ mặc định `disabled` và repository không seed knowledge corpus.
 | `APP_ENV` | `production` | Compose đặt cố định |
 | `DATABASE_URL` | Authenticated PostgreSQL | SQLite chỉ development/test |
 | `PUBLIC_SNAPSHOT_DIR` | `data/snapshots/tiki-books-v4-eval` | Trong image là `/app/data/...` |
+| `V2_CORPUS_VERSION_ID` | Published v2 corpus ID | Bắt buộc khi resolve API v2 |
+| `V2_INDEX_MANIFEST_ID` | Published v2 index ID | Optional chỉ khi corpus có một complete index; production nên pin rõ |
 | `GATEWAY_API_KEYS` | Bắt buộc, không demo | `principal:secret[,principal:secret]` |
 | `GATEWAY_PRINCIPAL_POLICIES` | Bắt buộc | `principal:tenant:scope1|scope2` |
 | `OPERATIONS_API_KEY` | Bắt buộc, ≥16 chars | Tách khỏi user key |
@@ -29,6 +35,8 @@ mặc định `disabled` và repository không seed knowledge corpus.
 | `KNOWLEDGE_BACKEND` | `disabled` | `qdrant` chỉ là opt-in seam |
 | `MODEL_RUNTIME_MODE` | `hybrid` mặc định | `off`, `shadow`, `hybrid`, `required` |
 | `OPENAI_API_KEY` | Khi model mode khác `off` | Không log/render vào values |
+| `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | Phải khớp published v2 index |
+| `OPENAI_EMBEDDING_DIMENSIONS` | `1536` | Phải khớp published v2 index |
 | `ORCHESTRATION_TIMEOUT_SECONDS` | `30` | Hợp lệ 1..300 |
 | `LEGACY_CHAT_ENABLED` | `false` | Production validator bắt buộc |
 | `LOG_LEVEL` | `INFO` khuyến nghị | Không log request/provider payload |
@@ -36,7 +44,8 @@ mặc định `disabled` và repository không seed knowledge corpus.
 `POSTGRES_PASSWORD` và `REDIS_PASSWORD` trong Compose phải URL-safe vì được nội
 suy vào connection URL. Muốn chạy không provider: đặt
 `MODEL_RUNTIME_MODE=off` và giữ `KNOWLEDGE_BACKEND=disabled`; embedding settings
-không được dùng trong cấu hình này.
+không được dùng cho đường v1 này. V2 vẫn phải khớp embedding model/dimension của
+published index trước khi resolve knowledge.
 
 Chỉ khi owner chủ động tích hợp Qdrant mới đặt `KNOWLEDGE_BACKEND=qdrant`,
 `QDRANT_URL` và `QDRANT_API_KEY`. Collection phải được provision riêng, tương
@@ -71,6 +80,12 @@ image build thất bại. Image check:
 ```powershell
 docker build --tag ecommerce-multi-agent:1.0.0 .
 ```
+
+Trước khi mở API v2, xác nhận migration head `20260910_0008`, catalog snapshot
+đã import và published corpus/index là `books-v1-calibrated-20260909` (20
+sources/chunks/vectors, 200 mappings). V2 phải fail closed nếu thiếu
+`V2_CORPUS_VERSION_ID`, index chưa complete hoặc embedding model/dimension không
+khớp. Không dùng calibration/Q&A artifacts làm corpus data.
 
 `app/frontend/dist` là output của Vite; không sửa tay. Image đóng gói đúng
 `data/snapshots/tiki-books-v4-eval` và chạy non-root/read-only.
@@ -132,7 +147,8 @@ phải có `OPENAI_API_KEY` không rỗng; runtime sẽ fail nếu thiếu. `QDR
 chỉ được tham chiếu khi `config.knowledgeBackend=qdrant`.
 
 Production chart chạy Alembic hook nhưng `bootstrap.seedData=false`; việc import
-snapshot vào external database phải là data change đã review riêng. Có thể chạy
+snapshot và bind published corpus/index vào external database phải là data change
+đã review riêng. Có thể chạy
 cùng migration idempotent từ image/release tương ứng trong bounded operator job
 trước khi mở traffic; Helm hook sẽ xác nhận lại revision khi rollout:
 
@@ -141,6 +157,10 @@ ecommerce-data validate --snapshot data/snapshots/tiki-books-v4-eval
 ecommerce-migrate
 ecommerce-data import --snapshot data/snapshots/tiki-books-v4-eval
 ```
+
+Sau đó đặt `V2_CORPUS_VERSION_ID` vào published corpus ID và pin
+`V2_INDEX_MANIFEST_ID` vào published index ID. Không trỏ v2 vào Qdrant legacy seam
+hoặc một index đang build.
 
 Render/lint và deploy bằng immutable image:
 
@@ -291,8 +311,9 @@ chỉ hợp lệ khi schema backward-compatible. Không dùng `git reset --hard`
 volume hoặc sửa table trực tiếp làm quy trình rollback.
 
 Qdrant hiện không chứa corpus do repository sở hữu nên không có backup/rebuild
-procedure RAG. Nếu tích hợp corpus về sau, phải bổ sung versioned index backup và
-restore drill trước khi bật backend.
+procedure cho legacy v1 adapter. V2 corpus/index trong PostgreSQL phải nằm trong
+backup/restore drill và được kiểm tra identity trước khi mở traffic. Nếu thêm
+Qdrant về sau, phải bổ sung versioned index backup và restore drill riêng.
 
 ## 9. Incident hints
 
@@ -323,3 +344,61 @@ ecommerce-seed --snapshot data/snapshots/tiki-books-v4-eval
 
 Command bị chặn ở production và từ chối database không khớp exact legacy
 fingerprint. Không dùng nó trên dữ liệu cần giữ.
+
+## 11. V2 và Package 8 evaluation handoff
+
+V2 smoke phải chạy trên PostgreSQL đã migrate tới `20260910_0008` và đã publish
+corpus/index. Xác nhận các identity hiện hành trước khi gửi request:
+
+```powershell
+$env:V2_CORPUS_VERSION_ID = "cor_e06f6abbf338cfcf5fe17d450eec52ed961975e0fa8ee6bae32369ed3956"
+$env:V2_INDEX_MANIFEST_ID = "idx_69af0802b50991c371bcb1f2954e79de82ccdc7855e15d3e602126b3b9c4"
+Invoke-RestMethod http://127.0.0.1:8000/api/v2/me -Headers $headers
+```
+
+Tạo conversation rồi gửi `POST /api/v2/chat` với `conversation_id` và
+`client_turn_id`; đọc lại `/api/v2/turns/{turn_id}` sau mọi disconnect. V2
+response phải giữ durable status, pinned data versions, evidence bindings và
+usage metadata. Một fixture hoặc SQLite success không thay thế được PostgreSQL
+transaction/replay verification.
+
+Package 8 là additive held-out work. Các lệnh local không gọi provider:
+
+```powershell
+python -m app.evaluation.benchmark_cli validate
+python -m app.evaluation.benchmark_cli dry-run --run-id run_p8_dry
+python -m app.evaluation.benchmark_cli prepare `
+  --output output/evaluation-v3/heldout
+```
+
+Live execution phải truyền explicit consent và durable database URL:
+
+```powershell
+python -m app.evaluation.benchmark_cli run `
+  --allow-network `
+  --database-url $env:DATABASE_URL `
+  --output output/evaluation-v3/heldout
+
+python -m app.evaluation.benchmark_cli resume `
+  --allow-network `
+  --database-url $env:DATABASE_URL `
+  --output output/evaluation-v3/heldout
+
+python -m app.evaluation.benchmark_cli operate `
+  --allow-network `
+  --database-url $env:DATABASE_URL `
+  --judge-budget-nano-usd 250000000 `
+  --output output/evaluation-v3/heldout
+```
+
+`operate` chỉ chạy sau checkpoint SUT đã complete; nó rebuild/verify preparation,
+calibrate judge trên 32 pilot measurement, freeze calibration, judge blind packet
+và publish final report. Nó require explicit per-job budget; shared ledger vẫn
+account tất cả attempt, retry và reservation. Citation catalog/review chưa có
+authority exact immutable sẽ block lifecycle thay vì tự dựng evidence.
+
+P8 hiện chưa chạy held-out benchmark. Không báo cáo partial checkpoint như
+complete và không gọi một dry-run, pilot hay development calibration là
+held-out result. Hoàn tất P8 còn cần đủ 720 matrix cells (60 cases × 4 variants ×
+3 repeats), calibrated automated judge, exact immutable evidence resolver,
+complete blind/judgment join, analysis/report artifact và các final gates.

@@ -17,6 +17,14 @@ trên snapshot lịch sử. Nó không đo toàn bộ chất lượng ngôn ng�
 preference, dữ liệu Tiki hiện tại hoặc khả năng tổng quát hóa ra marketplace.
 Regression 100% không có nghĩa “AI chính xác 100%”.
 
+Repository có ba lane cần giữ tách biệt:
+
+| Lane | Vai trò | Trạng thái |
+| --- | --- | --- |
+| v1 scripted/reference | Compatibility regression trên catalog/review snapshot | Đã có evidence lịch sử |
+| v2 paired | Historical deterministic/model-assisted comparison với `tiki_books_vi_28_v1` | Đã có protocol/capture lịch sử; không dùng làm P7/P8 result |
+| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7 frozen + pilot; P8 held-out chưa chạy |
+
 ## 2. Frozen inputs và provenance
 
 - Gold cases: [`evaluation/cases.v1.json`](../evaluation/cases.v1.json)
@@ -25,7 +33,7 @@ Regression 100% không có nghĩa “AI chính xác 100%”.
 - Bounded live configuration: [`evaluation/experiment.live-pilot.v2.json`](../evaluation/experiment.live-pilot.v2.json)
 - Pricing manifest: [`evaluation/pricing/openai-standard-2026-08-25.v2.json`](../evaluation/pricing/openai-standard-2026-08-25.v2.json)
 
-Current dataset là `tiki_books_vi_28_v1`: 28 clean cases và 16
+Historical v2 dataset là `tiki_books_vi_28_v1`: 28 clean cases và 16
 label-preserving transformations, tổng 44 correctness cases. Bốn transform type
 (`typo`, `paraphrase`, `distractor`, `injection`) có bốn case mỗi loại.
 
@@ -45,7 +53,14 @@ Gold labels không được tính lại từ SUT output trong lúc benchmark. Pr
 ghi experiment/corpus/evaluator/pricing hashes, Git revision/dirty state, network
 policy, model bindings, retrieval backend, schedule seed và execution budget.
 
-## 3. Variant hierarchy
+V3 gold/split hiện hành là [`evaluation/v3/gold.v3.json`](../evaluation/v3/gold.v3.json)
+và [`evaluation/v3/split.v3.json`](../evaluation/v3/split.v3.json): 80
+conversation, gồm 20 development và 60 held-out. Gold origin là
+`automated_pre_sut_spec`; `human_author_ids` và `human_judge_ids` đều rỗng.
+Benchmark Q/A, split, calibration labels và judge artifacts không được đưa vào
+published v2 corpus/index.
+
+## 3. Legacy v2 variant hierarchy
 
 | Variant | Parent | Mục đích |
 | --- | --- | --- |
@@ -66,7 +81,7 @@ Khi dùng `--variant`, runner tự đóng dependency chain. Chọn
 kéo thêm cả hai deterministic ancestors. Vì vậy một live smoke hybrid hiện tại
 chạy ba variants, không phải hai.
 
-## 4. Paired protocol
+## 4. Legacy v2 paired protocol
 
 Full measured matrix:
 
@@ -168,7 +183,88 @@ wiring generic lịch sử, không được dùng cho current Tiki Books claim. 
 `experiment.live-pilot.v2.json` chỉ là cấu hình có thể tái chạy, không phải kết
 quả.
 
-## 8. Evidence đã commit
+## 8. Package 7 frozen protocol và pilot
+
+Package 7 freeze artifact do operator tạo tại
+`output/evaluation-v3/pilot/protocol.v3.json` cùng repeat decision tương ứng;
+đây là output local không được commit vào repository. Protocol SHA-256 chính thức là
+`f91cd3a730f1e8bd61020a4770a568462d8b3729144d0fb728a19ad2736f17d3`.
+
+V3 có đúng bốn variants:
+
+| Variant | Topology | Planning | RAG |
+| --- | --- | --- | --- |
+| `sa_shared_tools_rag` | single | shared | bật |
+| `ma_fixed_rag` | multi | fixed | bật |
+| `ma_adaptive_rag` | multi | adaptive, tối đa một continuation | bật |
+| `ma_adaptive_no_rag` | multi | adaptive, tối đa một continuation | tắt |
+
+Split freeze có 20 development cases và 60 held-out cases. Pilot đã hoàn tất
+4 warmups và 32 measurements (mỗi measurement là một variant/case cell); repeat
+decision chọn global `3` repeats cho held-out matrix. Chi phí pilot thực tế là
+`0.02660175 USD`; projected held-out SUT cost là `1.06015500 USD`. Đây là
+budget/projection evidence, chưa phải benchmark quality result.
+
+Semantic scoring được khai báo là automated model judge (`model_judge`) theo
+judge configuration/schema đã hash; không có human semantic judge. Deterministic
+metrics (citation precision/coverage và document recall) vẫn phải lấy từ
+receipt/evidence contracts. Calibration phải được freeze trước held-out scoring.
+
+## 9. Package 8 additive held-out driver
+
+Package 8 chỉ bổ sung các module `benchmark_*.py`, giữ nguyên Package 7
+bindings. CLI có các lệnh local `validate`, `dry-run`, `prepare`, hai lệnh SUT
+`run`/`resume`, và `operate` cho lifecycle sau khi SUT đã hoàn tất:
+
+```powershell
+python -m app.evaluation.benchmark_cli validate
+python -m app.evaluation.benchmark_cli dry-run --run-id run_p8_dry
+python -m app.evaluation.benchmark_cli prepare `
+  --output output/evaluation-v3/heldout
+python -m app.evaluation.benchmark_cli run `
+  --allow-network `
+  --database-url $env:DATABASE_URL `
+  --output output/evaluation-v3/heldout
+python -m app.evaluation.benchmark_cli resume `
+  --allow-network `
+  --database-url $env:DATABASE_URL `
+  --output output/evaluation-v3/heldout
+python -m app.evaluation.benchmark_cli operate `
+  --allow-network `
+  --database-url $env:DATABASE_URL `
+  --judge-budget-nano-usd 250000000 `
+  --output output/evaluation-v3/heldout
+```
+
+`validate`, `dry-run` và `prepare` là local-only, không provider call.
+`prepare` chỉ chấp nhận results không có citation; citation phải đi qua
+`operate` để exact evidence được mở lại dưới authorization đã ghi trong receipt.
+`run`, `resume` và `operate` chỉ được dispatch live khi operator truyền rõ
+`--allow-network` cùng `--database-url`; `operate` còn bắt buộc per-job judge
+budget. URL không được ghi vào output. Schedule P8 là exact
+`60 × 4 × 3 = 720` held-out measurements, không có warmup. Checkpoint append-only
+không được redispatch cell đã settled; orphan/ambiguous work phải giữ trạng thái
+partial. `operate` hash-bind preparation, calibration, journal, judgment và
+publication; catalog/review citation thiếu exact immutable authority sẽ dừng
+fail-closed, không dùng text từ answer hay gold thay thế evidence.
+
+Held-out benchmark hiện **chưa chạy**: repository không có held-out checkpoint,
+judged result, analysis report hay final benchmark claim. Partial run cũng không
+được báo cáo là complete.
+
+Để đóng Package 8, phải có đủ các gate sau:
+
+1. Calibrated automated judge và frozen calibration/configuration bindings.
+2. Exact immutable evidence resolver mở lại đúng source/version/chunk/span từ
+   durable final `TurnResult`; citation ID hoặc text tự tạo không đủ.
+3. Đủ 720 receipt cells, ledger attribution hợp lệ, no missing/ambiguous cells,
+   rồi complete blind-answer/judgment join.
+4. Analysis/report artifact với bindings, counts, paired metrics, omissions và
+   partial/complete status được validator chấp nhận.
+5. Regression, real PostgreSQL transactional/replay checks, frontend checks khi
+   ảnh hưởng, package gate và final documentation review.
+
+## 10. Evidence đã commit
 
 ### Current Tiki deterministic regression
 
@@ -207,7 +303,7 @@ python scripts/score_real_baseline.py
 python scripts/run_real_multi_agent_benchmark.py --score-only
 ```
 
-## 9. Điều kiện trước claim mạnh hơn
+## 11. Điều kiện trước claim mạnh hơn
 
 1. Freeze một complete v2 bundle từ clean revision và validate độc lập.
 2. Dùng human/semantic rubric do curator độc lập thiết kế; báo agreement.
