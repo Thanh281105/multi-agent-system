@@ -10,7 +10,6 @@ import os
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import UTC
 from pathlib import Path
 from typing import Any, NoReturn
 from urllib.parse import urlsplit
@@ -676,12 +675,7 @@ def _corpus_sha256(source_assets: Any, snapshot: PublishedKnowledgeSnapshot) -> 
 
 
 def _index_sha256(snapshot: PublishedKnowledgeSnapshot) -> str:
-    """Hash a published snapshot by instant, independent of DB timezone rendering."""
-
-    normalized = snapshot.model_copy(
-        update={"published_at": snapshot.published_at.astimezone(UTC)}
-    )
-    return canonical_sha256(normalized)
+    return canonical_sha256(snapshot)
 
 
 def _embedding_sha256(snapshot: PublishedKnowledgeSnapshot) -> str:
