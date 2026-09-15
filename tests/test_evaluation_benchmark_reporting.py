@@ -14,9 +14,13 @@ from app.evaluation.benchmark_reporting import (
     EvidenceBindingKeyV3,
     HeldOutReceiptAdmissionV3,
     JudgedObservationSetV3,
+    Package8PartialExecutionReportV3,
+    ReceiptAccountingV3,
+    ReceiptFailureTaxonomyEntryV3,
     ResolvedExactEvidenceV3,
     account_observation_receipts_v3,
     analyze_judged_observations_v3,
+    build_package8_partial_execution_report_v3,
     build_package8_results_summary_v3,
     convert_completed_receipts_to_provisionals_v3,
     join_model_judgments_to_observations_v3,
@@ -69,6 +73,7 @@ from app.evaluation.v3_protocol import (
 )
 from app.evaluation.v3_runner import (
     EmbeddingCallEvidenceV3,
+    EvaluationRunSummaryV3,
     ExecutionAttributionV3,
     InitialStateResetReceiptV3,
     LedgerEventEvidenceV3,
@@ -115,6 +120,88 @@ class _Resolver:
                 binding=binding,
                 exact_text=text,
             )
+        )
+
+
+def test_partial_execution_report_preserves_failed_receipt_accounting() -> None:
+    summary = EvaluationRunSummaryV3(
+        run_id=RUN_ID,
+        protocol_sha256=PROTOCOL_SHA256,
+        execution_case_set_sha256=EXECUTION_CASE_SET_SHA256,
+        schedule_sha256=SCHEDULE_SHA256,
+        total_scheduled=3,
+        completed_turn_ids=("turn_complete",),
+        failed_turn_ids=("turn_failed_one", "turn_failed_two"),
+        pending_turn_ids=(),
+        missing_turn_ids=(),
+        ambiguous_turn_ids=(),
+        orphan_started_turn_ids=(),
+        completed_observation_ids=("obs_complete",),
+        is_partial=True,
+        blocked_on_ambiguous_work=False,
+    )
+    accounting = ReceiptAccountingV3(
+        receipt_count=3,
+        completed_measured_receipt_count=1,
+        failed_receipt_count=2,
+        warmup_receipt_count=0,
+        known_cost_usd=Decimal("0.012"),
+        unresolved_reserved_cost_usd=Decimal("0"),
+        input_tokens=8,
+        output_tokens=4,
+        total_tokens=12,
+        generation_call_count=2,
+        embedding_call_count=0,
+        provider_attempt_count=2,
+        retry_count=0,
+        failures=(
+            ReceiptFailureTaxonomyEntryV3(
+                safe_error_code="provider_cost_limit_exceeded",
+                receipt_count=2,
+            ),
+        ),
+    )
+
+    report = build_package8_partial_execution_report_v3(
+        summary=summary,
+        accounting=accounting,
+        checkpoint_sha256="e" * 64,
+    )
+
+    assert isinstance(report, Package8PartialExecutionReportV3)
+    assert report.completion_status == "partial"
+    assert report.failed_turn_count == 2
+    assert report.receipt_accounting == accounting
+
+    ambiguous_accounting = accounting.model_copy(
+        update={
+            "receipt_count": 2,
+            "failed_receipt_count": 1,
+            "failures": (
+                ReceiptFailureTaxonomyEntryV3(
+                    safe_error_code="provider_cost_limit_exceeded",
+                    receipt_count=1,
+                ),
+            ),
+        }
+    )
+    ambiguous_report = build_package8_partial_execution_report_v3(
+        summary=summary.model_copy(
+            update={
+                "failed_turn_ids": ("turn_failed_one",),
+                "ambiguous_turn_ids": ("turn_ambiguous",),
+            }
+        ),
+        accounting=ambiguous_accounting,
+        checkpoint_sha256="f" * 64,
+    )
+    assert ambiguous_report.ambiguous_turn_count == 1
+
+    with pytest.raises(BenchmarkReportingValidationErrorV3):
+        build_package8_partial_execution_report_v3(
+            summary=summary.model_copy(update={"is_partial": False}),
+            accounting=accounting,
+            checkpoint_sha256="e" * 64,
         )
 
 

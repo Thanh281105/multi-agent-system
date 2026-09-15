@@ -40,6 +40,8 @@ from app.evaluation.benchmark_judging import (
 from app.evaluation.benchmark_reporting import (
     EvidenceBindingKeyV3,
     ResolvedExactEvidenceV3,
+    account_observation_receipts_v3,
+    build_package8_partial_execution_report_v3,
 )
 from app.evaluation.benchmark_v3 import (
     FrozenPackage7DriftError,
@@ -99,6 +101,7 @@ _JUDGE_BINDINGS_NAME = "judge-bindings.p8.json"
 _FINALIZED_RESULT_NAME = "finalized-result.p8.json"
 _DEVELOPMENT_JOURNAL_NAME = "development-judge.p8.jsonl"
 _HELDOUT_JOURNAL_NAME = "heldout-judge.p8.jsonl"
+_PARTIAL_REPORT_NAME = "partial-execution-report.p8.json"
 
 
 class BenchmarkCLIError(RuntimeError):
@@ -192,6 +195,8 @@ def cli(argv: Sequence[str] | None = None) -> int:
             return _prepare(arguments)
         if arguments.command == "operate":
             return _operate(arguments)
+        if arguments.command == "partial-report":
+            return _partial_report(arguments)
         if arguments.command in {"run", "resume"}:
             return _execute(arguments)
         raise AssertionError(f"unhandled command: {arguments.command}")
@@ -620,6 +625,70 @@ def _execute(arguments: argparse.Namespace) -> int:
         return 3
     _emit_run_result(result, paths.checkpoint)
     return 3 if result.summary.is_partial else 0
+
+
+def _partial_report(arguments: argparse.Namespace) -> int:
+    """Write an immutable partial-run record without constructing live services."""
+
+    frozen = _load_frozen(arguments)
+    paths = _paths(arguments)
+    run_id = _run_id(arguments, frozen.protocol_sha256)
+    schedule = build_heldout_schedule_v3(frozen, run_id=run_id)
+    plan = _load_model_artifact(
+        paths.plan,
+        HeldoutExecutionPlanV3,
+        label="historical_execution_plan",
+    )
+    if (
+        plan.package7_protocol_sha256 != frozen.protocol_sha256
+        or plan.repeat_decision_sha256 != frozen.repeat_decision_sha256
+        or plan.heldout_schedule_sha256 != pilot_schedule_sha256_v3(schedule)
+    ):
+        raise BenchmarkCLIError(
+            "historical_execution_plan_binding_drift",
+            "stored held-out plan does not bind the current frozen Package 7 inputs",
+        )
+    _require_schedule(paths.schedule, schedule)
+    if not paths.checkpoint.is_file():
+        raise BenchmarkCLIError(
+            "checkpoint_missing",
+            "partial report requires an existing held-out checkpoint",
+        )
+    runner = HeldoutEvaluationV3ObservationRunner(
+        frozen=frozen,
+        schedule=schedule,
+        checkpoint_path=paths.checkpoint,
+        executor_factory=_ForbiddenFactory(),
+    )
+    result = asyncio.run(runner.run())
+    if not result.summary.is_partial:
+        raise BenchmarkCLIError(
+            "partial_report_not_applicable",
+            "a complete checkpoint must enter the regular Package 8 lifecycle",
+        )
+    report = build_package8_partial_execution_report_v3(
+        summary=result.summary,
+        accounting=account_observation_receipts_v3(result.receipts),
+        checkpoint_sha256=hashlib.sha256(paths.checkpoint.read_bytes()).hexdigest(),
+    )
+    report_path = paths.output / _PARTIAL_REPORT_NAME
+    _write_or_validate_model_artifact(
+        report_path,
+        report,
+        label="partial_execution_report",
+    )
+    _emit(
+        {
+            "status": "partial",
+            "run_id": report.run_id,
+            "scheduled": report.scheduled_turn_count,
+            "completed": report.completed_turn_count,
+            "failed": report.failed_turn_count,
+            "pending": report.pending_turn_count,
+            "partial_report": str(report_path.resolve()),
+        }
+    )
+    return 3
 
 
 def _load_complete_heldout_receipts(
@@ -1419,15 +1488,24 @@ def _parser() -> argparse.ArgumentParser:
         "operate": (
             "guarded: exact evidence, pilot calibration, blind judge, and publication"
         ),
+        "partial-report": "local: persist terminal SUT coverage without scoring",
         "run": "guarded: start held-out SUT execution",
         "resume": "guarded: resume held-out SUT execution",
     }
-    for name in ("validate", "dry-run", "prepare", "operate", "run", "resume"):
+    for name in (
+        "validate",
+        "dry-run",
+        "prepare",
+        "operate",
+        "partial-report",
+        "run",
+        "resume",
+    ):
         command = subparsers.add_parser(name, help=command_help[name])
         _add_inputs(command, project_root)
         if name != "validate":
             command.add_argument("--run-id")
-        if name in {"prepare", "operate", "run", "resume"}:
+        if name in {"prepare", "operate", "partial-report", "run", "resume"}:
             command.add_argument(
                 "--output",
                 "--output-dir",

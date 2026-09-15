@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 from decimal import Decimal
-from typing import Protocol
+from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
@@ -47,6 +47,7 @@ from app.evaluation.v3_models import (
     ScheduledTurnKindV3,
 )
 from app.evaluation.v3_runner import (
+    EvaluationRunSummaryV3,
     ObservationRunReceiptV3,
     ObservationTerminalStatusV3,
 )
@@ -235,6 +236,81 @@ class ReceiptAccountingV3(FrozenBenchmarkReportingContractV3):
     @property
     def effective_cost_usd(self) -> Decimal:
         return self.known_cost_usd + self.unresolved_reserved_cost_usd
+
+
+class Package8PartialExecutionReportV3(FrozenBenchmarkReportingContractV3):
+    """Durable, non-scoring record for a terminal but incomplete P8 SUT run."""
+
+    schema_version: Literal["8.0"] = "8.0"
+    completion_status: Literal["partial"] = "partial"
+    run_id: str = Field(pattern=_V3_IDENTIFIER)
+    package7_protocol_sha256: str = Field(pattern=_SHA256)
+    execution_case_set_sha256: str = Field(pattern=_SHA256)
+    schedule_sha256: str = Field(pattern=_SHA256)
+    checkpoint_sha256: str = Field(pattern=_SHA256)
+    scheduled_turn_count: int = Field(ge=1)
+    completed_turn_count: int = Field(ge=0)
+    failed_turn_count: int = Field(ge=0)
+    pending_turn_count: int = Field(ge=0)
+    missing_turn_count: int = Field(ge=0)
+    ambiguous_turn_count: int = Field(ge=0)
+    orphan_started_turn_count: int = Field(ge=0)
+    blocked_on_ambiguous_work: bool
+    receipt_accounting: ReceiptAccountingV3
+
+    @model_validator(mode="after")
+    def validate_terminal_accounting(self) -> Package8PartialExecutionReportV3:
+        terminal_count = self.completed_turn_count + self.failed_turn_count
+        if self.receipt_accounting.receipt_count != terminal_count:
+            raise ValueError(
+                "partial report receipt accounting does not match terminals"
+            )
+        if (
+            self.receipt_accounting.completed_measured_receipt_count
+            != self.completed_turn_count
+            or self.receipt_accounting.failed_receipt_count != self.failed_turn_count
+        ):
+            raise ValueError(
+                "partial report terminal kinds do not match receipt accounting"
+            )
+        if (
+            terminal_count + self.pending_turn_count + self.ambiguous_turn_count
+            != self.scheduled_turn_count
+        ):
+            raise ValueError(
+                "partial report scheduled count does not match terminal state"
+            )
+        return self
+
+
+def build_package8_partial_execution_report_v3(
+    *,
+    summary: EvaluationRunSummaryV3,
+    accounting: ReceiptAccountingV3,
+    checkpoint_sha256: str,
+) -> Package8PartialExecutionReportV3:
+    """Record truthful SUT coverage without admitting failed receipts to scoring."""
+
+    if not summary.is_partial:
+        raise BenchmarkReportingValidationErrorV3(
+            "complete execution cannot produce a partial report"
+        )
+    return Package8PartialExecutionReportV3(
+        run_id=summary.run_id,
+        package7_protocol_sha256=summary.protocol_sha256,
+        execution_case_set_sha256=summary.execution_case_set_sha256,
+        schedule_sha256=summary.schedule_sha256,
+        checkpoint_sha256=checkpoint_sha256,
+        scheduled_turn_count=summary.total_scheduled,
+        completed_turn_count=len(summary.completed_turn_ids),
+        failed_turn_count=len(summary.failed_turn_ids),
+        pending_turn_count=len(summary.pending_turn_ids),
+        missing_turn_count=len(summary.missing_turn_ids),
+        ambiguous_turn_count=len(summary.ambiguous_turn_ids),
+        orphan_started_turn_count=len(summary.orphan_started_turn_ids),
+        blocked_on_ambiguous_work=summary.blocked_on_ambiguous_work,
+        receipt_accounting=accounting,
+    )
 
 
 class JudgeAccountingV3(FrozenBenchmarkReportingContractV3):

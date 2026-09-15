@@ -10,6 +10,11 @@ import pytest
 from pydantic import BaseModel
 
 from app.evaluation import benchmark_cli
+from app.evaluation.benchmark_reporting import (
+    ReceiptAccountingV3,
+    ReceiptFailureTaxonomyEntryV3,
+)
+from app.evaluation.v3_runner import EvaluationRunSummaryV3
 
 
 class _Preparation(BaseModel):
@@ -86,6 +91,115 @@ def test_completed_heldout_checkpoint_is_opened_only_with_forbidden_factory(
 
     assert receipts == ("receipt",)
     assert isinstance(observed["executor_factory"], benchmark_cli._ForbiddenFactory)
+
+
+def test_partial_report_opens_only_the_existing_checkpoint(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkpoint = tmp_path / "heldout-checkpoint.v3.jsonl"
+    checkpoint.write_bytes(b"checkpoint")
+    summary = EvaluationRunSummaryV3(
+        run_id="run_partial_report",
+        protocol_sha256="a" * 64,
+        execution_case_set_sha256="b" * 64,
+        schedule_sha256="c" * 64,
+        total_scheduled=1,
+        completed_turn_ids=(),
+        failed_turn_ids=("turn_failed",),
+        pending_turn_ids=(),
+        missing_turn_ids=(),
+        ambiguous_turn_ids=(),
+        orphan_started_turn_ids=(),
+        completed_observation_ids=(),
+        is_partial=True,
+        blocked_on_ambiguous_work=False,
+    )
+    accounting = ReceiptAccountingV3(
+        receipt_count=1,
+        completed_measured_receipt_count=0,
+        failed_receipt_count=1,
+        warmup_receipt_count=0,
+        known_cost_usd=0,
+        unresolved_reserved_cost_usd=0,
+        input_tokens=0,
+        output_tokens=0,
+        total_tokens=0,
+        generation_call_count=0,
+        embedding_call_count=0,
+        provider_attempt_count=0,
+        retry_count=0,
+        failures=(
+            ReceiptFailureTaxonomyEntryV3(
+                safe_error_code="turn_execution_failed",
+                receipt_count=1,
+            ),
+        ),
+    )
+    frozen = SimpleNamespace(
+        protocol_sha256="a" * 64,
+        repeat_decision_sha256="d" * 64,
+    )
+    schedule = (SimpleNamespace(),)
+    live_factory_called = False
+
+    class _Runner:
+        def __init__(self, **kwargs: object) -> None:
+            assert isinstance(
+                kwargs["executor_factory"], benchmark_cli._ForbiddenFactory
+            )
+
+        async def run(self) -> object:
+            return SimpleNamespace(summary=summary, receipts=())
+
+    def _unexpected_live_factory(**_: object) -> object:
+        nonlocal live_factory_called
+        live_factory_called = True
+        raise AssertionError("partial report must never construct live services")
+
+    monkeypatch.setattr(benchmark_cli, "_load_frozen", lambda _: frozen)
+    monkeypatch.setattr(
+        benchmark_cli, "build_heldout_schedule_v3", lambda *_args, **_kwargs: schedule
+    )
+    monkeypatch.setattr(benchmark_cli, "pilot_schedule_sha256_v3", lambda _: "c" * 64)
+    monkeypatch.setattr(
+        benchmark_cli,
+        "_load_model_artifact",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            package7_protocol_sha256="a" * 64,
+            repeat_decision_sha256="d" * 64,
+            heldout_schedule_sha256="c" * 64,
+        ),
+    )
+    monkeypatch.setattr(benchmark_cli, "_require_schedule", lambda *_args: None)
+    monkeypatch.setattr(benchmark_cli, "HeldoutEvaluationV3ObservationRunner", _Runner)
+    monkeypatch.setattr(
+        benchmark_cli, "account_observation_receipts_v3", lambda _: accounting
+    )
+    monkeypatch.setattr(
+        benchmark_cli,
+        "_build_package7_live_executor_factory",
+        _unexpected_live_factory,
+    )
+
+    assert (
+        benchmark_cli.cli(
+            (
+                "partial-report",
+                "--project-root",
+                str(tmp_path),
+                "--output",
+                str(tmp_path),
+                "--checkpoint",
+                str(checkpoint),
+                "--run-id",
+                "run_partial_report",
+            )
+        )
+        == 3
+    )
+    assert not live_factory_called
+    assert (tmp_path / "partial-execution-report.p8.json").is_file()
 
 
 def test_local_prepare_rejects_citations_without_exact_source_authority(
