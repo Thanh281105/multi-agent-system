@@ -7,6 +7,7 @@ frozen before a held-out packet can be scored.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Mapping, Sequence
 from typing import Literal
 
@@ -234,6 +235,126 @@ def build_development_calibration_case_v3(
     )
 
 
+class CalibrationReferenceLabelsV3(FrozenJudgeContractV3):
+    """Provenance-bearing development labels; never implied to be human."""
+
+    schema_version: Literal["3.0"] = "3.0"
+    split: Literal[EvaluationSplitV3.DEVELOPMENT] = EvaluationSplitV3.DEVELOPMENT
+    calibration_id: str = Field(pattern=_IDENTIFIER)
+    development_observation_id: str = Field(min_length=1, max_length=256)
+    development_case_sha256: str = Field(pattern=_SHA256)
+    answer_sha256: str = Field(pattern=_SHA256)
+    source_classification: Literal["automated_gold_derived", "human_review"]
+    reviewer_ids: tuple[str, ...] = ()
+    scores: dict[EvaluationMetricV3, float]
+    reference_sha256: str = Field(pattern=_SHA256)
+
+    @model_validator(mode="after")
+    def validate_reference(self) -> CalibrationReferenceLabelsV3:
+        _validate_complete_score_map(self.scores, label="reference calibration")
+        if len(self.reviewer_ids) != len(set(self.reviewer_ids)) or any(
+            re.fullmatch(_IDENTIFIER, reviewer_id) is None
+            for reviewer_id in self.reviewer_ids
+        ):
+            raise ValueError("reference reviewer IDs must be nonempty and unique")
+        if self.source_classification == "human_review":
+            if not self.reviewer_ids:
+                raise ValueError("human_review references require reviewer IDs")
+        elif self.reviewer_ids:
+            raise ValueError("automated references forbid reviewer IDs")
+        expected_hash = canonical_sha256(
+            self.model_dump(mode="json", exclude={"reference_sha256"})
+        )
+        if self.reference_sha256 != expected_hash:
+            raise ValueError("calibration reference canonical hash mismatch")
+        return self
+
+
+def blinded_answer_sha256_v3(answer: BlindedAnswerV3) -> str:
+    return canonical_sha256(answer)
+
+
+def build_calibration_reference_labels_v3(
+    case: DevelopmentCalibrationCaseV3,
+    *,
+    development_observation_id: str,
+    source_classification: Literal["automated_gold_derived", "human_review"],
+    scores: Mapping[EvaluationMetricV3, float],
+    reviewer_ids: Sequence[str] = (),
+) -> CalibrationReferenceLabelsV3:
+    case = DevelopmentCalibrationCaseV3.model_validate(case.model_dump(mode="json"))
+    payload = {
+        "schema_version": "3.0",
+        "split": EvaluationSplitV3.DEVELOPMENT,
+        "calibration_id": case.calibration_id,
+        "development_observation_id": development_observation_id,
+        "development_case_sha256": case.case_sha256,
+        "answer_sha256": blinded_answer_sha256_v3(case.answer),
+        "source_classification": source_classification,
+        "reviewer_ids": tuple(reviewer_ids),
+        "scores": dict(scores),
+    }
+    return CalibrationReferenceLabelsV3(
+        calibration_id=case.calibration_id,
+        development_observation_id=development_observation_id,
+        development_case_sha256=case.case_sha256,
+        answer_sha256=blinded_answer_sha256_v3(case.answer),
+        source_classification=source_classification,
+        reviewer_ids=tuple(reviewer_ids),
+        scores=dict(scores),
+        reference_sha256=canonical_sha256(payload),
+    )
+
+
+class CalibrationReferenceBundleV3(FrozenJudgeContractV3):
+    schema_version: Literal["3.0"] = "3.0"
+    split: Literal[EvaluationSplitV3.DEVELOPMENT] = EvaluationSplitV3.DEVELOPMENT
+    protocol_sha256: str = Field(pattern=_SHA256)
+    references: tuple[CalibrationReferenceLabelsV3, ...] = Field(min_length=1)
+    reference_bundle_sha256: str = Field(pattern=_SHA256)
+
+    @model_validator(mode="after")
+    def validate_bundle(self) -> CalibrationReferenceBundleV3:
+        for field in (
+            "calibration_id",
+            "development_observation_id",
+            "development_case_sha256",
+            "answer_sha256",
+        ):
+            values = [getattr(item, field) for item in self.references]
+            if len(values) != len(set(values)):
+                raise ValueError(f"calibration references contain duplicate {field}")
+        expected_hash = canonical_sha256(
+            self.model_dump(mode="json", exclude={"reference_bundle_sha256"})
+        )
+        if self.reference_bundle_sha256 != expected_hash:
+            raise ValueError("calibration reference bundle canonical hash mismatch")
+        return self
+
+
+def build_calibration_reference_bundle_v3(
+    *,
+    protocol_sha256: str,
+    references: Sequence[CalibrationReferenceLabelsV3],
+) -> CalibrationReferenceBundleV3:
+    normalized = tuple(
+        CalibrationReferenceLabelsV3.model_validate(item.model_dump(mode="json"))
+        for item in references
+    )
+    normalized = tuple(sorted(normalized, key=lambda item: item.calibration_id))
+    payload = {
+        "schema_version": "3.0",
+        "split": EvaluationSplitV3.DEVELOPMENT,
+        "protocol_sha256": protocol_sha256,
+        "references": [item.model_dump(mode="json") for item in normalized],
+    }
+    return CalibrationReferenceBundleV3(
+        protocol_sha256=protocol_sha256,
+        references=normalized,
+        reference_bundle_sha256=canonical_sha256(payload),
+    )
+
+
 class ModelJudgeRequestV3(FrozenJudgeContractV3):
     schema_version: Literal["3.0"] = "3.0"
     phase: Literal["development_calibration", "held_out_scoring"]
@@ -249,7 +370,10 @@ class CalibrationRecordV3(FrozenJudgeContractV3):
     split: Literal[EvaluationSplitV3.DEVELOPMENT] = EvaluationSplitV3.DEVELOPMENT
     calibration_id: str = Field(pattern=_IDENTIFIER)
     development_case_sha256: str = Field(pattern=_SHA256)
+    protocol_sha256: str = Field(pattern=_SHA256)
     configuration_sha256: str = Field(pattern=_SHA256)
+    thresholds_sha256: str = Field(pattern=_SHA256)
+    reference_sha256: str = Field(pattern=_SHA256)
     model_output_sha256: str = Field(pattern=_SHA256)
     reference_scores: dict[EvaluationMetricV3, float]
     observed_scores: dict[EvaluationMetricV3, float]
@@ -331,6 +455,8 @@ class CalibrationFreezeV3(FrozenJudgeContractV3):
     protocol_sha256: str = Field(pattern=_SHA256)
     configuration_sha256: str = Field(pattern=_SHA256)
     thresholds_sha256: str = Field(pattern=_SHA256)
+    reference_bundle_sha256: str = Field(pattern=_SHA256)
+    expected_calibration_ids: tuple[str, ...] = Field(min_length=1)
     development_record_sha256s: tuple[str, ...] = Field(min_length=1)
     maximum_observed_errors: dict[EvaluationMetricV3, float]
     calibration_sha256: str = Field(pattern=_SHA256)
@@ -341,6 +467,12 @@ class CalibrationFreezeV3(FrozenJudgeContractV3):
             set(self.development_record_sha256s)
         ):
             raise ValueError("calibration freeze contains duplicate records")
+        if tuple(sorted(set(self.expected_calibration_ids))) != (
+            self.expected_calibration_ids
+        ):
+            raise ValueError("expected calibration IDs must be sorted and unique")
+        if len(self.expected_calibration_ids) != len(self.development_record_sha256s):
+            raise ValueError("calibration freeze record set is incomplete")
         if set(self.maximum_observed_errors) != set(SEMANTIC_JUDGE_METRICS_V3):
             raise ValueError("calibration freeze metric set is incomplete")
         expected_hash = canonical_sha256(
@@ -358,15 +490,27 @@ def run_development_calibration_case_v3(
     configuration: ModelJudgeConfigurationV3,
     case: DevelopmentCalibrationCaseV3,
     *,
-    reference_scores: Mapping[EvaluationMetricV3, float],
+    reference: CalibrationReferenceLabelsV3,
+    thresholds: CalibrationThresholdsV3,
     judge: JudgeCallableV3,
 ) -> CalibrationRecordV3:
     configuration = ModelJudgeConfigurationV3.model_validate(
         configuration.model_dump(mode="json")
     )
     case = DevelopmentCalibrationCaseV3.model_validate(case.model_dump(mode="json"))
-    references = dict(reference_scores)
-    _validate_complete_score_map(references, label="reference calibration")
+    reference = CalibrationReferenceLabelsV3.model_validate(
+        reference.model_dump(mode="json")
+    )
+    thresholds = CalibrationThresholdsV3.model_validate(
+        thresholds.model_dump(mode="json")
+    )
+    if reference.calibration_id != case.calibration_id:
+        raise ValueError("reference labels use a different calibration ID")
+    if reference.development_case_sha256 != case.case_sha256:
+        raise ValueError("reference labels use a different development case")
+    if reference.answer_sha256 != blinded_answer_sha256_v3(case.answer):
+        raise ValueError("reference labels use a different blinded answer")
+    references = dict(reference.scores)
     output = _invoke_and_validate(
         configuration,
         case.answer,
@@ -384,7 +528,10 @@ def run_development_calibration_case_v3(
         "split": EvaluationSplitV3.DEVELOPMENT,
         "calibration_id": case.calibration_id,
         "development_case_sha256": case.case_sha256,
+        "protocol_sha256": configuration.bindings.protocol_sha256,
         "configuration_sha256": configuration.configuration_sha256,
+        "thresholds_sha256": thresholds.thresholds_sha256,
+        "reference_sha256": reference.reference_sha256,
         "model_output_sha256": canonical_sha256(output),
         "reference_scores": references,
         "observed_scores": observed,
@@ -393,7 +540,10 @@ def run_development_calibration_case_v3(
     return CalibrationRecordV3(
         calibration_id=case.calibration_id,
         development_case_sha256=case.case_sha256,
+        protocol_sha256=configuration.bindings.protocol_sha256,
         configuration_sha256=configuration.configuration_sha256,
+        thresholds_sha256=thresholds.thresholds_sha256,
+        reference_sha256=reference.reference_sha256,
         model_output_sha256=canonical_sha256(output),
         reference_scores=references,
         observed_scores=observed,
@@ -406,6 +556,9 @@ def freeze_calibration_thresholds_v3(
     configuration: ModelJudgeConfigurationV3,
     records: Sequence[CalibrationRecordV3],
     thresholds: CalibrationThresholdsV3,
+    reference_bundle: CalibrationReferenceBundleV3,
+    *,
+    expected_calibration_ids: Sequence[str],
 ) -> CalibrationFreezeV3:
     configuration = ModelJudgeConfigurationV3.model_validate(
         configuration.model_dump(mode="json")
@@ -417,15 +570,36 @@ def freeze_calibration_thresholds_v3(
     thresholds = CalibrationThresholdsV3.model_validate(
         thresholds.model_dump(mode="json")
     )
+    reference_bundle = CalibrationReferenceBundleV3.model_validate(
+        reference_bundle.model_dump(mode="json")
+    )
+    expected_ids = tuple(sorted(expected_calibration_ids))
+    if len(expected_ids) != len(set(expected_ids)):
+        raise ValueError("expected calibration IDs must be unique")
+    if reference_bundle.protocol_sha256 != configuration.bindings.protocol_sha256:
+        raise ValueError("calibration references use a different benchmark protocol")
+    reference_by_id = {
+        item.calibration_id: item for item in reference_bundle.references
+    }
+    if set(reference_by_id) != set(expected_ids):
+        raise ValueError(
+            "calibration reference set differs from expected development set"
+        )
     if len(records) < thresholds.minimum_development_cases:
         raise ValueError("insufficient development calibration records")
     if len({item.calibration_id for item in records}) != len(records):
         raise ValueError("development calibration IDs must be unique")
+    if {item.calibration_id for item in records} != set(expected_ids):
+        raise ValueError("development calibration record set is incomplete")
     if any(
-        item.configuration_sha256 != configuration.configuration_sha256
+        item.protocol_sha256 != configuration.bindings.protocol_sha256
+        or item.configuration_sha256 != configuration.configuration_sha256
+        or item.thresholds_sha256 != thresholds.thresholds_sha256
+        or item.reference_sha256
+        != reference_by_id[item.calibration_id].reference_sha256
         for item in records
     ):
-        raise ValueError("calibration record uses a different judge configuration")
+        raise ValueError("calibration record provenance drift detected")
     maxima = {
         metric: max(item.absolute_errors[metric] for item in records)
         for metric in SEMANTIC_JUDGE_METRICS_V3
@@ -443,6 +617,8 @@ def freeze_calibration_thresholds_v3(
         "protocol_sha256": configuration.bindings.protocol_sha256,
         "configuration_sha256": configuration.configuration_sha256,
         "thresholds_sha256": thresholds.thresholds_sha256,
+        "reference_bundle_sha256": reference_bundle.reference_bundle_sha256,
+        "expected_calibration_ids": expected_ids,
         "development_record_sha256s": record_hashes,
         "maximum_observed_errors": maxima,
     }
@@ -450,6 +626,8 @@ def freeze_calibration_thresholds_v3(
         protocol_sha256=configuration.bindings.protocol_sha256,
         configuration_sha256=configuration.configuration_sha256,
         thresholds_sha256=thresholds.thresholds_sha256,
+        reference_bundle_sha256=reference_bundle.reference_bundle_sha256,
+        expected_calibration_ids=expected_ids,
         development_record_sha256s=record_hashes,
         maximum_observed_errors=maxima,
         calibration_sha256=canonical_sha256(payload),

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -16,6 +18,11 @@ from app.evaluation.v3_artifacts import (
     RubricFactV3,
     _judgment_collection,
 )
+from app.evaluation.v3_calibration import (
+    build_calibration_record_collection_v3,
+    validate_calibration_artifacts_v3,
+    write_calibration_artifacts_v3,
+)
 from app.evaluation.v3_comparison import ArtifactBindingsV3
 from app.evaluation.v3_gold import (
     AnswerabilityV3,
@@ -28,6 +35,8 @@ from app.evaluation.v3_judge import (
     DevelopmentCalibrationCaseV3,
     ModelJudgeConfigurationV3,
     ModelJudgeRequestV3,
+    build_calibration_reference_bundle_v3,
+    build_calibration_reference_labels_v3,
     build_calibration_thresholds_v3,
     build_development_calibration_case_v3,
     build_model_judge_configuration_v3,
@@ -58,21 +67,49 @@ def test_calibrated_model_judge_is_blinded_attributed_and_complete() -> None:
         calibration_id="calibration_case_one",
         answer=answer,
     )
-    reference_scores = _scores(1.0)
-    record = run_development_calibration_case_v3(
-        configuration,
-        case,
-        reference_scores=reference_scores,
-        judge=fake_judge,
-    )
     thresholds = build_calibration_thresholds_v3(
         minimum_development_cases=1,
         maximum_absolute_error=_scores(0.0),
     )
+    reference = build_calibration_reference_labels_v3(
+        case,
+        development_observation_id="observation_development_one",
+        source_classification="automated_gold_derived",
+        scores=_scores(1.0),
+    )
+    record = run_development_calibration_case_v3(
+        configuration,
+        case,
+        reference=reference,
+        thresholds=thresholds,
+        judge=fake_judge,
+    )
+    references = build_calibration_reference_bundle_v3(
+        protocol_sha256=configuration.bindings.protocol_sha256,
+        references=(reference,),
+    )
+    with pytest.raises(ValidationError, match="duplicate calibration_id"):
+        build_calibration_reference_bundle_v3(
+            protocol_sha256=configuration.bindings.protocol_sha256,
+            references=(reference, reference),
+        )
+    with pytest.raises(ValueError, match="expected development set"):
+        build_calibration_record_collection_v3(
+            configuration,
+            references,
+            thresholds,
+            (),
+            expected_calibration_ids=(
+                case.calibration_id,
+                "calibration_missing_case",
+            ),
+        )
     freeze = freeze_calibration_thresholds_v3(
         configuration,
         (record,),
         thresholds,
+        references,
+        expected_calibration_ids=(case.calibration_id,),
     )
     judgments = judge_blinded_packet_v3(
         packet,
@@ -181,6 +218,8 @@ def test_wrong_prompt_schema_model_and_calibration_hashes_fail_closed() -> None:
         protocol_sha256="f" * 64,
         configuration_sha256=configuration.configuration_sha256,
         thresholds_sha256="1" * 64,
+        reference_bundle_sha256="3" * 64,
+        expected_calibration_ids=("calibration_case_one",),
         development_record_sha256s=("2" * 64,),
         maximum_observed_errors=_scores(0.0),
         calibration_sha256=canonical_sha256(
@@ -189,6 +228,8 @@ def test_wrong_prompt_schema_model_and_calibration_hashes_fail_closed() -> None:
                 "protocol_sha256": "f" * 64,
                 "configuration_sha256": configuration.configuration_sha256,
                 "thresholds_sha256": "1" * 64,
+                "reference_bundle_sha256": "3" * 64,
+                "expected_calibration_ids": ("calibration_case_one",),
                 "development_record_sha256s": ("2" * 64,),
                 "maximum_observed_errors": _scores(0.0),
             }
@@ -219,6 +260,33 @@ def test_calibration_contract_cannot_accept_heldout_outputs() -> None:
     with pytest.raises(ValidationError, match="Extra inputs"):
         DevelopmentCalibrationCaseV3.model_validate(payload)
 
+    reference = build_calibration_reference_labels_v3(
+        case,
+        development_observation_id="observation_development_only",
+        source_classification="automated_gold_derived",
+        scores=_scores(1.0),
+    )
+    reference_payload = reference.model_dump(mode="json")
+    reference_payload["split"] = "held_out"
+    with pytest.raises(ValidationError):
+        type(reference).model_validate(reference_payload)
+
+    with pytest.raises(ValidationError, match="require reviewer IDs"):
+        build_calibration_reference_labels_v3(
+            case,
+            development_observation_id="observation_development_only",
+            source_classification="human_review",
+            scores=_scores(1.0),
+        )
+    with pytest.raises(ValidationError, match="forbid reviewer IDs"):
+        build_calibration_reference_labels_v3(
+            case,
+            development_observation_id="observation_development_only",
+            source_classification="automated_gold_derived",
+            reviewer_ids=("reviewer_alpha",),
+            scores=_scores(1.0),
+        )
+
 
 def test_judgment_collection_rejects_incomplete_blind_packet() -> None:
     configuration, answer, packet = _context(answer_count=2)
@@ -226,20 +294,33 @@ def test_judgment_collection_rejects_incomplete_blind_packet() -> None:
         calibration_id="calibration_for_completeness",
         answer=answer,
     )
-    record = run_development_calibration_case_v3(
-        configuration,
-        case,
-        reference_scores=_scores(1.0),
-        judge=lambda request: _output(request.answer),
-    )
     thresholds = build_calibration_thresholds_v3(
         minimum_development_cases=1,
         maximum_absolute_error=_scores(0.0),
+    )
+    reference = build_calibration_reference_labels_v3(
+        case,
+        development_observation_id="observation_completeness",
+        source_classification="automated_gold_derived",
+        scores=_scores(1.0),
+    )
+    references = build_calibration_reference_bundle_v3(
+        protocol_sha256=configuration.bindings.protocol_sha256,
+        references=(reference,),
+    )
+    record = run_development_calibration_case_v3(
+        configuration,
+        case,
+        reference=reference,
+        thresholds=thresholds,
+        judge=lambda request: _output(request.answer),
     )
     freeze = freeze_calibration_thresholds_v3(
         configuration,
         (record,),
         thresholds,
+        references,
+        expected_calibration_ids=(case.calibration_id,),
     )
     one_judgment = judge_blinded_packet_v3(
         packet,
@@ -250,6 +331,124 @@ def test_judgment_collection_rejects_incomplete_blind_packet() -> None:
 
     with pytest.raises(ValueError, match="incomplete"):
         _judgment_collection(packet, (one_judgment,))
+
+
+def test_calibration_artifacts_resume_then_freeze_with_stable_hashes(
+    tmp_path: Path,
+) -> None:
+    configuration, answer, _ = _context()
+    case = build_development_calibration_case_v3(
+        calibration_id="calibration_persisted_case",
+        answer=answer,
+    )
+    thresholds = build_calibration_thresholds_v3(
+        minimum_development_cases=1,
+        maximum_absolute_error=_scores(0.0),
+    )
+    reference = build_calibration_reference_labels_v3(
+        case,
+        development_observation_id="observation_persisted_case",
+        source_classification="human_review",
+        reviewer_ids=("reviewer_alpha",),
+        scores=_scores(1.0),
+    )
+    references = build_calibration_reference_bundle_v3(
+        protocol_sha256=configuration.bindings.protocol_sha256,
+        references=(reference,),
+    )
+    partial = build_calibration_record_collection_v3(
+        configuration,
+        references,
+        thresholds,
+        (),
+        expected_calibration_ids=(case.calibration_id,),
+    )
+    partial_dir = tmp_path / "partial"
+    partial_manifest = write_calibration_artifacts_v3(
+        partial_dir,
+        configuration=configuration,
+        references=references,
+        thresholds=thresholds,
+        records=partial,
+    )
+    loaded_partial = validate_calibration_artifacts_v3(partial_dir)
+    assert loaded_partial.manifest == partial_manifest
+    assert loaded_partial.freeze is None
+    with pytest.raises(ValueError, match="complete calibration freeze"):
+        validate_calibration_artifacts_v3(partial_dir, require_complete=True)
+
+    record = run_development_calibration_case_v3(
+        configuration,
+        case,
+        reference=reference,
+        thresholds=thresholds,
+        judge=lambda request: _output(request.answer),
+    )
+    complete = build_calibration_record_collection_v3(
+        configuration,
+        references,
+        thresholds,
+        (record,),
+        expected_calibration_ids=(case.calibration_id,),
+    )
+    freeze = freeze_calibration_thresholds_v3(
+        configuration,
+        complete.records,
+        thresholds,
+        references,
+        expected_calibration_ids=complete.expected_calibration_ids,
+    )
+    first_dir = tmp_path / "complete-first"
+    second_dir = tmp_path / "complete-second"
+    first = write_calibration_artifacts_v3(
+        first_dir,
+        configuration=configuration,
+        references=references,
+        thresholds=thresholds,
+        records=complete,
+        freeze=freeze,
+    )
+    second = write_calibration_artifacts_v3(
+        second_dir,
+        configuration=configuration,
+        references=references,
+        thresholds=thresholds,
+        records=complete,
+        freeze=freeze,
+    )
+    assert first == second
+    assert (
+        validate_calibration_artifacts_v3(
+            first_dir,
+            expected_protocol_sha256=configuration.bindings.protocol_sha256,
+            expected_configuration_sha256=configuration.configuration_sha256,
+            expected_thresholds_sha256=thresholds.thresholds_sha256,
+            expected_reference_bundle_sha256=references.reference_bundle_sha256,
+            require_complete=True,
+        ).freeze
+        == freeze
+    )
+    with pytest.raises(ValueError, match="configuration hash drift"):
+        validate_calibration_artifacts_v3(
+            first_dir,
+            expected_configuration_sha256="f" * 64,
+        )
+    with pytest.raises(FileExistsError):
+        write_calibration_artifacts_v3(
+            first_dir,
+            configuration=configuration,
+            references=references,
+            thresholds=thresholds,
+            records=complete,
+            freeze=freeze,
+        )
+
+    records_path = first_dir / "records.json"
+    corrupted = json.loads(records_path.read_text(encoding="utf-8"))
+    corrupted["records"][0]["reference_sha256"] = "f" * 64
+    records_path.write_text(json.dumps(corrupted), encoding="utf-8")
+    with pytest.raises(ValueError, match="artifact (hash|size) mismatch"):
+        validate_calibration_artifacts_v3(first_dir)
 
 
 def test_artifact_bindings_expose_every_required_provenance_hash() -> None:
