@@ -172,6 +172,7 @@ def test_p8_adapts_only_heldout_cases_with_exact_bindings_and_fixtures(frozen) -
         case = frozen.heldout_cases[entry.conversation_id]
         gold_case = conversations[entry.conversation_id]
         assert case.work_group_id == entry.work_group_id == gold_case.work_group_id
+        assert case.resolved_product_ids == gold_case.product_ids
         if gold_case.sandbox_fixture is None:
             assert case.sandbox_fixture is None
         else:

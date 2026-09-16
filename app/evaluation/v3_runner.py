@@ -16,7 +16,14 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Literal, Protocol, Self
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    field_validator,
+    model_validator,
+)
 
 from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_checkpoint import (
@@ -164,6 +171,7 @@ class EvaluationCaseV3(FrozenRunnerContractV3):
     ]
     principal_role: Literal["shopper", "merchant"]
     scopes: tuple[str, ...] = Field(min_length=1)
+    resolved_product_ids: tuple[int, ...] = Field(default=(), max_length=5)
     user_turns: tuple[EvaluationUserTurnV3, ...] = Field(min_length=1, max_length=32)
     initial_state: dict[str, JsonValue]
     sandbox_fixture: SandboxFixtureAdapterV3 | None = None
@@ -185,6 +193,15 @@ class EvaluationCaseV3(FrozenRunnerContractV3):
         if is_shopping != (self.sandbox_fixture is not None):
             raise ValueError("shopping cases require exactly one full sandbox fixture")
         return self
+
+    @field_validator("resolved_product_ids")
+    @classmethod
+    def validate_resolved_product_ids(cls, value: tuple[int, ...]) -> tuple[int, ...]:
+        if any(product_id <= 0 for product_id in value):
+            raise ValueError("case product IDs must be positive")
+        if len(value) != len(set(value)):
+            raise ValueError("case product IDs must be unique")
+        return value
 
 
 def execution_case_sha256_v3(case: EvaluationCaseV3) -> str:

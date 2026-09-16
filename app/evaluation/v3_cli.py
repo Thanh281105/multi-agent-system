@@ -419,7 +419,11 @@ def _asset_bindings(
     )
     ledger_files = tuple(
         project_root / relative
-        for relative in ("app/shared/budget.py", "app/models/budget.py")
+        for relative in (
+            "app/shared/budget.py",
+            "app/shared/model_runtime.py",
+            "app/models/budget.py",
+        )
     )
     source_assets = loaded_gold.gold.source_assets
     evaluator_sha256 = _file_manifest_sha256(project_root, evaluator_files)

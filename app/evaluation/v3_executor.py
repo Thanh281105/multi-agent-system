@@ -125,6 +125,7 @@ def build_evaluation_cases_v3(
             category=gold_case.category.value,
             principal_role=gold_case.identity_fixture.role.value,
             scopes=tuple(scope.value for scope in gold_case.identity_fixture.scopes),
+            resolved_product_ids=gold_case.product_ids,
             user_turns=tuple(
                 EvaluationUserTurnV3(
                     source_turn_id=turn.turn_id,
@@ -222,6 +223,7 @@ class EvaluationV3ObservationExecutor:
         planning_context = PlanningContext(
             access=access,
             versions=self.runtime.shared_services.versions,
+            resolved_product_ids=self.case.resolved_product_ids,
         )
         durable_turn_id = canonical_turn_id(
             self.conversation_id,

@@ -20,6 +20,7 @@ from app.shared import (
     mark_model_call_fallback,
 )
 from app.shared.budget import BudgetError, current_provider_budget
+from app.shared.model_runtime import structured_generation_payload_token_bound
 from app.v2.authorization import ResourceAuthorization, required_scopes_for_mode
 from app.v2.contracts import (
     ACTION_PATTERN,
@@ -674,7 +675,14 @@ class BoundedV2Planner:
                 "still fulfills every required obligation. Do not create IDs, "
                 "parameters, actions, tools, or data."
             )
-        if _text_token_bound(instructions, input_payload) > _MODEL_INPUT_TOKEN_BOUND:
+        if (
+            structured_generation_payload_token_bound(
+                instructions=instructions,
+                input_text=input_payload,
+                schema=ModelPlanChoice,
+            )
+            > _MODEL_INPUT_TOKEN_BOUND
+        ):
             raise PlanningError("planning_model_input_too_large")
         try:
             generated = await self.model_runtime.generate_structured(
@@ -1838,11 +1846,6 @@ def _plan_id(
         separators=(",", ":"),
     ).encode("utf-8")
     return f"plan_{hashlib.sha256(canonical).hexdigest()[:24]}"
-
-
-def _text_token_bound(*values: str) -> int:
-    # UTF-8 bytes are a conservative upper bound for tokenizer output.
-    return sum(len(value.encode("utf-8")) for value in values)
 
 
 __all__ = [

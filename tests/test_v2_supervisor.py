@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Literal
 
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from app.contracts import AuthorizationContext, TaskStatus
 from app.shared import ModelCallMetadata, ModelRuntimeError, StructuredModelResult
@@ -43,12 +44,14 @@ from app.v2.execution import (
     DurableExecutionError,
     ModelRuntimeExpertReasoner,
     OperationBatch,
+    _expert_model_input,
 )
 from app.v2.history import ContextConstraint, HistoryTurn, ModelContext
 from app.v2.planning import (
     BoundedV2Planner,
     ModelPlanRejectedError,
     PlanningContext,
+    PlanningError,
     RuntimeDataVersions,
     context_constraints_from_message,
 )
@@ -410,6 +413,32 @@ async def test_valid_model_choice_obeys_hybrid_and_shadow_semantics(
     assert planned.fallback_reason == fallback
     assert planned.model_selected_template_id == "shopper_catalog"
     assert runtime.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_planner_preflights_full_structured_payload_before_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class OversizedPlanChoice(BaseModel):
+        padding: str = Field(default="", description="x" * 12_000)
+
+    runtime = _ChoiceRuntime(
+        {
+            "template_id": "shopper_catalog",
+            "capabilities": ["product.catalog.search"],
+            "selected_product_ids": [],
+            "candidate_limit": 3,
+        }
+    )
+    monkeypatch.setattr("app.v2.planning.ModelPlanChoice", OversizedPlanChoice)
+
+    with provider_budget_scope(_budget_context()):
+        with pytest.raises(PlanningError, match="planning_model_input_too_large"):
+            await BoundedV2Planner(
+                model_runtime=runtime, runtime_mode="required"
+            ).plan("Tìm sách lịch sử", _context())
+
+    assert runtime.calls == 0
 
 
 @pytest.mark.asyncio
@@ -1450,6 +1479,46 @@ async def test_expert_reasoning_selects_only_existing_checked_ids(
     assert enriched.selected_fact_ids == (fact_id,)
     assert enriched.selected_evidence_ids == (evidence_id,)
     assert enriched.reasoning_fallback_reason == expected_fallback
+
+
+def test_expert_payload_preflight_accounts_for_schema_and_instructions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class OversizedExpertSelection(BaseModel):
+        padding: str = Field(default="", description="x" * 12_000)
+
+    operation = __import__("asyncio").run(
+        BoundedV2Planner(runtime_mode="off").plan(
+            "Tìm sách Sapiens", _context(resolved_product_ids=(1,))
+        )
+    ).initial_operations[0]
+    deterministic = _product_result(operation, (1,))
+    monkeypatch.setattr(
+        "app.v2.execution.ExpertEvidenceSelection", OversizedExpertSelection
+    )
+    input_text, fact_ids, evidence_ids = _expert_model_input(deterministic)
+
+    assert json.loads(input_text)["fact_catalog"] == []
+    assert fact_ids == frozenset()
+    assert evidence_ids == frozenset()
+
+
+def test_expert_payload_preflight_accounts_for_instructions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    operation = __import__("asyncio").run(
+        BoundedV2Planner(runtime_mode="off").plan(
+            "Tìm sách Sapiens", _context(resolved_product_ids=(1,))
+        )
+    ).initial_operations[0]
+    deterministic = _product_result(operation, (1,))
+    monkeypatch.setattr("app.v2.execution._EXPERT_MODEL_INSTRUCTIONS", "x" * 12_000)
+
+    input_text, fact_ids, evidence_ids = _expert_model_input(deterministic)
+
+    assert json.loads(input_text)["fact_catalog"] == []
+    assert fact_ids == frozenset()
+    assert evidence_ids == frozenset()
 
 
 @pytest.mark.asyncio

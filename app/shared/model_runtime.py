@@ -60,6 +60,39 @@ ModelErrorCode = Literal[
 ]
 
 
+def structured_generation_payload_token_bound(
+    *,
+    instructions: str,
+    input_text: str,
+    schema: type[BaseModel],
+) -> int:
+    """Measure the exact structured request envelope charged by the runtime.
+
+    Callers use this before dispatch when they construct a bounded catalog.  It
+    deliberately shares the provider adapter and serialized envelope with
+    ``_prepare_budgeted_request`` so a local preflight cannot admit a request
+    the durable budget boundary later rejects.
+    """
+
+    return generation_payload_token_bound(
+        instructions=instructions,
+        input_text=input_text,
+        text_format=_structured_text_format(schema),
+    )
+
+
+def _structured_text_format(schema: type[BaseModel]) -> dict[str, Any]:
+    """Build the provider's structured-output adapter once per request shape."""
+
+    try:
+        from openai.lib._parsing._responses import type_to_text_format_param
+    except (AttributeError, ImportError) as exc:
+        raise PricingManifestError(
+            "provider_structured_output_adapter_unavailable"
+        ) from exc
+    return type_to_text_format_param(schema)
+
+
 class ModelCallMetadata(BaseModel):
     """Sanitized metadata suitable for traces and the public debug surface."""
 
@@ -380,17 +413,10 @@ class OpenAIModelRuntime:
         )
         if not 1 <= output_bound <= 1_200:
             raise BudgetLimitExceededError("generation_output_token_limit_exceeded")
-        try:
-            from openai.lib._parsing._responses import type_to_text_format_param
-        except (AttributeError, ImportError) as exc:
-            raise PricingManifestError(
-                "provider_structured_output_adapter_unavailable"
-            ) from exc
-        text_format = type_to_text_format_param(schema)
-        input_bound = generation_payload_token_bound(
+        input_bound = structured_generation_payload_token_bound(
             instructions=instructions,
             input_text=input_text,
-            text_format=text_format,
+            schema=schema,
         )
         budget.ledger.manifest.quote(
             model=model,
@@ -404,7 +430,9 @@ class OpenAIModelRuntime:
             "model": model,
             "instructions": instructions,
             "input": input_text,
-            "text": {"format": text_format},
+            "text": {
+                "format": _structured_text_format(schema),
+            },
             "max_output_tokens": output_bound,
             "reasoning": {"effort": reasoning_effort},
             "metadata": self._request_metadata(stage, agent_id),

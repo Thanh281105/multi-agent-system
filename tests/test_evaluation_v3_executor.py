@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -45,6 +46,7 @@ from app.shared.budget import (
     SQLProviderBudgetLedger,
     default_pricing_manifest_path,
 )
+from app.v2.planning import RuntimeDataVersions
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -76,13 +78,23 @@ def test_build_cases_binds_exact_loaded_pilot_roster() -> None:
 
     assert tuple(cases) == loaded.gold.frozen_pilot_ids
     assert tuple(cases) == tuple(item.case_id for item in protocol.pilot_cases)
+    conversations = {item.conversation_id: item for item in loaded.gold.conversations}
     for binding in protocol.pilot_cases:
         case = cases[binding.case_id]
         assert case.work_group_id == binding.work_group_id
+        assert case.resolved_product_ids == conversations[case.case_id].product_ids
         assert execution_case_sha256_v3(case)
     shopping = cases["dev_shopping_merchant_01"]
     assert shopping.sandbox_fixture is not None
     assert shopping.sandbox_fixture.fixture_id == ("sandbox_dev_shopping_merchant_01")
+
+
+def test_execution_case_hash_binds_resolved_product_authority() -> None:
+    _, case = _context_and_case()
+    first = case.model_copy(update={"resolved_product_ids": (41, 42)})
+    second = case.model_copy(update={"resolved_product_ids": (42, 41)})
+
+    assert execution_case_sha256_v3(first) != execution_case_sha256_v3(second)
 
 
 def test_executor_reset_uses_compact_owned_conversation_and_rejects_collision(
@@ -184,6 +196,71 @@ def test_released_reservation_remains_ledger_only_evidence(tmp_path: Path) -> No
         assert len(result.ledger_events) == 1
         assert result.ledger_events[0].kind.value == "released"
         assert result.ledger_events[0].reservation_id == reservation.attempt_id
+    finally:
+        Base.metadata.drop_all(engine)
+        engine.dispose()
+
+
+def test_executor_passes_case_product_ids_to_the_planning_context(
+    tmp_path: Path,
+) -> None:
+    class CapturingTurnService:
+        planning_context: Any | None = None
+
+        async def execute(self, request: Any, context: Any, **_: Any) -> Any:
+            self.planning_context = context
+            raise RuntimeError("synthetic turn failure")
+
+    engine = create_engine(f"sqlite+pysqlite:///{tmp_path / 'context.db'}")
+    Base.metadata.create_all(engine)
+    sessions = sessionmaker(bind=engine, expire_on_commit=False, class_=Session)
+    ledger = SQLProviderBudgetLedger(
+        sessions,
+        PricingManifest.load(default_pricing_manifest_path()),
+    )
+    ledger.create_account(account_id="evaluation-context-unit")
+    context, original_case = _context_and_case()
+    case = original_case.model_copy(update={"resolved_product_ids": (41, 42)})
+    context, case = _context_and_case(case, run_id=context.run_id)
+    turn_service = CapturingTurnService()
+    runtime = cast(
+        Any,
+        SimpleNamespace(
+            policy=SimpleNamespace(variant_id=context.identity.variant_id),
+            turn_service=turn_service,
+            model_calls=SimpleNamespace(snapshot=lambda: ()),
+            shared_services=SimpleNamespace(
+                session_factory=sessions,
+                budget_ledger=ledger,
+                budget_account_id="evaluation-context-unit",
+                versions=RuntimeDataVersions(
+                    catalog_version_id="catalog_v1",
+                    corpus_version_id="corpus_v1",
+                    index_manifest_id="index_v1",
+                ),
+            ),
+        ),
+    )
+    executor = EvaluationV3ObservationExecutor(
+        runtime=runtime,
+        context=context,
+        case=case,
+    )
+    request = _turn_request(context, case, case.user_turns[0])
+    try:
+        asyncio.run(executor.reset_initial_state(context=context, case=case))
+        with pytest.raises(
+            ObservationExecutionFailureV3, match="observation_executor_failed"
+        ):
+            asyncio.run(executor.execute_turn(request))
+
+        captured = turn_service.planning_context
+        assert captured is not None
+        assert captured.resolved_product_ids == (41, 42)
+        assert captured.access.binding.tenant_id == context.namespace.tenant_id
+        assert captured.access.binding.principal_id == context.namespace.principal_id
+        assert captured.access.binding.mode.value == case.principal_role
+        assert captured.access.scopes == frozenset(case.scopes)
     finally:
         Base.metadata.drop_all(engine)
         engine.dispose()
