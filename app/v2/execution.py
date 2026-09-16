@@ -44,6 +44,7 @@ from app.shared.budget import (
     DEFAULT_MAX_RETRIES,
     DEFAULT_SCOPE_DEADLINE_SECONDS,
     DEFAULT_TURN_LIMIT_NANO_USD,
+    GENERATION_OUTPUT_TOKEN_LIMIT,
     BudgetAttemptLimitError,
     BudgetCancelledError,
     BudgetConcurrencyError,
@@ -95,7 +96,7 @@ FinalizedModelCallObserver = Callable[[tuple[ModelCallMetadata, ...]], None]
 _TURN_DEADLINE_SECONDS = float(DEFAULT_SCOPE_DEADLINE_SECONDS)
 _LEASE_SECONDS = _TURN_DEADLINE_SECONDS + 5.0
 _EXPERT_MODEL_INPUT_BOUND = 12_000
-_EXPERT_MODEL_OUTPUT_BOUND = 500
+_EXPERT_MODEL_OUTPUT_BOUND = GENERATION_OUTPUT_TOKEN_LIMIT
 _EXPERT_MODEL_INSTRUCTIONS = (
     "Act as the named domain specialist for this deterministic read result. "
     "Select at most eight supplied fact IDs and eight supplied evidence IDs that "

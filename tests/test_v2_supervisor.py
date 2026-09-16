@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, ValidationError
 from app.contracts import AuthorizationContext, TaskStatus
 from app.shared import ModelCallMetadata, ModelRuntimeError, StructuredModelResult
 from app.shared.budget import (
+    GENERATION_OUTPUT_TOKEN_LIMIT,
     BudgetCancelledError,
     ProviderBudgetContext,
     provider_budget_scope,
@@ -101,11 +102,13 @@ class _ChoiceRuntime:
         self.calls = 0
         self.last_input_text: str | None = None
         self.last_instructions: str | None = None
+        self.last_max_output_tokens: int | None = None
 
     async def generate_structured(self, **kwargs: Any) -> StructuredModelResult[Any]:
         self.calls += 1
         self.last_input_text = kwargs["input_text"]
         self.last_instructions = kwargs["instructions"]
+        self.last_max_output_tokens = kwargs["max_output_tokens"]
         if self.error is not None:
             raise self.error
         schema = kwargs["schema"]
@@ -1479,6 +1482,7 @@ async def test_expert_reasoning_selects_only_existing_checked_ids(
     assert enriched.selected_fact_ids == (fact_id,)
     assert enriched.selected_evidence_ids == (evidence_id,)
     assert enriched.reasoning_fallback_reason == expected_fallback
+    assert runtime.last_max_output_tokens == GENERATION_OUTPUT_TOKEN_LIMIT
 
 
 def test_expert_payload_preflight_accounts_for_schema_and_instructions(
