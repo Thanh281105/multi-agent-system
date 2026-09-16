@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
@@ -236,6 +237,22 @@ def test_runtime_settings_require_durable_postgres_before_service_resolution() -
     ) as captured:
         v3_cli._validate_runtime_settings(settings, snapshot)
     assert captured.value.code == "runtime_database_not_postgresql"
+
+
+def test_index_binding_hash_normalizes_equivalent_published_timezones() -> None:
+    inputs = v3_cli._load_inputs(
+        v3_cli._parser().parse_args(("validate", "--project-root", str(PROJECT_ROOT)))
+    )
+    snapshot = inputs.knowledge_snapshot
+    shifted = snapshot.model_copy(
+        update={
+            "published_at": snapshot.published_at.astimezone(
+                timezone(timedelta(hours=7))
+            )
+        }
+    )
+
+    assert v3_cli._index_sha256(snapshot) == v3_cli._index_sha256(shifted)
 
 
 def test_controlled_pilot_resumes_without_dispatch_and_freezes_global_two(
