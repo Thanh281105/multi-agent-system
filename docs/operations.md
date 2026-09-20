@@ -370,8 +370,8 @@ python -m app.evaluation.benchmark_cli dry-run --run-id run_p8_dry
 python -m app.evaluation.benchmark_cli prepare `
   --output output/evaluation-v3/heldout
 python -m app.evaluation.benchmark_cli partial-report `
-  --output output/evaluation-v3/heldout-utc-v1 `
-  --run-id run_p8_heldout_utc
+  --output output/evaluation-v3/heldout-corrected-v3 `
+  --run-id run_p8_heldout_corrected_v3
 ```
 
 Live execution phải truyền explicit consent và durable database URL:
@@ -395,16 +395,25 @@ python -m app.evaluation.benchmark_cli operate `
 ```
 
 `operate` chỉ chạy sau checkpoint SUT đã complete; nó rebuild/verify preparation,
-calibrate judge trên 32 pilot measurement, freeze calibration, judge blind packet
+calibrate judge trên các pilot measurement đã freeze, freeze calibration, judge blind packet
 và publish final report. Nó require explicit per-job budget; shared ledger vẫn
 account tất cả attempt, retry và reservation. Citation catalog/review chưa có
 authority exact immutable sẽ block lifecycle thay vì tự dựng evidence.
 
-P8 đã có một SUT run terminal partial ở `run_p8_heldout_utc`: 692/720 cells
-completed và 28 failed. Dùng `partial-report` để persist hoặc tái xác thực
-coverage/ledger/checkpoint hash của run đó; lệnh local-only và không mở live
-runtime. Không báo cáo partial checkpoint như complete và không gọi một dry-run,
-pilot hay development calibration là held-out result. Hoàn tất P8 vẫn cần đủ 720
-matrix cells (60 cases × 4 variants × 3 repeats), calibrated automated judge,
-exact immutable evidence resolver, complete blind/judgment join, analysis/report
-artifact và các final gates.
+P8 hiện có SUT run terminal partial `run_p8_heldout_corrected_v3`: `678` cells
+completed, `42` failed trên `720` scheduled, với `0` pending, `0` ambiguous và
+`0` orphan. Schedule SHA là
+`a6002ab2dc15282bf4b26c79ffece061242065e8352e637a1a82623a8fa1fd71`. Record
+partial ghi nhận `792` generation/provider attempts, `0` retries, `0` embeddings,
+known SUT cost `1.44856770 USD` và không có unresolved reservation. Safe failure
+codes gồm 1 `expert_selection_not_authorized`, 2 `model_response_incomplete`, 4
+`model_response_invalid` và 35 `turn_execution_failed`. Partial report checksum
+là `17177bd7829d972c159d77ca068852fafd10d12152f2d087db07172f768f62ea`, execution
+case-set SHA là
+`26cb17e6dbc549f871b69ef682b21af9f32fa69a05d8c671e297b269c0040339`.
+Dùng `partial-report` để persist hoặc tái xác thực coverage/ledger/checkpoint
+hash của run đó; lệnh local-only và không mở live runtime. Không báo cáo partial
+checkpoint như complete, scored, calibrated hoặc judge-complete. Run này không
+thể resume để redispatch terminal cells. P8 vẫn chờ một successor P7/P8 riêng
+sau source remediation, exact immutable evidence resolver, calibration/judging
+và các final gates.

@@ -187,8 +187,9 @@ quả.
 
 Package 7 freeze artifact do operator tạo tại
 `output/evaluation-v3/pilot/protocol.v3.json` cùng repeat decision tương ứng;
-đây là output local không được commit vào repository. Protocol SHA-256 chính thức là
-`f91cd3a730f1e8bd61020a4770a568462d8b3729144d0fb728a19ad2736f17d3`.
+đây là output local không được commit vào repository. Corrected protocol SHA-256
+chính thức là
+`385ae09e74a7e8e2896b170f9ad3f2549f6f79390e94b3241cd7da0e4b32721f`.
 
 V3 có đúng bốn variants:
 
@@ -199,11 +200,11 @@ V3 có đúng bốn variants:
 | `ma_adaptive_rag` | multi | adaptive, tối đa một continuation | bật |
 | `ma_adaptive_no_rag` | multi | adaptive, tối đa một continuation | tắt |
 
-Split freeze có 20 development cases và 60 held-out cases. Pilot đã hoàn tất
-4 warmups và 32 measurements (mỗi measurement là một variant/case cell); repeat
-decision chọn global `3` repeats cho held-out matrix. Chi phí pilot thực tế là
-`0.02660175 USD`; projected held-out SUT cost là `1.06015500 USD`. Đây là
-budget/projection evidence, chưa phải benchmark quality result.
+Split freeze có 20 development cases và 60 held-out cases. Corrected pilot hiện
+hành hoàn tất `36/36` terminal cells; repeat decision chọn global `3` repeats
+cho held-out matrix. Chi phí pilot thực tế là `0.05332290 USD`; projected
+held-out SUT cost là `5.72929200 USD`. Đây là budget/projection evidence, chưa
+phải benchmark quality result.
 
 Semantic scoring được khai báo là automated model judge (`model_judge`) theo
 judge configuration/schema đã hash; không có human semantic judge. Deterministic
@@ -254,18 +255,28 @@ runtime live, không dispatch provider và không đưa receipt failed vào scor
 
 ```powershell
 python -m app.evaluation.benchmark_cli partial-report `
-  --output output/evaluation-v3/heldout-utc-v1 `
-  --run-id run_p8_heldout_utc
+  --output output/evaluation-v3/heldout-corrected-v3 `
+  --run-id run_p8_heldout_corrected_v3
 ```
 
-Held-out SUT `run_p8_heldout_utc` đã terminal partial: 692/720 cells completed,
-28 failed, không có pending, ambiguous hoặc orphan cell. Record partial account
-451 provider attempts và `0.53009550 USD` known SUT cost. Các safe failure code
-được ghi nhận là 1 `model_response_incomplete`, 13
-`provider_cost_limit_exceeded` và 14 `turn_execution_failed`; raw provider
-payload hay fabricated citation không được đưa vào report. Checkpoint append-only
-không được resume để redispatch các terminal cell. Không có calibration/judge
-journal, final result, paired metric hay benchmark-quality claim từ run này.
+Held-out SUT `run_p8_heldout_corrected_v3` đã terminal partial: `678` completed,
+`42` failed trên `720` scheduled, không có pending, ambiguous hoặc orphan cell.
+Schedule SHA là
+`a6002ab2dc15282bf4b26c79ffece061242065e8352e637a1a82623a8fa1fd71`. Record
+partial account `792` generation/provider attempts, `0` retries, `0` embeddings,
+`1.44856770 USD` known SUT cost và không có unresolved reservation. Các safe
+failure code được ghi nhận là 1 `expert_selection_not_authorized`, 2
+`model_response_incomplete`, 4 `model_response_invalid` và 35
+`turn_execution_failed`; raw provider payload hay fabricated citation không được
+đưa vào report. Partial report checksum là
+`17177bd7829d972c159d77ca068852fafd10d12152f2d087db07172f768f62ea`, execution
+case-set SHA là
+`26cb17e6dbc549f871b69ef682b21af9f32fa69a05d8c671e297b269c0040339`.
+Checkpoint append-only không được resume để redispatch các terminal cell. Run
+này không được trình bày như scored, calibrated, judge-complete hay benchmark
+quality. Chưa có calibration/judge journal, final result hoặc paired metric từ
+run này; P8 vẫn chờ một successor P7/P8 riêng sau source remediation, exact
+immutable evidence resolver, calibration/judging và các final gates.
 
 Để đóng Package 8, phải có đủ các gate sau:
 

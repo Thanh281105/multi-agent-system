@@ -10,8 +10,8 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | 4 — supervisor, continuation, deduplication, grounding | Committed `93c7cf7` | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
 | 5 — history, memory, sandbox actions | Gate passed | 703 tests pass; real PostgreSQL recovery/concurrency, clock skew and exact v1 OpenAPI verified. |
 | 6 — API and frontend | Gate passed | JSON/SSE/UI consistency; v1 regression; PostgreSQL-backed v2 boundary |
-| 7 — evaluation v3, gold, pilot, freeze | Frozen pilot complete | Protocol, split and repeat decision frozen; 4 warmups + 32 measurements; no held-out result |
-| 8 — benchmark, error analysis, final checks/docs | Terminal partial / final gate open | 692/720 SUT cells completed; immutable partial record accounts 28 failures, 451 attempts and 0.53009550 USD; no scoring or quality claim |
+| 7 — evaluation v3, gold, pilot, freeze | Corrected pilot complete | Corrected protocol and split frozen; 36/36 terminal pilot cells; 3 selected repeats; no held-out result |
+| 8 — benchmark, error analysis, final checks/docs | Terminal partial / final gate open | 678/720 SUT cells completed; immutable partial record accounts 42 failures, 792 attempts and 1.44856770 USD; no scoring or quality claim |
 
 ## Execution rules
 
@@ -446,16 +446,16 @@ pilot handoff follows below.
 
 The P7 evaluation inputs are frozen in committed `evaluation/v3/`; operator-local
 pilot artifacts are written under `output/evaluation-v3/pilot/` and are not
-committed. The canonical protocol SHA256 is
-`f91cd3a730f1e8bd61020a4770a568462d8b3729144d0fb728a19ad2736f17d3`. It binds
+committed. The corrected canonical protocol SHA256 is
+`385ae09e74a7e8e2896b170f9ad3f2549f6f79390e94b3241cd7da0e4b32721f`. It binds
 four variants: `sa_shared_tools_rag`, `ma_fixed_rag`, `ma_adaptive_rag` and
 `ma_adaptive_no_rag`. The frozen split contains 20 development cases and 60
 held-out cases.
 
-The completed P7 pilot contains four warmups and 32 measured observations. The
-global repeat decision selects three repeats for the held-out matrix. Actual
-pilot effective cost is `0.02660175 USD`; projected held-out SUT cost is
-`1.06015500 USD`. The semantic judge is the declared automated `model_judge`
+The corrected P7 pilot completed `36/36` terminal cells. The global repeat
+decision selects three repeats for the held-out matrix. Actual pilot effective
+cost is `0.05332290 USD`; projected held-out SUT cost is `5.72929200 USD`. The
+semantic judge is the declared automated `model_judge`
 contract; it is not a human judge. Gold authorship is `automated_pre_sut_spec`,
 with no human author or judge IDs.
 
@@ -472,7 +472,7 @@ artifacts remain outside that corpus.
 Package 8 is additive. `python -m app.evaluation.benchmark_cli` provides local
 `validate`, `dry-run`, `prepare`; guarded SUT `run`/`resume`; and guarded
 post-SUT `operate`. `operate` rebuilds exact-evidence preparation under the
-receipt authorization, calibrates on the frozen 32 P7 pilot measurements,
+receipt authorization, calibrates on the frozen corrected P7 pilot measurements,
 freezes the judge, runs the blind held-out journal and publishes final artifacts.
 It requires explicit `--allow-network`, `--database-url` and a per-job judge
 budget; it fails closed when a catalog/review citation lacks an immutable exact
@@ -480,18 +480,27 @@ authority. The driver builds the exact `60 × 4 × 3 = 720` held-out measurement
 schedule and uses append-only checkpoint/resume behavior. Local commands do not
 call a provider.
 
-The held-out SUT run `run_p8_heldout_utc` reached a terminal partial checkpoint:
-692 of 720 cells completed and 28 failed, with no pending, ambiguous or orphan
-cells. Its immutable `partial-execution-report.p8.json` accounts 451 provider
-attempts and 0.53009550 USD known SUT cost. Safe terminal error counts are one
-`model_response_incomplete`, 13 `provider_cost_limit_exceeded`, and 14
-`turn_execution_failed`; no raw provider payload is carried into the report.
+The held-out SUT run `run_p8_heldout_corrected_v3` reached a terminal partial
+checkpoint: 678 of 720 scheduled cells completed and 42 failed, with 0 pending,
+0 ambiguous and 0 orphan cells. Its schedule SHA is
+`a6002ab2dc15282bf4b26c79ffece061242065e8352e637a1a82623a8fa1fd71`. The
+immutable `partial-execution-report.p8.json` records 792 generation/provider
+attempts, 0 retries, 0 embeddings, `1.44856770 USD` known SUT cost and no
+unresolved reservation. Safe terminal error counts are 1
+`expert_selection_not_authorized`, 2 `model_response_incomplete`, 4
+`model_response_invalid` and 35 `turn_execution_failed`; no raw provider
+payload is carried into the report. Partial report checksum is
+`17177bd7829d972c159d77ca068852fafd10d12152f2d087db07172f768f62ea`, and the
+execution-case-set SHA is
+`26cb17e6dbc549f871b69ef682b21af9f32fa69a05d8c671e297b269c0040339`.
 
 `partial-report` reads that checkpoint with a forbidden live executor and writes
 or validates the immutable partial record. It does not dispatch a provider,
 score receipts, reopen citation authority, calibrate the judge, or publish a
 benchmark result. The append-only checkpoint cannot redispatch settled cells, so
-this run cannot become a complete result through `resume`.
+this run cannot become a complete result through `resume`. P8 remains open for a
+distinct successor P7/P8 protocol and run after source remediation, exact
+evidence resolution, calibration/judging and the final gates.
 
 Package 8 remains open until all of the following are complete and independently
 validated: calibrated automated judge and frozen bindings; exact immutable

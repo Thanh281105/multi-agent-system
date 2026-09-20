@@ -313,20 +313,26 @@ không có checked-in live-LLM result cho historical v2 corpus Tiki Books. Các
 real-model report generic cũ dùng `sample_ecommerce_vi_28_v1`, nằm trong nhóm
 legacy và không hỗ trợ current Tiki claim.
 
-Package 7 đã freeze v3 protocol hash
-`f91cd3a730f1e8bd61020a4770a568462d8b3729144d0fb728a19ad2736f17d3`: bốn
-variants, 20 development cases và 60 held-out cases. Pilot đã hoàn tất 4
-warmups và 32 measurements; global repeat decision chọn 3 repeats, với chi phí
-pilot thực tế `0.02660175 USD` và held-out SUT dự kiến `1.06015500 USD`. Judge
+Package 7 đã freeze corrected v3 protocol hash
+`385ae09e74a7e8e2896b170f9ad3f2549f6f79390e94b3241cd7da0e4b32721f`: bốn
+variants, 20 development cases và 60 held-out cases. Pilot hiện hành hoàn tất
+`36/36` terminal cells, global repeat decision chọn 3 repeats, với chi phí
+pilot thực tế `0.05332290 USD` và held-out SUT dự kiến `5.72929200 USD`. Judge
 semantic là automated model judge theo contract, không phải human judge.
 
-Package 8 có additive CLI, calibration/judge/report contracts và vẫn chưa chạy
-held-out benchmark, nên không có final held-out result nào. `validate`,
-`dry-run` và `prepare` không gọi provider; `prepare` chỉ dùng receipt không có
-citation. `run`/`resume` và lifecycle `operate` chỉ được live khi truyền rõ
-`--allow-network`, `--database-url`; `operate` còn cần hard limit judge per-job
-và fail-closed khi citation không mở lại được từ immutable authority. Xem
-[phương pháp evaluation](docs/evaluation.md) để biết các gates còn lại.
+Package 8 đã chạy SUT held-out nhưng hiện chỉ có terminal partial, chưa có
+scoring, calibration, judge-complete hay benchmark-quality result. Run
+`run_p8_heldout_corrected_v3` có `678/720` cells completed và `42` failed;
+schedule SHA là
+`a6002ab2dc15282bf4b26c79ffece061242065e8352e637a1a82623a8fa1fd71`. Record
+này ghi nhận `792` generation/provider attempts, `0` retries, `0` embeddings,
+known SUT cost `1.44856770 USD` và không còn unresolved reservation. `validate`,
+`dry-run` và `prepare` không gọi provider; `run`/`resume` và lifecycle `operate`
+chỉ được live khi truyền rõ `--allow-network`, `--database-url`; `operate` còn
+cần hard limit judge per-job và fail-closed khi citation không mở lại được từ
+immutable authority. P8 vẫn mở, chờ successor P7/P8 riêng sau source
+remediation, exact evidence resolver, calibration/judging và các final gates.
+Xem [phương pháp evaluation](docs/evaluation.md) để biết chi tiết.
 
 ## Cấu trúc repository
 
@@ -365,9 +371,9 @@ tests/                # offline regression + optional integration
   **Chưa có long-term** preference, summary hoặc artifact memory.
 - Rate limiter, trace ring và metrics aggregation nằm trong một process; scale
   nhiều replica cần distributed replacements.
-- Current held-out live-model evidence, calibrated judge output, exact evidence
-  resolver run, completed analysis matrix, human review, load/soak, fairness/
-  drift và production HA vẫn chưa được xác minh.
+- Current held-out live-model evidence mới chỉ là một terminal partial; calibrated
+  judge output, exact evidence resolver run, completed analysis matrix, human
+  review, load/soak, fairness/drift và production HA vẫn chưa được xác minh.
 
 Các giới hạn này là một phần của evidence contract, không phải footnote tùy
 chọn.
