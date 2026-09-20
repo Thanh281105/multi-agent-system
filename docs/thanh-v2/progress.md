@@ -10,8 +10,8 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | 4 — supervisor, continuation, deduplication, grounding | Committed `93c7cf7` | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
 | 5 — history, memory, sandbox actions | Gate passed | 703 tests pass; real PostgreSQL recovery/concurrency, clock skew and exact v1 OpenAPI verified. |
 | 6 — API and frontend | Gate passed | JSON/SSE/UI consistency; v1 regression; PostgreSQL-backed v2 boundary |
-| 7 — evaluation v3, gold, pilot, freeze | Corrected pilot complete | Corrected protocol and split frozen; 36/36 terminal pilot cells; 3 selected repeats; no held-out result |
-| 8 — benchmark, error analysis, final checks/docs | Terminal partial / final gate open | 678/720 SUT cells completed; immutable partial record accounts 42 failures, 792 attempts and 1.44856770 USD; no scoring or quality claim |
+| 7 — evaluation v3, gold, pilot, freeze | Successor pilot pending | Historical corrected pilot is immutable but source remediation changed the canonical protocol; new P7 dry-run is valid and awaits live dispatch/freeze |
+| 8 — benchmark, error analysis, final checks/docs | Historical terminal partial / final gate open | Historical P8 has 678/720 SUT cells and remains immutable; successor P8 starts only after successor P7 is complete and frozen |
 
 ## Execution rules
 
@@ -442,11 +442,11 @@ Package 3 corpus/index; real API, locking and recovery behavior ran against
 PostgreSQL in the backend gate. Package 6 is therefore closed; the P7 freeze and
 pilot handoff follows below.
 
-## Package 7 freeze and pilot handoff
+## Package 7 historical evidence and successor handoff
 
 The P7 evaluation inputs are frozen in committed `evaluation/v3/`; operator-local
-pilot artifacts are written under `output/evaluation-v3/pilot/` and are not
-committed. The corrected canonical protocol SHA256 is
+artifacts are not committed. Historical corrected pilot artifacts are under
+`output/evaluation-v3/pilot-corrected-v3/`. Its protocol SHA256 is
 `385ae09e74a7e8e2896b170f9ad3f2549f6f79390e94b3241cd7da0e4b32721f`. It binds
 four variants: `sa_shared_tools_rag`, `ma_fixed_rag`, `ma_adaptive_rag` and
 `ma_adaptive_no_rag`. The frozen split contains 20 development cases and 60
@@ -459,8 +459,23 @@ semantic judge is the declared automated `model_judge`
 contract; it is not a human judge. Gold authorship is `automated_pre_sut_spec`,
 with no human author or judge IDs.
 
-These artifacts establish frozen inputs and a budget projection only. They do
-not establish held-out quality, semantic grounding, or a completed benchmark.
+These artifacts establish historical frozen inputs and a budget projection only.
+They do not establish held-out quality, semantic grounding, or a completed
+benchmark. Merchant remediation in `ea24338` changes the source-bound protocol;
+the canonical successor SHA256 is
+`c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79cde`.
+`run_p7_successor_v4` has passed local dry-run with 36 cells (4 warmup and 32
+measurements), schedule SHA
+`f37eaa4482cafa85b9c665bf6ea25f30a81872df277e3e803949035209b7da13`, but has
+not dispatched a provider run and has no repeat decision. It must complete and
+freeze before a new P8 schedule may be created. No completed historical cell may
+be replayed or reused as successor evidence.
+
+The merchant remediation keeps ambiguous multi-product price mutations safe: it
+returns a clarification instead of choosing a target or fabricating a proposal.
+The successor evaluation must record that observable behavior against its gold
+contract; it must not alter the protocol or force a proposal merely to reproduce
+a previous expected state.
 The published v2 runtime remains PostgreSQL-backed and pins corpus
 `books-v1-calibrated-20260909` with 20 sources/chunks/vectors, 200 mappings
 (20 exact work, 17 ambiguous, 163 unmatched), and
@@ -472,7 +487,7 @@ artifacts remain outside that corpus.
 Package 8 is additive. `python -m app.evaluation.benchmark_cli` provides local
 `validate`, `dry-run`, `prepare`; guarded SUT `run`/`resume`; and guarded
 post-SUT `operate`. `operate` rebuilds exact-evidence preparation under the
-receipt authorization, calibrates on the frozen corrected P7 pilot measurements,
+receipt authorization, calibrates on the frozen successor P7 pilot measurements,
 freezes the judge, runs the blind held-out journal and publishes final artifacts.
 It requires explicit `--allow-network`, `--database-url` and a per-job judge
 budget; it fails closed when a catalog/review citation lacks an immutable exact
@@ -499,8 +514,9 @@ or validates the immutable partial record. It does not dispatch a provider,
 score receipts, reopen citation authority, calibrate the judge, or publish a
 benchmark result. The append-only checkpoint cannot redispatch settled cells, so
 this run cannot become a complete result through `resume`. P8 remains open for a
-distinct successor P7/P8 protocol and run after source remediation, exact
-evidence resolution, calibration/judging and the final gates.
+distinct successor P7/P8 protocol and run. The successor P8 may only be created
+after `run_p7_successor_v4` completes and its repeat decision is frozen; it then
+requires exact evidence resolution, calibration/judging and the final gates.
 
 Package 8 remains open until all of the following are complete and independently
 validated: calibrated automated judge and frozen bindings; exact immutable

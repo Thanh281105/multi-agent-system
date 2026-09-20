@@ -313,12 +313,16 @@ không có checked-in live-LLM result cho historical v2 corpus Tiki Books. Các
 real-model report generic cũ dùng `sample_ecommerce_vi_28_v1`, nằm trong nhóm
 legacy và không hỗ trợ current Tiki claim.
 
-Package 7 đã freeze corrected v3 protocol hash
-`385ae09e74a7e8e2896b170f9ad3f2549f6f79390e94b3241cd7da0e4b32721f`: bốn
-variants, 20 development cases và 60 held-out cases. Pilot hiện hành hoàn tất
-`36/36` terminal cells, global repeat decision chọn 3 repeats, với chi phí
-pilot thực tế `0.05332290 USD` và held-out SUT dự kiến `5.72929200 USD`. Judge
-semantic là automated model judge theo contract, không phải human judge.
+P7/P8 corrected trước đây vẫn được giữ làm evidence bất biến: P7 protocol hash
+`385ae09e74a7e8e2896b170f9ad3f2549f6f79390e94b3241cd7da0e4b32721f` có bốn
+variants, 20 development cases và 60 held-out cases; pilot đã hoàn tất `36/36`
+cells, chọn 3 repeats và có chi phí thực tế `0.05332290 USD`. Remediation
+merchant sau đó thay đổi source-bound protocol. Canonical successor SHA-256 là
+`c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79cde`; P7
+successor `run_p7_successor_v4` mới có dry-run `36` cells (4 warmup, 32
+measurements), schedule SHA
+`f37eaa4482cafa85b9c665bf6ea25f30a81872df277e3e803949035209b7da13`, nhưng
+chưa được dispatch. Do đó P7 cũ không được dùng làm input cho P8 successor.
 
 Package 8 đã chạy SUT held-out nhưng hiện chỉ có terminal partial, chưa có
 scoring, calibration, judge-complete hay benchmark-quality result. Run
@@ -330,8 +334,9 @@ known SUT cost `1.44856770 USD` và không còn unresolved reservation. `validat
 `dry-run` và `prepare` không gọi provider; `run`/`resume` và lifecycle `operate`
 chỉ được live khi truyền rõ `--allow-network`, `--database-url`; `operate` còn
 cần hard limit judge per-job và fail-closed khi citation không mở lại được từ
-immutable authority. P8 vẫn mở, chờ successor P7/P8 riêng sau source
-remediation, exact evidence resolver, calibration/judging và các final gates.
+immutable authority. P8 vẫn mở, chờ P7 successor hoàn tất và freeze repeat
+decision, rồi mới tạo P8 successor với protocol mới, exact evidence resolver,
+calibration/judging và các final gates.
 Xem [phương pháp evaluation](docs/evaluation.md) để biết chi tiết.
 
 ## Cấu trúc repository
@@ -371,9 +376,10 @@ tests/                # offline regression + optional integration
   **Chưa có long-term** preference, summary hoặc artifact memory.
 - Rate limiter, trace ring và metrics aggregation nằm trong một process; scale
   nhiều replica cần distributed replacements.
-- Current held-out live-model evidence mới chỉ là một terminal partial; calibrated
-  judge output, exact evidence resolver run, completed analysis matrix, human
-  review, load/soak, fairness/drift và production HA vẫn chưa được xác minh.
+- Current held-out live-model evidence chỉ là terminal partial của protocol cũ;
+  P7 successor và P8 successor chưa chạy. Calibrated judge output, exact evidence
+  resolver run, completed analysis matrix, human review, load/soak, fairness/drift
+  và production HA vẫn chưa được xác minh.
 
 Các giới hạn này là một phần của evidence contract, không phải footnote tùy
 chọn.

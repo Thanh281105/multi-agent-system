@@ -362,7 +362,13 @@ response phải giữ durable status, pinned data versions, evidence bindings v�
 usage metadata. Một fixture hoặc SQLite success không thay thế được PostgreSQL
 transaction/replay verification.
 
-Package 8 là additive held-out work. Các lệnh local không gọi provider:
+Historical P8 partial được giữ nguyên. Vì remediation merchant đã đổi source
+protocol, operator phải chạy P7 successor và freeze repeat decision mới trước khi
+tạo P8 successor; không được resume historical P8 để redispatch terminal cells.
+P7 successor chưa dispatch; dry-run của `run_p7_successor_v4` đã tạo schedule
+`f37eaa4482cafa85b9c665bf6ea25f30a81872df277e3e803949035209b7da13` cho 36
+cells (4 warmup, 32 measurements). Package 8 vẫn là additive held-out work. Các
+lệnh local không gọi provider:
 
 ```powershell
 python -m app.evaluation.benchmark_cli validate
@@ -414,6 +420,8 @@ case-set SHA là
 Dùng `partial-report` để persist hoặc tái xác thực coverage/ledger/checkpoint
 hash của run đó; lệnh local-only và không mở live runtime. Không báo cáo partial
 checkpoint như complete, scored, calibrated hoặc judge-complete. Run này không
-thể resume để redispatch terminal cells. P8 vẫn chờ một successor P7/P8 riêng
-sau source remediation, exact immutable evidence resolver, calibration/judging
-và các final gates.
+thể resume để redispatch terminal cells. P8 successor chỉ được tạo sau P7
+successor protocol SHA-256
+`c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79cde` hoàn tất
+và freeze repeat decision; sau đó mới chạy exact immutable evidence resolver,
+calibration/judging và các final gates.

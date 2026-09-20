@@ -23,7 +23,7 @@ Repository có ba lane cần giữ tách biệt:
 | --- | --- | --- |
 | v1 scripted/reference | Compatibility regression trên catalog/review snapshot | Đã có evidence lịch sử |
 | v2 paired | Historical deterministic/model-assisted comparison với `tiki_books_vi_28_v1` | Đã có protocol/capture lịch sử; không dùng làm P7/P8 result |
-| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7 frozen + pilot; P8 SUT terminal partial, không có score |
+| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | Historical corrected P7/P8 preserved; source remediation requires an unstarted successor P7, then successor P8 |
 
 ## 2. Frozen inputs và provenance
 
@@ -183,13 +183,14 @@ wiring generic lịch sử, không được dùng cho current Tiki Books claim. 
 `experiment.live-pilot.v2.json` chỉ là cấu hình có thể tái chạy, không phải kết
 quả.
 
-## 8. Package 7 frozen protocol và pilot
+## 8. Package 7 historical protocol và successor pilot
 
-Package 7 freeze artifact do operator tạo tại
-`output/evaluation-v3/pilot/protocol.v3.json` cùng repeat decision tương ứng;
-đây là output local không được commit vào repository. Corrected protocol SHA-256
-chính thức là
+Historical corrected P7 freeze artifact do operator tạo tại
+`output/evaluation-v3/pilot-corrected-v3/`; đây là output local không được commit
+vào repository. Historical protocol SHA-256 là
 `385ae09e74a7e8e2896b170f9ad3f2549f6f79390e94b3241cd7da0e4b32721f`.
+Sau remediation merchant, canonical source-bound successor protocol SHA-256 là
+`c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79cde`.
 
 V3 có đúng bốn variants:
 
@@ -200,11 +201,23 @@ V3 có đúng bốn variants:
 | `ma_adaptive_rag` | multi | adaptive, tối đa một continuation | bật |
 | `ma_adaptive_no_rag` | multi | adaptive, tối đa một continuation | tắt |
 
-Split freeze có 20 development cases và 60 held-out cases. Corrected pilot hiện
-hành hoàn tất `36/36` terminal cells; repeat decision chọn global `3` repeats
+Split freeze có 20 development cases và 60 held-out cases. Historical corrected
+pilot hoàn tất `36/36` terminal cells; repeat decision chọn global `3` repeats
 cho held-out matrix. Chi phí pilot thực tế là `0.05332290 USD`; projected
-held-out SUT cost là `5.72929200 USD`. Đây là budget/projection evidence, chưa
-phải benchmark quality result.
+held-out SUT cost là `5.72929200 USD`. Các số này chỉ là historical
+budget/projection evidence, không phải benchmark quality result và không thể
+được tái sử dụng cho protocol successor.
+
+P7 successor chưa dispatch. Dry-run đã xác nhận `36` cells gồm `4` warmup và
+`32` measurements cho `run_p7_successor_v4`, với schedule SHA
+`f37eaa4482cafa85b9c665bf6ea25f30a81872df277e3e803949035209b7da13`. P8
+successor chỉ được tạo sau khi pilot này hoàn tất và repeat decision mới được
+freeze; không resume hay ghép thêm cells vào P7/P8 historical.
+
+Remediation merchant không tự chọn target khi một mutation request nêu nhiều
+sản phẩm. Với trường hợp đó runtime trả clarification an toàn; P7/P8 successor
+phải ghi nhận kết quả thực tế theo gold contract, không suy diễn proposal hay
+fabricate citation để đạt một trạng thái gold dự kiến.
 
 Semantic scoring được khai báo là automated model judge (`model_judge`) theo
 judge configuration/schema đã hash; không có human semantic judge. Deterministic
@@ -213,9 +226,10 @@ receipt/evidence contracts. Calibration phải được freeze trước held-out
 
 ## 9. Package 8 additive held-out driver
 
-Package 8 chỉ bổ sung các module `benchmark_*.py`, giữ nguyên Package 7
-bindings. CLI có các lệnh local `validate`, `dry-run`, `prepare`, hai lệnh SUT
-`run`/`resume`, và `operate` cho lifecycle sau khi SUT đã hoàn tất:
+Package 8 chỉ bổ sung các module `benchmark_*.py`. Mỗi P8 run bind chính xác
+protocol và repeat decision của P7 tương ứng; historical P7/P8 artifacts chỉ
+được đọc như evidence. CLI có các lệnh local `validate`, `dry-run`, `prepare`,
+hai lệnh SUT `run`/`resume`, và `operate` cho lifecycle sau khi SUT đã hoàn tất:
 
 ```powershell
 python -m app.evaluation.benchmark_cli validate
@@ -275,8 +289,9 @@ case-set SHA là
 Checkpoint append-only không được resume để redispatch các terminal cell. Run
 này không được trình bày như scored, calibrated, judge-complete hay benchmark
 quality. Chưa có calibration/judge journal, final result hoặc paired metric từ
-run này; P8 vẫn chờ một successor P7/P8 riêng sau source remediation, exact
-immutable evidence resolver, calibration/judging và các final gates.
+run này; P8 vẫn chờ P7 successor hoàn tất, freeze repeat decision và tạo một P8
+successor riêng theo source protocol mới, trước khi exact immutable evidence
+resolver, calibration/judging và các final gates có thể chạy.
 
 Để đóng Package 8, phải có đủ các gate sau:
 
