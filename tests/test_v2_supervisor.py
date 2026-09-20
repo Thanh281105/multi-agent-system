@@ -18,8 +18,9 @@ from app.shared.budget import (
     ProviderBudgetContext,
     provider_budget_scope,
 )
-from app.v2.actions import ActionConflictError
+from app.v2.actions import ActionConflictError, ActionServiceError
 from app.v2.authorization import (
+    AuthorizationDeniedError,
     ResourceAuthorization,
     ResourceBinding,
     ResourceNotFoundError,
@@ -725,6 +726,44 @@ async def test_exact_merchant_proposal_semantics(
 
 
 @pytest.mark.asyncio
+async def test_embedded_single_product_price_mutation_is_a_proposal() -> None:
+    planned = await BoundedV2Planner(runtime_mode="off").plan(
+        (
+            "Cho biết giá hiện tại, rồi đặt mức bán của sản phẩm đã chọn "
+            "ở 139.300 đồng."
+        ),
+        _context(
+            mode=ConversationMode.MERCHANT,
+            resolved_product_ids=(7,),
+            write=True,
+        ),
+    )
+
+    assert planned.clarification_code is None
+    assert planned.proposal is not None
+    assert planned.proposal.kind == "merchant_price"
+    assert planned.proposal.product_id == 7
+    assert planned.proposal.new_price_vnd == 139_300
+    assert planned.initial_operations == ()
+
+
+@pytest.mark.asyncio
+async def test_informational_price_wording_remains_a_read() -> None:
+    planned = await BoundedV2Planner(runtime_mode="off").plan(
+        "Cho biết giá bán hiện tại của sản phẩm đang ở 40.000 đồng có đúng không?",
+        _context(
+            mode=ConversationMode.MERCHANT,
+            resolved_product_ids=(7,),
+            write=True,
+        ),
+    )
+
+    assert planned.clarification_code is None
+    assert planned.proposal is None
+    assert planned.initial_operations
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("message", "mode", "product_ids", "write", "code"),
     [
@@ -883,6 +922,82 @@ async def test_plain_confirmation_bypasses_model_and_action_service(
     assert executor.calls == []
     assert producer.calls == 0
     assert action_service.proposal_lease_owners == []
+    assert action_service.read_cart_calls == 0
+    assert action_service.read_inventory_calls == 0
+    assert action_service.checkout_requests == []
+    assert action_service.offer_requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("message", "product_ids", "write", "code"),
+    [
+        (
+            "Tôi đang rà soát hai mặt hàng “Lên Tàu Cùng Socrates” và “Nghệ "
+            "Thuật PR Bản Thân”. Cho biết giá hiện tại của từng cuốn, rồi đặt "
+            "mức bán của “Lên Tàu Cùng Socrates” ở 139.300 đồng.",
+            (96, 99),
+            True,
+            "merchant_action_single_product_required",
+        ),
+        (
+            "Trong danh mục cửa hàng, “Những Giấc Mơ Ở Hiệu Sách Morisaki” "
+            "và “Economix” đang được niêm yết. Tôi cần chuyển giá bán của "
+            "“Những Giấc Mơ Ở Hiệu Sách Morisaki” xuống 40.000 đồng.",
+            (108, 109),
+            False,
+            "action_write_permission_required",
+        ),
+        (
+            "Tồn kho hiện có “Những người phụ nữ bé nhỏ” và “Quốc Gia Khởi "
+            "Nghiệp”. Hãy áp dụng ngay một ưu đãi cho “Những người phụ nữ bé "
+            "nhỏ”.",
+            (38, 44),
+            True,
+            "merchant_offer_execution_requires_confirmed_proposal",
+        ),
+    ],
+)
+async def test_embedded_merchant_actions_short_circuit_without_dispatch(
+    message: str,
+    product_ids: tuple[int, ...],
+    write: bool,
+    code: str,
+) -> None:
+    runtime = _ChoiceRuntime(error=AssertionError("model must not run"))
+    action_service = _FakeActionService()
+    executor = _FakeOperationExecutor()
+    producer = _AnswerProducer()
+    supervisor = V2ReadSupervisor(
+        _unused_session_factory,
+        planner=BoundedV2Planner(
+            model_runtime=runtime,  # type: ignore[arg-type]
+            runtime_mode="required",
+        ),
+        operation_executor=executor,  # type: ignore[arg-type]
+        answer_producer=producer,
+        action_service=action_service,  # type: ignore[arg-type]
+    )
+
+    computation = await supervisor.run_claimed(
+        conversation_id="conversation_action",
+        turn_id="turn_action",
+        lease_owner="worker_action",
+        message=message,
+        context=_context(
+            mode=ConversationMode.MERCHANT,
+            resolved_product_ids=product_ids,
+            write=write,
+        ),
+        deadline_monotonic=10**12,
+    )
+
+    assert computation.result.outcome == DialogueOutcome.NEEDS_CLARIFICATION
+    assert computation.result.warnings == (code,)
+    assert computation.result.action_cards == ()
+    assert runtime.calls == 0
+    assert executor.calls == []
+    assert producer.calls == 0
     assert action_service.read_cart_calls == 0
     assert action_service.read_inventory_calls == 0
     assert action_service.checkout_requests == []
@@ -1254,6 +1369,109 @@ async def test_proposal_current_state_races_return_stable_clarification(
         context=_context(mode=mode, resolved_product_ids=product_ids, write=True),
         deadline_monotonic=10**12,
     )
+    assert computation.result.outcome == DialogueOutcome.NEEDS_CLARIFICATION
+    assert computation.result.warnings == (code,)
+    assert computation.result.action_cards == ()
+    assert executor.calls == []
+    assert producer.calls == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("stage", "error", "message", "mode", "product_ids", "code"),
+    [
+        *[
+            (
+                stage,
+                AuthorizationDeniedError(),
+                message,
+                mode,
+                product_ids,
+                "action_write_permission_required",
+            )
+            for stage, message, mode, product_ids in (
+                ("read_cart", "Thanh toán giỏ hàng", ConversationMode.SHOPPER, ()),
+                (
+                    "propose_checkout",
+                    "Thanh toán giỏ hàng",
+                    ConversationMode.SHOPPER,
+                    (),
+                ),
+                (
+                    "read_inventory",
+                    "Đổi giá thành 200000 VND",
+                    ConversationMode.MERCHANT,
+                    (7,),
+                ),
+                (
+                    "propose_offer",
+                    "Đổi giá thành 200000 VND",
+                    ConversationMode.MERCHANT,
+                    (7,),
+                ),
+            )
+        ],
+        *[
+            (
+                stage,
+                ActionServiceError("unavailable"),
+                message,
+                mode,
+                product_ids,
+                "action_service_unavailable",
+            )
+            for stage, message, mode, product_ids in (
+                ("read_cart", "Thanh toán giỏ hàng", ConversationMode.SHOPPER, ()),
+                (
+                    "propose_checkout",
+                    "Thanh toán giỏ hàng",
+                    ConversationMode.SHOPPER,
+                    (),
+                ),
+                (
+                    "read_inventory",
+                    "Đổi giá thành 200000 VND",
+                    ConversationMode.MERCHANT,
+                    (7,),
+                ),
+                (
+                    "propose_offer",
+                    "Đổi giá thành 200000 VND",
+                    ConversationMode.MERCHANT,
+                    (7,),
+                ),
+            )
+        ],
+    ],
+)
+async def test_proposal_domain_errors_return_stable_clarification(
+    stage: str,
+    error: Exception,
+    message: str,
+    mode: ConversationMode,
+    product_ids: tuple[int, ...],
+    code: str,
+) -> None:
+    action_service = _FakeActionService(fail_at=stage, error=error)
+    executor = _FakeOperationExecutor()
+    producer = _AnswerProducer()
+    supervisor = V2ReadSupervisor(
+        _unused_session_factory,
+        planner=BoundedV2Planner(runtime_mode="off"),
+        operation_executor=executor,  # type: ignore[arg-type]
+        answer_producer=producer,
+        action_service=action_service,  # type: ignore[arg-type]
+    )
+
+    computation = await supervisor.run_claimed(
+        conversation_id="conversation_action",
+        turn_id="turn_action",
+        lease_owner="worker_action",
+        message=message,
+        context=_context(mode=mode, resolved_product_ids=product_ids, write=True),
+        deadline_monotonic=10**12,
+    )
+
     assert computation.result.outcome == DialogueOutcome.NEEDS_CLARIFICATION
     assert computation.result.warnings == (code,)
     assert computation.result.action_cards == ()

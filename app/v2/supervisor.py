@@ -22,9 +22,18 @@ from app.shared.budget import (
     current_provider_budget,
     nano_usd_to_usd,
 )
-from app.v2.actions import ActionConflictError, StoredAction, V2ActionService
+from app.v2.actions import (
+    ActionConflictError,
+    ActionServiceError,
+    StoredAction,
+    V2ActionService,
+)
 from app.v2.answers import EvidenceRequirement
-from app.v2.authorization import ResourceAuthorization, ResourceNotFoundError
+from app.v2.authorization import (
+    AuthorizationDeniedError,
+    ResourceAuthorization,
+    ResourceNotFoundError,
+)
 from app.v2.contracts import (
     MAX_DRAFT_REPAIRS,
     MAX_EXPERT_STEPS,
@@ -469,6 +478,18 @@ class V2ReadSupervisor:
                     "action_prerequisite_changed",
                     fallback_reasons,
                 )
+            except AuthorizationDeniedError:
+                return _proposal_clarification(
+                    planned,
+                    "action_write_permission_required",
+                    fallback_reasons,
+                )
+            except ActionServiceError:
+                return _proposal_clarification(
+                    planned,
+                    "action_service_unavailable",
+                    fallback_reasons,
+                )
             checkout_request = CheckoutInput(
                 cart_id=cart.cart_id,
                 expected_version=cart.version,
@@ -485,6 +506,18 @@ class V2ReadSupervisor:
                 return _proposal_clarification(
                     planned,
                     "action_prerequisite_changed",
+                    fallback_reasons,
+                )
+            except AuthorizationDeniedError:
+                return _proposal_clarification(
+                    planned,
+                    "action_write_permission_required",
+                    fallback_reasons,
+                )
+            except ActionServiceError:
+                return _proposal_clarification(
+                    planned,
+                    "action_service_unavailable",
                     fallback_reasons,
                 )
         else:
@@ -504,6 +537,18 @@ class V2ReadSupervisor:
                 return _proposal_clarification(
                     planned,
                     "action_prerequisite_changed",
+                    fallback_reasons,
+                )
+            except AuthorizationDeniedError:
+                return _proposal_clarification(
+                    planned,
+                    "action_write_permission_required",
+                    fallback_reasons,
+                )
+            except ActionServiceError:
+                return _proposal_clarification(
+                    planned,
+                    "action_service_unavailable",
                     fallback_reasons,
                 )
             if len(inventory.offers) != 1:
@@ -531,6 +576,18 @@ class V2ReadSupervisor:
                 return _proposal_clarification(
                     planned,
                     "action_prerequisite_changed",
+                    fallback_reasons,
+                )
+            except AuthorizationDeniedError:
+                return _proposal_clarification(
+                    planned,
+                    "action_write_permission_required",
+                    fallback_reasons,
+                )
+            except ActionServiceError:
+                return _proposal_clarification(
+                    planned,
+                    "action_service_unavailable",
                     fallback_reasons,
                 )
         return TurnComputation(
@@ -1063,6 +1120,11 @@ def _clarification_answer(code: str) -> str:
         return "Không tìm thấy đúng một offer hiện hành cho sản phẩm đã chọn."
     if code == "action_prerequisite_changed":
         return "Dữ liệu hiện tại đã thay đổi; vui lòng kiểm tra lại trước khi đề xuất."
+    if code == "merchant_offer_execution_requires_confirmed_proposal":
+        return (
+            "Chỉ có thể áp dụng ưu đãi từ một đề xuất đã được xác nhận; "
+            "hãy tạo và xác nhận đề xuất trước."
+        )
     return "Bạn hãy nêu rõ hơn tên sách, tác giả hoặc tiêu chí cần kiểm tra."
 
 
