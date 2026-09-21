@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import parse_qsl, urlsplit
@@ -10,11 +11,15 @@ import pytest
 from pydantic import BaseModel
 
 from app.evaluation import benchmark_cli
+from app.evaluation.benchmark_evidence import CatalogReviewResolvedEvidenceV3
 from app.evaluation.benchmark_reporting import (
     ReceiptAccountingV3,
     ReceiptFailureTaxonomyEntryV3,
 )
 from app.evaluation.v3_runner import EvaluationRunSummaryV3
+from app.knowledge.v2_contracts import sha256_utf8
+from app.v2.authorization import ResourceAuthorization, ResourceBinding
+from app.v2.contracts import ConversationMode, EvidenceKind, EvidenceReference
 
 
 class _Preparation(BaseModel):
@@ -332,3 +337,100 @@ def test_exact_resolver_refuses_missing_authority_without_service_call() -> None
     with pytest.raises(benchmark_cli.BenchmarkCLIError) as caught:
         resolver.resolve(binding)
     assert caught.value.code == "exact_evidence_authority_unavailable"
+
+
+@pytest.mark.parametrize("kind", (EvidenceKind.CATALOG, EvidenceKind.REVIEW))
+def test_exact_resolver_validates_every_receipt_authority_for_shared_public_record(
+    kind: EvidenceKind,
+) -> None:
+    binding = benchmark_cli.EvidenceBindingKeyV3(
+        evidence_id="evidence_catalog",
+        source_id="catalog_product_1",
+        source_version_id="cat_" + "c" * 64,
+    )
+    reference = EvidenceReference(
+        **binding.model_dump(),
+        display_label="[C1]",
+        kind=kind,
+        title="Immutable public record",
+        observed_at=datetime(2026, 9, 15, tzinfo=UTC),
+    )
+    accesses = tuple(
+        ResourceAuthorization(
+            binding=ResourceBinding(
+                tenant_id=f"tenant_{name}",
+                principal_id=f"principal_{name}",
+                store_id="demo",
+                mode=ConversationMode.SHOPPER,
+            ),
+            scopes=frozenset({"ecommerce.read"}),
+        )
+        for name in ("first", "second")
+    )
+    seen = []
+
+    class Source:
+        def reopen(self, ref, access):
+            seen.append(access)
+            return CatalogReviewResolvedEvidenceV3(
+                binding=binding,
+                reference=ref,
+                authorization=access,
+                exact_text="Immutable source text",
+                content_sha256=sha256_utf8("Immutable source text"),
+            )
+
+    resolver = benchmark_cli._ReceiptExactEvidenceResolver(
+        knowledge_service=object(),
+        corpus_version_id="cor_" + "a" * 60,
+        index_manifest_id="idx_" + "b" * 60,
+        authorities={
+            binding: tuple(
+                benchmark_cli._ReceiptEvidenceAuthority(
+                    reference=reference.model_copy(
+                        update={"display_label": f"[C{index}]"}
+                    ),
+                    authorization=access,
+                )
+                for index, access in enumerate(accesses, start=1)
+            )
+        },
+        catalog_review_source=Source(),  # type: ignore[arg-type]
+    )
+    assert resolver.resolve(binding).exact_text == "Immutable source text"
+    assert seen == list(accesses)
+
+
+def test_exact_resolver_catalog_without_immutable_assets_remains_blocked() -> None:
+    binding = benchmark_cli.EvidenceBindingKeyV3(
+        evidence_id="evidence_catalog",
+        source_id="catalog_product_1",
+        source_version_id="cat_" + "c" * 64,
+    )
+    reference = EvidenceReference(
+        **binding.model_dump(),
+        display_label="[C1]",
+        kind=EvidenceKind.CATALOG,
+        title="Do not use this as evidence",
+        observed_at=datetime(2026, 9, 15, tzinfo=UTC),
+    )
+    access = ResourceAuthorization(
+        binding=ResourceBinding(
+            tenant_id="tenant_first",
+            principal_id="principal_first",
+            store_id="demo",
+            mode=ConversationMode.SHOPPER,
+        ),
+        scopes=frozenset({"ecommerce.read"}),
+    )
+    resolver = benchmark_cli._ReceiptExactEvidenceResolver(
+        knowledge_service=object(),
+        corpus_version_id="cor_" + "a" * 60,
+        index_manifest_id="idx_" + "b" * 60,
+        authorities={
+            binding: benchmark_cli._ReceiptEvidenceAuthority(reference, access)
+        },
+    )
+    with pytest.raises(benchmark_cli.BenchmarkCLIError) as caught:
+        resolver.resolve(binding)
+    assert caught.value.code == "generic_exact_authority_unavailable"

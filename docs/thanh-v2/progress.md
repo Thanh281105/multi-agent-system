@@ -508,8 +508,10 @@ post-SUT `operate`. `operate` rebuilds exact-evidence preparation under the
 receipt authorization, calibrates on the frozen successor P7 pilot measurements,
 freezes the judge, runs the blind held-out journal and publishes final artifacts.
 It requires explicit `--allow-network`, `--database-url` and a per-job judge
-budget; it resolves only receipt-bound exact evidence and fails closed when a
-catalog/review authority or mutated sandbox source is unavailable. The driver
+budget; it resolves only receipt-bound exact evidence. Hash-pinned
+`catalog_product_N`/`review_sample_N` records are supported when their source
+assets and original authorization are complete; ranked/oversized or mutated
+sources remain fail-closed. The driver
 builds the exact `60 × 4 × 3 = 720` held-out measurement
 schedule and uses append-only checkpoint/resume behavior. Local commands do not
 call a provider.

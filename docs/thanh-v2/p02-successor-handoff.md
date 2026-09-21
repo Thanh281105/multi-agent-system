@@ -93,14 +93,15 @@ runtime payloads and dispatch behavior are unchanged.
    all validators succeed.
 
 The exact evidence boundary is now receipt-bound and fail-closed.
-`ImmutableBenchmarkEvidenceResolverV3` reopens knowledge plus the canonical
+`ImmutableBenchmarkEvidenceResolverV3` reopens knowledge, canonical
 merchant-inventory and shopper cart/checkout preview reads reconstructed from
-the hashed reset fixture, receipt namespace and current authorization.
-Unsupported catalog/review authority and mutated sandbox state still stop
-scoring with a typed error. Do not fabricate source text from the answer, title
-or gold, relabel sandbox citations as catalog citations, or soften a provenance
-failure. This does not make `operate` ready to complete: successor P7 must still
-run and freeze before the P8 lifecycle can start.
+the hashed reset fixture, and `catalog_product_N`/`review_sample_N` records
+reconstructed from hash-pinned public assets. Ranked catalog records, oversized
+review samples, and mutated sandbox state still stop scoring with a typed error.
+Do not fabricate source text from the answer, title or gold, relabel sandbox
+citations as catalog citations, or soften a provenance failure. This does not
+make `operate` ready to complete: successor P7 must still run and freeze before
+the P8 lifecycle can start.
 
 On any failure, classify the error and inspect its checkpoint before changing
 code. Fix only the demonstrated cause; preserve completed cells and bind any

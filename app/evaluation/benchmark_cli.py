@@ -25,6 +25,7 @@ from app.evaluation.benchmark_calibration import (
 )
 from app.evaluation.benchmark_evidence import (
     ImmutableBenchmarkEvidenceResolverV3,
+    ImmutableCatalogReviewSourceV3,
     SandboxResolvedEvidenceV3,
 )
 from app.evaluation.benchmark_finalization import (
@@ -133,7 +134,7 @@ class _ReceiptEvidenceAuthority:
 
 
 class _ReceiptExactEvidenceResolver:
-    """Reopen exact knowledge evidence under the receipt's original authority."""
+    """Reopen exact evidence under every citing receipt's original authority."""
 
     def __init__(
         self,
@@ -141,30 +142,66 @@ class _ReceiptExactEvidenceResolver:
         knowledge_service: object,
         corpus_version_id: str,
         index_manifest_id: str,
-        authorities: Mapping[EvidenceBindingKeyV3, _ReceiptEvidenceAuthority],
+        authorities: Mapping[
+            EvidenceBindingKeyV3,
+            _ReceiptEvidenceAuthority | tuple[_ReceiptEvidenceAuthority, ...],
+        ],
+        catalog_review_source: ImmutableCatalogReviewSourceV3 | None = None,
     ) -> None:
         self._knowledge_service = knowledge_service
         self._corpus_version_id = corpus_version_id
         self._index_manifest_id = index_manifest_id
         self._authorities = dict(authorities)
+        self._catalog_review_source = catalog_review_source
 
     def resolve(self, binding: EvidenceBindingKeyV3) -> ResolvedExactEvidenceV3:
-        authority = self._authorities.get(binding)
-        if authority is None:
+        authorities = self._authorities.get(binding)
+        if authorities is None or authorities == ():
             raise BenchmarkCLIError(
                 "exact_evidence_authority_unavailable",
                 "no execution-produced immutable evidence authority exists "
                 "for a citation",
             )
-        if authority.reference.kind in {EvidenceKind.CATALOG, EvidenceKind.REVIEW}:
+        if isinstance(authorities, _ReceiptEvidenceAuthority):
+            authorities = (authorities,)
+        resolved = tuple(self._resolve_authority(binding, item) for item in authorities)
+        if any(item != resolved[0] for item in resolved[1:]):
             raise BenchmarkCLIError(
-                "generic_exact_authority_unavailable",
-                "catalog or review evidence requires a configured immutable "
-                "exact authority",
+                "evidence_authorization_ambiguous",
+                "one citation binding resolved differently across receipt authorities",
             )
+        return resolved[0]
+
+    def _resolve_authority(
+        self,
+        binding: EvidenceBindingKeyV3,
+        authority: _ReceiptEvidenceAuthority,
+    ) -> ResolvedExactEvidenceV3:
+        catalog_review_source = None
+        if authority.reference.kind in {EvidenceKind.CATALOG, EvidenceKind.REVIEW}:
+            if self._catalog_review_source is None:
+                raise BenchmarkCLIError(
+                    "generic_exact_authority_unavailable",
+                    "catalog or review evidence requires a configured immutable "
+                    "exact authority",
+                )
+            try:
+                catalog_review_source = {
+                    binding: self._catalog_review_source.reopen(
+                        authority.reference, authority.authorization
+                    )
+                }
+            except ValueError as exc:
+                raise BenchmarkCLIError(
+                    getattr(exc, "code", "exact_evidence_resolution_failed"),
+                    "catalog or review source could not be reopened "
+                    "under its authority",
+                ) from exc
         if authority.reference.kind not in {
             EvidenceKind.KNOWLEDGE,
             EvidenceKind.SANDBOX,
+            EvidenceKind.CATALOG,
+            EvidenceKind.REVIEW,
         }:
             raise BenchmarkCLIError(
                 "generic_exact_authority_unavailable",
@@ -184,6 +221,7 @@ class _ReceiptExactEvidenceResolver:
             corpus_version_id=self._corpus_version_id,
             index_manifest_id=self._index_manifest_id,
             reference_source={binding: authority.reference},
+            catalog_review_source=catalog_review_source,
             sandbox_source=sandbox_source,
         )
         try:
@@ -203,6 +241,7 @@ class _LiveOperatorResources:
     knowledge_service: object
     corpus_version_id: str
     index_manifest_id: str
+    catalog_snapshot_version_id: str
 
 
 def cli(argv: Sequence[str] | None = None) -> int:
@@ -411,6 +450,11 @@ def _operate(arguments: argparse.Namespace) -> int:
         corpus_version_id=resources.corpus_version_id,
         index_manifest_id=resources.index_manifest_id,
         authorities=authorities,
+        catalog_review_source=ImmutableCatalogReviewSourceV3(
+            project_root=frozen.project_root,
+            bindings=frozen.loaded_gold.gold.source_assets,
+            snapshot_version_id=resources.catalog_snapshot_version_id,
+        ),
     )
     calibration_inputs = build_package8_pilot_calibration_inputs_v3(
         protocol=frozen.protocol,
@@ -1107,10 +1151,10 @@ def _receipt_evidence_authorities(
             Mapping[str, EvaluationCaseV3],
         ]
     ],
-) -> dict[EvidenceBindingKeyV3, _ReceiptEvidenceAuthority]:
+) -> dict[EvidenceBindingKeyV3, tuple[_ReceiptEvidenceAuthority, ...]]:
     """Map only execution-produced cited references to exact P7 authorities."""
 
-    authorities: dict[EvidenceBindingKeyV3, _ReceiptEvidenceAuthority] = {}
+    authorities: dict[EvidenceBindingKeyV3, tuple[_ReceiptEvidenceAuthority, ...]] = {}
     for schedule, receipts, cases in batches:
         turns = {turn.turn_id: turn for turn in schedule}
         schedule_sha256 = pilot_schedule_sha256_v3(tuple(schedule))
@@ -1188,19 +1232,12 @@ def _receipt_evidence_authorities(
                     authorization=authorization,
                     sandbox_evidence=sandbox_evidence,
                 )
-                existing = authorities.get(binding)
-                if existing is not None and existing != candidate:
-                    raise BenchmarkCLIError(
-                        "evidence_authorization_ambiguous",
-                        "one citation binding has more than one receipt authority",
-                    )
-                if reference.kind in {EvidenceKind.CATALOG, EvidenceKind.REVIEW}:
-                    raise BenchmarkCLIError(
-                        "generic_exact_authority_unavailable",
-                        "catalog or review evidence requires a configured immutable "
-                        "exact authority",
-                    )
-                authorities[binding] = candidate
+                existing = authorities.get(binding, ())
+                if candidate not in existing:
+                    # Public source records may be cited from multiple isolated
+                    # runs. Retain all access contexts; the resolver must reopen
+                    # and validate every one rather than pick or widen an owner.
+                    authorities[binding] = (*existing, candidate)
     return authorities
 
 
@@ -1550,12 +1587,16 @@ def _build_live_operator_resources(
     snapshot = getattr(services, "knowledge_snapshot", None)
     corpus_version_id = getattr(snapshot, "corpus_version_id", None)
     index_manifest_id = getattr(snapshot, "index_manifest_id", None)
+    catalog_snapshot_version_id = getattr(
+        getattr(services, "catalog_snapshot", None), "version_id", None
+    )
     if (
         ledger is None
         or not isinstance(account_id, str)
         or knowledge_service is None
         or not isinstance(corpus_version_id, str)
         or not isinstance(index_manifest_id, str)
+        or not isinstance(catalog_snapshot_version_id, str)
     ):
         raise BenchmarkCLIError(
             "operator_runtime_unavailable",
@@ -1569,6 +1610,7 @@ def _build_live_operator_resources(
         knowledge_service=knowledge_service,
         corpus_version_id=corpus_version_id,
         index_manifest_id=index_manifest_id,
+        catalog_snapshot_version_id=catalog_snapshot_version_id,
     )
 
 

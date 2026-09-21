@@ -13,23 +13,33 @@ import hashlib
 import json
 import re
 from collections.abc import Awaitable, Callable, Mapping
+from datetime import UTC
+from decimal import Decimal
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Literal, Protocol
 
 from pydantic import Field, ValidationError, model_validator
 
+from app.agents.review.skills import extract_review_aspects
+from app.data.contracts import DatasetManifest, NormalizedProduct, NormalizedReview
 from app.evaluation.benchmark_reporting import (
     EvidenceBindingKeyV3,
     FrozenBenchmarkReportingContractV3,
     ResolvedExactEvidenceV3,
 )
 from app.evaluation.protocol import canonical_json_bytes
+from app.evaluation.v3_gold import SourceAssetsV3, SourceAssetV3
 from app.knowledge.v2_contracts import (
     ResolvedKnowledgeEvidence,
     sha256_utf8,
     stable_evidence_id,
 )
-from app.v2.authorization import DEMO_STORE_ID, ResourceAuthorization
+from app.v2.authorization import (
+    DEMO_STORE_ID,
+    ResourceAuthorization,
+    required_scopes_for_mode,
+)
 from app.v2.contracts import ConversationMode, EvidenceKind, EvidenceReference
 
 _CONTENT_ADDRESS_ID = re.compile(r"^(?P<prefix>cor|idx)_[0-9a-f]{60}$")
@@ -61,6 +71,18 @@ class UnsupportedEvidenceKindErrorV3(BenchmarkEvidenceResolutionErrorV3):
     """Package 8 has no authority path for this evidence kind."""
 
     code = "evidence_kind_unsupported"
+
+
+class CatalogReviewAuthorityUnavailableErrorV3(EvidenceMetadataUnavailableErrorV3):
+    """The immutable assets do not establish the complete cited tool record."""
+
+    code = "catalog_review_authority_unavailable"
+
+
+class CatalogReviewAuthorizationMismatchErrorV3(EvidenceProvenanceMismatchErrorV3):
+    """Catalog/review evidence is not authorized for the current receipt."""
+
+    code = "catalog_review_authorization_mismatch"
 
 
 class SandboxEvidenceAuthorityUnavailableErrorV3(EvidenceMetadataUnavailableErrorV3):
@@ -101,6 +123,7 @@ class CatalogReviewResolvedEvidenceV3(FrozenBenchmarkReportingContractV3):
 
     binding: EvidenceBindingKeyV3
     reference: EvidenceReference
+    authorization: ResourceAuthorization
     exact_text: str = Field(min_length=1, max_length=4_000)
     content_sha256: str = Field(pattern=_SHA256)
     authority: Literal["catalog_review_immutable_source"] = (
@@ -114,6 +137,231 @@ class CatalogReviewResolvedEvidenceV3(FrozenBenchmarkReportingContractV3):
         if sha256_utf8(self.exact_text) != self.content_sha256:
             raise ValueError("catalog/review content hash does not match exact text")
         return self
+
+
+class ImmutableCatalogReviewSourceV3:
+    """Reconstruct exact records from hash-pinned public source assets only.
+
+    P7 defines product N as the Nth product JSONL record. A different database
+    import order therefore fails the content-addressed tool binding below; it
+    cannot silently substitute another product. Review samples are accepted only
+    when the whole product sample fits the runtime limit, so database row-ID
+    ordering is immaterial. Rank records need a candidate-set authority and are
+    deliberately unsupported here.
+    """
+
+    def __init__(
+        self,
+        *,
+        project_root: Path,
+        bindings: SourceAssetsV3,
+        snapshot_version_id: str,
+    ) -> None:
+        if re.fullmatch(r"cat_[0-9a-f]{64}", snapshot_version_id) is None:
+            raise EvidenceProvenanceMismatchErrorV3(
+                "catalog source requires the pinned runtime snapshot identity"
+            )
+        self._snapshot_version_id = snapshot_version_id
+        manifest_bytes = _read_catalog_asset(project_root, bindings.snapshot_manifest)
+        products_bytes = _read_catalog_asset(project_root, bindings.products)
+        reviews_bytes = _read_catalog_asset(project_root, bindings.reviews)
+        try:
+            self._manifest = DatasetManifest.model_validate_json(manifest_bytes)
+            self._products = tuple(
+                NormalizedProduct.model_validate_json(line)
+                for line in products_bytes.splitlines()
+                if line.strip()
+            )
+            reviews = tuple(
+                NormalizedReview.model_validate_json(line)
+                for line in reviews_bytes.splitlines()
+                if line.strip()
+            )
+        except ValueError as exc:
+            raise EvidenceProvenanceMismatchErrorV3(
+                "catalog/review immutable source asset is invalid"
+            ) from exc
+        manifest = self._manifest
+        if (
+            manifest.profile != "eval"
+            or manifest.products_sha256 != bindings.products.sha256
+            or manifest.reviews_sha256 != bindings.reviews.sha256
+            or manifest.product_count != len(self._products)
+            or manifest.review_count != len(reviews)
+            or bindings.products.records != len(self._products)
+            or bindings.reviews.records != len(reviews)
+        ):
+            raise EvidenceProvenanceMismatchErrorV3(
+                "catalog/review manifest does not bind the exact source assets"
+            )
+        product_ids = {product.external_id for product in self._products}
+        if len(product_ids) != len(self._products) or len(
+            {review.external_id for review in reviews}
+        ) != len(reviews):
+            raise EvidenceProvenanceMismatchErrorV3(
+                "catalog/review immutable source identities are ambiguous"
+            )
+        if any(review.product_external_id not in product_ids for review in reviews):
+            raise EvidenceProvenanceMismatchErrorV3(
+                "review source references a product outside the pinned asset"
+            )
+        self._reviews = {
+            product_id: tuple(
+                review for review in reviews if review.product_external_id == product_id
+            )
+            for product_id in product_ids
+        }
+
+    def reopen(
+        self,
+        reference: EvidenceReference,
+        authorization: ResourceAuthorization,
+    ) -> CatalogReviewResolvedEvidenceV3:
+        """Validate the complete original tool binding before returning text."""
+
+        reference = EvidenceReference.model_validate(
+            reference.model_dump(mode="python")
+        )
+        authorization = ResourceAuthorization.model_validate(
+            authorization.model_dump(mode="python")
+        )
+        _require_catalog_review_access(authorization)
+        prefix = {
+            EvidenceKind.CATALOG: "catalog_product",
+            EvidenceKind.REVIEW: "review_sample",
+        }.get(reference.kind)
+        match = re.fullmatch(rf"{prefix}_([1-9][0-9]*)", reference.source_id)
+        if prefix is None or match is None:
+            raise CatalogReviewAuthorityUnavailableErrorV3(
+                "catalog/review source is not a fully reconstructible asset record"
+            )
+        line = int(match.group(1))
+        if line > len(self._products):
+            raise CatalogReviewAuthorityUnavailableErrorV3(
+                "catalog/review product is outside the immutable source asset"
+            )
+        product = self._products[line - 1]
+        if reference.kind is EvidenceKind.CATALOG:
+            text = _catalog_product_text(product)
+            title = f"{product.name} — dữ liệu catalog lịch sử"
+        else:
+            text = _catalog_review_sample_text(self._reviews[product.external_id])
+            title = f"{product.name} — mẫu tối đa 20 review lịch sử"
+        observed_at = self._manifest.retrieved_at
+        observed_at = (
+            observed_at.replace(tzinfo=UTC)
+            if observed_at.tzinfo is None
+            else observed_at.astimezone(UTC)
+        )
+        if (
+            reference.source_version_id != self._snapshot_version_id
+            or reference.title != title
+            or reference.observed_at != observed_at
+            or reference.url is not None
+        ):
+            raise EvidenceProvenanceMismatchErrorV3(
+                "catalog/review reference differs from the pinned source identity"
+            )
+        binding = _binding_from_reference(reference)
+        _verify_stable_span_binding(binding)
+        chunk_id = _sandbox_tool_id(
+            "tch",
+            {
+                "source": reference.source_id,
+                "version": self._snapshot_version_id,
+                "text": text,
+            },
+        )
+        span_id = _sandbox_tool_id(
+            "tsp", {"chunk": chunk_id, "start": 0, "end": len(text)}
+        )
+        if binding.chunk_id != chunk_id or binding.span_id != span_id:
+            raise EvidenceProvenanceMismatchErrorV3(
+                "catalog/review exact source text does not match its tool record"
+            )
+        return CatalogReviewResolvedEvidenceV3(
+            binding=binding,
+            reference=reference,
+            authorization=authorization,
+            exact_text=text,
+            content_sha256=sha256_utf8(text),
+        )
+
+
+def _read_catalog_asset(root: Path, binding: SourceAssetV3) -> bytes:
+    root = root.resolve()
+    path = root / binding.path
+    if path.is_symlink() or not path.resolve().is_relative_to(root):
+        raise EvidenceProvenanceMismatchErrorV3("catalog/review asset path is unsafe")
+    try:
+        content = path.read_bytes()
+    except OSError as exc:
+        raise CatalogReviewAuthorityUnavailableErrorV3(
+            "catalog/review immutable source asset is unavailable"
+        ) from exc
+    if hashlib.sha256(content).hexdigest() != binding.sha256:
+        raise EvidenceProvenanceMismatchErrorV3(
+            "catalog/review immutable source asset hash mismatch"
+        )
+    return content
+
+
+def _require_catalog_review_access(authorization: ResourceAuthorization) -> None:
+    if (
+        authorization.binding.store_id != DEMO_STORE_ID
+        or not required_scopes_for_mode(authorization.binding.mode)
+        <= authorization.scopes
+    ):
+        raise CatalogReviewAuthorizationMismatchErrorV3(
+            "catalog/review evidence is outside the receipt read authority"
+        )
+
+
+def _catalog_product_text(product: NormalizedProduct) -> str:
+    entries = [
+        f"title: {product.name}",
+        f"category: {product.category}",
+        f"snapshot_price_vnd: {product.price_vnd} VND",
+        f"snapshot_review_count: {product.source_review_count} review",
+    ]
+    author = "; ".join(product.authors)
+    if author:
+        entries.append(f"author: {author}")
+    if product.publisher:
+        entries.append(f"publisher: {product.publisher}")
+    if product.page_count is not None:
+        entries.append(f"page_count: {product.page_count} page")
+    if product.rating is not None:
+        entries.append(f"snapshot_rating: {Decimal(str(product.rating)):f} rating_5")
+    return "\n".join(entries)
+
+
+def _catalog_review_sample_text(reviews: tuple[NormalizedReview, ...]) -> str:
+    # Above the fixed runtime limit, created_at/DB-id ordering affects membership.
+    if len(reviews) > 20:
+        raise CatalogReviewAuthorityUnavailableErrorV3(
+            "review sample requires unavailable database row ordering authority"
+        )
+    entries = [f"sampled_review_count: {len(reviews)} review"]
+    if reviews:
+        average = (
+            sum((Decimal(row.rating) for row in reviews), Decimal(0)) / len(reviews)
+        ).quantize(Decimal("0.001"))
+        entries.append(f"sampled_average_rating: {average:f} rating_5")
+    aspects = extract_review_aspects(
+        [
+            {"id": row.external_id, "rating": row.rating, "content": row.content}
+            for row in reviews
+        ]
+    )["aspects"]
+    if aspects:
+        text = "; ".join(
+            f"{item['name']}: {item['mentions']} lượt đề cập, "
+            f"{item['negative_mentions']} tín hiệu tiêu cực"
+            for item in aspects[:4]
+        )
+        entries.append(f"review_aspects: {text}")
+    return "\n".join(entries)
 
 
 class SandboxResolvedEvidenceV3(FrozenBenchmarkReportingContractV3):
@@ -401,6 +649,11 @@ class ImmutableBenchmarkEvidenceResolverV3:
             raise EvidenceProvenanceMismatchErrorV3(
                 "catalog/review source does not match trusted provenance"
             )
+        if resolved.authorization != self._authorization:
+            raise CatalogReviewAuthorizationMismatchErrorV3(
+                "catalog/review evidence authorization differs from the current receipt"
+            )
+        _require_catalog_review_access(self._authorization)
         return _resolved_citation(
             binding,
             resolved.exact_text,

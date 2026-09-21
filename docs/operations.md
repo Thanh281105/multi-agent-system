@@ -352,10 +352,11 @@ Handoff hiện hành sau sửa P02 nằm tại
 `315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`.
 Các hash `c8a4…`/`f37e…` bên dưới là lịch sử trước sửa P02. Live P7/P8 và
 PostgreSQL đã được operator hoãn; chưa có freeze hoặc kết quả benchmark mới.
-P8 exact evidence hiện đã có authority bất biến cho merchant inventory và
-shopper cart/checkout preview reads khi receipt còn gắn đúng reset fixture,
-namespace và authorization. Catalog/review citation chưa có authority exact
-immutable riêng thì vẫn bị chặn fail-closed.
+P8 exact evidence hiện đã có authority bất biến cho merchant inventory,
+shopper cart/checkout preview reads, `catalog_product_N` và
+`review_sample_N` khi receipt còn gắn đúng reset fixture/source asset,
+namespace và authorization. Ranked catalog records, review samples vượt giới
+hạn runtime, và mọi source không tái dựng đủ vẫn bị chặn fail-closed.
 
 V2 smoke phải chạy trên PostgreSQL đã migrate tới `20260910_0008` và đã publish
 corpus/index. Xác nhận các identity hiện hành trước khi gửi request:
@@ -413,8 +414,9 @@ python -m app.evaluation.benchmark_cli operate `
 `operate` chỉ chạy sau checkpoint SUT đã complete; nó rebuild/verify preparation,
 calibrate judge trên các pilot measurement đã freeze, freeze calibration, judge blind packet
 và publish final report. Nó require explicit per-job budget; shared ledger vẫn
-account tất cả attempt, retry và reservation. Citation catalog/review chưa có
-authority exact immutable sẽ block lifecycle thay vì tự dựng evidence.
+account tất cả attempt, retry và reservation. Citation catalog/review chỉ được
+reopen từ source asset đã hash-pin và receipt authority tương ứng; record không
+đủ provenance sẽ block lifecycle thay vì tự dựng evidence.
 
 P8 hiện có SUT run terminal partial `run_p8_heldout_corrected_v3`: `678` cells
 completed, `42` failed trên `720` scheduled, với `0` pending, `0` ambiguous và

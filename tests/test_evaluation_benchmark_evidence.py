@@ -6,14 +6,18 @@ import asyncio
 import hashlib
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 
 from app.evaluation.benchmark_evidence import (
+    CatalogReviewAuthorityUnavailableErrorV3,
+    CatalogReviewAuthorizationMismatchErrorV3,
     CatalogReviewResolvedEvidenceV3,
     EvidenceMetadataUnavailableErrorV3,
     EvidenceProvenanceMismatchErrorV3,
     ImmutableBenchmarkEvidenceResolverV3,
+    ImmutableCatalogReviewSourceV3,
     SandboxEvidenceAuthorityUnavailableErrorV3,
     SandboxEvidenceAuthorizationMismatchErrorV3,
     SandboxEvidenceProvenanceMismatchErrorV3,
@@ -25,6 +29,7 @@ from app.evaluation.benchmark_reporting import (
     ResolvedExactEvidenceV3,
 )
 from app.evaluation.protocol import canonical_json_bytes
+from app.evaluation.v3_gold import SourceAssetsV3
 from app.knowledge.v2_contracts import (
     ResolvedKnowledgeEvidence,
     sha256_utf8,
@@ -192,6 +197,7 @@ def test_catalog_and_review_resolution_requires_exact_immutable_payload(
         CatalogReviewResolvedEvidenceV3(
             binding=binding,
             reference=reference,
+            authorization=_authorization(),
             exact_text=exact_text,
             content_sha256=sha256_utf8(exact_text),
         )
@@ -206,6 +212,201 @@ def test_catalog_and_review_resolution_requires_exact_immutable_payload(
 
     assert resolved.exact_text == exact_text
     assert catalog_source.calls == [binding]
+
+
+def _public_asset_bindings() -> tuple[Path, SourceAssetsV3]:
+    root = Path(__file__).resolve().parents[1]
+    document = json.loads((root / "evaluation/v3/gold.v3.json").read_text("utf-8"))
+    return root, SourceAssetsV3.model_validate(document["source_assets"])
+
+
+def _public_runtime_evidence(kind: EvidenceKind, *, product_id: int = 109):
+    """Use the production read tool against source-derived ORM rows, without I/O."""
+    from app.data.contracts import DatasetManifest, NormalizedProduct, NormalizedReview
+    from app.models.dataset_source import DatasetSource
+    from app.models.product import Product
+    from app.models.review import Review
+    from app.v2.tools import CatalogSnapshot, V2ReadTools
+
+    root, bindings = _public_asset_bindings()
+    manifest = DatasetManifest.model_validate_json(
+        (root / bindings.snapshot_manifest.path).read_bytes()
+    )
+    normalized = NormalizedProduct.model_validate_json(
+        (root / bindings.products.path).read_text("utf-8").splitlines()[product_id - 1]
+    )
+    product = Product(
+        id=product_id,
+        source_id=1,
+        platform="Tiki",
+        name=normalized.name,
+        authors=normalized.authors,
+        publisher=normalized.publisher,
+        category=normalized.category,
+        price=normalized.price_vnd,
+        rating=normalized.rating,
+        page_count=normalized.page_count,
+        source_review_count=normalized.source_review_count,
+        dataset_source=DatasetSource(id=1, retrieved_at=manifest.retrieved_at),
+    )
+    reviews = [
+        Review(id=index, rating=row.rating, content=row.content)
+        for index, line in enumerate(
+            (root / bindings.reviews.path).read_text("utf-8").splitlines(), start=1
+        )
+        if (row := NormalizedReview.model_validate_json(line)).product_external_id
+        == normalized.external_id
+    ]
+
+    def forbidden_session():
+        raise AssertionError("offline evidence must not open a database")
+
+    class Repository:
+        def get_products_by_ids(self, ids):
+            assert ids == (product_id,)
+            return [product]
+
+        def get_product_reviews(self, *, product_id, limit):
+            assert limit == 20
+            return product, reviews[:limit]
+
+    snapshot = CatalogSnapshot(
+        version_id=SANDBOX_SOURCE_VERSION_ID,
+        observed_at=manifest.retrieved_at,
+        source_ids=(1,),
+    )
+    tools = V2ReadTools(forbidden_session, catalog_snapshot=snapshot)
+    if kind is EvidenceKind.CATALOG:
+        _, evidence = tools._catalog([product])
+    else:
+        _, evidence = tools._reviews(Repository(), (product_id,), trust=False)
+    return evidence.references[0], evidence.excerpts[0].exact_text
+
+
+@pytest.mark.parametrize("kind", (EvidenceKind.CATALOG, EvidenceKind.REVIEW))
+def test_public_asset_resolution_matches_production_tool_record(
+    kind: EvidenceKind,
+) -> None:
+    root, bindings = _public_asset_bindings()
+    source = ImmutableCatalogReviewSourceV3(
+        project_root=root,
+        bindings=bindings,
+        snapshot_version_id=SANDBOX_SOURCE_VERSION_ID,
+    )
+    reference, exact_text = _public_runtime_evidence(kind)
+    resolved = source.reopen(reference, _authorization())
+    assert resolved.exact_text == exact_text
+    assert resolved.reference.kind is kind
+    assert resolved.authorization == _authorization()
+    assert resolved.content_sha256 == sha256_utf8(exact_text)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    (
+        ("source_id", "catalog_product_108"),
+        ("source_version_id", "cat_" + "3" * 64),
+        ("chunk_id", "tch_" + "4" * 64),
+        ("span_id", "tsp_" + "5" * 64),
+        ("evidence_id", "evidence_foreign"),
+        ("title", "A forged answer-derived title"),
+        ("observed_at", OBSERVED_AT),
+    ),
+)
+def test_public_asset_resolution_rejects_changed_binding(
+    field: str, value: object
+) -> None:
+    root, bindings = _public_asset_bindings()
+    source = ImmutableCatalogReviewSourceV3(
+        project_root=root,
+        bindings=bindings,
+        snapshot_version_id=SANDBOX_SOURCE_VERSION_ID,
+    )
+    reference, _ = _public_runtime_evidence(EvidenceKind.CATALOG)
+    with pytest.raises(EvidenceProvenanceMismatchErrorV3):
+        source.reopen(reference.model_copy(update={field: value}), _authorization())
+
+
+@pytest.mark.parametrize("asset", ("products", "reviews", "snapshot_manifest"))
+def test_public_asset_resolution_rejects_changed_asset_hash(
+    tmp_path: Path, asset: str
+) -> None:
+    root, bindings = _public_asset_bindings()
+    for name in ("products", "reviews", "snapshot_manifest"):
+        binding = getattr(bindings, name)
+        target = tmp_path / binding.path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(
+            (root / binding.path).read_bytes() + (b" " if asset == name else b"")
+        )
+    with pytest.raises(EvidenceProvenanceMismatchErrorV3, match="hash mismatch"):
+        ImmutableCatalogReviewSourceV3(
+            project_root=tmp_path,
+            bindings=bindings,
+            snapshot_version_id=SANDBOX_SOURCE_VERSION_ID,
+        )
+
+
+def test_public_asset_resolution_refuses_rank_without_candidate_authority() -> None:
+    root, bindings = _public_asset_bindings()
+    source = ImmutableCatalogReviewSourceV3(
+        project_root=root,
+        bindings=bindings,
+        snapshot_version_id=SANDBOX_SOURCE_VERSION_ID,
+    )
+    reference, _ = _public_runtime_evidence(EvidenceKind.CATALOG)
+    reference = reference.model_copy(update={"source_id": "rank_109_" + "a" * 24})
+    with pytest.raises(CatalogReviewAuthorityUnavailableErrorV3):
+        source.reopen(reference, _authorization())
+
+
+@pytest.mark.parametrize("change", ("tenant", "principal", "mode", "scope", "store"))
+def test_public_asset_exact_text_cannot_be_reused_under_foreign_authority(
+    change: str,
+) -> None:
+    root, bindings = _public_asset_bindings()
+    source = ImmutableCatalogReviewSourceV3(
+        project_root=root,
+        bindings=bindings,
+        snapshot_version_id=SANDBOX_SOURCE_VERSION_ID,
+    )
+    reference, _ = _public_runtime_evidence(EvidenceKind.CATALOG)
+    authority = source.reopen(reference, _authorization())
+    access = _authorization()
+    updates = {
+        "tenant": {"tenant_id": "tenant_other"},
+        "principal": {"principal_id": "principal_other"},
+        "mode": {"mode": ConversationMode.MERCHANT},
+        "store": {"store_id": "foreign_store"},
+    }
+    access = access.model_copy(
+        update={"scopes": frozenset()}
+        if change == "scope"
+        else {"binding": access.binding.model_copy(update=updates[change])}
+    )
+    resolver = _resolver(
+        _FakeKnowledgeService(None),
+        authorization=access,
+        reference_source=_ReferenceSource(reference),
+        catalog_review_source=_CatalogReviewSource(authority),
+    )
+    with pytest.raises(CatalogReviewAuthorizationMismatchErrorV3):
+        resolver.resolve(authority.binding)
+
+
+@pytest.mark.parametrize("kind", (EvidenceKind.CATALOG, EvidenceKind.REVIEW))
+def test_public_asset_reopen_requires_current_read_scope(kind: EvidenceKind) -> None:
+    root, bindings = _public_asset_bindings()
+    source = ImmutableCatalogReviewSourceV3(
+        project_root=root,
+        bindings=bindings,
+        snapshot_version_id=SANDBOX_SOURCE_VERSION_ID,
+    )
+    reference, _ = _public_runtime_evidence(kind)
+    with pytest.raises(CatalogReviewAuthorizationMismatchErrorV3):
+        source.reopen(
+            reference, _authorization().model_copy(update={"scopes": frozenset()})
+        )
 
 
 def test_knowledge_resolution_fails_closed_inside_an_active_event_loop() -> None:
