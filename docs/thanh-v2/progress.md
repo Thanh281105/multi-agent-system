@@ -21,16 +21,22 @@ proposal. The current protocol is
 `315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`;
 all older `c8a4…` references below remain historical. The operator deferred
 credentials and live P7/P8, so the final gate remains open. Targeted PostgreSQL
-executor (5 tests) and v2 action/sandbox seed (46 tests) gates pass; the broader
-API v2/action/replay matrix is still open.
+executor (5 tests) and v2 action/sandbox seed (46 tests) gates pass; later local
+verification also closes the broader API v2/action/replay PostgreSQL matrix.
 
 Local continuation verification: broad offline selection 785 passed, 2 baseline
 documentation/entrypoint failures, 1 skipped; both corrected failures reran green
 (2 passed). All 787 selected runnable tests therefore have passing verification;
 19 PostgreSQL-dependent modules were explicitly excluded. Separate API v1 gates
 passed 41 tests, frontend passed 116 tests and build/lint/TypeScript, and
-Ruff/mypy/diff checks passed. These results do not close live P7/P8 or PostgreSQL
-transaction/replay gates.
+Ruff/mypy/diff checks passed. A subsequent 243-test v2 API/supervisor selection
+ended with 2 failures and 14 setup errors solely because `TEST_POSTGRES_URL` was
+unset; that run is not a pass. Re-running the database-dependent cases against a
+loopback disposable PostgreSQL URL passed 17 tests with 1 existing
+Starlette/httpx warning. An additional PostgreSQL v2 action/history/lease/
+persistence/runtime/tools/sandbox suite passed 103 tests. Together these local
+results close the broader API v2/action/replay PostgreSQL verification. They do
+not complete live provider, P7, P8 or `operate` execution.
 
 - Lead owns review, integration, gates and commits. Following the current routing instruction, Luna Max implements bounded tasks; Sol High is reserved for architecture, hard debugging, transactional concurrency/idempotency, supervisor and grounding.
 - Explicit file ownership precedes concurrent edits; source snapshot/review data and credentials are not delegated. `Multi-Agent-lac-v2` is read-only, including its pre-existing `.gitignore` change.
@@ -544,5 +550,7 @@ validated: calibrated automated judge and frozen bindings; exact immutable
 evidence resolver over source/version/chunk/span; all
 `60 × 4 × frozen_repeats` receipt cells (`480` or `720`) with valid ledger
 attribution and no missing/ambiguous work; blind-answer/judgment
-join; analysis/report artifacts; real PostgreSQL transactional/replay checks;
-frontend checks when affected; package gates; and final documentation review.
+join; analysis/report artifacts; frontend checks when affected; package gates;
+and final documentation review. The broader local PostgreSQL
+transactional/replay gate is complete as recorded above; it does not alter the
+historical terminal-partial P8 status or authorize successor network execution.

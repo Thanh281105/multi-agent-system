@@ -1,9 +1,10 @@
 # P02 remediation and deferred successor execution
 
 This record supersedes the unstarted `31f3351` successor handoff. The operator
-explicitly deferred credentials, PostgreSQL and live P7/P8 execution in this
-session. No benchmark prompts were sent to OpenAI. No pilot checkpoint, repeat
-decision, held-out run or judging report was created.
+explicitly deferred credentials and live P7/P8 execution in this session. Local
+PostgreSQL regression gates were later reproduced as recorded below. No benchmark
+prompts were sent to OpenAI. No pilot checkpoint, repeat decision, held-out run or
+judging report was created.
 
 ## Implemented boundary
 
@@ -107,7 +108,7 @@ the P8 lifecycle can start.
 On any failure, classify the error and inspect its checkpoint before changing
 code. Fix only the demonstrated cause; preserve completed cells and bind any
 source change to a distinct compatible run. Final P7/P8 quality and final package
-closure remain pending live evidence and PostgreSQL gates.
+closure remain pending live evidence and the successor lifecycle gates.
 
 ## Local verification
 
@@ -125,6 +126,12 @@ passing verification, with 19 PostgreSQL-dependent modules explicitly excluded.
 This is an initial run plus focused rerun, not a claim of one clean full-suite run.
 
 Targeted PostgreSQL executor and v2 action/sandbox seed gates passed locally
-(`5` and `46` tests respectively); the broader API v2/action/replay matrix and
-live P7/P8/operate remain deferred by the operator. They must not be represented
-as passed or complete.
+(`5` and `46` tests respectively). A subsequent 243-test v2 API/supervisor
+selection ended with 2 failures and 14 setup errors solely because
+`TEST_POSTGRES_URL` was unset; that run is not a pass. Re-running the
+database-dependent cases against a loopback disposable PostgreSQL URL passed 17
+tests with 1 existing Starlette/httpx warning. An additional PostgreSQL v2
+action/history/lease/persistence/runtime/tools/sandbox suite passed 103 tests.
+Together these local results close the broader API v2/action/replay PostgreSQL
+verification. Live P7/P8/`operate` remain deferred and must not be represented as
+passed or complete.
