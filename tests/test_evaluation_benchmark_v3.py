@@ -20,6 +20,7 @@ from app.evaluation.benchmark_v3 import (
     load_frozen_package7_heldout_inputs_v3,
     package8_additive_source_sha256_v3,
     run_heldout_benchmark_v3,
+    validate_heldout_execution_plan_v3,
 )
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
 from app.evaluation.v3_checkpoint import CheckpointWriterV3
@@ -43,6 +44,7 @@ from app.evaluation.v3_runner import (
     UserTurnExecutionResultV3,
     initial_state_reset_receipt_v3,
 )
+from app.evaluation.v3_schedule import pilot_schedule_sha256_v3
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -128,8 +130,22 @@ def test_p8_preserves_the_frozen_package7_source_manifest_and_protocol(frozen) -
 def test_p8_schedule_is_a_deterministic_complete_720_cell_matrix(frozen) -> None:
     first = build_heldout_schedule_v3(frozen, run_id="run_p8_schedule")
     second = build_heldout_schedule_v3(frozen, run_id="run_p8_schedule")
+    first_plan = build_heldout_execution_plan_v3(
+        frozen,
+        first,
+        run_id="run_p8_schedule",
+    )
+    second_plan = build_heldout_execution_plan_v3(
+        frozen,
+        second,
+        run_id="run_p8_schedule",
+    )
 
     assert first == second
+    assert pilot_schedule_sha256_v3(first) == pilot_schedule_sha256_v3(second)
+    assert first_plan == second_plan
+    assert first_plan.selected_repeats == 3
+    assert first_plan.measured_cell_count == 720
     assert len(first) == 720
     assert all(turn.identity.turn_kind.value == "measured" for turn in first)
     assert all(turn.observation_id is not None for turn in first)
@@ -149,6 +165,88 @@ def test_p8_schedule_is_a_deterministic_complete_720_cell_matrix(frozen) -> None
         )
         for repetition in range(3)
     }
+
+
+def test_p8_frozen_two_repeat_decision_drives_schedule_and_plan(
+    frozen,
+    tmp_path: Path,
+) -> None:
+    decision = frozen.repeat_decision.model_copy(update={"selected_repeats": 2})
+    protocol_path, decision_path = _write_package7_artifacts(
+        tmp_path,
+        frozen.protocol,
+        decision,
+    )
+    frozen_two = load_frozen_package7_heldout_inputs_v3(
+        project_root=PROJECT_ROOT,
+        protocol_path=protocol_path,
+        repeat_decision_path=decision_path,
+        gold_path=PROJECT_ROOT / "evaluation" / "v3" / "gold.v3.json",
+        split_path=PROJECT_ROOT / "evaluation" / "v3" / "split.v3.json",
+    )
+
+    first = build_heldout_schedule_v3(frozen_two, run_id="run_p8_two_repeats")
+    second = build_heldout_schedule_v3(frozen_two, run_id="run_p8_two_repeats")
+    first_plan = build_heldout_execution_plan_v3(
+        frozen_two,
+        first,
+        run_id="run_p8_two_repeats",
+    )
+    second_plan = build_heldout_execution_plan_v3(
+        frozen_two,
+        second,
+        run_id="run_p8_two_repeats",
+    )
+
+    assert first == second
+    assert pilot_schedule_sha256_v3(first) == pilot_schedule_sha256_v3(second)
+    assert len(first) == 480
+    assert [turn.schedule_index for turn in first] == list(range(480))
+    assert [turn.execution_order for turn in first] == list(range(480))
+    assert {
+        (turn.identity.case_id, turn.identity.variant_id, turn.identity.repetition)
+        for turn in first
+    } == {
+        (case_id, variant_id, repetition)
+        for case_id in frozen_two.heldout_cases
+        for variant_id in PACKAGE7_VARIANT_ORDER
+        for repetition in range(2)
+    }
+    assert first_plan == second_plan
+    assert first_plan.selected_repeats == 2
+    assert first_plan.measured_cell_count == 480
+    validate_heldout_execution_plan_v3(first_plan, second_plan)
+
+    tampered_plan = first_plan.model_copy(
+        update={"selected_repeats": 3, "measured_cell_count": 720}
+    )
+    with pytest.raises(FrozenPackage7DriftError, match="package8_execution_plan_drift"):
+        validate_heldout_execution_plan_v3(tampered_plan, first_plan)
+
+
+def test_p8_rejects_an_invalid_repeat_decision(
+    frozen,
+    tmp_path: Path,
+) -> None:
+    invalid_decision = frozen.repeat_decision.model_copy(update={"selected_repeats": 4})
+    protocol_path, decision_path = _write_package7_artifacts(
+        tmp_path,
+        frozen.protocol,
+        invalid_decision,
+    )
+
+    with pytest.raises(FrozenPackage7DriftError, match="repeat_decision_invalid"):
+        load_frozen_package7_heldout_inputs_v3(
+            project_root=PROJECT_ROOT,
+            protocol_path=protocol_path,
+            repeat_decision_path=decision_path,
+            gold_path=PROJECT_ROOT / "evaluation" / "v3" / "gold.v3.json",
+            split_path=PROJECT_ROOT / "evaluation" / "v3" / "split.v3.json",
+        )
+
+    tampered_frozen = replace(frozen, repeat_decision=invalid_decision)
+    with pytest.raises(FrozenPackage7DriftError, match="repeat_decision_drift"):
+        build_heldout_schedule_v3(tampered_frozen, run_id="run_p8_invalid_repeat")
 
 
 def test_p8_adapts_only_heldout_cases_with_exact_bindings_and_fixtures(frozen) -> None:

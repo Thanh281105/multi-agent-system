@@ -216,7 +216,7 @@ budget/projection evidence, không phải benchmark quality result và không th
 
 P7 successor chưa dispatch. Dry-run đã xác nhận `36` cells gồm `4` warmup và
 `32` measurements cho `run_p7_successor_v4`, với schedule SHA
-`f37eaa4482cafa85b9c665bf6ea25f30a81872df277e3e803949035209b7da13`. P8
+`754b168a7d361986c98c243b3fbd7e69fbdbf3c7dd4177e0d90f5f49492f923e`. P8
 successor chỉ được tạo sau khi pilot này hoàn tất và repeat decision mới được
 freeze; không resume hay ghép thêm cells vào P7/P8 historical.
 
@@ -263,11 +263,13 @@ python -m app.evaluation.benchmark_cli operate `
 `run`, `resume` và `operate` chỉ được dispatch live khi operator truyền rõ
 `--allow-network` cùng `--database-url`; `operate` còn bắt buộc per-job judge
 budget. URL không được ghi vào output. Schedule P8 là exact
-`60 × 4 × 3 = 720` held-out measurements, không có warmup. Checkpoint append-only
-không được redispatch cell đã settled; orphan/ambiguous work phải giữ trạng thái
-partial. `operate` hash-bind preparation, calibration, journal, judgment và
-publication; catalog/review citation thiếu exact immutable authority sẽ dừng
-fail-closed, không dùng text từ answer hay gold thay thế evidence.
+`60 × 4 × frozen_repeats` held-out measurements (`480` hoặc `720`), không có
+warmup. Checkpoint append-only không được redispatch cell đã settled;
+orphan/ambiguous work phải giữ trạng thái partial. `operate` hash-bind
+preparation, calibration, journal, judgment và publication; catalog/review
+records chỉ được reopen từ source asset hash-pin và receipt authority tương ứng.
+Ranked, oversized hoặc provenance không đầy đủ sẽ dừng fail-closed, không dùng
+text từ answer hay gold thay thế evidence.
 
 Khi checkpoint terminal nhưng incomplete, lệnh local-only sau tạo hoặc tái xác
 thực một record bất biến `partial-execution-report.p8.json`; lệnh không dựng
@@ -304,8 +306,9 @@ resolver, calibration/judging và các final gates có thể chạy.
 1. Calibrated automated judge và frozen calibration/configuration bindings.
 2. Exact immutable evidence resolver mở lại đúng source/version/chunk/span từ
    durable final `TurnResult`; citation ID hoặc text tự tạo không đủ.
-3. Đủ 720 receipt cells, ledger attribution hợp lệ, no missing/ambiguous cells,
-   rồi complete blind-answer/judgment join.
+3. Đủ `60 × 4 × frozen_repeats` receipt cells (`480` hoặc `720`), ledger
+   attribution hợp lệ, no missing/ambiguous cells, rồi complete
+   blind-answer/judgment join.
 4. Analysis/report artifact với bindings, counts, paired metrics, omissions và
    partial/complete status được validator chấp nhận.
 5. Regression, real PostgreSQL transactional/replay checks, frontend checks khi

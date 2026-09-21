@@ -511,9 +511,9 @@ It requires explicit `--allow-network`, `--database-url` and a per-job judge
 budget; it resolves only receipt-bound exact evidence. Hash-pinned
 `catalog_product_N`/`review_sample_N` records are supported when their source
 assets and original authorization are complete; ranked/oversized or mutated
-sources remain fail-closed. The driver
-builds the exact `60 × 4 × 3 = 720` held-out measurement
-schedule and uses append-only checkpoint/resume behavior. Local commands do not
+sources remain fail-closed. The driver builds the exact
+`60 × 4 × frozen_repeats` held-out measurement schedule (`480` or `720`) and
+uses append-only checkpoint/resume behavior. Local commands do not
 call a provider.
 
 The held-out SUT run `run_p8_heldout_corrected_v3` reached a terminal partial
@@ -541,7 +541,8 @@ requires exact evidence resolution, calibration/judging and the final gates.
 
 Package 8 remains open until all of the following are complete and independently
 validated: calibrated automated judge and frozen bindings; exact immutable
-evidence resolver over source/version/chunk/span; all 720 receipt cells with
-valid ledger attribution and no missing/ambiguous work; blind-answer/judgment
+evidence resolver over source/version/chunk/span; all
+`60 × 4 × frozen_repeats` receipt cells (`480` or `720`) with valid ledger
+attribution and no missing/ambiguous work; blind-answer/judgment
 join; analysis/report artifacts; real PostgreSQL transactional/replay checks;
 frontend checks when affected; package gates; and final documentation review.

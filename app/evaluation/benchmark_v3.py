@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
 from app.evaluation.v3_checkpoint import CheckpointWriterV3
@@ -133,14 +133,23 @@ class HeldoutExecutionPlanV3(FrozenContractP8):
     package7_protocol_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     repeat_decision_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     heldout_schedule_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
-    selected_repeats: Literal[3]
+    selected_repeats: Literal[2, 3]
     heldout_case_count: Literal[60] = 60
     variant_count: Literal[4] = 4
-    measured_cell_count: Literal[720] = 720
+    measured_cell_count: Literal[480, 720] = 720
     warmup_count: Literal[0] = 0
     identity_schedule_algorithm_id: Literal["package7_pilot_interleaved_v1"] = (
         SCHEDULE_ALGORITHM_ID_V3
     )
+
+    @model_validator(mode="after")
+    def validate_measured_cell_count(self) -> HeldoutExecutionPlanV3:
+        expected = self.heldout_case_count * self.variant_count * self.selected_repeats
+        if self.measured_cell_count != expected:
+            raise ValueError(
+                "measured cell count must match the frozen repeat decision"
+            )
+        return self
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,8 +210,7 @@ def load_frozen_package7_heldout_inputs_v3(
         or decision.repeat_rule_sha256 != protocol.repeat_rule_sha256
     ):
         raise FrozenPackage7DriftError("package7_repeat_decision_binding_drift")
-    if decision.selected_repeats != 3:
-        raise FrozenPackage7DriftError("package7_repeat_decision_drift")
+    _validated_repeat_count_v3(decision)
 
     loaded_gold = load_evaluation_gold_v3(
         gold_path,
@@ -306,12 +314,11 @@ def build_heldout_schedule_v3(
     *,
     run_id: str,
 ) -> tuple[ScheduledTurnV3, ...]:
-    """Build the exact 60 x 4 x 3 P8 measurement matrix without warmups."""
+    """Build the exact 60 x 4 x frozen-repeat P8 matrix without warmups."""
 
     if _IDENTIFIER.fullmatch(run_id) is None:
         raise ValueError("run_id is not a valid evaluation identifier")
-    if frozen.repeat_decision.selected_repeats != 3:
-        raise FrozenPackage7DriftError("package7_repeat_decision_drift")
+    selected_repeats = _validated_repeat_count_v3(frozen.repeat_decision)
     variants = tuple(variant.variant_id for variant in frozen.protocol.variants)
     if variants != PACKAGE7_VARIANT_ORDER:
         raise FrozenPackage7DriftError("package7_variant_order_drift")
@@ -324,7 +331,7 @@ def build_heldout_schedule_v3(
     execution_order = 0
     for case_id in case_ids:
         case = frozen.heldout_cases[case_id]
-        for repetition in range(frozen.repeat_decision.selected_repeats):
+        for repetition in range(selected_repeats):
             shuffled_variants = list(variants)
             generator.shuffle(shuffled_variants)
             for variant_id in shuffled_variants:
@@ -362,6 +369,7 @@ def validate_heldout_schedule_v3(
     """Prove that a schedule is the complete frozen P8 measurement matrix."""
 
     turns = tuple(schedule)
+    selected_repeats = _validated_repeat_count_v3(frozen.repeat_decision)
     expected_case_ids = _heldout_case_order(frozen.loaded_gold)
     if tuple(frozen.heldout_cases) != expected_case_ids:
         raise FrozenPackage7DriftError("heldout_case_order_drift")
@@ -369,17 +377,22 @@ def validate_heldout_schedule_v3(
         (case_id, variant_id, repetition)
         for case_id in expected_case_ids
         for variant_id in PACKAGE7_VARIANT_ORDER
-        for repetition in range(frozen.repeat_decision.selected_repeats)
+        for repetition in range(selected_repeats)
     }
     actual = {
         (turn.identity.case_id, turn.identity.variant_id, turn.identity.repetition)
         for turn in turns
     }
-    if len(turns) != 720 or actual != expected or len(actual) != len(turns):
+    measured_cell_count = 60 * len(PACKAGE7_VARIANT_ORDER) * selected_repeats
+    if (
+        len(turns) != measured_cell_count
+        or actual != expected
+        or len(actual) != len(turns)
+    ):
         raise FrozenPackage7DriftError("heldout_schedule_matrix_drift")
-    if [turn.schedule_index for turn in turns] != list(range(720)):
+    if [turn.schedule_index for turn in turns] != list(range(measured_cell_count)):
         raise FrozenPackage7DriftError("heldout_schedule_index_drift")
-    if [turn.execution_order for turn in turns] != list(range(720)):
+    if [turn.execution_order for turn in turns] != list(range(measured_cell_count)):
         raise FrozenPackage7DriftError("heldout_execution_order_drift")
     for turn in turns:
         identity = turn.identity
@@ -403,13 +416,16 @@ def build_heldout_execution_plan_v3(
     """Bind P7 provenance and the full P8 schedule into one immutable plan."""
 
     validate_heldout_schedule_v3(frozen, schedule, run_id=run_id)
+    selected_repeats = _validated_repeat_count_v3(frozen.repeat_decision)
+    measured_cell_count: Literal[480, 720] = 480 if selected_repeats == 2 else 720
     return HeldoutExecutionPlanV3(
         extension_descriptor_sha256=package8_heldout_descriptor_sha256_v3(),
         additive_source_manifest_sha256=package8_additive_source_sha256_v3(),
         package7_protocol_sha256=frozen.protocol_sha256,
         repeat_decision_sha256=frozen.repeat_decision_sha256,
         heldout_schedule_sha256=pilot_schedule_sha256_v3(tuple(schedule)),
-        selected_repeats=3,
+        selected_repeats=selected_repeats,
+        measured_cell_count=measured_cell_count,
     )
 
 
@@ -441,7 +457,7 @@ class HeldoutEvaluationV3ObservationRunner:
             or frozen.repeat_decision.protocol_sha256 != frozen.protocol_sha256
             or frozen.repeat_decision.repeat_rule_sha256
             != frozen.protocol.repeat_rule_sha256
-            or frozen.repeat_decision.selected_repeats != 3
+            or frozen.repeat_decision.selected_repeats not in (2, 3)
         ):
             raise FrozenPackage7DriftError("package7_frozen_input_drift")
         self.schedule = tuple(schedule)
@@ -733,6 +749,13 @@ def _load_model[T: BaseModel](path: Path, model: type[T], label: str) -> T:
         return model.model_validate_json(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, ValueError) as exc:
         raise FrozenPackage7DriftError(f"package7_{label}_invalid") from exc
+
+
+def _validated_repeat_count_v3(decision: RepeatDecisionV3) -> Literal[2, 3]:
+    selected_repeats = decision.selected_repeats
+    if selected_repeats not in (2, 3):
+        raise FrozenPackage7DriftError("package7_repeat_decision_drift")
+    return selected_repeats
 
 
 def _validate_live_package7_binding(

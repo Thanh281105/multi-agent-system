@@ -83,8 +83,9 @@ runtime payloads and dispatch behavior are unchanged.
 5. Only after complete/frozen P7, allocate `run_p8_successor_v4` and
    `output/evaluation-v3/heldout-successor-v4` (or another unused pair). Supply
    `--p7-protocol` and `--p7-repeat-decision` from that same P7 output. Require
-   720/720 receipt cells, complete attempt/retry/warmup/embedding accounting and
-   zero pending/ambiguous/orphan/failed cells. Do not force a three-repeat decision
+   `60 × 4 × frozen_repeats` receipt cells (`480` or `720`), complete
+   attempt/retry/warmup/embedding accounting and zero
+   pending/ambiguous/orphan/failed cells. Do not force a three-repeat decision
    if the frozen cost gate does not permit it. Never resume
    `run_p8_heldout_corrected_v3` to replace settled cells.
 6. For `benchmark_cli operate`, also pass `--pilot-checkpoint` and
