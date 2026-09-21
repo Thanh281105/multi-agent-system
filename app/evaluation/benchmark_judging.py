@@ -8,6 +8,7 @@ durably terminal or permanently ambiguous after an interrupted start.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import re
@@ -705,7 +706,9 @@ class DurableModelJudgeRunnerV3:
                 output=output,
             )
             attempts = self._attempt_snapshots(scope_id)
-        except BaseException as exc:
+        except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as exc:
             attempts = self._attempt_snapshots_or_empty(scope_id)
             error_code = _safe_error_code(exc)
             journal.append_terminal(
@@ -788,7 +791,9 @@ class DurableModelJudgeRunnerV3:
                 output=output,
             )
             attempts = self._attempt_snapshots(scope_id)
-        except BaseException as exc:
+        except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as exc:
             attempts = self._attempt_snapshots_or_empty(scope_id)
             error_code = _safe_error_code(exc)
             journal.append_terminal(

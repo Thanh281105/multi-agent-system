@@ -476,12 +476,13 @@ with no human author or judge IDs.
 
 These artifacts establish historical frozen inputs and a budget projection only.
 They do not establish held-out quality, semantic grounding, or a completed
-benchmark. Merchant remediation in `ea24338` changes the source-bound protocol;
-the canonical successor SHA256 is
-`c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79cde`.
+benchmark. Merchant remediation in `ea24338` and the grounded P02 successor in
+`7f3dc84` change the source-bound protocol; the current canonical successor
+SHA256 is
+`315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`.
 `run_p7_successor_v4` has passed local dry-run with 36 cells (4 warmup and 32
 measurements), schedule SHA
-`f37eaa4482cafa85b9c665bf6ea25f30a81872df277e3e803949035209b7da13`, but has
+`754b168a7d361986c98c243b3fbd7e69fbdbf3c7dd4177e0d90f5f49492f923e`, but has
 not dispatched a provider run and has no repeat decision. It must complete and
 freeze before a new P8 schedule may be created. No completed historical cell may
 be replayed or reused as successor evidence.

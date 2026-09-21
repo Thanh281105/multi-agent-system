@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -259,6 +260,37 @@ async def test_invalid_or_fabricated_model_output_becomes_terminal_failure(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "interruption_type",
+    (asyncio.CancelledError, KeyboardInterrupt, SystemExit),
+)
+async def test_heldout_interruption_propagates_without_failure_or_later_dispatch(
+    context: tuple[Any, ...],
+    tmp_path: Path,
+    interruption_type: type[BaseException],
+) -> None:
+    configuration, answer, _, _, _, _, _, freeze = context
+    packet = _packet(
+        configuration.bindings,
+        (answer, _answer("answer_000000000000000000000002")),
+    )
+    ledger = _RecordingLedger()
+    runtime = _FakeRuntime(ledger, interrupt_with=interruption_type)
+    journal_path = tmp_path / "heldout-interrupted.journal.jsonl"
+
+    with pytest.raises(interruption_type):
+        await _runner(runtime, ledger, journal_path).run_heldout_packet(
+            packet=packet,
+            configuration=configuration,
+            calibration=freeze,
+        )
+
+    assert len(runtime.requests) == 1
+    records = _journal_records(journal_path)
+    assert [record["record_type"] for record in records] == ["header", "started"]
+
+
+@pytest.mark.asyncio
 async def test_development_runner_records_calibration_provenance_and_budget_scope(
     context: tuple[Any, ...],
     tmp_path: Path,
@@ -284,6 +316,48 @@ async def test_development_runner_records_calibration_provenance_and_budget_scop
     assert calibration_record.thresholds_sha256 == thresholds.thresholds_sha256
     assert runtime.requests[0]["phase"] == "development_calibration"
     assert runtime.requests[0]["calibration_sha256"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "interruption_type",
+    (asyncio.CancelledError, KeyboardInterrupt, SystemExit),
+)
+async def test_calibration_interruption_propagates_without_failure_or_later_dispatch(
+    context: tuple[Any, ...],
+    tmp_path: Path,
+    interruption_type: type[BaseException],
+) -> None:
+    configuration, _, _, case, reference, _, thresholds, _ = context
+    second_case = build_development_calibration_case_v3(
+        calibration_id="calibration_case_two",
+        answer=_answer("answer_000000000000000000000002"),
+    )
+    second_reference = build_calibration_reference_labels_v3(
+        second_case,
+        development_observation_id="development_observation_two",
+        source_classification="automated_gold_derived",
+        scores=_scores(1.0),
+    )
+    references = build_calibration_reference_bundle_v3(
+        protocol_sha256=configuration.bindings.protocol_sha256,
+        references=(reference, second_reference),
+    )
+    ledger = _RecordingLedger()
+    runtime = _FakeRuntime(ledger, interrupt_with=interruption_type)
+    journal_path = tmp_path / "calibration-interrupted.journal.jsonl"
+
+    with pytest.raises(interruption_type):
+        await _runner(runtime, ledger, journal_path).run_development_calibration_cases(
+            configuration=configuration,
+            cases=(case, second_case),
+            references=references,
+            thresholds=thresholds,
+        )
+
+    assert len(runtime.requests) == 1
+    records = _journal_records(journal_path)
+    assert [record["record_type"] for record in records] == ["header", "started"]
 
 
 @pytest.mark.asyncio
@@ -396,10 +470,15 @@ class _RuntimeResult:
 
 class _FakeRuntime:
     def __init__(
-        self, ledger: _RecordingLedger, *, fabricated_citation: bool = False
+        self,
+        ledger: _RecordingLedger,
+        *,
+        fabricated_citation: bool = False,
+        interrupt_with: type[BaseException] | None = None,
     ) -> None:
         self.ledger = ledger
         self.fabricated_citation = fabricated_citation
+        self.interrupt_with = interrupt_with
         self.requests: list[dict[str, object]] = []
 
     async def generate_structured(self, **kwargs: Any) -> _RuntimeResult:
@@ -413,10 +492,16 @@ class _FakeRuntime:
         request = json.loads(kwargs["input_text"])
         self.requests.append(request)
         self.ledger.reserve(budget.scope_id)
+        if self.interrupt_with is not None:
+            raise self.interrupt_with()
         answer = BlindedAnswerV3.model_validate(request["answer"])
         return _RuntimeResult(
             _output(answer, fabricated_citation=self.fabricated_citation)
         )
+
+
+def _journal_records(path: Path) -> list[dict[str, object]]:
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
 
 def _bindings() -> ArtifactBindingsV3:

@@ -429,6 +429,8 @@ hash của run đó; lệnh local-only và không mở live runtime. Không báo
 checkpoint như complete, scored, calibrated hoặc judge-complete. Run này không
 thể resume để redispatch terminal cells. P8 successor chỉ được tạo sau P7
 successor protocol SHA-256
-`c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79cde` hoàn tất
+`315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f` hoàn tất
 và freeze repeat decision; sau đó mới chạy exact immutable evidence resolver,
-calibration/judging và các final gates.
+calibration/judging và các final gates. Schedule hiện hành là
+`754b168a7d361986c98c243b3fbd7e69fbdbf3c7dd4177e0d90f5f49492f923e`; hash
+`c8a4…` chỉ thuộc handoff historical trước P02.
