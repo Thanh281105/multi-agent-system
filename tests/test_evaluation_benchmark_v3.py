@@ -21,6 +21,7 @@ from app.evaluation.benchmark_v3 import (
     package8_additive_source_sha256_v3,
     run_heldout_benchmark_v3,
     validate_heldout_execution_plan_v3,
+    validate_heldout_schedule_v3,
 )
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
 from app.evaluation.v3_checkpoint import CheckpointWriterV3
@@ -222,6 +223,67 @@ def test_p8_frozen_two_repeat_decision_drives_schedule_and_plan(
     )
     with pytest.raises(FrozenPackage7DriftError, match="package8_execution_plan_drift"):
         validate_heldout_execution_plan_v3(tampered_plan, first_plan)
+
+
+def test_p8_runner_checkpoint_boundary_enforces_frozen_two_repeat_cardinality(
+    frozen,
+    tmp_path: Path,
+) -> None:
+    run_id = "run_p8_two_repeat_boundary"
+    decision = frozen.repeat_decision.model_copy(update={"selected_repeats": 2})
+    protocol_path, decision_path = _write_package7_artifacts(
+        tmp_path,
+        frozen.protocol,
+        decision,
+    )
+    frozen_two = load_frozen_package7_heldout_inputs_v3(
+        project_root=PROJECT_ROOT,
+        protocol_path=protocol_path,
+        repeat_decision_path=decision_path,
+        gold_path=PROJECT_ROOT / "evaluation" / "v3" / "gold.v3.json",
+        split_path=PROJECT_ROOT / "evaluation" / "v3" / "split.v3.json",
+    )
+    schedule_two = build_heldout_schedule_v3(frozen_two, run_id=run_id)
+    plan_two = build_heldout_execution_plan_v3(
+        frozen_two,
+        schedule_two,
+        run_id=run_id,
+    )
+    validate_heldout_schedule_v3(frozen_two, schedule_two, run_id=run_id)
+    validate_heldout_execution_plan_v3(plan_two, plan_two)
+
+    checkpoint = tmp_path / "heldout-two-repeat-checkpoint.v3.jsonl"
+    factory = _ForbiddenFactory()
+    runner = HeldoutEvaluationV3ObservationRunner(
+        frozen=frozen_two,
+        schedule=schedule_two,
+        checkpoint_path=checkpoint,
+        executor_factory=factory,
+    )
+    with CheckpointWriterV3(
+        checkpoint,
+        run_id=runner.run_id,
+        protocol_sha256=frozen_two.protocol_sha256,
+        execution_case_set_sha256=runner.execution_case_set_sha256,
+        schedule_sha256=runner.schedule_sha256,
+        schedule=schedule_two,
+    ) as writer:
+        assert len(writer.state.pending_turn_ids) == plan_two.measured_cell_count == 480
+    assert factory.calls == 0
+
+    schedule_three = build_heldout_schedule_v3(frozen, run_id=run_id)
+    mismatched_checkpoint = tmp_path / "heldout-repeat-mismatch.v3.jsonl"
+    with pytest.raises(FrozenPackage7DriftError) as captured:
+        HeldoutEvaluationV3ObservationRunner(
+            frozen=frozen_two,
+            schedule=schedule_three,
+            checkpoint_path=mismatched_checkpoint,
+            executor_factory=factory,
+        )
+
+    assert str(captured.value) == "heldout_schedule_matrix_drift"
+    assert factory.calls == 0
+    assert not mismatched_checkpoint.exists()
 
 
 def test_p8_rejects_an_invalid_repeat_decision(
