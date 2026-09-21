@@ -20,7 +20,9 @@ P02 now supports grounded multi-offer reads plus an independently server-bound
 proposal. The current protocol is
 `315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`;
 all older `c8a4…` references below remain historical. The operator deferred
-credentials, PostgreSQL and live P7/P8, so the final gate remains open.
+credentials and live P7/P8, so the final gate remains open. Targeted PostgreSQL
+executor (5 tests) and v2 action/sandbox seed (46 tests) gates pass; the broader
+API v2/action/replay matrix is still open.
 
 Local continuation verification: broad offline selection 785 passed, 2 baseline
 documentation/entrypoint failures, 1 skipped; both corrected failures reran green
@@ -506,8 +508,9 @@ post-SUT `operate`. `operate` rebuilds exact-evidence preparation under the
 receipt authorization, calibrates on the frozen successor P7 pilot measurements,
 freezes the judge, runs the blind held-out journal and publishes final artifacts.
 It requires explicit `--allow-network`, `--database-url` and a per-job judge
-budget; it fails closed when a catalog/review citation lacks an immutable exact
-authority. The driver builds the exact `60 × 4 × 3 = 720` held-out measurement
+budget; it resolves only receipt-bound exact evidence and fails closed when a
+catalog/review authority or mutated sandbox source is unavailable. The driver
+builds the exact `60 × 4 × 3 = 720` held-out measurement
 schedule and uses append-only checkpoint/resume behavior. Local commands do not
 call a provider.
 

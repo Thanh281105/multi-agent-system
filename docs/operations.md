@@ -352,7 +352,10 @@ Handoff hiện hành sau sửa P02 nằm tại
 `315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`.
 Các hash `c8a4…`/`f37e…` bên dưới là lịch sử trước sửa P02. Live P7/P8 và
 PostgreSQL đã được operator hoãn; chưa có freeze hoặc kết quả benchmark mới.
-Inventory citation hiện vẫn fail-closed ở P8 với `evidence_kind_unsupported`.
+P8 exact evidence hiện đã có authority bất biến cho merchant inventory và
+shopper cart/checkout preview reads khi receipt còn gắn đúng reset fixture,
+namespace và authorization. Catalog/review citation chưa có authority exact
+immutable riêng thì vẫn bị chặn fail-closed.
 
 V2 smoke phải chạy trên PostgreSQL đã migrate tới `20260910_0008` và đã publish
 corpus/index. Xác nhận các identity hiện hành trước khi gửi request:
@@ -373,7 +376,7 @@ Historical P8 partial được giữ nguyên. Vì remediation merchant đã đ�
 protocol, operator phải chạy P7 successor và freeze repeat decision mới trước khi
 tạo P8 successor; không được resume historical P8 để redispatch terminal cells.
 P7 successor chưa dispatch; dry-run của `run_p7_successor_v4` đã tạo schedule
-`f37eaa4482cafa85b9c665bf6ea25f30a81872df277e3e803949035209b7da13` cho 36
+`754b168a7d361986c98c243b3fbd7e69fbdbf3c7dd4177e0d90f5f49492f923e` cho 36
 cells (4 warmup, 32 measurements). Package 8 vẫn là additive held-out work. Các
 lệnh local không gọi provider:
 

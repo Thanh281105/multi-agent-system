@@ -9,6 +9,8 @@ derives citation text from a title, a rubric, or a response.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import re
 from collections.abc import Awaitable, Callable, Mapping
 from types import MappingProxyType
@@ -21,17 +23,20 @@ from app.evaluation.benchmark_reporting import (
     FrozenBenchmarkReportingContractV3,
     ResolvedExactEvidenceV3,
 )
+from app.evaluation.protocol import canonical_json_bytes
 from app.knowledge.v2_contracts import (
     ResolvedKnowledgeEvidence,
     sha256_utf8,
     stable_evidence_id,
 )
-from app.v2.authorization import ResourceAuthorization
-from app.v2.contracts import EvidenceKind, EvidenceReference
+from app.v2.authorization import DEMO_STORE_ID, ResourceAuthorization
+from app.v2.contracts import ConversationMode, EvidenceKind, EvidenceReference
 
 _CONTENT_ADDRESS_ID = re.compile(r"^(?P<prefix>cor|idx)_[0-9a-f]{60}$")
 _HASH_VERSIONED_ID = re.compile(r"^[a-z][a-z0-9_-]{0,32}_[0-9a-f]{60,64}$")
 _SHA256 = r"^[a-f0-9]{64}$"
+_IDENTIFIER = r"^[a-z][a-z0-9_.-]{2,127}$"
+_NAMESPACE_ID = r"^namespace_[a-f0-9]{64}$"
 
 
 class BenchmarkEvidenceResolutionErrorV3(ValueError):
@@ -56,6 +61,24 @@ class UnsupportedEvidenceKindErrorV3(BenchmarkEvidenceResolutionErrorV3):
     """Package 8 has no authority path for this evidence kind."""
 
     code = "evidence_kind_unsupported"
+
+
+class SandboxEvidenceAuthorityUnavailableErrorV3(EvidenceMetadataUnavailableErrorV3):
+    """No immutable, receipt-bound sandbox source was supplied."""
+
+    code = "sandbox_evidence_authority_unavailable"
+
+
+class SandboxEvidenceAuthorizationMismatchErrorV3(EvidenceProvenanceMismatchErrorV3):
+    """Sandbox evidence belongs to a different current authorization."""
+
+    code = "sandbox_evidence_authorization_mismatch"
+
+
+class SandboxEvidenceProvenanceMismatchErrorV3(EvidenceProvenanceMismatchErrorV3):
+    """Sandbox fixture, subject, offer, or exact record does not match."""
+
+    code = "sandbox_evidence_provenance_mismatch"
 
 
 class UnsafeSynchronousEvidenceResolutionErrorV3(BenchmarkEvidenceResolutionErrorV3):
@@ -90,6 +113,51 @@ class CatalogReviewResolvedEvidenceV3(FrozenBenchmarkReportingContractV3):
             raise ValueError("catalog/review evidence text cannot be blank")
         if sha256_utf8(self.exact_text) != self.content_sha256:
             raise ValueError("catalog/review content hash does not match exact text")
+        return self
+
+
+class SandboxResolvedEvidenceV3(FrozenBenchmarkReportingContractV3):
+    """Exact sandbox read record bound to a reset fixture and receipt authority.
+
+    The canonical fixture is carried as immutable JSON text so mapping-backed
+    resolver inputs cannot be changed after construction.  Resolution verifies
+    its hash and reconstructs the server-owned inventory record from that
+    fixture; neither answer text nor presentation metadata is an authority.
+    """
+
+    binding: EvidenceBindingKeyV3
+    reference: EvidenceReference
+    authorization: ResourceAuthorization
+    fixture_id: str = Field(pattern=_IDENTIFIER)
+    fixture_sha256: str = Field(pattern=_SHA256)
+    reset_revision: int = Field(ge=1)
+    fixture_payload_json: str = Field(min_length=1, max_length=100_000)
+    execution_namespace_id: str = Field(pattern=_NAMESPACE_ID)
+    record_kind: Literal[
+        "merchant_inventory_offer",
+        "shopper_cart_summary",
+        "shopper_cart_item",
+        "shopper_checkout_summary",
+        "shopper_checkout_item",
+    ] = "merchant_inventory_offer"
+    snapshot_version_id: str | None = Field(default=None, pattern=_IDENTIFIER)
+    fixture_offer_id: str | None = Field(default=None, pattern=_IDENTIFIER)
+    offer_id: str | None = Field(default=None, pattern=_IDENTIFIER)
+    offer_version: int | None = Field(default=None, ge=1)
+    fixture_cart_id: str | None = Field(default=None, pattern=_IDENTIFIER)
+    cart_id: str | None = Field(default=None, pattern=_IDENTIFIER)
+    product_id: int | None = Field(default=None, ge=1)
+    subject_id: str = Field(pattern=_IDENTIFIER)
+    exact_text: str = Field(min_length=1, max_length=4_000)
+    content_sha256: str = Field(pattern=_SHA256)
+    authority: Literal["sandbox_reset_receipt"] = "sandbox_reset_receipt"
+
+    @model_validator(mode="after")
+    def validate_exact_source_text(self) -> SandboxResolvedEvidenceV3:
+        if not self.exact_text.strip():
+            raise ValueError("sandbox evidence text cannot be blank")
+        if sha256_utf8(self.exact_text) != self.content_sha256:
+            raise ValueError("sandbox content hash does not match exact text")
         return self
 
 
@@ -129,6 +197,14 @@ class CatalogReviewEvidenceResolverV3(Protocol):
     ) -> CatalogReviewResolvedEvidenceV3 | None: ...
 
 
+class SandboxEvidenceResolverV3(Protocol):
+    """Read-only authority for one receipt-bound sandbox inventory record."""
+
+    def resolve(
+        self, binding: EvidenceBindingKeyV3
+    ) -> SandboxResolvedEvidenceV3 | None: ...
+
+
 EvidenceReferenceSourceV3 = (
     EvidenceReferenceResolverV3
     | Callable[[EvidenceBindingKeyV3], EvidenceReference | None]
@@ -138,6 +214,11 @@ CatalogReviewEvidenceSourceV3 = (
     CatalogReviewEvidenceResolverV3
     | Callable[[EvidenceBindingKeyV3], CatalogReviewResolvedEvidenceV3 | None]
     | Mapping[EvidenceBindingKeyV3, CatalogReviewResolvedEvidenceV3]
+)
+SandboxEvidenceSourceV3 = (
+    SandboxEvidenceResolverV3
+    | Callable[[EvidenceBindingKeyV3], SandboxResolvedEvidenceV3 | None]
+    | Mapping[EvidenceBindingKeyV3, SandboxResolvedEvidenceV3]
 )
 
 
@@ -158,6 +239,7 @@ class ImmutableBenchmarkEvidenceResolverV3:
         index_manifest_id: str,
         reference_source: EvidenceReferenceSourceV3,
         catalog_review_source: CatalogReviewEvidenceSourceV3 | None = None,
+        sandbox_source: SandboxEvidenceSourceV3 | None = None,
         coroutine_runner: KnowledgeCoroutineRunnerV3 | None = None,
     ) -> None:
         if not isinstance(authorization, ResourceAuthorization):
@@ -179,6 +261,11 @@ class ImmutableBenchmarkEvidenceResolverV3:
             if catalog_review_source is not None
             else None
         )
+        self._sandbox_source = (
+            _freeze_mapping_source(sandbox_source)
+            if sandbox_source is not None
+            else None
+        )
         self._coroutine_runner = coroutine_runner
 
     def resolve(self, binding: EvidenceBindingKeyV3) -> ResolvedCitationTextV3:
@@ -191,6 +278,8 @@ class ImmutableBenchmarkEvidenceResolverV3:
             return self._resolve_knowledge(normalized_binding, reference)
         if kind in {EvidenceKind.CATALOG, EvidenceKind.REVIEW}:
             return self._resolve_catalog_or_review(normalized_binding, reference)
+        if kind is EvidenceKind.SANDBOX:
+            return self._resolve_sandbox(normalized_binding, reference)
         raise UnsupportedEvidenceKindErrorV3(
             f"Package 8 cannot authoritatively resolve evidence kind {kind.value}"
         )
@@ -317,6 +406,208 @@ class ImmutableBenchmarkEvidenceResolverV3:
             resolved.exact_text,
         )
 
+    def _resolve_sandbox(
+        self,
+        binding: EvidenceBindingKeyV3,
+        reference: EvidenceReference,
+    ) -> ResolvedCitationTextV3:
+        if self._sandbox_source is None:
+            raise SandboxEvidenceAuthorityUnavailableErrorV3(
+                "sandbox evidence has no configured immutable authority"
+            )
+        candidate = _read_source(self._sandbox_source, binding)
+        if not isinstance(candidate, SandboxResolvedEvidenceV3):
+            raise SandboxEvidenceAuthorityUnavailableErrorV3(
+                "sandbox source did not return typed exact evidence"
+            )
+        try:
+            resolved = SandboxResolvedEvidenceV3.model_validate(
+                candidate.model_dump(mode="python")
+            )
+        except (TypeError, ValidationError) as exc:
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox source returned invalid exact evidence"
+            ) from exc
+
+        if resolved.authorization != self._authorization:
+            raise SandboxEvidenceAuthorizationMismatchErrorV3(
+                "sandbox evidence authorization differs from the current authority"
+            )
+        access = self._authorization
+        if access.binding.store_id != DEMO_STORE_ID:
+            raise SandboxEvidenceAuthorizationMismatchErrorV3(
+                "sandbox evidence is outside the authorized demo store"
+            )
+        if (
+            resolved.binding != binding
+            or resolved.reference != reference
+            or resolved.reference.kind is not EvidenceKind.SANDBOX
+            or _binding_from_reference(resolved.reference) != binding
+        ):
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox source does not match trusted reference provenance"
+            )
+
+        try:
+            _validate_immutable_version_id(binding.source_version_id)
+            _verify_stable_span_binding(binding)
+        except EvidenceProvenanceMismatchErrorV3 as exc:
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox binding is not an immutable exact span"
+            ) from exc
+        if resolved.record_kind == "merchant_inventory_offer":
+            return self._resolve_sandbox_inventory(binding, reference, resolved)
+        return self._resolve_sandbox_cart_or_checkout(binding, reference, resolved)
+
+    def _resolve_sandbox_inventory(
+        self,
+        binding: EvidenceBindingKeyV3,
+        reference: EvidenceReference,
+        resolved: SandboxResolvedEvidenceV3,
+    ) -> ResolvedCitationTextV3:
+        if (
+            resolved.snapshot_version_id is None
+            or resolved.fixture_offer_id is None
+            or resolved.offer_id is None
+            or resolved.offer_version is None
+            or resolved.fixture_cart_id is not None
+            or resolved.cart_id is not None
+            or resolved.product_id is not None
+        ):
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox inventory authority fields are incomplete"
+            )
+        access = self._authorization
+        if (
+            access.binding.mode is not ConversationMode.MERCHANT
+            or "merchant.read" not in access.scopes
+        ):
+            raise SandboxEvidenceAuthorizationMismatchErrorV3(
+                "current authority cannot read merchant inventory"
+            )
+        fixture_offer = _validated_sandbox_fixture_offer(resolved)
+        expected_offer_id = _sandbox_resource_id(
+            "offer",
+            resolved.execution_namespace_id,
+            resolved.fixture_offer_id,
+        )
+        if resolved.offer_id != expected_offer_id:
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox offer does not match its execution namespace"
+            )
+        expected_subject_id = f"offer_{expected_offer_id}"
+        if resolved.subject_id != expected_subject_id:
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox subject does not match its fixture offer"
+            )
+        expected_source_id = f"sandbox_inventory_{expected_offer_id}"
+        if binding.source_id != expected_source_id:
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox source does not match its fixture offer"
+            )
+        expected_version = fixture_offer["version"]
+        if resolved.offer_version != expected_version:
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox offer version does not match the reset fixture"
+            )
+        expected_text = _sandbox_inventory_text(fixture_offer)
+        if resolved.exact_text != expected_text:
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox exact text does not match the reset fixture"
+            )
+        _verify_sandbox_reference(
+            binding=binding,
+            reference=reference,
+            source_id=expected_source_id,
+            title=f"Demo inventory — offer {expected_offer_id}",
+            exact_text=expected_text,
+        )
+        return _resolved_citation(binding, expected_text)
+
+    def _resolve_sandbox_cart_or_checkout(
+        self,
+        binding: EvidenceBindingKeyV3,
+        reference: EvidenceReference,
+        resolved: SandboxResolvedEvidenceV3,
+    ) -> ResolvedCitationTextV3:
+        if (
+            resolved.fixture_cart_id is None
+            or resolved.cart_id is None
+            or resolved.snapshot_version_id is not None
+            or resolved.fixture_offer_id is not None
+            or resolved.offer_id is not None
+            or resolved.offer_version is not None
+        ):
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox cart authority fields are incomplete"
+            )
+        access = self._authorization
+        if (
+            access.binding.mode is not ConversationMode.SHOPPER
+            or "ecommerce.read" not in access.scopes
+        ):
+            raise SandboxEvidenceAuthorizationMismatchErrorV3(
+                "current authority cannot read the shopper cart"
+            )
+        cart, lines = _validated_sandbox_fixture_cart(resolved)
+        expected_cart_id = _sandbox_resource_id(
+            "cart",
+            resolved.execution_namespace_id,
+            resolved.fixture_cart_id,
+        )
+        if resolved.cart_id != expected_cart_id:
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox cart does not match its execution namespace"
+            )
+        is_checkout = resolved.record_kind.startswith("shopper_checkout_")
+        is_item = resolved.record_kind.endswith("_item")
+        if is_checkout:
+            _validate_checkout_preview_authority(resolved)
+        prefix = "sandbox_checkout" if is_checkout else "sandbox_cart"
+        title_prefix = "Demo checkout" if is_checkout else "Demo cart"
+        if is_item:
+            line = _sandbox_cart_line(lines, resolved.product_id)
+            product_id = line["product_id"]
+            expected_subject_id = f"product_{product_id}"
+            expected_source_id = f"{prefix}_{expected_cart_id}_{product_id}"
+            expected_title = (
+                f"{title_prefix} item — product {product_id} in {expected_cart_id}"
+            )
+            expected_text = _sandbox_cart_item_text(line)
+        else:
+            if resolved.product_id is not None:
+                raise SandboxEvidenceProvenanceMismatchErrorV3(
+                    "sandbox cart summary cannot select a product"
+                )
+            expected_subject_id = expected_cart_id
+            expected_source_id = f"{prefix}_{expected_cart_id}"
+            if is_checkout:
+                expected_title = f"Demo checkout preview — {expected_cart_id}"
+                expected_text = _sandbox_checkout_summary_text(cart, lines)
+            else:
+                expected_title = f"Demo cart — {expected_cart_id}"
+                expected_text = _sandbox_cart_summary_text(
+                    expected_cart_id,
+                    cart,
+                    lines,
+                )
+        if resolved.subject_id != expected_subject_id:
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox subject does not match its fixture cart record"
+            )
+        if resolved.exact_text != expected_text:
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox exact text does not match the reset fixture"
+            )
+        _verify_sandbox_reference(
+            binding=binding,
+            reference=reference,
+            source_id=expected_source_id,
+            title=expected_title,
+            exact_text=expected_text,
+        )
+        return _resolved_citation(binding, expected_text)
+
 
 def _run_coroutine_safely(
     factory: Callable[[], Awaitable[ResolvedKnowledgeEvidence]],
@@ -343,6 +634,269 @@ def _run_coroutine_safely(
         raise EvidenceProvenanceMismatchErrorV3(
             "knowledge evidence reopen failed"
         ) from exc
+
+
+def _validated_sandbox_fixture_offer(
+    resolved: SandboxResolvedEvidenceV3,
+) -> dict[str, Any]:
+    payload = _validated_sandbox_fixture_payload(resolved)
+    if payload.get("cart") is not None:
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture state domain does not match inventory evidence"
+        )
+    merchant = payload.get("merchant")
+    if not isinstance(merchant, dict):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture has no merchant inventory authority"
+        )
+    if merchant.get("snapshot_version_id") != resolved.snapshot_version_id:
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox inventory snapshot does not match the reset fixture"
+        )
+    offers = merchant.get("offers")
+    if not isinstance(offers, list):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture offers are invalid"
+        )
+    matches = [
+        item
+        for item in offers
+        if isinstance(item, dict) and item.get("offer_id") == resolved.fixture_offer_id
+    ]
+    if len(matches) != 1:
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture does not contain exactly one bound offer"
+        )
+    offer = matches[0]
+    if (
+        type(offer.get("price_vnd")) is not int
+        or type(offer.get("available_quantity")) is not int
+        or type(offer.get("version")) is not int
+        or offer["price_vnd"] < 0
+        or offer["available_quantity"] < 0
+        or offer["version"] < 1
+    ):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture offer values are invalid"
+        )
+    return offer
+
+
+def _validated_sandbox_fixture_payload(
+    resolved: SandboxResolvedEvidenceV3,
+) -> dict[str, Any]:
+    try:
+        payload = json.loads(resolved.fixture_payload_json)
+    except (TypeError, ValueError) as exc:
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture payload is not valid JSON"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture payload is not an object"
+        )
+    canonical_payload = canonical_json_bytes(payload).decode("utf-8")
+    if canonical_payload != resolved.fixture_payload_json:
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture payload is not canonical"
+        )
+    if hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest() != (
+        resolved.fixture_sha256
+    ):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture hash does not match its canonical payload"
+        )
+    if (
+        payload.get("fixture_id") != resolved.fixture_id
+        or payload.get("reset_revision") != resolved.reset_revision
+    ):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture identity does not match"
+        )
+    return payload
+
+
+def _validated_sandbox_fixture_cart(
+    resolved: SandboxResolvedEvidenceV3,
+) -> tuple[dict[str, Any], tuple[dict[str, Any], ...]]:
+    payload = _validated_sandbox_fixture_payload(resolved)
+    if payload.get("merchant") is not None:
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture state domain does not match cart evidence"
+        )
+    cart = payload.get("cart")
+    if not isinstance(cart, dict):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture has no shopper cart authority"
+        )
+    if cart.get("cart_id") != resolved.fixture_cart_id:
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture cart identity does not match"
+        )
+    version = cart.get("version")
+    lines = cart.get("lines")
+    if (
+        type(version) is not int
+        or version < 1
+        or not isinstance(lines, list)
+        or not lines
+    ):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture cart values are invalid"
+        )
+    materialized: list[dict[str, Any]] = []
+    for item in lines:
+        if not isinstance(item, dict):
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox fixture cart line is invalid"
+            )
+        product_id = item.get("product_id")
+        quantity = item.get("quantity")
+        unit_price = item.get("unit_price_vnd")
+        if (
+            type(product_id) is not int
+            or type(quantity) is not int
+            or type(unit_price) is not int
+            or product_id < 1
+            or quantity < 1
+            or unit_price <= 0
+        ):
+            raise SandboxEvidenceProvenanceMismatchErrorV3(
+                "sandbox fixture cart line values are invalid"
+            )
+        materialized.append(item)
+    product_ids = [item["product_id"] for item in materialized]
+    if len(product_ids) != len(set(product_ids)):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture cart product identities are ambiguous"
+        )
+    return cart, tuple(materialized)
+
+
+def _validate_checkout_preview_authority(
+    resolved: SandboxResolvedEvidenceV3,
+) -> None:
+    payload = _validated_sandbox_fixture_payload(resolved)
+    cart = payload.get("cart")
+    proposal = payload.get("proposal_parameters")
+    if (
+        payload.get("target_capability_id") != "shopper.checkout.propose"
+        or payload.get("confirmed_proposal_id") is not None
+        or not isinstance(cart, dict)
+        or not isinstance(proposal, dict)
+        or proposal.get("kind") != "checkout_proposal"
+        or proposal.get("capability_id") != "shopper.checkout.propose"
+        or proposal.get("cart_id") != resolved.fixture_cart_id
+        or proposal.get("expected_version") != cart.get("version")
+    ):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture cannot authorize an exact checkout preview"
+        )
+
+
+def _sandbox_cart_line(
+    lines: tuple[dict[str, Any], ...],
+    product_id: int | None,
+) -> dict[str, Any]:
+    matches = [item for item in lines if item["product_id"] == product_id]
+    if product_id is None or len(matches) != 1:
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox fixture does not contain exactly one bound cart item"
+        )
+    return matches[0]
+
+
+def _sandbox_cart_total(lines: tuple[dict[str, Any], ...]) -> int:
+    return sum(item["quantity"] * item["unit_price_vnd"] for item in lines)
+
+
+def _sandbox_cart_summary_text(
+    cart_id: str,
+    cart: Mapping[str, Any],
+    lines: tuple[dict[str, Any], ...],
+) -> str:
+    return (
+        f"demo_cart_id: {cart_id}\n"
+        f"demo_cart_version: {cart['version']}\n"
+        f"demo_cart_total_vnd: {_sandbox_cart_total(lines)} VND"
+    )
+
+
+def _sandbox_checkout_summary_text(
+    cart: Mapping[str, Any],
+    lines: tuple[dict[str, Any], ...],
+) -> str:
+    return (
+        "demo_checkout_can_checkout: True\n"
+        "demo_checkout_issues: none\n"
+        f"demo_cart_version: {cart['version']}\n"
+        f"demo_cart_total_vnd: {_sandbox_cart_total(lines)} VND"
+    )
+
+
+def _sandbox_cart_item_text(line: Mapping[str, Any]) -> str:
+    total = line["quantity"] * line["unit_price_vnd"]
+    return (
+        f"demo_price_vnd: {line['unit_price_vnd']} VND\n"
+        f"demo_quantity: {line['quantity']} item\n"
+        f"demo_line_total_vnd: {total} VND"
+    )
+
+
+def _verify_sandbox_reference(
+    *,
+    binding: EvidenceBindingKeyV3,
+    reference: EvidenceReference,
+    source_id: str,
+    title: str,
+    exact_text: str,
+) -> None:
+    expected_chunk_id = _sandbox_tool_id(
+        "tch",
+        {
+            "source": source_id,
+            "version": binding.source_version_id,
+            "text": exact_text,
+        },
+    )
+    expected_span_id = _sandbox_tool_id(
+        "tsp",
+        {"chunk": expected_chunk_id, "start": 0, "end": len(exact_text)},
+    )
+    if (
+        binding.source_id != source_id
+        or binding.chunk_id != expected_chunk_id
+        or binding.span_id != expected_span_id
+        or reference.title != title
+        or reference.url is not None
+    ):
+        raise SandboxEvidenceProvenanceMismatchErrorV3(
+            "sandbox reference does not identify the canonical fixture record"
+        )
+
+
+def _sandbox_resource_id(kind: str, namespace_id: str, source_id: str) -> str:
+    material = f"{namespace_id}:{source_id}".encode("utf-8")
+    return f"{kind}_{hashlib.sha256(material).hexdigest()[:48]}"
+
+
+def _sandbox_inventory_text(offer: Mapping[str, Any]) -> str:
+    return (
+        f"demo_price_vnd: {offer['price_vnd']} VND\n"
+        f"demo_stock: {offer['available_quantity']} item\n"
+        f"demo_offer_version: {offer['version']}"
+    )
+
+
+def _sandbox_tool_id(prefix: str, payload: object) -> str:
+    canonical = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return f"{prefix}_{hashlib.sha256(canonical).hexdigest()}"
 
 
 def _materialize_binding(binding: EvidenceBindingKeyV3) -> EvidenceBindingKeyV3:

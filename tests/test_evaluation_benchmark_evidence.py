@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 from datetime import UTC, datetime
 
 import pytest
@@ -12,12 +14,17 @@ from app.evaluation.benchmark_evidence import (
     EvidenceMetadataUnavailableErrorV3,
     EvidenceProvenanceMismatchErrorV3,
     ImmutableBenchmarkEvidenceResolverV3,
+    SandboxEvidenceAuthorityUnavailableErrorV3,
+    SandboxEvidenceAuthorizationMismatchErrorV3,
+    SandboxEvidenceProvenanceMismatchErrorV3,
+    SandboxResolvedEvidenceV3,
     UnsafeSynchronousEvidenceResolutionErrorV3,
 )
 from app.evaluation.benchmark_reporting import (
     EvidenceBindingKeyV3,
     ResolvedExactEvidenceV3,
 )
+from app.evaluation.protocol import canonical_json_bytes
 from app.knowledge.v2_contracts import (
     ResolvedKnowledgeEvidence,
     sha256_utf8,
@@ -32,6 +39,13 @@ SOURCE_VERSION_ID = "svr_" + "c" * 60
 CHUNK_ID = "chk_" + "d" * 60
 SPAN_ID = "spn_" + "e" * 60
 OBSERVED_AT = datetime(2026, 9, 15, 7, 0, tzinfo=UTC)
+SANDBOX_NAMESPACE_ID = "namespace_" + "1" * 64
+SANDBOX_FIXTURE_ID = "sandbox_held_shopping_merchant_02"
+SANDBOX_FIXTURE_OFFER_ID = "offer_held_shopping_merchant_02"
+SANDBOX_SNAPSHOT_VERSION_ID = "inventory_held_shopping_merchant_02"
+SANDBOX_SOURCE_VERSION_ID = "cat_" + "2" * 64
+SANDBOX_CART_FIXTURE_ID = "sandbox_held_shopping_merchant_01"
+SANDBOX_FIXTURE_CART_ID = "cart_held_shopping_merchant_01"
 
 
 class _FakeKnowledgeService:
@@ -71,6 +85,18 @@ class _CatalogReviewSource:
     def resolve(
         self, binding: EvidenceBindingKeyV3
     ) -> CatalogReviewResolvedEvidenceV3 | None:
+        self.calls.append(binding)
+        return self.evidence
+
+
+class _SandboxSource:
+    def __init__(self, evidence: SandboxResolvedEvidenceV3 | None) -> None:
+        self.evidence = evidence
+        self.calls: list[EvidenceBindingKeyV3] = []
+
+    def resolve(
+        self, binding: EvidenceBindingKeyV3
+    ) -> SandboxResolvedEvidenceV3 | None:
         self.calls.append(binding)
         return self.evidence
 
@@ -214,12 +240,198 @@ def test_knowledge_resolution_never_falls_back_to_titles_or_other_text() -> None
     assert len(service.calls) == 1
 
 
+def test_sandbox_inventory_resolution_uses_exact_receipt_bound_fixture() -> None:
+    binding, reference, authority = _sandbox_authority()
+    source = _SandboxSource(authority)
+    service = _FakeKnowledgeService(None)
+    resolver = _resolver(
+        service,
+        authorization=authority.authorization,
+        reference_source=_ReferenceSource(reference),
+        sandbox_source=source,
+    )
+
+    first = resolver.resolve(binding)
+    second = resolver.resolve(binding)
+
+    assert first == second
+    assert first.binding == binding
+    assert first.exact_text == authority.exact_text
+    assert source.calls == [binding, binding]
+    assert service.calls == []
+
+
+def test_sandbox_inventory_without_explicit_authority_fails_closed() -> None:
+    binding, reference, authority = _sandbox_authority()
+    resolver = _resolver(
+        _FakeKnowledgeService(None),
+        authorization=authority.authorization,
+        reference_source=_ReferenceSource(reference),
+    )
+
+    with pytest.raises(SandboxEvidenceAuthorityUnavailableErrorV3):
+        resolver.resolve(binding)
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    (
+        ({"fixture_id": "sandbox_other_fixture"}, "fixture identity"),
+        ({"fixture_sha256": "0" * 64}, "fixture hash"),
+        ({"fixture_offer_id": "offer_other_fixture"}, "bound offer"),
+        ({"offer_id": "offer_" + "3" * 48}, "execution namespace"),
+        ({"offer_version": 2}, "offer version"),
+        ({"subject_id": "offer_other_subject"}, "subject"),
+    ),
+)
+def test_sandbox_inventory_rejects_fixture_offer_and_subject_mismatches(
+    update: dict[str, object],
+    message: str,
+) -> None:
+    binding, reference, authority = _sandbox_authority()
+    tampered = authority.model_copy(update=update)
+    resolver = _resolver(
+        _FakeKnowledgeService(None),
+        authorization=authority.authorization,
+        reference_source=_ReferenceSource(reference),
+        sandbox_source=_SandboxSource(tampered),
+    )
+
+    with pytest.raises(SandboxEvidenceProvenanceMismatchErrorV3, match=message):
+        resolver.resolve(binding)
+
+
+@pytest.mark.parametrize(
+    "authorization",
+    (
+        lambda: _merchant_authorization(tenant_id="tenant_other"),
+        lambda: _merchant_authorization(principal_id="principal_other"),
+    ),
+)
+def test_sandbox_inventory_rejects_foreign_tenant_or_principal(
+    authorization,
+) -> None:
+    binding, reference, authority = _sandbox_authority()
+    resolver = _resolver(
+        _FakeKnowledgeService(None),
+        authorization=authorization(),
+        reference_source=_ReferenceSource(reference),
+        sandbox_source=_SandboxSource(authority),
+    )
+
+    with pytest.raises(SandboxEvidenceAuthorizationMismatchErrorV3):
+        resolver.resolve(binding)
+
+
+@pytest.mark.parametrize(
+    ("record_kind", "expected_text"),
+    (
+        (
+            "shopper_cart_summary",
+            "demo_cart_version: 1\ndemo_cart_total_vnd: 240000 VND",
+        ),
+        (
+            "shopper_cart_item",
+            "demo_price_vnd: 120000 VND\ndemo_quantity: 2 item\n"
+            "demo_line_total_vnd: 240000 VND",
+        ),
+        (
+            "shopper_checkout_summary",
+            "demo_checkout_can_checkout: True\ndemo_checkout_issues: none\n"
+            "demo_cart_version: 1\ndemo_cart_total_vnd: 240000 VND",
+        ),
+        (
+            "shopper_checkout_item",
+            "demo_price_vnd: 120000 VND\ndemo_quantity: 2 item\n"
+            "demo_line_total_vnd: 240000 VND",
+        ),
+    ),
+)
+def test_sandbox_cart_and_checkout_records_resolve_exact_fixture_text(
+    record_kind: str,
+    expected_text: str,
+) -> None:
+    binding, reference, authority = _sandbox_cart_authority(record_kind)
+    resolver = _resolver(
+        _FakeKnowledgeService(None),
+        authorization=authority.authorization,
+        reference_source=_ReferenceSource(reference),
+        sandbox_source=_SandboxSource(authority),
+    )
+
+    resolved = resolver.resolve(binding)
+
+    assert expected_text in resolved.exact_text
+    assert resolved.exact_text == authority.exact_text
+
+
+@pytest.mark.parametrize("field", ("source_id", "span_id"))
+def test_sandbox_cart_rejects_source_and_span_tampering(field: str) -> None:
+    binding, _, authority = _sandbox_cart_authority("shopper_cart_item")
+    updates = {
+        field: ("sandbox_cart_foreign" if field == "source_id" else "tsp_" + "9" * 64)
+    }
+    tampered_binding = binding.model_copy(update=updates)
+    tampered_binding = tampered_binding.model_copy(
+        update={
+            "evidence_id": stable_evidence_id(
+                source_id=tampered_binding.source_id,
+                source_version_id=tampered_binding.source_version_id,
+                chunk_id=tampered_binding.chunk_id,
+                span_id=tampered_binding.span_id,
+            )
+        }
+    )
+    tampered_reference = authority.reference.model_copy(
+        update=tampered_binding.model_dump()
+    )
+    tampered_authority = authority.model_copy(
+        update={"binding": tampered_binding, "reference": tampered_reference}
+    )
+    resolver = _resolver(
+        _FakeKnowledgeService(None),
+        authorization=authority.authorization,
+        reference_source=_ReferenceSource(tampered_reference),
+        sandbox_source=_SandboxSource(tampered_authority),
+    )
+
+    with pytest.raises(SandboxEvidenceProvenanceMismatchErrorV3):
+        resolver.resolve(tampered_binding)
+
+
+def test_sandbox_checkout_rejects_action_execution_fixture() -> None:
+    binding, reference, authority = _sandbox_cart_authority("shopper_checkout_summary")
+    payload = json.loads(authority.fixture_payload_json)
+    payload["target_capability_id"] = "shopper.checkout.execute"
+    payload["proposal_parameters"] = None
+    payload_json = canonical_json_bytes(payload).decode("utf-8")
+    tampered = authority.model_copy(
+        update={
+            "fixture_payload_json": payload_json,
+            "fixture_sha256": hashlib.sha256(payload_json.encode("utf-8")).hexdigest(),
+        }
+    )
+    resolver = _resolver(
+        _FakeKnowledgeService(None),
+        authorization=authority.authorization,
+        reference_source=_ReferenceSource(reference),
+        sandbox_source=_SandboxSource(tampered),
+    )
+
+    with pytest.raises(
+        SandboxEvidenceProvenanceMismatchErrorV3,
+        match="checkout preview",
+    ):
+        resolver.resolve(binding)
+
+
 def _resolver(
     service: _FakeKnowledgeService,
     *,
     authorization: ResourceAuthorization | None = None,
     reference_source: _ReferenceSource,
     catalog_review_source: _CatalogReviewSource | None = None,
+    sandbox_source: _SandboxSource | None = None,
     coroutine_runner=None,
 ) -> ImmutableBenchmarkEvidenceResolverV3:
     return ImmutableBenchmarkEvidenceResolverV3(
@@ -229,6 +441,7 @@ def _resolver(
         index_manifest_id=INDEX_MANIFEST_ID,
         reference_source=reference_source,
         catalog_review_source=catalog_review_source,
+        sandbox_source=sandbox_source,
         coroutine_runner=coroutine_runner,
     )
 
@@ -238,6 +451,34 @@ def _asyncio_runner(factory):
 
 
 def _authorization() -> ResourceAuthorization:
+    return ResourceAuthorization(
+        binding=ResourceBinding(
+            tenant_id="tenant_primary",
+            principal_id="principal_primary",
+            mode=ConversationMode.SHOPPER,
+            store_id="demo",
+        ),
+        scopes=frozenset({"ecommerce.read"}),
+    )
+
+
+def _merchant_authorization(
+    *,
+    tenant_id: str = "tenant_primary",
+    principal_id: str = "principal_primary",
+) -> ResourceAuthorization:
+    return ResourceAuthorization(
+        binding=ResourceBinding(
+            tenant_id=tenant_id,
+            principal_id=principal_id,
+            mode=ConversationMode.MERCHANT,
+            store_id="demo",
+        ),
+        scopes=frozenset({"ecommerce.read", "merchant.read"}),
+    )
+
+
+def _shopper_authorization() -> ResourceAuthorization:
     return ResourceAuthorization(
         binding=ResourceBinding(
             tenant_id="tenant_primary",
@@ -307,3 +548,227 @@ def _catalog_reference(
         title="Immutable catalog/review snapshot",
         observed_at=OBSERVED_AT,
     )
+
+
+def _sandbox_authority() -> tuple[
+    EvidenceBindingKeyV3,
+    EvidenceReference,
+    SandboxResolvedEvidenceV3,
+]:
+    authorization = _merchant_authorization()
+    fixture_payload = {
+        "fixture_id": SANDBOX_FIXTURE_ID,
+        "reset_revision": 1,
+        "cart": None,
+        "merchant": {
+            "snapshot_version_id": SANDBOX_SNAPSHOT_VERSION_ID,
+            "offers": [
+                {
+                    "offer_id": SANDBOX_FIXTURE_OFFER_ID,
+                    "product_id": 7,
+                    "price_vnd": 120_000,
+                    "available_quantity": 9,
+                    "version": 1,
+                }
+            ],
+        },
+        "target_capability_id": "merchant.offer.propose",
+        "proposal_parameters": {
+            "kind": "offer_proposal",
+            "capability_id": "merchant.offer.propose",
+            "offer_id": SANDBOX_FIXTURE_OFFER_ID,
+            "expected_version": 1,
+            "new_price_vnd": 125_000,
+        },
+        "confirmed_proposal_id": None,
+    }
+    fixture_payload_json = canonical_json_bytes(fixture_payload).decode("utf-8")
+    fixture_sha256 = hashlib.sha256(fixture_payload_json.encode("utf-8")).hexdigest()
+    offer_id = (
+        "offer_"
+        + hashlib.sha256(
+            f"{SANDBOX_NAMESPACE_ID}:{SANDBOX_FIXTURE_OFFER_ID}".encode("utf-8")
+        ).hexdigest()[:48]
+    )
+    exact_text = "demo_price_vnd: 120000 VND\ndemo_stock: 9 item\ndemo_offer_version: 1"
+    source_id = f"sandbox_inventory_{offer_id}"
+    chunk_id = _test_tool_id(
+        "tch",
+        {
+            "source": source_id,
+            "version": SANDBOX_SOURCE_VERSION_ID,
+            "text": exact_text,
+        },
+    )
+    span_id = _test_tool_id(
+        "tsp",
+        {"chunk": chunk_id, "start": 0, "end": len(exact_text)},
+    )
+    binding = EvidenceBindingKeyV3(
+        evidence_id=stable_evidence_id(
+            source_id=source_id,
+            source_version_id=SANDBOX_SOURCE_VERSION_ID,
+            chunk_id=chunk_id,
+            span_id=span_id,
+        ),
+        source_id=source_id,
+        source_version_id=SANDBOX_SOURCE_VERSION_ID,
+        chunk_id=chunk_id,
+        span_id=span_id,
+    )
+    reference = EvidenceReference(
+        **binding.model_dump(),
+        display_label="[C1]",
+        kind=EvidenceKind.SANDBOX,
+        title=f"Demo inventory — offer {offer_id}",
+        observed_at=OBSERVED_AT,
+    )
+    authority = SandboxResolvedEvidenceV3(
+        binding=binding,
+        reference=reference,
+        authorization=authorization,
+        fixture_id=SANDBOX_FIXTURE_ID,
+        fixture_sha256=fixture_sha256,
+        reset_revision=1,
+        fixture_payload_json=fixture_payload_json,
+        execution_namespace_id=SANDBOX_NAMESPACE_ID,
+        snapshot_version_id=SANDBOX_SNAPSHOT_VERSION_ID,
+        fixture_offer_id=SANDBOX_FIXTURE_OFFER_ID,
+        offer_id=offer_id,
+        offer_version=1,
+        subject_id=f"offer_{offer_id}",
+        exact_text=exact_text,
+        content_sha256=sha256_utf8(exact_text),
+    )
+    return binding, reference, authority
+
+
+def _test_tool_id(prefix: str, payload: object) -> str:
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return f"{prefix}_{hashlib.sha256(encoded).hexdigest()}"
+
+
+def _sandbox_cart_authority(
+    record_kind: str,
+) -> tuple[EvidenceBindingKeyV3, EvidenceReference, SandboxResolvedEvidenceV3]:
+    authorization = _shopper_authorization()
+    fixture_payload = {
+        "fixture_id": SANDBOX_CART_FIXTURE_ID,
+        "reset_revision": 1,
+        "cart": {
+            "cart_id": SANDBOX_FIXTURE_CART_ID,
+            "version": 1,
+            "lines": [
+                {
+                    "product_id": 7,
+                    "quantity": 2,
+                    "unit_price_vnd": 120_000,
+                }
+            ],
+        },
+        "merchant": None,
+        "target_capability_id": "shopper.checkout.propose",
+        "proposal_parameters": {
+            "kind": "checkout_proposal",
+            "capability_id": "shopper.checkout.propose",
+            "cart_id": SANDBOX_FIXTURE_CART_ID,
+            "expected_version": 1,
+        },
+        "confirmed_proposal_id": None,
+    }
+    payload_json = canonical_json_bytes(fixture_payload).decode("utf-8")
+    cart_id = (
+        "cart_"
+        + hashlib.sha256(
+            f"{SANDBOX_NAMESPACE_ID}:{SANDBOX_FIXTURE_CART_ID}".encode("utf-8")
+        ).hexdigest()[:48]
+    )
+    is_checkout = record_kind.startswith("shopper_checkout_")
+    is_item = record_kind.endswith("_item")
+    prefix = "sandbox_checkout" if is_checkout else "sandbox_cart"
+    if is_item:
+        source_id = f"{prefix}_{cart_id}_7"
+        subject_id = "product_7"
+        title_prefix = "Demo checkout" if is_checkout else "Demo cart"
+        title = f"{title_prefix} item — product 7 in {cart_id}"
+        exact_text = (
+            "demo_price_vnd: 120000 VND\n"
+            "demo_quantity: 2 item\n"
+            "demo_line_total_vnd: 240000 VND"
+        )
+        product_id = 7
+    elif is_checkout:
+        source_id = f"sandbox_checkout_{cart_id}"
+        subject_id = cart_id
+        title = f"Demo checkout preview — {cart_id}"
+        exact_text = (
+            "demo_checkout_can_checkout: True\n"
+            "demo_checkout_issues: none\n"
+            "demo_cart_version: 1\n"
+            "demo_cart_total_vnd: 240000 VND"
+        )
+        product_id = None
+    else:
+        source_id = f"sandbox_cart_{cart_id}"
+        subject_id = cart_id
+        title = f"Demo cart — {cart_id}"
+        exact_text = (
+            f"demo_cart_id: {cart_id}\n"
+            "demo_cart_version: 1\n"
+            "demo_cart_total_vnd: 240000 VND"
+        )
+        product_id = None
+    chunk_id = _test_tool_id(
+        "tch",
+        {
+            "source": source_id,
+            "version": SANDBOX_SOURCE_VERSION_ID,
+            "text": exact_text,
+        },
+    )
+    span_id = _test_tool_id(
+        "tsp", {"chunk": chunk_id, "start": 0, "end": len(exact_text)}
+    )
+    binding = EvidenceBindingKeyV3(
+        evidence_id=stable_evidence_id(
+            source_id=source_id,
+            source_version_id=SANDBOX_SOURCE_VERSION_ID,
+            chunk_id=chunk_id,
+            span_id=span_id,
+        ),
+        source_id=source_id,
+        source_version_id=SANDBOX_SOURCE_VERSION_ID,
+        chunk_id=chunk_id,
+        span_id=span_id,
+    )
+    reference = EvidenceReference(
+        **binding.model_dump(),
+        display_label="[C1]",
+        kind=EvidenceKind.SANDBOX,
+        title=title,
+        observed_at=OBSERVED_AT,
+    )
+    authority = SandboxResolvedEvidenceV3(
+        binding=binding,
+        reference=reference,
+        authorization=authorization,
+        fixture_id=SANDBOX_CART_FIXTURE_ID,
+        fixture_sha256=hashlib.sha256(payload_json.encode("utf-8")).hexdigest(),
+        reset_revision=1,
+        fixture_payload_json=payload_json,
+        execution_namespace_id=SANDBOX_NAMESPACE_ID,
+        record_kind=record_kind,  # type: ignore[arg-type]
+        fixture_cart_id=SANDBOX_FIXTURE_CART_ID,
+        cart_id=cart_id,
+        product_id=product_id,
+        subject_id=subject_id,
+        exact_text=exact_text,
+        content_sha256=sha256_utf8(exact_text),
+    )
+    return binding, reference, authority

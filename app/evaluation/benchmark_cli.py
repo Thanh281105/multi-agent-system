@@ -23,7 +23,10 @@ from app.evaluation.benchmark_calibration import (
     build_calibration_label_policy_v3,
     build_package8_pilot_calibration_inputs_v3,
 )
-from app.evaluation.benchmark_evidence import ImmutableBenchmarkEvidenceResolverV3
+from app.evaluation.benchmark_evidence import (
+    ImmutableBenchmarkEvidenceResolverV3,
+    SandboxResolvedEvidenceV3,
+)
 from app.evaluation.benchmark_finalization import (
     Package8FinalizedResultV3,
     Package8JudgeBindingsV3,
@@ -126,6 +129,7 @@ class _ReceiptEvidenceAuthority:
 
     reference: EvidenceReference
     authorization: ResourceAuthorization
+    sandbox_evidence: SandboxResolvedEvidenceV3 | None = None
 
 
 class _ReceiptExactEvidenceResolver:
@@ -152,18 +156,35 @@ class _ReceiptExactEvidenceResolver:
                 "no execution-produced immutable evidence authority exists "
                 "for a citation",
             )
-        if authority.reference.kind is not EvidenceKind.KNOWLEDGE:
+        if authority.reference.kind in {EvidenceKind.CATALOG, EvidenceKind.REVIEW}:
             raise BenchmarkCLIError(
                 "generic_exact_authority_unavailable",
                 "catalog or review evidence requires a configured immutable "
                 "exact authority",
             )
+        if authority.reference.kind not in {
+            EvidenceKind.KNOWLEDGE,
+            EvidenceKind.SANDBOX,
+        }:
+            raise BenchmarkCLIError(
+                "generic_exact_authority_unavailable",
+                "this evidence kind requires a configured immutable exact authority",
+            )
+        sandbox_source = None
+        if authority.reference.kind is EvidenceKind.SANDBOX:
+            if authority.sandbox_evidence is None:
+                raise BenchmarkCLIError(
+                    "sandbox_exact_authority_unavailable",
+                    "sandbox citation has no receipt-bound fixture authority",
+                )
+            sandbox_source = {binding: authority.sandbox_evidence}
         resolver = ImmutableBenchmarkEvidenceResolverV3(
             self._knowledge_service,  # type: ignore[arg-type]
             authorization=authority.authorization,
             corpus_version_id=self._corpus_version_id,
             index_manifest_id=self._index_manifest_id,
             reference_source={binding: authority.reference},
+            sandbox_source=sandbox_source,
         )
         try:
             return resolver.resolve(binding)
@@ -1153,9 +1174,19 @@ def _receipt_evidence_authorities(
                     chunk_id=reference.chunk_id,
                     span_id=reference.span_id,
                 )
+                sandbox_evidence = None
+                if reference.kind is EvidenceKind.SANDBOX:
+                    sandbox_evidence = _sandbox_receipt_evidence(
+                        case=case,
+                        receipt=receipt,
+                        authorization=authorization,
+                        binding=binding,
+                        reference=reference,
+                    )
                 candidate = _ReceiptEvidenceAuthority(
                     reference=reference,
                     authorization=authorization,
+                    sandbox_evidence=sandbox_evidence,
                 )
                 existing = authorities.get(binding)
                 if existing is not None and existing != candidate:
@@ -1171,6 +1202,286 @@ def _receipt_evidence_authorities(
                     )
                 authorities[binding] = candidate
     return authorities
+
+
+def _sandbox_receipt_evidence(
+    *,
+    case: EvaluationCaseV3,
+    receipt: ObservationRunReceiptV3,
+    authorization: ResourceAuthorization,
+    binding: EvidenceBindingKeyV3,
+    reference: EvidenceReference,
+) -> SandboxResolvedEvidenceV3:
+    fixture = case.sandbox_fixture
+    reset = receipt.initial_state_reset_receipt
+    if (
+        fixture is None
+        or reset is None
+        or reset.sandbox_fixture_id != fixture.fixture_id
+        or reset.sandbox_fixture_sha256 != fixture.fixture_sha256
+        or reset.reset_revision != fixture.reset_revision
+    ):
+        raise BenchmarkCLIError(
+            "sandbox_fixture_authority_invalid",
+            "sandbox citation is not bound to its acknowledged reset fixture",
+        )
+    merchant = fixture.payload.get("merchant")
+    if not isinstance(merchant, Mapping):
+        return _sandbox_cart_receipt_evidence(
+            case=case,
+            receipt=receipt,
+            authorization=authorization,
+            binding=binding,
+            reference=reference,
+        )
+    offers = merchant.get("offers")
+    if not isinstance(offers, list):
+        raise BenchmarkCLIError(
+            "sandbox_fixture_authority_invalid",
+            "sandbox inventory fixture has invalid offers",
+        )
+    matches: list[tuple[Mapping[str, object], str, str]] = []
+    for item in offers:
+        if not isinstance(item, Mapping):
+            continue
+        fixture_offer_id = item.get("offer_id")
+        if not isinstance(fixture_offer_id, str):
+            continue
+        offer_id = _sandbox_fixture_resource_id(
+            "offer",
+            receipt.namespace.namespace_id,
+            fixture_offer_id,
+        )
+        if reference.source_id == f"sandbox_inventory_{offer_id}":
+            matches.append((item, fixture_offer_id, offer_id))
+    if len(matches) != 1:
+        raise BenchmarkCLIError(
+            "sandbox_exact_authority_unavailable",
+            "sandbox citation does not identify one server-bound fixture offer",
+        )
+    offer, fixture_offer_id, offer_id = matches[0]
+    price = offer.get("price_vnd")
+    stock = offer.get("available_quantity")
+    version = offer.get("version")
+    snapshot_version_id = merchant.get("snapshot_version_id")
+    if (
+        type(price) is not int
+        or type(stock) is not int
+        or type(version) is not int
+        or not isinstance(snapshot_version_id, str)
+    ):
+        raise BenchmarkCLIError(
+            "sandbox_fixture_authority_invalid",
+            "sandbox fixture offer values are invalid",
+        )
+    exact_text = (
+        f"demo_price_vnd: {price} VND\n"
+        f"demo_stock: {stock} item\n"
+        f"demo_offer_version: {version}"
+    )
+    try:
+        return SandboxResolvedEvidenceV3(
+            binding=binding,
+            reference=reference,
+            authorization=authorization,
+            fixture_id=fixture.fixture_id,
+            fixture_sha256=fixture.fixture_sha256,
+            reset_revision=fixture.reset_revision,
+            fixture_payload_json=canonical_json_bytes(fixture.payload).decode("utf-8"),
+            execution_namespace_id=receipt.namespace.namespace_id,
+            snapshot_version_id=snapshot_version_id,
+            fixture_offer_id=fixture_offer_id,
+            offer_id=offer_id,
+            offer_version=version,
+            subject_id=f"offer_{offer_id}",
+            exact_text=exact_text,
+            content_sha256=hashlib.sha256(exact_text.encode("utf-8")).hexdigest(),
+        )
+    except ValueError as exc:
+        raise BenchmarkCLIError(
+            "sandbox_fixture_authority_invalid",
+            "sandbox fixture could not produce typed exact evidence",
+        ) from exc
+
+
+def _sandbox_cart_receipt_evidence(
+    *,
+    case: EvaluationCaseV3,
+    receipt: ObservationRunReceiptV3,
+    authorization: ResourceAuthorization,
+    binding: EvidenceBindingKeyV3,
+    reference: EvidenceReference,
+) -> SandboxResolvedEvidenceV3:
+    fixture = case.sandbox_fixture
+    if fixture is None:
+        raise BenchmarkCLIError(
+            "sandbox_exact_authority_unavailable",
+            "sandbox citation has no reset fixture",
+        )
+    cart = fixture.payload.get("cart")
+    if not isinstance(cart, Mapping):
+        raise BenchmarkCLIError(
+            "sandbox_exact_authority_unavailable",
+            "sandbox citation is not a reconstructable fixture read",
+        )
+    fixture_cart_id = cart.get("cart_id")
+    cart_version = cart.get("version")
+    lines = cart.get("lines")
+    if (
+        not isinstance(fixture_cart_id, str)
+        or type(cart_version) is not int
+        or not isinstance(lines, list)
+        or not lines
+    ):
+        raise BenchmarkCLIError(
+            "sandbox_fixture_authority_invalid",
+            "sandbox cart fixture values are invalid",
+        )
+    cart_id = _sandbox_fixture_resource_id(
+        "cart",
+        receipt.namespace.namespace_id,
+        fixture_cart_id,
+    )
+    materialized: list[tuple[int, int, int]] = []
+    for item in lines:
+        if not isinstance(item, Mapping):
+            raise BenchmarkCLIError(
+                "sandbox_fixture_authority_invalid",
+                "sandbox cart fixture line is invalid",
+            )
+        line_product_id = item.get("product_id")
+        quantity = item.get("quantity")
+        unit_price = item.get("unit_price_vnd")
+        if (
+            type(line_product_id) is not int
+            or type(quantity) is not int
+            or type(unit_price) is not int
+            or line_product_id < 1
+            or quantity < 1
+            or unit_price <= 0
+        ):
+            raise BenchmarkCLIError(
+                "sandbox_fixture_authority_invalid",
+                "sandbox cart fixture line values are invalid",
+            )
+        materialized.append((line_product_id, quantity, unit_price))
+    if len({product_id for product_id, _, _ in materialized}) != len(materialized):
+        raise BenchmarkCLIError(
+            "sandbox_fixture_authority_invalid",
+            "sandbox cart fixture product identities are ambiguous",
+        )
+    total_vnd = sum(quantity * price for _, quantity, price in materialized)
+    selected_product_id: int | None = None
+    if reference.source_id == f"sandbox_cart_{cart_id}":
+        record_kind = "shopper_cart_summary"
+        subject_id = cart_id
+        exact_text = (
+            f"demo_cart_id: {cart_id}\n"
+            f"demo_cart_version: {cart_version}\n"
+            f"demo_cart_total_vnd: {total_vnd} VND"
+        )
+    elif reference.source_id == f"sandbox_checkout_{cart_id}":
+        _require_checkout_fixture_authority(
+            fixture.payload, fixture_cart_id, cart_version
+        )
+        record_kind = "shopper_checkout_summary"
+        subject_id = cart_id
+        exact_text = (
+            "demo_checkout_can_checkout: True\n"
+            "demo_checkout_issues: none\n"
+            f"demo_cart_version: {cart_version}\n"
+            f"demo_cart_total_vnd: {total_vnd} VND"
+        )
+    else:
+        matches: list[tuple[str, int, int, int]] = []
+        for candidate_product_id, quantity, unit_price in materialized:
+            cart_source = f"sandbox_cart_{cart_id}_{candidate_product_id}"
+            checkout_source = f"sandbox_checkout_{cart_id}_{candidate_product_id}"
+            if reference.source_id == cart_source:
+                matches.append(
+                    ("shopper_cart_item", candidate_product_id, quantity, unit_price)
+                )
+            if reference.source_id == checkout_source:
+                matches.append(
+                    (
+                        "shopper_checkout_item",
+                        candidate_product_id,
+                        quantity,
+                        unit_price,
+                    )
+                )
+        if len(matches) != 1:
+            raise BenchmarkCLIError(
+                "sandbox_exact_authority_unavailable",
+                "sandbox citation does not identify one fixture cart record",
+            )
+        record_kind, selected_product_id, quantity, unit_price = matches[0]
+        if record_kind == "shopper_checkout_item":
+            _require_checkout_fixture_authority(
+                fixture.payload,
+                fixture_cart_id,
+                cart_version,
+            )
+        subject_id = f"product_{selected_product_id}"
+        exact_text = (
+            f"demo_price_vnd: {unit_price} VND\n"
+            f"demo_quantity: {quantity} item\n"
+            f"demo_line_total_vnd: {quantity * unit_price} VND"
+        )
+    payload_json = canonical_json_bytes(fixture.payload).decode("utf-8")
+    try:
+        return SandboxResolvedEvidenceV3(
+            binding=binding,
+            reference=reference,
+            authorization=authorization,
+            fixture_id=fixture.fixture_id,
+            fixture_sha256=fixture.fixture_sha256,
+            reset_revision=fixture.reset_revision,
+            fixture_payload_json=payload_json,
+            execution_namespace_id=receipt.namespace.namespace_id,
+            record_kind=record_kind,  # type: ignore[arg-type]
+            fixture_cart_id=fixture_cart_id,
+            cart_id=cart_id,
+            product_id=selected_product_id,
+            subject_id=subject_id,
+            exact_text=exact_text,
+            content_sha256=hashlib.sha256(exact_text.encode("utf-8")).hexdigest(),
+        )
+    except ValueError as exc:
+        raise BenchmarkCLIError(
+            "sandbox_fixture_authority_invalid",
+            "sandbox cart fixture could not produce typed exact evidence",
+        ) from exc
+
+
+def _require_checkout_fixture_authority(
+    payload: Mapping[str, object],
+    fixture_cart_id: str,
+    cart_version: int,
+) -> None:
+    proposal = payload.get("proposal_parameters")
+    if (
+        payload.get("target_capability_id") != "shopper.checkout.propose"
+        or payload.get("confirmed_proposal_id") is not None
+        or not isinstance(proposal, Mapping)
+        or proposal.get("kind") != "checkout_proposal"
+        or proposal.get("capability_id") != "shopper.checkout.propose"
+        or proposal.get("cart_id") != fixture_cart_id
+        or proposal.get("expected_version") != cart_version
+    ):
+        raise BenchmarkCLIError(
+            "sandbox_exact_authority_unavailable",
+            "sandbox fixture cannot authorize an exact checkout preview",
+        )
+
+
+def _sandbox_fixture_resource_id(
+    kind: str,
+    namespace_id: str,
+    fixture_resource_id: str,
+) -> str:
+    material = f"{namespace_id}:{fixture_resource_id}".encode("utf-8")
+    return f"{kind}_{hashlib.sha256(material).hexdigest()[:48]}"
 
 
 def _receipt_final_result(receipt: ObservationRunReceiptV3) -> TurnResult:

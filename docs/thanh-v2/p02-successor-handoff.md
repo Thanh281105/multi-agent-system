@@ -92,13 +92,15 @@ runtime payloads and dispatch behavior are unchanged.
    evidence, calibrate, freeze judge bindings, blind-judge and publish only when
    all validators succeed.
 
-Known remaining evidence boundary: `ImmutableBenchmarkEvidenceResolverV3` currently
-supports knowledge and authoritative catalog/review sources; sandbox inventory
-citations raise `evidence_kind_unsupported`. An immutable, authorized inventory
-evidence resolver is still required before such receipts can be scored. Do not
-fabricate source text from the answer, title or gold, relabel sandbox citations as
-catalog citations, or soften this failure. This is not a claim that `operate`
-is ready to complete.
+The exact evidence boundary is now receipt-bound and fail-closed.
+`ImmutableBenchmarkEvidenceResolverV3` reopens knowledge plus the canonical
+merchant-inventory and shopper cart/checkout preview reads reconstructed from
+the hashed reset fixture, receipt namespace and current authorization.
+Unsupported catalog/review authority and mutated sandbox state still stop
+scoring with a typed error. Do not fabricate source text from the answer, title
+or gold, relabel sandbox citations as catalog citations, or soften a provenance
+failure. This does not make `operate` ready to complete: successor P7 must still
+run and freeze before the P8 lifecycle can start.
 
 On any failure, classify the error and inspect its checkpoint before changing
 code. Fix only the demonstrated cause; preserve completed cells and bind any
@@ -120,5 +122,7 @@ and rerun successfully (2 passed). Thus all 787 selected runnable tests have
 passing verification, with 19 PostgreSQL-dependent modules explicitly excluded.
 This is an initial run plus focused rerun, not a claim of one clean full-suite run.
 
-PostgreSQL-backed API v2/action/replay tests and live P7/P8/operate were deferred
-by the operator. They must not be represented as passed or complete.
+Targeted PostgreSQL executor and v2 action/sandbox seed gates passed locally
+(`5` and `46` tests respectively); the broader API v2/action/replay matrix and
+live P7/P8/operate remain deferred by the operator. They must not be represented
+as passed or complete.
