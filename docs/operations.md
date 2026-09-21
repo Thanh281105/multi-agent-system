@@ -347,6 +347,13 @@ fingerprint. Không dùng nó trên dữ liệu cần giữ.
 
 ## 11. V2 và Package 8 evaluation handoff
 
+Handoff hiện hành sau sửa P02 nằm tại
+[P02 successor handoff](thanh-v2/p02-successor-handoff.md), với protocol
+`315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`.
+Các hash `c8a4…`/`f37e…` bên dưới là lịch sử trước sửa P02. Live P7/P8 và
+PostgreSQL đã được operator hoãn; chưa có freeze hoặc kết quả benchmark mới.
+Inventory citation hiện vẫn fail-closed ở P8 với `evidence_kind_unsupported`.
+
 V2 smoke phải chạy trên PostgreSQL đã migrate tới `20260910_0008` và đã publish
 corpus/index. Xác nhận các identity hiện hành trước khi gửi request:
 

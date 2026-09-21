@@ -2,7 +2,7 @@
 
 Evidence Atlas là reference implementation **production-oriented** cho trợ lý
 quyết định sách dựa trên evidence. API v1 giữ nguyên đường tương thích lịch sử
-cho Product, Review, Trust và Market agents trên snapshot Tiki Books; API v2 bổ
+cho Product, Review, Trust và Market agents trên snapshot lịch sử Tiki Books; API v2 bổ
 sung hội thoại, hành động và knowledge retrieval với trạng thái bền vững trong
 PostgreSQL. Hai API có contract, lifecycle và bằng chứng riêng.
 

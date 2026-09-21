@@ -185,11 +185,17 @@ quả.
 
 ## 8. Package 7 historical protocol và successor pilot
 
+**Cập nhật sau P02:** xem [handoff hiện hành](thanh-v2/p02-successor-handoff.md).
+Protocol `c8a4…` và dry-run bên dưới là trạng thái bàn giao `31f3351` trước sửa
+P02. Mã hiện hành có protocol `315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`;
+dry-run vẫn đủ 36 cells. Operator đã hoãn PostgreSQL và live P7/P8; chưa freeze,
+chưa tạo P8 mới và chưa chạy `operate`.
+
 Historical corrected P7 freeze artifact do operator tạo tại
 `output/evaluation-v3/pilot-corrected-v3/`; đây là output local không được commit
 vào repository. Historical protocol SHA-256 là
 `385ae09e74a7e8e2896b170f9ad3f2549f6f79390e94b3241cd7da0e4b32721f`.
-Sau remediation merchant, canonical source-bound successor protocol SHA-256 là
+Sau remediation merchant tại `31f3351`, source-bound successor protocol SHA-256 là
 `c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79cde`.
 
 V3 có đúng bốn variants:
@@ -214,10 +220,10 @@ P7 successor chưa dispatch. Dry-run đã xác nhận `36` cells gồm `4` warmu
 successor chỉ được tạo sau khi pilot này hoàn tất và repeat decision mới được
 freeze; không resume hay ghép thêm cells vào P7/P8 historical.
 
-Remediation merchant không tự chọn target khi một mutation request nêu nhiều
-sản phẩm. Với trường hợp đó runtime trả clarification an toàn; P7/P8 successor
-phải ghi nhận kết quả thực tế theo gold contract, không suy diễn proposal hay
-fabricate citation để đạt một trạng thái gold dự kiến.
+Remediation P02 hiện hành đọc/ground giá nhiều offer rồi tạo proposal nếu có
+target độc lập do server xác định. Thiếu target vẫn trả clarification an toàn.
+P7/P8 phải ghi nhận kết quả thực tế theo gold contract; không suy diễn proposal
+hay fabricate citation để đạt một trạng thái gold dự kiến.
 
 Semantic scoring được khai báo là automated model judge (`model_judge`) theo
 judge configuration/schema đã hash; không có human semantic judge. Deterministic

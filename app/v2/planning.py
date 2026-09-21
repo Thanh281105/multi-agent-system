@@ -225,6 +225,14 @@ class RuntimeDataVersions(V2Contract):
     index_manifest_id: StableId
 
 
+class ResolvedMerchantTarget(V2Contract):
+    """Server-owned offer selection, separate from the products being read."""
+
+    product_id: ProductId
+    offer_id: StableId
+    expected_version: int = Field(strict=True, ge=1)
+
+
 class PlanningContext(V2Contract):
     """Current server-owned authority and already-resolved entity boundary."""
 
@@ -235,6 +243,18 @@ class PlanningContext(V2Contract):
     )
     allowed_source_ids: frozenset[StableId] = frozenset()
     model_context: ModelContext = Field(default_factory=ModelContext)
+    merchant_target: ResolvedMerchantTarget | None = None
+
+    @model_validator(mode="after")
+    def validate_merchant_target(self) -> PlanningContext:
+        if self.merchant_target is not None and (
+            self.access.binding.mode != ConversationMode.MERCHANT
+            or self.merchant_target.product_id not in self.resolved_product_ids
+        ):
+            raise ValueError(
+                "merchant target must belong to resolved merchant products"
+            )
+        return self
 
     @field_validator("resolved_product_ids")
     @classmethod
@@ -431,11 +451,19 @@ class BoundedV2Planner:
                         candidate_limit=choice.candidate_limit,
                     )
 
-        operations, deferred = (
-            ((), ())
-            if request.proposal is not None
-            else self._compile_initial(effective_request, context)
-        )
+        if request.proposal is not None:
+            operations, deferred = (
+                self._compile_initial(
+                    replace(
+                        effective_request, capabilities=("merchant.inventory.read",)
+                    ),
+                    context,
+                )
+                if request.obligations
+                else ((), ())
+            )
+        else:
+            operations, deferred = self._compile_initial(effective_request, context)
         return PlannedTurn(
             plan_id=plan_id,
             intent=effective_request.intent,
@@ -1254,12 +1282,19 @@ def _deterministic_action_request(
             cleaned,
             "merchant_action_product_required",
         )
-    if len(product_ids) != 1:
+    if len(product_ids) != 1 and context.merchant_target is None:
         return _action_clarification_request(
             cleaned,
             "merchant_action_single_product_required",
         )
-    product_id = product_ids[0]
+    product_id = (
+        context.merchant_target.product_id
+        if context.merchant_target is not None
+        else product_ids[0]
+    )
+    combined_read = len(product_ids) > 1 or (
+        price_marker and _PRICE_ACTION_MARKER.search(cleaned) is None
+    )
 
     proposal: PlannedProposal
     if price_marker:
@@ -1317,9 +1352,21 @@ def _deterministic_action_request(
     return _DeterministicRequest(
         intent="merchant.proposal",
         template_id="merchant_proposal",
-        obligations=(),
+        obligations=(
+            (
+                EvidenceObligation(
+                    obligation_id="merchant_inventory_before_proposal",
+                    kind=EvidenceObligationKind.INVENTORY,
+                    description="Ground every requested offer price before proposing.",
+                    product_ids=product_ids,
+                    explicit=True,
+                ),
+            )
+            if combined_read
+            else ()
+        ),
         capabilities=("merchant.inventory.read", "merchant.offer.propose"),
-        candidate_limit=1,
+        candidate_limit=len(product_ids),
         candidate_limit_explicit=True,
         query=cleaned[:500],
         catalog_query=None,
@@ -1826,7 +1873,7 @@ def _request_product_ids(
     request: _DeterministicRequest,
     context: PlanningContext,
 ) -> tuple[ProductId, ...]:
-    if request.proposal is None:
+    if request.proposal is None or request.obligations:
         return _context_product_ids(
             context,
             candidate_limit=request.candidate_limit,
@@ -1879,6 +1926,11 @@ def _plan_id(
             "resolved_product_ids": _context_product_ids(
                 context,
                 candidate_limit=candidate_limit,
+            ),
+            "merchant_target": (
+                context.merchant_target.model_dump(mode="json")
+                if context.merchant_target is not None
+                else None
             ),
             "planning_constraints": [
                 item.model_dump(mode="json")

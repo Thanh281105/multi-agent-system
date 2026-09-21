@@ -411,6 +411,10 @@ def _prepare_evidence(
             raise GroundingEvidenceError("fact_subject_outside_request")
         _validate_fact_shape(fact)
         for evidence_id in fact.evidence_ids:
+            if fact.field.startswith("demo_") and (
+                references[evidence_id].kind != EvidenceKind.SANDBOX
+            ):
+                raise GroundingEvidenceError("sandbox_fact_evidence_kind_mismatch")
             bound_excerpt = excerpts.get(evidence_id)
             if bound_excerpt is None:
                 raise GroundingEvidenceError("fact_exact_evidence_missing")
@@ -654,6 +658,15 @@ def _validate_fact_shape(fact: StructuredFact) -> None:
     if field == "snapshot_price_vnd":
         _require_numeric_fact(fact, unit="VND", minimum=Decimal(0))
         return
+    if field == "demo_price_vnd":
+        _require_integer_fact(fact, unit="VND", minimum=0)
+        return
+    if field == "demo_stock":
+        _require_integer_fact(fact, unit="item", minimum=0)
+        return
+    if field == "demo_offer_version":
+        _require_integer_fact(fact, unit=None, minimum=1)
+        return
     if field in {"snapshot_rating", "sampled_average_rating"}:
         _require_numeric_fact(
             fact, unit="rating_5", minimum=Decimal(0), maximum=Decimal(5)
@@ -695,7 +708,7 @@ def _require_fact(
 def _require_integer_fact(
     fact: StructuredFact,
     *,
-    unit: str,
+    unit: str | None,
     minimum: int,
 ) -> None:
     if (
@@ -731,6 +744,7 @@ def _render_fact_value(fact: StructuredFact) -> str:
     display_unit = {
         None: "",
         "VND": " VND",
+        "item": " sản phẩm",
         "complaint": " phản ánh",
         "page": " trang",
         "product": " sản phẩm",
@@ -746,6 +760,9 @@ def _fact_field_label(field: str) -> str:
         "author": "Tác giả",
         "category": "Danh mục",
         "complaint_count": "Số phản ánh",
+        "demo_price_vnd": "Giá trong kho demo",
+        "demo_stock": "Tồn kho demo",
+        "demo_offer_version": "Phiên bản offer demo",
         "flagged_review_count": "Số review được gắn cờ heuristic",
         "page_count": "Số trang",
         "publisher": "Nhà xuất bản",

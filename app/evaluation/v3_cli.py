@@ -415,6 +415,8 @@ def _asset_bindings(
             "app/v2/answers.py",
             "app/v2/execution.py",
             "app/v2/planning.py",
+            "app/v2/supervisor.py",
+            "app/knowledge/grounding.py",
             "app/knowledge/retrieval.py",
         )
     )

@@ -438,9 +438,9 @@ async def test_planner_preflights_full_structured_payload_before_dispatch(
 
     with provider_budget_scope(_budget_context()):
         with pytest.raises(PlanningError, match="planning_model_input_too_large"):
-            await BoundedV2Planner(
-                model_runtime=runtime, runtime_mode="required"
-            ).plan("Tìm sách lịch sử", _context())
+            await BoundedV2Planner(model_runtime=runtime, runtime_mode="required").plan(
+                "Tìm sách lịch sử", _context()
+            )
 
     assert runtime.calls == 0
 
@@ -728,10 +728,7 @@ async def test_exact_merchant_proposal_semantics(
 @pytest.mark.asyncio
 async def test_embedded_single_product_price_mutation_is_a_proposal() -> None:
     planned = await BoundedV2Planner(runtime_mode="off").plan(
-        (
-            "Cho biết giá hiện tại, rồi đặt mức bán của sản phẩm đã chọn "
-            "ở 139.300 đồng."
-        ),
+        ("Cho biết giá hiện tại, rồi đặt mức bán của sản phẩm đã chọn ở 139.300 đồng."),
         _context(
             mode=ConversationMode.MERCHANT,
             resolved_product_ids=(7,),
@@ -744,7 +741,10 @@ async def test_embedded_single_product_price_mutation_is_a_proposal() -> None:
     assert planned.proposal.kind == "merchant_price"
     assert planned.proposal.product_id == 7
     assert planned.proposal.new_price_vnd == 139_300
-    assert planned.initial_operations == ()
+    assert tuple(op.capability for op in planned.initial_operations) == (
+        "merchant.inventory.read",
+    )
+    assert planned.initial_operations[0].parameters == {"product_ids": [7]}
 
 
 @pytest.mark.asyncio
@@ -1709,11 +1709,15 @@ def test_expert_payload_preflight_accounts_for_schema_and_instructions(
     class OversizedExpertSelection(BaseModel):
         padding: str = Field(default="", description="x" * 12_000)
 
-    operation = __import__("asyncio").run(
-        BoundedV2Planner(runtime_mode="off").plan(
-            "Tìm sách Sapiens", _context(resolved_product_ids=(1,))
+    operation = (
+        __import__("asyncio")
+        .run(
+            BoundedV2Planner(runtime_mode="off").plan(
+                "Tìm sách Sapiens", _context(resolved_product_ids=(1,))
+            )
         )
-    ).initial_operations[0]
+        .initial_operations[0]
+    )
     deterministic = _product_result(operation, (1,))
     monkeypatch.setattr(
         "app.v2.execution.ExpertEvidenceSelection", OversizedExpertSelection
@@ -1728,11 +1732,15 @@ def test_expert_payload_preflight_accounts_for_schema_and_instructions(
 def test_expert_payload_preflight_accounts_for_instructions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    operation = __import__("asyncio").run(
-        BoundedV2Planner(runtime_mode="off").plan(
-            "Tìm sách Sapiens", _context(resolved_product_ids=(1,))
+    operation = (
+        __import__("asyncio")
+        .run(
+            BoundedV2Planner(runtime_mode="off").plan(
+                "Tìm sách Sapiens", _context(resolved_product_ids=(1,))
+            )
         )
-    ).initial_operations[0]
+        .initial_operations[0]
+    )
     deterministic = _product_result(operation, (1,))
     monkeypatch.setattr("app.v2.execution._EXPERT_MODEL_INSTRUCTIONS", "x" * 12_000)
 

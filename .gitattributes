@@ -1,4 +1,8 @@
-# Snapshot hashes are computed over canonical LF bytes on every platform.
+# Frozen source assets and protocol hashes require canonical LF on every platform.
+* text=auto eol=lf
 .gitattributes text eol=lf
 data/snapshots/**/*.json text eol=lf
 data/snapshots/**/*.jsonl text eol=lf
+# These two frozen bindings were authored with CRLF; preserve their exact hashes.
+data/knowledge/books-v1/sources.json text eol=crlf
+data/knowledge/books-v1/mappings.json text eol=crlf

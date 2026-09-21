@@ -15,7 +15,11 @@ from sqlalchemy import delete, select
 
 from app.db.v2_repository import canonical_turn_id
 from app.evaluation.protocol import canonical_sha256
-from app.evaluation.v3_gold import LoadedEvaluationGoldV3
+from app.evaluation.v3_gold import (
+    LoadedEvaluationGoldV3,
+    SandboxFixtureV3,
+    SandboxOfferProposalV3,
+)
 from app.evaluation.v3_models import EvaluationProtocolV3, ScheduledTurnKindV3
 from app.evaluation.v3_runner import (
     EmbeddingCallEvidenceV3,
@@ -70,7 +74,7 @@ from app.v2.contracts import (
     ConversationMode,
     TurnStatus,
 )
-from app.v2.planning import PlanningContext
+from app.v2.planning import PlanningContext, ResolvedMerchantTarget
 from app.v2.runtime import V2ServiceGraph
 
 _STORE_ID = "demo"
@@ -224,6 +228,7 @@ class EvaluationV3ObservationExecutor:
             access=access,
             versions=self.runtime.shared_services.versions,
             resolved_product_ids=self.case.resolved_product_ids,
+            merchant_target=self._merchant_target(),
         )
         durable_turn_id = canonical_turn_id(
             self.conversation_id,
@@ -532,6 +537,39 @@ class EvaluationV3ObservationExecutor:
                         offer_version=version,
                     )
                 )
+
+    def _merchant_target(self) -> ResolvedMerchantTarget | None:
+        """Project only the server-owned target from the hashed sandbox fixture.
+
+        Neither the expected response nor the proposed price enters planning;
+        the planner must still parse the requested change from the user message.
+        """
+        adapter = self.case.sandbox_fixture
+        if adapter is None or (
+            adapter.payload.get("target_capability_id") != "merchant.offer.propose"
+        ):
+            return None
+        fixture = SandboxFixtureV3.model_validate(adapter.payload)
+        parameters = fixture.proposal_parameters
+        if not isinstance(parameters, SandboxOfferProposalV3):
+            return None
+        assert fixture.merchant is not None
+        offers = tuple(
+            offer
+            for offer in fixture.merchant.offers
+            if offer.offer_id == parameters.offer_id
+        )
+        if (
+            len(offers) != 1
+            or offers[0].product_id not in self.case.resolved_product_ids
+        ):
+            raise ObservationExecutionFailureV3("merchant_target_binding_invalid")
+        offer = offers[0]
+        return ResolvedMerchantTarget(
+            product_id=offer.product_id,
+            offer_id=self.fixture_resource_id("offer", offer.offer_id),
+            expected_version=offer.version,
+        )
 
     def fixture_resource_id(self, kind: str, source_id: str) -> str:
         return _compact_id(

@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from time import monotonic, perf_counter
-from typing import Any, Generic, Literal, Protocol, TypeVar
+from typing import Any, Generic, Literal, Protocol, TypeVar, cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -90,7 +90,7 @@ def _structured_text_format(schema: type[BaseModel]) -> dict[str, Any]:
         raise PricingManifestError(
             "provider_structured_output_adapter_unavailable"
         ) from exc
-    return type_to_text_format_param(schema)
+    return cast(dict[str, Any], type_to_text_format_param(schema))
 
 
 class ModelCallMetadata(BaseModel):

@@ -15,6 +15,21 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 
 ## Execution rules
 
+Current continuation: [P02 and successor handoff](p02-successor-handoff.md).
+P02 now supports grounded multi-offer reads plus an independently server-bound
+proposal. The current protocol is
+`315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`;
+all older `c8a4…` references below remain historical. The operator deferred
+credentials, PostgreSQL and live P7/P8, so the final gate remains open.
+
+Local continuation verification: broad offline selection 785 passed, 2 baseline
+documentation/entrypoint failures, 1 skipped; both corrected failures reran green
+(2 passed). All 787 selected runnable tests therefore have passing verification;
+19 PostgreSQL-dependent modules were explicitly excluded. Separate API v1 gates
+passed 41 tests, frontend passed 116 tests and build/lint/TypeScript, and
+Ruff/mypy/diff checks passed. These results do not close live P7/P8 or PostgreSQL
+transaction/replay gates.
+
 - Lead owns review, integration, gates and commits. Following the current routing instruction, Luna Max implements bounded tasks; Sol High is reserved for architecture, hard debugging, transactional concurrency/idempotency, supervisor and grounding.
 - Explicit file ownership precedes concurrent edits; source snapshot/review data and credentials are not delegated. `Multi-Agent-lac-v2` is read-only, including its pre-existing `.gitignore` change.
 - v1 schema/routing/SSE and captured evaluation v1/v2 artifacts remain regression boundaries.

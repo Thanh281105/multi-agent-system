@@ -58,6 +58,7 @@ from app.v2.registry import (
     CheckoutInput,
     MerchantOfferProposalInput,
     MerchantReadInput,
+    MerchantReadResult,
 )
 from app.v2.runtime_contracts import (
     EvidenceAssessment,
@@ -195,6 +196,16 @@ class V2ReadSupervisor:
             )
 
         if planned.proposal is not None:
+            if planned.initial_operations:
+                return await self._read_and_create_proposal(
+                    conversation_id=conversation_id,
+                    turn_id=turn_id,
+                    lease_owner=lease_owner,
+                    message=message,
+                    planned=planned,
+                    context=context,
+                    fallback_reasons=fallback_reasons,
+                )
             return self._create_proposal(
                 conversation_id=conversation_id,
                 turn_id=turn_id,
@@ -437,6 +448,137 @@ class V2ReadSupervisor:
             draft_repairs=grounded.draft_repairs,
         )
 
+    async def _read_and_create_proposal(
+        self,
+        *,
+        conversation_id: str,
+        turn_id: str,
+        lease_owner: str,
+        message: str,
+        planned: PlannedTurn,
+        context: PlanningContext,
+        fallback_reasons: tuple[str, ...],
+    ) -> TurnComputation:
+        batch = await self.operation_executor.execute(
+            turn_id=turn_id,
+            lease_owner=lease_owner,
+            access=context.access,
+            operations=planned.initial_operations,
+            plan_revision=0,
+        )
+        trace = _plan_trace(planned, planned.initial_operations, batch, None)
+        records = _execution_records(batch.results, set(batch.reused_step_ids))
+        if (
+            len(batch.results) != 1
+            or batch.results[0].status != TaskStatus.SUCCESS
+            or batch.results[0].output is None
+        ):
+            return TurnComputation(
+                result=TurnResult(
+                    outcome=DialogueOutcome.ABSTAINED,
+                    answer="Mình chưa có đủ bằng chứng đã xác minh để tạo đề xuất.",
+                    plan=trace,
+                    executions=records,
+                    warnings=("merchant_inventory_evidence_incomplete",),
+                ),
+                fallback_reasons=fallback_reasons,
+            )
+        inventory = MerchantReadResult.model_validate(batch.results[0].output)
+        products = tuple(offer.product_id for offer in inventory.offers)
+        if len(products) != len(set(products)) or set(products) != set(
+            context.resolved_product_ids
+        ):
+            return TurnComputation(
+                result=TurnResult(
+                    outcome=DialogueOutcome.NEEDS_CLARIFICATION,
+                    answer="Mình chưa xác minh được đủ các offer cần đọc.",
+                    plan=trace,
+                    executions=records,
+                    warnings=("merchant_inventory_products_mismatch",),
+                ),
+                fallback_reasons=fallback_reasons,
+            )
+        evidence = merge_tool_evidence(batch.results)
+        if any(
+            not any(
+                fact.subject_id == f"offer_{offer.offer_id}"
+                and fact.field == "demo_price_vnd"
+                and fact.value == offer.price_vnd
+                for fact in evidence.facts
+            )
+            for offer in inventory.offers
+        ):
+            return TurnComputation(
+                result=TurnResult(
+                    outcome=DialogueOutcome.ABSTAINED,
+                    answer="Mình chưa có đủ giá đã xác minh để tạo đề xuất.",
+                    plan=trace,
+                    executions=records,
+                    warnings=("merchant_inventory_evidence_incomplete",),
+                ),
+                fallback_reasons=fallback_reasons,
+            )
+        fallback_reasons = tuple(
+            dict.fromkeys(
+                (
+                    *fallback_reasons,
+                    *(
+                        result.reasoning_fallback_reason
+                        for result in batch.results
+                        if result.reasoning_fallback_reason is not None
+                    ),
+                )
+            )
+        )
+        subjects = frozenset(f"offer_{offer.offer_id}" for offer in inventory.offers)
+        grounded = await self.answer_producer.produce(
+            user_request=message,
+            evidence=evidence,
+            allowed_subject_ids=subjects,
+            requirements=tuple(
+                EvidenceRequirement(
+                    kind=EvidenceKind.SANDBOX,
+                    subject_id=subject,
+                    field="demo_price_vnd",
+                )
+                for subject in sorted(subjects)
+            ),
+            allow_repair=False,
+        )
+        read_result = TurnResult(
+            outcome=grounded.outcome,
+            answer=grounded.answer,
+            claims=grounded.claims,
+            citations=grounded.citations,
+            evidence=grounded.evidence,
+            plan=trace,
+            executions=records,
+            warnings=grounded.warnings,
+        )
+        if grounded.outcome != DialogueOutcome.ANSWERED:
+            return TurnComputation(
+                result=read_result, fallback_reasons=fallback_reasons
+            )
+        proposal = self._create_proposal(
+            conversation_id=conversation_id,
+            turn_id=turn_id,
+            lease_owner=lease_owner,
+            planned=planned,
+            context=context,
+            fallback_reasons=fallback_reasons,
+            inventory=inventory,
+        )
+        result = TurnResult.model_validate(
+            {
+                **read_result.model_dump(mode="python"),
+                "outcome": proposal.result.outcome,
+                "answer": grounded.answer + "\n\n" + proposal.result.answer,
+                "action_cards": proposal.result.action_cards,
+                "warnings": (*grounded.warnings, *proposal.result.warnings),
+            }
+        )
+        return TurnComputation(result=result, fallback_reasons=fallback_reasons)
+
     def _create_proposal(
         self,
         *,
@@ -446,6 +588,7 @@ class V2ReadSupervisor:
         planned: PlannedTurn,
         context: PlanningContext,
         fallback_reasons: tuple[str, ...],
+        inventory: MerchantReadResult | None = None,
     ) -> TurnComputation:
         proposal = planned.proposal
         assert proposal is not None
@@ -523,10 +666,11 @@ class V2ReadSupervisor:
         else:
             assert proposal.product_id is not None
             try:
-                inventory = self.action_service.read_inventory(
-                    authorization,
-                    MerchantReadInput(product_ids=(proposal.product_id,)),
-                )
+                if inventory is None:
+                    inventory = self.action_service.read_inventory(
+                        authorization,
+                        MerchantReadInput(product_ids=(proposal.product_id,)),
+                    )
             except ResourceNotFoundError:
                 return _proposal_clarification(
                     planned,
@@ -551,13 +695,29 @@ class V2ReadSupervisor:
                     "action_service_unavailable",
                     fallback_reasons,
                 )
-            if len(inventory.offers) != 1:
+            offers = tuple(
+                offer
+                for offer in inventory.offers
+                if offer.product_id == proposal.product_id
+            )
+            if len(offers) != 1:
                 return _proposal_clarification(
                     planned,
                     "merchant_offer_unavailable",
                     fallback_reasons,
                 )
-            offer = inventory.offers[0]
+            offer = offers[0]
+            target = context.merchant_target
+            if target is not None and (
+                offer.offer_id != target.offer_id
+                or offer.product_id != target.product_id
+                or offer.version != target.expected_version
+            ):
+                return _proposal_clarification(
+                    planned,
+                    "action_prerequisite_changed",
+                    fallback_reasons,
+                )
             offer_request = MerchantOfferProposalInput(
                 offer_id=offer.offer_id,
                 expected_version=offer.version,

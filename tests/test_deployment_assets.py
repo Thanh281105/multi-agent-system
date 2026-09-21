@@ -106,6 +106,7 @@ def test_package_exposes_operational_entry_points() -> None:
         "ecommerce-data": "app.data.cli:main",
         "ecommerce-evaluate": "app.evaluation.runner:main",
         "ecommerce-evaluate-v2": "app.evaluation.v2_runner:main",
+        "ecommerce-evaluate-v3": "app.evaluation.v3_cli:main",
         "ecommerce-migrate": "app.db.migrate:main",
         "ecommerce-reset-legacy-seed": "app.db.reset_legacy_seed:main",
         "ecommerce-seed": "app.db.seed:main",

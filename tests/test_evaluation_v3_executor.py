@@ -35,6 +35,7 @@ from app.evaluation.v3_runner import (
     EvaluationUserTurnV3,
     ObservationExecutionContextV3,
     ObservationExecutionFailureV3,
+    SandboxFixtureAdapterV3,
     _turn_request,
     execution_case_sha256_v3,
     execution_namespace_v3,
@@ -46,7 +47,7 @@ from app.shared.budget import (
     SQLProviderBudgetLedger,
     default_pricing_manifest_path,
 )
-from app.v2.planning import RuntimeDataVersions
+from app.v2.planning import BoundedV2Planner, PlanningContext, RuntimeDataVersions
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -95,6 +96,89 @@ def test_execution_case_hash_binds_resolved_product_authority() -> None:
     second = case.model_copy(update={"resolved_product_ids": (42, 41)})
 
     assert execution_case_sha256_v3(first) != execution_case_sha256_v3(second)
+
+
+def test_merchant_target_is_exact_namespaced_fixture_offer_not_order_or_price() -> None:
+    from app.evaluation.protocol import canonical_sha256
+
+    loaded, _ = _loaded_and_protocol()
+    gold = next(
+        c
+        for c in loaded.gold.conversations
+        if c.conversation_id == "dev_shopping_merchant_02"
+    )
+    payload = gold.sandbox_fixture.model_dump(mode="json")
+    payload["merchant"]["offers"].reverse()
+    # Deliberately change the gold proposal value: it must not enter planning context.
+    payload["proposal_parameters"]["new_price_vnd"] = 123
+    case = EvaluationCaseV3(
+        case_id=gold.conversation_id,
+        work_group_id=gold.work_group_id,
+        category=gold.category.value,
+        principal_role="merchant",
+        scopes=tuple(scope.value for scope in gold.identity_fixture.scopes),
+        resolved_product_ids=tuple(reversed(gold.product_ids)),
+        user_turns=tuple(
+            EvaluationUserTurnV3(
+                source_turn_id=t.turn_id,
+                ordinal=t.ordinal,
+                message=t.message,
+            )
+            for t in gold.user_turns
+        ),
+        initial_state={},
+        sandbox_fixture=SandboxFixtureAdapterV3(
+            fixture_id=payload["fixture_id"],
+            fixture_sha256=canonical_sha256(payload),
+            reset_revision=1,
+            payload=payload,
+        ),
+    )
+    context, case = _context_and_case(case)
+    executor = EvaluationV3ObservationExecutor(
+        runtime=cast(
+            Any,
+            SimpleNamespace(
+                policy=SimpleNamespace(
+                    variant_id=context.identity.variant_id,
+                )
+            ),
+        ),
+        context=context,
+        case=case,
+    )
+    target = executor._merchant_target()
+    assert target is not None
+    assert target.model_dump() == {
+        "product_id": 59,
+        "offer_id": executor.fixture_resource_id("offer", "offer_product_59"),
+        "expected_version": 1,
+    }
+    planned = asyncio.run(
+        BoundedV2Planner(runtime_mode="off").plan(
+            case.user_turns[0].message,
+            PlanningContext(
+                access=executor._access(),
+                versions=RuntimeDataVersions(
+                    catalog_version_id="catalog_test",
+                    corpus_version_id="corpus_test",
+                    index_manifest_id="index_test",
+                ),
+                resolved_product_ids=case.resolved_product_ids,
+                merchant_target=target,
+            ),
+        )
+    )
+    assert planned.proposal is not None
+    assert planned.proposal.product_id == 59
+    assert planned.proposal.new_price_vnd == 70900  # Parsed from user, not fixture 123.
+    assert planned.initial_operations[0].parameters == {"product_ids": [60, 59]}
+
+    executor.case = case.model_copy(update={"resolved_product_ids": (60,)})
+    with pytest.raises(
+        ObservationExecutionFailureV3, match="merchant_target_binding_invalid"
+    ):
+        executor._merchant_target()
 
 
 def test_executor_reset_uses_compact_owned_conversation_and_rejects_collision(
