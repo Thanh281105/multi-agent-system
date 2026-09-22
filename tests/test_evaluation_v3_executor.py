@@ -181,6 +181,88 @@ def test_merchant_target_is_exact_namespaced_fixture_offer_not_order_or_price() 
         executor._merchant_target()
 
 
+def test_shopper_merchant_fixture_preserves_action_mode_denial() -> None:
+    from app.evaluation.protocol import canonical_sha256
+
+    loaded, _ = _loaded_and_protocol()
+    gold = next(
+        item
+        for item in loaded.gold.conversations
+        if item.conversation_id == "held_shopping_merchant_05"
+    )
+    assert gold.sandbox_fixture is not None
+    payload = gold.sandbox_fixture.model_dump(mode="json")
+    case = EvaluationCaseV3(
+        case_id=gold.conversation_id,
+        work_group_id=gold.work_group_id,
+        category=gold.category.value,
+        principal_role=gold.identity_fixture.role.value,
+        scopes=tuple(scope.value for scope in gold.identity_fixture.scopes),
+        resolved_product_ids=gold.product_ids,
+        user_turns=tuple(
+            EvaluationUserTurnV3(
+                source_turn_id=turn.turn_id,
+                ordinal=turn.ordinal,
+                message=turn.message,
+            )
+            for turn in gold.user_turns
+        ),
+        initial_state={
+            "identity_fixture": gold.identity_fixture.model_dump(mode="json")
+        },
+        sandbox_fixture=SandboxFixtureAdapterV3(
+            fixture_id=gold.sandbox_fixture.fixture_id,
+            fixture_sha256=canonical_sha256(payload),
+            reset_revision=gold.sandbox_fixture.reset_revision,
+            payload=payload,
+        ),
+    )
+    context, case = _context_and_case(case)
+    executor = EvaluationV3ObservationExecutor(
+        runtime=cast(
+            Any,
+            SimpleNamespace(
+                policy=SimpleNamespace(variant_id=context.identity.variant_id),
+            ),
+        ),
+        context=context,
+        case=case,
+    )
+
+    assert case.principal_role == "shopper"
+    assert case.sandbox_fixture is not None
+    assert case.sandbox_fixture.payload["target_capability_id"] == (
+        "merchant.offer.propose"
+    )
+    assert executor._merchant_target() is None
+    planning_context = PlanningContext(
+        access=executor._access(),
+        versions=RuntimeDataVersions(
+            catalog_version_id="catalog_test",
+            corpus_version_id="corpus_test",
+            index_manifest_id="index_test",
+        ),
+        resolved_product_ids=case.resolved_product_ids,
+        merchant_target=executor._merchant_target(),
+    )
+    planner = BoundedV2Planner(runtime_mode="off")
+    gold_planned = asyncio.run(
+        planner.plan(case.user_turns[0].message, planning_context)
+    )
+    assert gold_planned.proposal is None
+    assert "merchant.offer.propose" not in gold_planned.desired_capabilities
+
+    denied = asyncio.run(
+        planner.plan(
+            "Đổi giá thành 109000 VND",
+            planning_context,
+        )
+    )
+    assert denied.clarification_code == "action_mode_mismatch"
+    assert denied.proposal is None
+    assert denied.desired_capabilities == ()
+
+
 def test_executor_reset_uses_compact_owned_conversation_and_rejects_collision(
     tmp_path: Path,
 ) -> None:

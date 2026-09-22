@@ -544,6 +544,8 @@ class EvaluationV3ObservationExecutor:
         Neither the expected response nor the proposed price enters planning;
         the planner must still parse the requested change from the user message.
         """
+        if self.case.principal_role != ConversationMode.MERCHANT.value:
+            return None
         adapter = self.case.sandbox_fixture
         if adapter is None or (
             adapter.payload.get("target_capability_id") != "merchant.offer.propose"
