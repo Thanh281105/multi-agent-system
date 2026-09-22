@@ -349,9 +349,10 @@ fingerprint. Không dùng nó trên dữ liệu cần giữ.
 
 Handoff hiện hành sau sửa P02 nằm tại
 [P02 successor handoff](thanh-v2/p02-successor-handoff.md), với protocol
-`315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`.
-Các hash `c8a4…`/`f37e…` bên dưới là lịch sử trước sửa P02. Live P7/P8 và
-PostgreSQL đã được operator hoãn; chưa có freeze hoặc kết quả benchmark mới.
+`28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`.
+Các hash `315eff…`/`c8a4…`/`f37e…` bên dưới là lịch sử trước sửa shopper
+fixture. P7 successor v5 đã freeze; P8 successor v6-v9 có terminal partial
+evidence nhưng chưa có kết quả benchmark hoàn chỉnh.
 P8 exact evidence hiện đã có authority bất biến cho merchant inventory,
 shopper cart/checkout preview reads, `catalog_product_N` và
 `review_sample_N` khi receipt còn gắn đúng reset fixture/source asset,
@@ -373,13 +374,13 @@ response phải giữ durable status, pinned data versions, evidence bindings v�
 usage metadata. Một fixture hoặc SQLite success không thay thế được PostgreSQL
 transaction/replay verification.
 
-Historical P8 partial được giữ nguyên. Vì remediation merchant đã đổi source
-protocol, operator phải chạy P7 successor và freeze repeat decision mới trước khi
-tạo P8 successor; không được resume historical P8 để redispatch terminal cells.
-P7 successor chưa dispatch; dry-run của `run_p7_successor_v4` đã tạo schedule
-`754b168a7d361986c98c243b3fbd7e69fbdbf3c7dd4177e0d90f5f49492f923e` cho 36
-cells (4 warmup, 32 measurements). Package 8 vẫn là additive held-out work. Các
-lệnh local không gọi provider:
+Historical P8 partial được giữ nguyên. Vì shopper fixture remediation đã đổi
+source protocol, P7 successor v5 được chạy và freeze repeat decision trước khi
+tạo P8 successors; không được resume historical P8 để redispatch terminal cells.
+`run_p7_successor_v5` có schedule
+`82617ce0e4004fcda0b542a1769de9653be044643f5189a5b3e88fa0aebd2163` cho 36
+cells (4 warmup, 32 measurements), chọn 3 repeats. Package 8 vẫn là additive
+held-out work. Các lệnh local không gọi provider:
 
 ```powershell
 python -m app.evaluation.benchmark_cli validate
@@ -418,24 +419,22 @@ account tất cả attempt, retry và reservation. Citation catalog/review chỉ
 reopen từ source asset đã hash-pin và receipt authority tương ứng; record không
 đủ provenance sẽ block lifecycle thay vì tự dựng evidence.
 
-P8 hiện có SUT run terminal partial `run_p8_heldout_corrected_v3`: `678` cells
-completed, `42` failed trên `720` scheduled, với `0` pending, `0` ambiguous và
-`0` orphan. Schedule SHA là
-`a6002ab2dc15282bf4b26c79ffece061242065e8352e637a1a82623a8fa1fd71`. Record
-partial ghi nhận `792` generation/provider attempts, `0` retries, `0` embeddings,
-known SUT cost `1.44856770 USD` và không có unresolved reservation. Safe failure
-codes gồm 1 `expert_selection_not_authorized`, 2 `model_response_incomplete`, 4
-`model_response_invalid` và 35 `turn_execution_failed`. Partial report checksum
-là `17177bd7829d972c159d77ca068852fafd10d12152f2d087db07172f768f62ea`, execution
-case-set SHA là
-`26cb17e6dbc549f871b69ef682b21af9f32fa69a05d8c671e297b269c0040339`.
-Dùng `partial-report` để persist hoặc tái xác thực coverage/ledger/checkpoint
-hash của run đó; lệnh local-only và không mở live runtime. Không báo cáo partial
-checkpoint như complete, scored, calibrated hoặc judge-complete. Run này không
-thể resume để redispatch terminal cells. P8 successor chỉ được tạo sau P7
-successor protocol SHA-256
-`315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f` hoàn tất
-và freeze repeat decision; sau đó mới chạy exact immutable evidence resolver,
-calibration/judging và các final gates. Schedule hiện hành là
-`754b168a7d361986c98c243b3fbd7e69fbdbf3c7dd4177e0d90f5f49492f923e`; hash
-`c8a4…` chỉ thuộc handoff historical trước P02.
+P8 hiện có bốn SUT successor run terminal partial, đều `0` pending, `0`
+ambiguous và `0` orphan:
+
+| Run | Schedule | Completed | Failed/missing |
+| --- | --- | ---: | ---: |
+| `run_p8_successor_v6` | `c0c41ae8…` | 718 | 2 |
+| `run_p8_successor_v7` | `ad5b8d57…` | 716 | 4 |
+| `run_p8_successor_v8` | `7aae9668…` | 714 | 6 |
+| `run_p8_successor_v9` | `9efb06ceb5843f069f1e84e6f099ff57c5103b6a0167114db52e09d0bc24b394` | 712 | 8 |
+
+V9 failure codes gồm 1 `attempt_timeout_limit_exceeded`, 2
+`expert_selection_not_authorized`, 2 `model_response_incomplete` và 3
+`model_response_invalid`. Không có raw provider payload hay fabricated citation
+trong partial report. Cumulative live ledger là `10.387962730 USD` known và
+`0.016542090 USD` unknown, không phải riêng v9. Dùng `partial-report` để
+persist hoặc tái xác thực coverage/ledger/checkpoint hash; lệnh local-only và
+không mở live runtime. Không báo cáo partial checkpoint như complete, scored,
+calibrated hoặc judge-complete; `operate` chỉ chạy sau khi một SUT run đủ tất
+cả receipt cells và các gate evidence/calibration/judging pass.

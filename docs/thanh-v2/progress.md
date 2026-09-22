@@ -10,19 +10,22 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | 4 — supervisor, continuation, deduplication, grounding | Committed `93c7cf7` | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
 | 5 — history, memory, sandbox actions | Gate passed | 703 tests pass; real PostgreSQL recovery/concurrency, clock skew and exact v1 OpenAPI verified. |
 | 6 — API and frontend | Gate passed | JSON/SSE/UI consistency; v1 regression; PostgreSQL-backed v2 boundary |
-| 7 — evaluation v3, gold, pilot, freeze | Successor pilot pending | Historical corrected pilot is immutable but source remediation changed the canonical protocol; new P7 dry-run is valid and awaits live dispatch/freeze |
-| 8 — benchmark, error analysis, final checks/docs | Historical terminal partial / final gate open | Historical P8 has 678/720 SUT cells and remains immutable; successor P8 starts only after successor P7 is complete and frozen |
+| 7 — evaluation v3, gold, pilot, freeze | Successor pilot frozen | `run_p7_successor_v5` completed 36/36; corrected protocol and repeat decision are frozen for the held-out matrix |
+| 8 — benchmark, error analysis, final checks/docs | Successor SUT terminal partial / final gate open | `run_p8_successor_v9` completed 712/720 with 8 fail-closed cells; no ambiguous/orphan work, but scoring, calibration and publication remain blocked |
 
 ## Execution rules
 
 Current continuation: [P02 and successor handoff](p02-successor-handoff.md).
 P02 now supports grounded multi-offer reads plus an independently server-bound
-proposal. The current protocol is
-`315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`;
-all older `c8a4…` references below remain historical. The operator deferred
-credentials and live P7/P8, so the final gate remains open. Targeted PostgreSQL
-executor (5 tests) and v2 action/sandbox seed (46 tests) gates pass; later local
-verification also closes the broader API v2/action/replay PostgreSQL matrix.
+proposal. The corrected successor protocol is
+`28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`;
+all older `315eff…` and `c8a4…` references are historical. Live P7 successor
+v5 is frozen, and live P8 successors v6 through v9 are preserved as terminal
+partial evidence. The final gate remains open because the latest run has
+fail-closed model/timeout cells; no scoring, calibration or publication has
+been attempted. Targeted PostgreSQL executor (5 tests) and v2 action/sandbox
+seed (46 tests) gates pass; later local verification also closes the broader
+API v2/action/replay PostgreSQL matrix.
 
 Local continuation verification: broad offline selection 785 passed, 2 baseline
 documentation/entrypoint failures, 1 skipped; both corrected failures reran green
@@ -484,22 +487,23 @@ with no human author or judge IDs.
 
 These artifacts establish historical frozen inputs and a budget projection only.
 They do not establish held-out quality, semantic grounding, or a completed
-benchmark. Merchant remediation in `ea24338` and the grounded P02 successor in
-`7f3dc84` change the source-bound protocol; the current canonical successor
-SHA256 is
-`315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`.
-`run_p7_successor_v4` has passed local dry-run with 36 cells (4 warmup and 32
-measurements), schedule SHA
-`754b168a7d361986c98c243b3fbd7e69fbdbf3c7dd4177e0d90f5f49492f923e`, but has
-not dispatched a provider run and has no repeat decision. It must complete and
-freeze before a new P8 schedule may be created. No completed historical cell may
-be replayed or reused as successor evidence.
+benchmark. The shopper fixture remediation in `8301e3b` changes the
+source-bound protocol; the corrected canonical successor SHA256 is
+`28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`.
+`run_p7_successor_v5` completed and froze all 36 cells (4 warmups and 32
+measurements), with schedule SHA
+`82617ce0e4004fcda0b542a1769de9653be044643f5189a5b3e88fa0aebd2163`.
+The global repeat decision selects three repeats, with pilot effective cost
+`0.05551620 USD` and projected held-out SUT cost `5.91510600 USD`.
+No completed historical cell is replayed or reused as successor evidence.
 
 The merchant remediation keeps ambiguous multi-product price mutations safe: it
 returns a clarification instead of choosing a target or fabricating a proposal.
-The successor evaluation must record that observable behavior against its gold
-contract; it must not alter the protocol or force a proposal merely to reproduce
-a previous expected state.
+The successor evaluation records that observable behavior against its gold
+contract; it does not alter the protocol or force a proposal merely to reproduce
+a previous expected state. The shopper fixture regression keeps a merchant
+target out of shopper planning contexts, preserving the action-mode denial while
+leaving merchant target binding unchanged.
 The published v2 runtime remains PostgreSQL-backed and pins corpus
 `books-v1-calibrated-20260909` with 20 sources/chunks/vectors, 200 mappings
 (20 exact work, 17 ambiguous, 163 unmatched), and
@@ -522,28 +526,38 @@ sources remain fail-closed. The driver builds the exact
 uses append-only checkpoint/resume behavior. Local commands do not
 call a provider.
 
-The held-out SUT run `run_p8_heldout_corrected_v3` reached a terminal partial
-checkpoint: 678 of 720 scheduled cells completed and 42 failed, with 0 pending,
-0 ambiguous and 0 orphan cells. Its schedule SHA is
-`a6002ab2dc15282bf4b26c79ffece061242065e8352e637a1a82623a8fa1fd71`. The
-immutable `partial-execution-report.p8.json` records 792 generation/provider
-attempts, 0 retries, 0 embeddings, `1.44856770 USD` known SUT cost and no
-unresolved reservation. Safe terminal error counts are 1
-`expert_selection_not_authorized`, 2 `model_response_incomplete`, 4
-`model_response_invalid` and 35 `turn_execution_failed`; no raw provider
-payload is carried into the report. Partial report checksum is
-`17177bd7829d972c159d77ca068852fafd10d12152f2d087db07172f768f62ea`, and the
-execution-case-set SHA is
-`26cb17e6dbc549f871b69ef682b21af9f32fa69a05d8c671e297b269c0040339`.
+The historical held-out SUT run `run_p8_heldout_corrected_v3` remains immutable
+at 678/720 completed cells; it is not current successor evidence. After the
+shopper-target correction, four fresh P8 successors used the frozen P7 v5
+protocol. All reached terminal partial status with zero ambiguous and zero
+orphan cells:
 
-`partial-report` reads that checkpoint with a forbidden live executor and writes
-or validates the immutable partial record. It does not dispatch a provider,
+| Run | Schedule | Completed | Failed/missing |
+| --- | --- | ---: | ---: |
+| `run_p8_successor_v6` | `c0c41ae8…` | 718 | 2 |
+| `run_p8_successor_v7` | `ad5b8d57…` | 716 | 4 |
+| `run_p8_successor_v8` | `7aae9668…` | 714 | 6 |
+| `run_p8_successor_v9` | `9efb06ceb5843f069f1e84e6f099ff57c5103b6a0167114db52e09d0bc24b394` | 712 | 8 |
+
+The latest v9 report contains one timeout, two
+`expert_selection_not_authorized`, two `model_response_incomplete` and three
+`model_response_invalid` cells. The earlier v6-v8 reports contain the same
+fail-closed model-response family; the original merchant fixture-binding
+failure does not recur after the source fix. No raw provider payload is carried
+into any partial report. Cumulative runtime ledger accounting across these live
+runs is `10.387962730 USD` known and `0.016542090 USD` unknown; these are not
+v9-only costs.
+
+`partial-report` reads each checkpoint with a forbidden live executor and writes
+or validates an immutable partial record. It does not dispatch a provider,
 score receipts, reopen citation authority, calibrate the judge, or publish a
-benchmark result. The append-only checkpoint cannot redispatch settled cells, so
-this run cannot become a complete result through `resume`. P8 remains open for a
-distinct successor P7/P8 protocol and run. The successor P8 may only be created
-after `run_p7_successor_v4` completes and its repeat decision is frozen; it then
-requires exact evidence resolution, calibration/judging and the final gates.
+benchmark result. The append-only checkpoints cannot redispatch settled cells,
+so none of these runs can become complete through `resume`. The P8 final gate
+remains open until a run has no failed or missing cells and the exact evidence,
+calibration, judging and publication gates pass. The latest v9 run is the final
+live attempt for this continuation; remaining failures are preserved as a
+provider/model reliability blocker rather than converted to deterministic or
+hybrid fallback results.
 
 Package 8 remains open until all of the following are complete and independently
 validated: calibrated automated judge and frozen bindings; exact immutable
@@ -553,4 +567,4 @@ attribution and no missing/ambiguous work; blind-answer/judgment
 join; analysis/report artifacts; frontend checks when affected; package gates;
 and final documentation review. The broader local PostgreSQL
 transactional/replay gate is complete as recorded above; it does not alter the
-historical terminal-partial P8 status or authorize successor network execution.
+terminal-partial P8 status or authorize scoring/publication.

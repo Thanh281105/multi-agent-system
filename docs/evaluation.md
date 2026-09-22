@@ -186,10 +186,10 @@ quả.
 ## 8. Package 7 historical protocol và successor pilot
 
 **Cập nhật sau P02:** xem [handoff hiện hành](thanh-v2/p02-successor-handoff.md).
-Protocol `c8a4…` và dry-run bên dưới là trạng thái bàn giao `31f3351` trước sửa
-P02. Mã hiện hành có protocol `315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`;
-dry-run vẫn đủ 36 cells. Operator đã hoãn PostgreSQL và live P7/P8; chưa freeze,
-chưa tạo P8 mới và chưa chạy `operate`.
+Protocol `c8a4…` và v4 artifacts bên dưới là lịch sử trước sửa P02. Mã hiện
+hành có protocol `28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`;
+P7 successor v5 đã hoàn tất và freeze repeat decision. P8 successor v6-v9 đã
+chạy live nhưng vẫn terminal partial; `operate` chưa được gọi.
 
 Historical corrected P7 freeze artifact do operator tạo tại
 `output/evaluation-v3/pilot-corrected-v3/`; đây là output local không được commit
@@ -214,11 +214,13 @@ held-out SUT cost là `5.72929200 USD`. Các số này chỉ là historical
 budget/projection evidence, không phải benchmark quality result và không thể
 được tái sử dụng cho protocol successor.
 
-P7 successor chưa dispatch. Dry-run đã xác nhận `36` cells gồm `4` warmup và
-`32` measurements cho `run_p7_successor_v4`, với schedule SHA
-`754b168a7d361986c98c243b3fbd7e69fbdbf3c7dd4177e0d90f5f49492f923e`. P8
-successor chỉ được tạo sau khi pilot này hoàn tất và repeat decision mới được
-freeze; không resume hay ghép thêm cells vào P7/P8 historical.
+P7 successor `run_p7_successor_v5` đã hoàn tất `36/36` terminal cells gồm `4`
+warmup và `32` measurements, với schedule SHA
+`82617ce0e4004fcda0b542a1769de9653be044643f5189a5b3e88fa0aebd2163`. Repeat
+decision chọn global `3` repeats; chi phí pilot là `0.05551620 USD` và
+projected held-out SUT cost là `5.91510600 USD`. P8 successors dùng đúng
+protocol/repeat decision này trong output riêng; không resume hay ghép cells
+vào các runs lịch sử.
 
 Remediation P02 hiện hành đọc/ground giá nhiều offer rồi tạo proposal nếu có
 target độc lập do server xác định. Thiếu target vẫn trả clarification an toàn.
@@ -281,25 +283,28 @@ python -m app.evaluation.benchmark_cli partial-report `
   --run-id run_p8_heldout_corrected_v3
 ```
 
-Held-out SUT `run_p8_heldout_corrected_v3` đã terminal partial: `678` completed,
-`42` failed trên `720` scheduled, không có pending, ambiguous hoặc orphan cell.
-Schedule SHA là
-`a6002ab2dc15282bf4b26c79ffece061242065e8352e637a1a82623a8fa1fd71`. Record
-partial account `792` generation/provider attempts, `0` retries, `0` embeddings,
-`1.44856770 USD` known SUT cost và không có unresolved reservation. Các safe
-failure code được ghi nhận là 1 `expert_selection_not_authorized`, 2
-`model_response_incomplete`, 4 `model_response_invalid` và 35
-`turn_execution_failed`; raw provider payload hay fabricated citation không được
-đưa vào report. Partial report checksum là
-`17177bd7829d972c159d77ca068852fafd10d12152f2d087db07172f768f62ea`, execution
-case-set SHA là
-`26cb17e6dbc549f871b69ef682b21af9f32fa69a05d8c671e297b269c0040339`.
-Checkpoint append-only không được resume để redispatch các terminal cell. Run
-này không được trình bày như scored, calibrated, judge-complete hay benchmark
-quality. Chưa có calibration/judge journal, final result hoặc paired metric từ
-run này; P8 vẫn chờ P7 successor hoàn tất, freeze repeat decision và tạo một P8
-successor riêng theo source protocol mới, trước khi exact immutable evidence
-resolver, calibration/judging và các final gates có thể chạy.
+Historical held-out SUT `run_p8_heldout_corrected_v3` remains immutable at
+`678/720` completed cells and is not current successor evidence. After the
+shopper fixture correction, four fresh runs used the frozen P7 v5 protocol and
+each reached terminal partial status with zero pending, ambiguous or orphan
+work:
+
+| Run | Schedule SHA | Completed | Failed/missing |
+| --- | --- | ---: | ---: |
+| `run_p8_successor_v6` | `c0c41ae8…` | 718 | 2 |
+| `run_p8_successor_v7` | `ad5b8d57…` | 716 | 4 |
+| `run_p8_successor_v8` | `7aae9668…` | 714 | 6 |
+| `run_p8_successor_v9` | `9efb06ceb5843f069f1e84e6f099ff57c5103b6a0167114db52e09d0bc24b394` | 712 | 8 |
+
+The latest v9 safe failure codes are one `attempt_timeout_limit_exceeded`, two
+`expert_selection_not_authorized`, two `model_response_incomplete` and three
+`model_response_invalid`. The old merchant fixture-binding failure is absent
+after the source fix. Partial reports contain no raw provider payload or
+fabricated citation. Cumulative runtime ledger accounting across the live
+successors is `10.387962730 USD` known and `0.016542090 USD` unknown; these are
+not v9-only costs. Append-only checkpoints cannot redispatch terminal cells, so
+none of these runs is scored, calibrated, judge-complete or publishable.
+No calibration/judge journal, final result or paired metric exists yet.
 
 Để đóng Package 8, phải có đủ các gate sau:
 

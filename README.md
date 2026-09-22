@@ -316,27 +316,30 @@ legacy và không hỗ trợ current Tiki claim.
 P7/P8 corrected trước đây vẫn được giữ làm evidence bất biến: P7 protocol hash
 `385ae09e74a7e8e2896b170f9ad3f2549f6f79390e94b3241cd7da0e4b32721f` có bốn
 variants, 20 development cases và 60 held-out cases; pilot đã hoàn tất `36/36`
-cells, chọn 3 repeats và có chi phí thực tế `0.05332290 USD`. Remediation
-merchant sau đó thay đổi source-bound protocol. Canonical successor SHA-256 là
-`c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79cde`; P7
-successor `run_p7_successor_v4` mới có dry-run `36` cells (4 warmup, 32
+cells, chọn 3 repeats và có chi phí thực tế `0.05332290 USD`. Shopper fixture
+remediation sau đó thay đổi source-bound protocol. Canonical successor SHA-256
+hiện hành là
+`28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`; P7
+successor `run_p7_successor_v5` hoàn tất `36/36` cells (4 warmup, 32
 measurements), schedule SHA
-`f37eaa4482cafa85b9c665bf6ea25f30a81872df277e3e803949035209b7da13`, nhưng
-chưa được dispatch. Do đó P7 cũ không được dùng làm input cho P8 successor.
+`82617ce0e4004fcda0b542a1769de9653be044643f5189a5b3e88fa0aebd2163`, chọn 3
+repeats, pilot cost `0.05551620 USD` và projected held-out cost `5.91510600
+USD`. Historical P7 không được dùng làm input cho P8 successor.
 
-Package 8 đã chạy SUT held-out nhưng hiện chỉ có terminal partial, chưa có
-scoring, calibration, judge-complete hay benchmark-quality result. Run
-`run_p8_heldout_corrected_v3` có `678/720` cells completed và `42` failed;
-schedule SHA là
-`a6002ab2dc15282bf4b26c79ffece061242065e8352e637a1a82623a8fa1fd71`. Record
-này ghi nhận `792` generation/provider attempts, `0` retries, `0` embeddings,
-known SUT cost `1.44856770 USD` và không còn unresolved reservation. `validate`,
-`dry-run` và `prepare` không gọi provider; `run`/`resume` và lifecycle `operate`
-chỉ được live khi truyền rõ `--allow-network`, `--database-url`; `operate` còn
-cần hard limit judge per-job và fail-closed khi citation không mở lại được từ
-immutable authority. P8 vẫn mở, chờ P7 successor hoàn tất và freeze repeat
-decision, rồi mới tạo P8 successor với protocol mới, exact evidence resolver,
-calibration/judging và các final gates.
+Package 8 đã chạy bốn SUT successor run nhưng đều terminal partial, chưa có
+scoring, calibration, judge-complete hay benchmark-quality result. Các run
+`run_p8_successor_v6`/`v7`/`v8`/`v9` lần lượt hoàn tất `718/720`, `716/720`,
+`714/720` và `712/720` cells; v9 schedule SHA là
+`9efb06ceb5843f069f1e84e6f099ff57c5103b6a0167114db52e09d0bc24b394`. V9 còn 8
+fail-closed cells (timeout, unauthorized expert selection và structured model
+response errors); merchant fixture-binding failure không lặp lại sau source fix.
+`validate`, `dry-run` và `prepare` không gọi provider; `run`/`resume` và
+lifecycle `operate` chỉ được live khi truyền rõ `--allow-network`,
+`--database-url`; `operate` còn cần hard limit judge per-job và fail-closed khi
+citation không mở lại được từ immutable authority. P8 vẫn mở cho đến khi một
+run đủ toàn bộ receipt cells, rồi mới chạy exact evidence resolver,
+calibration/judging và các final gates. Cumulative live ledger accounting là
+`10.387962730 USD` known và `0.016542090 USD` unknown.
 Xem [phương pháp evaluation](docs/evaluation.md) để biết chi tiết.
 
 ## Cấu trúc repository

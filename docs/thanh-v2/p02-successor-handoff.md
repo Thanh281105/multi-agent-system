@@ -1,10 +1,11 @@
-# P02 remediation and deferred successor execution
+# P02 remediation and successor execution status
 
-This record supersedes the unstarted `31f3351` successor handoff. The operator
-explicitly deferred credentials and live P7/P8 execution in this session. Local
-PostgreSQL regression gates were later reproduced as recorded below. No benchmark
-prompts were sent to OpenAI. No pilot checkpoint, repeat decision, held-out run or
-judging report was created.
+This record supersedes the unstarted `31f3351` successor handoff. Live egress
+was authorized for the successor lifecycle and the local PostgreSQL runtime was
+prepared on the dedicated loopback database. P7 successor v5 completed and
+froze its repeat decision. P8 successors v6 through v9 then produced terminal
+partial checkpoints; no scoring, calibration, judging or publication report is
+claimed because every held-out run still has fail-closed cells.
 
 ## Implemented boundary
 
@@ -42,13 +43,16 @@ The old protocol `c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79c
 and schedule `f37eaa4482cafa85b9c665bf6ea25f30a81872df277e3e803949035209b7da13`
 describe the pre-P02 source. They must not be used for this implementation.
 
-The current protocol additionally binds supervisor and grounding source files:
+The corrected protocol additionally binds the shopper fixture guard and the
+supervisor/grounding source files:
 
-- Protocol: `315efff0d596f11ea63aa60729834e54fb5d6acb9bf6b7d2b9260b96b601451f`.
-- Planned run: `run_p7_successor_v4`.
-- Planned output: `output/evaluation-v3/pilot-successor-v4`.
-- Schedule: `754b168a7d361986c98c243b3fbd7e69fbdbf3c7dd4177e0d90f5f49492f923e`.
-- Local dry-run: 36 cells, 4 warmups, 32 measurements, 0 network calls.
+- Protocol: `28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`.
+- Frozen P7 run: `run_p7_successor_v5`.
+- Output: `output/evaluation-v3/pilot-successor-v5`.
+- Schedule: `82617ce0e4004fcda0b542a1769de9653be044643f5189a5b3e88fa0aebd2163`.
+- Pilot: 36/36 terminal cells, 4 warmups, 32 measurements, 0 failed cells.
+- Repeat decision: 3 repeats; pilot effective cost `0.05551620 USD`, projected
+  held-out SUT cost `5.91510600 USD`.
 
 The three P8 protocol guards are rebound to this exact source protocol. No P8
 run is created by that code change. No previous repeat decision is reused.
@@ -59,40 +63,33 @@ frozen bindings require CRLF. Gold, split and source JSON content are unchanged.
 The OpenAI adapter also has a type-only cast for the pinned SDK's TypedDict return;
 runtime payloads and dispatch behavior are unchanged.
 
-## Resume checklist after credentials and PostgreSQL are configured
+## Successor execution record
 
-1. Obtain explicit approval for sending benchmark prompts and judging inputs to
-   OpenAI, with the intended run IDs and budget. Do not print `.env`, API keys or
-   database credentials. Run PostgreSQL transactional/replay gates first on the
-   dedicated `TEST_POSTGRES_URL` server, and prepare the live database/corpus.
-2. Inspect existing output/checkpoints before dispatch. An existing terminal cell
-   must never be redispatched. If another machine has already started v4 under
-   the old source, preserve it and allocate a new run/output instead of rebinding
-   its checkpoint. The CLI must reject source/checkpoint mismatches.
-3. Run the local preflight:
+1. Preflight validated the corrected protocol and the exact 36-cell P7 v5
+   schedule. The live pilot was dispatched with explicit network consent and a
+   loopback PostgreSQL URL, then repeat-freeze accepted the receipt and ledger
+   evidence.
+2. P8 runs v6, v7, v8 and v9 each used a distinct append-only output/checkpoint
+   and the same frozen P7 protocol/repeat decision. Their terminal summaries are:
 
-   ```powershell
-   python -m app.evaluation.v3_cli validate
-   python -m app.evaluation.v3_cli dry-run --run-id run_p7_successor_v4
-   ```
+   | Run | Schedule | Completed | Failed/missing |
+   | --- | --- | ---: | ---: |
+   | `run_p8_successor_v6` | `c0c41ae8…` | 718 | 2 |
+   | `run_p8_successor_v7` | `ad5b8d57…` | 716 | 4 |
+   | `run_p8_successor_v8` | `7aae9668…` | 714 | 6 |
+   | `run_p8_successor_v9` | `9efb06ceb5843f069f1e84e6f099ff57c5103b6a0167114db52e09d0bc24b394` | 712 | 8 |
 
-4. After explicit egress approval, start `v3_cli pilot` with
-   `--run-id run_p7_successor_v4`, `--output output/evaluation-v3/pilot-successor-v4`,
-   `--allow-network` and `--database-url $env:DATABASE_URL`. Use `resume` only for
-   an existing compatible checkpoint. Freeze only after all 36 cells are terminal
-   and the freeze validator accepts the receipt/ledger evidence.
-5. Only after complete/frozen P7, allocate `run_p8_successor_v4` and
-   `output/evaluation-v3/heldout-successor-v4` (or another unused pair). Supply
-   `--p7-protocol` and `--p7-repeat-decision` from that same P7 output. Require
-   `60 × 4 × frozen_repeats` receipt cells (`480` or `720`), complete
-   attempt/retry/warmup/embedding accounting and zero
-   pending/ambiguous/orphan/failed cells. Do not force a three-repeat decision
-   if the frozen cost gate does not permit it. Never resume
-   `run_p8_heldout_corrected_v3` to replace settled cells.
-6. For `benchmark_cli operate`, also pass `--pilot-checkpoint` and
-   `--pilot-schedule` from the same P7, plus explicit judge budget. Resolve exact
-   evidence, calibrate, freeze judge bindings, blind-judge and publish only when
-   all validators succeed.
+   All have zero ambiguous/orphan cells. The v9 failures are one timeout, two
+   `expert_selection_not_authorized`, two `model_response_incomplete` and three
+   `model_response_invalid`; the shopper merchant-target binding failure from
+   the older protocol no longer appears.
+3. Existing terminal cells were never redispatched. `resume` cannot repair a
+   terminal partial checkpoint, and no run is eligible for `operate` until every
+   scheduled receipt cell is complete and the ledger has no unresolved work.
+4. `benchmark_cli operate` remains intentionally uncalled. It still requires
+   the same P7 checkpoint/schedule, exact evidence resolution and explicit judge
+   budget, and it may publish only after calibration, blind judging and all
+   validators succeed.
 
 The exact evidence boundary is now receipt-bound and fail-closed.
 `ImmutableBenchmarkEvidenceResolverV3` reopens knowledge, canonical
@@ -102,8 +99,9 @@ reconstructed from hash-pinned public assets. Ranked catalog records, oversized
 review samples, and mutated sandbox state still stop scoring with a typed error.
 Do not fabricate source text from the answer, title or gold, relabel sandbox
 citations as catalog citations, or soften a provenance failure. This does not
-make `operate` ready to complete: successor P7 must still run and freeze before
-the P8 lifecycle can start.
+make `operate` ready to complete: successor P7 is frozen, but P8 must first
+reach complete SUT coverage before evidence, calibration, judging and
+publication can run.
 
 On any failure, classify the error and inspect its checkpoint before changing
 code. Fix only the demonstrated cause; preserve completed cells and bind any
@@ -133,5 +131,5 @@ database-dependent cases against a loopback disposable PostgreSQL URL passed 17
 tests with 1 existing Starlette/httpx warning. An additional PostgreSQL v2
 action/history/lease/persistence/runtime/tools/sandbox suite passed 103 tests.
 Together these local results close the broader API v2/action/replay PostgreSQL
-verification. Live P7/P8/`operate` remain deferred and must not be represented as
-passed or complete.
+verification. P7 is complete and frozen; P8 SUT is terminal partial and
+`operate` remains blocked by the missing/failed cells above.
