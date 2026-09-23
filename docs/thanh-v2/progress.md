@@ -81,6 +81,10 @@ Package 1 gate is met: baseline status and environment failures are known. The l
 
 The captured Multi-Agent report is preserved exactly after the experiment. Its saved hash is `c02f2550d867eaa30ad06750c8379a7a09733c61b945cf61de87708992ff5437`; baseline source hashes to `213c2b50d32ad42be33933fcb0d861f62d864e922226943d950e013bf6c2c0e0`. `scripts/run_real_multi_agent_benchmark.py` computes the source manifest from current `app/**/*.py` while re-scoring. Hashing already normalizes CRLF, so this is not attributed to Windows line endings. This pre-existing reproducibility failure is recorded rather than changing historical artifacts or calling it a pass. New evaluation v3 must bind captures to their frozen manifest.
 
+CI follow-up (2026-09-23): `--score-only` now reads the source binding from the
+existing report and preserves it while recomputing metrics. The historical
+observations and their original source fingerprint remain unchanged.
+
 No baseline provider calls, embedding requests, warmup, judge calls or benchmark observations were sent.
 
 

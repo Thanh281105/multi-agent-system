@@ -418,6 +418,11 @@ python scripts/score_real_baseline.py
 python scripts/run_real_multi_agent_benchmark.py --score-only
 ```
 
+`--score-only` yêu cầu report hiện có và giữ nguyên `sut_source_sha256` cùng
+`sut_source_files` của lần capture, vì report đó là provenance của observations
+bất biến. Chế độ này chỉ tính lại điểm và report; nó không gắn observations lịch
+sử với source checkout hiện tại.
+
 ## 11. Điều kiện trước claim mạnh hơn
 
 1. Freeze một complete v2 bundle từ clean revision và validate độc lập.
