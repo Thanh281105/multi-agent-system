@@ -26,6 +26,7 @@ ecommerce-reset-legacy-seed = "app.db.reset_legacy_seed:main"
 ecommerce-seed = "app.db.seed:main"
 ecommerce-evaluate = "app.evaluation.runner:main"
 ecommerce-evaluate-v2 = "app.evaluation.v2_runner:main"
+ecommerce-evaluate-v3 = "app.evaluation.v3_cli:main"
 ecommerce-data = "app.data.cli:main"
 
 [project.optional-dependencies]
@@ -43,6 +44,7 @@ where = ["."]
 include = ["app*"]
 
 [tool.setuptools.package-data]
+"app.shared" = ["pricing-manifest.json"]
 "app.frontend" = [
     "dist/index.html",
     "dist/assets/*",

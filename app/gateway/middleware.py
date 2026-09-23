@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 _REQUEST_ID = re.compile(r"^req_[a-zA-Z0-9_-]{3,120}$")
 _TRACE_ID = re.compile(r"^trace_[a-zA-Z0-9_-]{3,120}$")
 _KNOWN_METRIC_PATHS = {
-    "/api/v1/chat",
-    "/api/v1/chat/stream",
+    "/api/v2/chat",
+    "/api/v2/chat/stream",
     "/health",
     "/livez",
     "/readyz",
@@ -80,13 +80,13 @@ def install_gateway_middleware(application: FastAPI) -> None:
                 trace_id,
                 type(exc).__name__,
             )
-            if request.url.path.startswith("/api/v1/"):
+            if request.url.path.startswith("/api/v2/"):
                 response = _error_response(
                     request,
                     status_code=500,
-                    code="gateway.internal_error",
+                    code="v2.internal_error",
                     message="Không thể xử lý yêu cầu lúc này.",
-                    retryable=True,
+                    retryable=False,
                 )
             else:
                 response = JSONResponse(
@@ -139,7 +139,7 @@ async def _validation_handler(
 ) -> Response:
     if not isinstance(exc, RequestValidationError):
         raise TypeError("unexpected validation exception type")
-    if not request.url.path.startswith("/api/v1/"):
+    if not request.url.path.startswith("/api/v2/"):
         return await request_validation_exception_handler(request, exc)
     safe_errors: tuple[dict[str, object], ...] = tuple(
         {
@@ -152,7 +152,7 @@ async def _validation_handler(
     return _error_response(
         request,
         status_code=422,
-        code="gateway.validation_failed",
+        code="v2.validation_failed",
         message="Payload không hợp lệ.",
         validation_errors=safe_errors,
     )
@@ -161,12 +161,12 @@ async def _validation_handler(
 async def _http_error_handler(request: Request, exc: Exception) -> Response:
     if not isinstance(exc, HTTPException):
         raise TypeError("unexpected HTTP exception type")
-    if not request.url.path.startswith("/api/v1/"):
+    if not request.url.path.startswith("/api/v2/"):
         return await http_exception_handler(request, exc)
     return _error_response(
         request,
         status_code=exc.status_code,
-        code="gateway.http_error",
+        code="v2.http_error",
         message="Yêu cầu không thể được xử lý.",
     )
 

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from app.core.config import Settings
 from app.shared import (
@@ -16,12 +16,89 @@ from app.shared import (
     collect_model_calls,
     mark_model_call_fallback,
 )
+from app.shared.budget import generation_payload_token_bound
+from app.shared.model_runtime import structured_generation_payload_token_bound
 
 
 class ParsedAnswer(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     answer: str
+
+
+def test_structured_payload_bound_includes_the_provider_schema_envelope() -> None:
+    from openai.lib._parsing._responses import type_to_text_format_param
+
+    instructions = "Return the requested schema."
+    input_text = "bounded facts"
+    expected = generation_payload_token_bound(
+        instructions=instructions,
+        input_text=input_text,
+        text_format=type_to_text_format_param(ParsedAnswer),
+    )
+
+    assert (
+        structured_generation_payload_token_bound(
+            instructions=instructions,
+            input_text=input_text,
+            schema=ParsedAnswer,
+        )
+        == expected
+    )
+    assert expected > len((instructions + input_text).encode("utf-8"))
+
+
+def test_budgeted_runtime_preflight_uses_the_same_structured_envelope() -> None:
+    from openai.lib._parsing._responses import type_to_text_format_param
+
+    class ManifestRecorder:
+        service_tier = "standard"
+
+        def __init__(self) -> None:
+            self.quoted_input_bound: int | None = None
+
+        def resolve(self, model: str, operation: str) -> None:
+            assert model == "gpt-5.4-mini"
+            assert operation == "generation"
+
+        def quote(
+            self,
+            *,
+            input_token_bound: int,
+            output_token_bound: int,
+            **_: Any,
+        ) -> None:
+            assert output_token_bound == 200
+            self.quoted_input_bound = input_token_bound
+
+    manifest = ManifestRecorder()
+    budget = SimpleNamespace(ledger=SimpleNamespace(manifest=manifest))
+    client = FakeClient([])
+    client.max_retries = 0
+    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)
+    instructions = "Return the requested schema."
+    input_text = "bounded facts"
+
+    prepared = runtime._prepare_budgeted_request(  # pyright: ignore[reportPrivateUsage]
+        budget=budget,
+        model="gpt-5.4-mini",
+        stage="test",
+        agent_id="tester",
+        instructions=instructions,
+        input_text=input_text,
+        schema=ParsedAnswer,
+        max_output_tokens=200,
+        reasoning_effort="low",
+    )
+
+    assert manifest.quoted_input_bound == structured_generation_payload_token_bound(
+        instructions=instructions,
+        input_text=input_text,
+        schema=ParsedAnswer,
+    )
+    assert prepared.provider_kwargs["text"]["format"] == type_to_text_format_param(
+        ParsedAnswer
+    )
 
 
 class FakeResponses:
@@ -136,6 +213,59 @@ async def test_model_runtime_retries_timeout_then_succeeds() -> None:
 
 
 @pytest.mark.asyncio
+async def test_model_runtime_retries_incomplete_structured_response_once() -> None:
+    client = FakeClient(
+        [
+            SimpleNamespace(status="incomplete", output_parsed=None, usage=None),
+            parsed_response("recovered"),
+        ]
+    )
+    runtime = OpenAIModelRuntime(
+        "test-key",
+        client=client,
+        max_retries=1,
+    )
+
+    result = await runtime.generate_structured(
+        stage="planning",
+        agent_id="orchestrator",
+        model="gpt-5.4-mini",
+        instructions="Plan.",
+        input_text="request",
+        schema=ParsedAnswer,
+    )
+
+    assert result.value.answer == "recovered"
+    assert result.metadata.attempts == 2
+    assert len(client.responses.requests) == 2
+
+
+@pytest.mark.asyncio
+async def test_model_runtime_retries_schema_validation_error_once() -> None:
+    with pytest.raises(ValidationError) as invalid_response:
+        ParsedAnswer.model_validate({"unexpected": "field"})
+    client = FakeClient([invalid_response.value, parsed_response("recovered")])
+    runtime = OpenAIModelRuntime(
+        "test-key",
+        client=client,
+        max_retries=1,
+    )
+
+    result = await runtime.generate_structured(
+        stage="synthesis",
+        agent_id="orchestrator",
+        model="gpt-5.4-mini",
+        instructions="Return the requested schema.",
+        input_text="bounded facts",
+        schema=ParsedAnswer,
+    )
+
+    assert result.value.answer == "recovered"
+    assert result.metadata.attempts == 2
+    assert len(client.responses.requests) == 2
+
+
+@pytest.mark.asyncio
 async def test_model_runtime_rejects_incomplete_or_unparsed_output() -> None:
     client = FakeClient(
         [SimpleNamespace(status="incomplete", output_parsed=None, usage=None)]
@@ -171,10 +301,11 @@ async def test_model_runtime_rejects_incomplete_or_unparsed_output() -> None:
 @pytest.mark.asyncio
 async def test_model_runtime_never_exposes_parser_exception_text() -> None:
     canary = "sensitive-provider-payload-fragment"
+    client = FakeClient([ValueError(canary)])
     runtime = OpenAIModelRuntime(
         "test-key",
-        client=FakeClient([ValueError(canary)]),
-        max_retries=0,
+        client=client,
+        max_retries=1,
     )
 
     with collect_model_calls() as calls:
@@ -197,3 +328,4 @@ async def test_model_runtime_never_exposes_parser_exception_text() -> None:
     assert canary not in repr(calls)
     assert canary not in formatted_traceback
     assert captured.value.__cause__ is None
+    assert len(client.responses.requests) == 1

@@ -1,9 +1,13 @@
 import { z } from "zod/mini"
 
 import type { ChatMessage } from "@/features/chat/chat-state"
+import type { ConversationMode } from "@/lib/v2-contracts"
 
 const SESSION_ID_KEY = "thuong-tri.session-id"
 const HISTORY_KEY = "thuong-tri.history"
+export const DURABLE_CHAT_METADATA_KEY = "thuong-tri.chat-metadata.v2"
+export const LEGACY_DURABLE_CHAT_METADATA_KEY = "thuong-tri.chat-metadata"
+export const DURABLE_CHAT_STORAGE_VERSION = 2 as const
 export const MAX_HISTORY_ITEMS = 24
 
 const sessionIdSchema = z
@@ -14,6 +18,62 @@ const persistedMessageSchema = z.strictObject({
   role: z.enum(["user", "assistant"]),
   text: z.string().check(z.minLength(1), z.maxLength(20_000)),
 })
+const durableIdentifierSchema = z
+  .string()
+  .check(z.regex(/^[a-z][a-z0-9_-]{2,127}$/))
+const clientTurnIdSchema = z
+  .string()
+  .check(z.regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/))
+const storageScopeIdSchema = z
+  .string()
+  .check(z.minLength(1), z.maxLength(200), z.regex(/^[^\s]+$/))
+const conversationModeSchema = z.enum(["shopper", "merchant"])
+const pendingRecoverySchema = z.strictObject({
+  conversationId: durableIdentifierSchema,
+  clientTurnId: clientTurnIdSchema,
+  message: z
+    .string()
+    .check(
+      z.minLength(1),
+      z.maxLength(2_000),
+      z.refine((value) => value.trim().length > 0),
+    ),
+})
+const durableMetadataSchema = z.strictObject({
+  version: z.literal(DURABLE_CHAT_STORAGE_VERSION),
+  scopeId: storageScopeIdSchema,
+  selectedMode: conversationModeSchema,
+  selectedConversationId: z.nullable(durableIdentifierSchema),
+  pendingRecovery: z.nullable(pendingRecoverySchema),
+})
+const legacyDurableMetadataSchema = z.strictObject({
+  version: z.literal(1),
+  scopeId: storageScopeIdSchema,
+  mode: conversationModeSchema,
+  conversationId: z.nullable(durableIdentifierSchema),
+  pendingTurn: z.nullable(pendingRecoverySchema),
+})
+
+export type DurableConversationMode = ConversationMode
+
+export interface DurableChatStorageScope {
+  /** Opaque account/credential scope identifier; never pass a credential itself. */
+  scopeId: string
+  mode: DurableConversationMode
+}
+
+export interface PendingTurnRecovery {
+  conversationId: string
+  clientTurnId: string
+  message: string
+}
+
+export interface DurableChatMetadata {
+  version: typeof DURABLE_CHAT_STORAGE_VERSION
+  selectedMode: DurableConversationMode
+  selectedConversationId: string | null
+  pendingRecovery: PendingTurnRecovery | null
+}
 
 export interface ChatSnapshot {
   sessionId: string | null
@@ -87,5 +147,155 @@ export function clearChatSnapshot(storage: SessionStorageAdapter): boolean {
     return true
   } catch {
     return false
+  }
+}
+
+export function readDurableChatMetadata(
+  storage: SessionStorageAdapter,
+  scope: DurableChatStorageScope,
+): DurableChatMetadata {
+  const empty = emptyDurableMetadata(scope.mode)
+  if (!validScope(scope)) return empty
+
+  try {
+    const raw = storage.getItem(DURABLE_CHAT_METADATA_KEY)
+    if (raw) {
+      const parsed = durableMetadataSchema.safeParse(JSON.parse(raw) as unknown)
+      if (!parsed.success || !validPendingSelection(parsed.data)) {
+        storage.removeItem(DURABLE_CHAT_METADATA_KEY)
+        return empty
+      }
+      if (
+        parsed.data.scopeId !== scope.scopeId ||
+        parsed.data.selectedMode !== scope.mode
+      ) {
+        storage.removeItem(DURABLE_CHAT_METADATA_KEY)
+        return empty
+      }
+      return {
+        version: DURABLE_CHAT_STORAGE_VERSION,
+        selectedMode: parsed.data.selectedMode,
+        selectedConversationId: parsed.data.selectedConversationId,
+        pendingRecovery: parsed.data.pendingRecovery,
+      }
+    }
+
+    return migrateLegacyDurableMetadata(storage, scope)
+  } catch {
+    discardInvalidDurableMetadata(storage)
+    return empty
+  }
+}
+
+export function writeDurableChatMetadata(
+  storage: SessionStorageAdapter,
+  scope: DurableChatStorageScope,
+  metadata: Omit<DurableChatMetadata, "version" | "selectedMode">,
+): boolean {
+  if (!validScope(scope)) return false
+  const safePayload = {
+    version: DURABLE_CHAT_STORAGE_VERSION,
+    scopeId: scope.scopeId,
+    selectedMode: scope.mode,
+    selectedConversationId: metadata.selectedConversationId,
+    pendingRecovery: metadata.pendingRecovery
+      ? {
+          conversationId: metadata.pendingRecovery.conversationId,
+          clientTurnId: metadata.pendingRecovery.clientTurnId,
+          message: metadata.pendingRecovery.message,
+        }
+      : null,
+  }
+  const parsed = durableMetadataSchema.safeParse(safePayload)
+  if (!parsed.success || !validPendingSelection(parsed.data)) return false
+
+  try {
+    storage.setItem(DURABLE_CHAT_METADATA_KEY, JSON.stringify(parsed.data))
+    storage.removeItem(LEGACY_DURABLE_CHAT_METADATA_KEY)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export function clearDurableChatMetadata(
+  storage: SessionStorageAdapter,
+): boolean {
+  try {
+    storage.removeItem(DURABLE_CHAT_METADATA_KEY)
+    storage.removeItem(LEGACY_DURABLE_CHAT_METADATA_KEY)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function migrateLegacyDurableMetadata(
+  storage: SessionStorageAdapter,
+  scope: DurableChatStorageScope,
+): DurableChatMetadata {
+  const empty = emptyDurableMetadata(scope.mode)
+  const raw = storage.getItem(LEGACY_DURABLE_CHAT_METADATA_KEY)
+  if (!raw) return empty
+  const parsed = legacyDurableMetadataSchema.safeParse(JSON.parse(raw) as unknown)
+  if (
+    !parsed.success ||
+    parsed.data.scopeId !== scope.scopeId ||
+    parsed.data.mode !== scope.mode ||
+    !validPendingSelection({
+      selectedConversationId: parsed.data.conversationId,
+      pendingRecovery: parsed.data.pendingTurn,
+    })
+  ) {
+    storage.removeItem(LEGACY_DURABLE_CHAT_METADATA_KEY)
+    return empty
+  }
+
+  const migrated = {
+    selectedConversationId: parsed.data.conversationId,
+    pendingRecovery: parsed.data.pendingTurn,
+  }
+  if (!writeDurableChatMetadata(storage, scope, migrated)) return empty
+  return {
+    version: DURABLE_CHAT_STORAGE_VERSION,
+    selectedMode: scope.mode,
+    ...migrated,
+  }
+}
+
+function emptyDurableMetadata(
+  mode: DurableConversationMode,
+): DurableChatMetadata {
+  return {
+    version: DURABLE_CHAT_STORAGE_VERSION,
+    selectedMode: mode,
+    selectedConversationId: null,
+    pendingRecovery: null,
+  }
+}
+
+function validScope(scope: DurableChatStorageScope): boolean {
+  return (
+    storageScopeIdSchema.safeParse(scope.scopeId).success &&
+    conversationModeSchema.safeParse(scope.mode).success
+  )
+}
+
+function validPendingSelection(value: {
+  selectedConversationId: string | null
+  pendingRecovery: PendingTurnRecovery | null
+}): boolean {
+  return (
+    value.pendingRecovery === null ||
+    value.pendingRecovery.conversationId === value.selectedConversationId
+  )
+}
+
+function discardInvalidDurableMetadata(storage: SessionStorageAdapter): void {
+  try {
+    storage.removeItem(DURABLE_CHAT_METADATA_KEY)
+    storage.removeItem(LEGACY_DURABLE_CHAT_METADATA_KEY)
+  } catch {
+    // A blocked storage adapter is already isolated from the application.
   }
 }

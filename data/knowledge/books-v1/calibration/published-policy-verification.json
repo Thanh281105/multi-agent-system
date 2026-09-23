@@ -1,0 +1,3276 @@
+{
+  "calibration_manifest_sha256": "bd66992c2155124f206c0e9796aec8914f121967fc8608b966f95c3afd071a40",
+  "candidates": [
+    {
+      "candidate_policy": {
+        "candidate_limit": 30,
+        "default_limit": 6,
+        "dense_weight": 1.0,
+        "lexical_weight": 1.0,
+        "max_context_tokens": 6000,
+        "max_limit": 8,
+        "min_dense_relevance": 0.25,
+        "min_lexical_coverage": 0.1,
+        "rrf_k": 60,
+        "version": "p3_cal_d025_l010"
+      },
+      "candidate_policy_sha256": "cb299f6133718eb6a637f756b8c0490fd87f683f4630d282537e4a39a8cb8b07",
+      "counterfactual_only": true,
+      "metrics": {
+        "negative_correct_no_answer_count": 4,
+        "negative_probe_count": 4,
+        "positive_all_expected_count": 4,
+        "positive_probe_count": 4,
+        "separating_threshold": true
+      },
+      "probes": [
+        {
+          "answerable": true,
+          "context_token_count": 5940,
+          "diagnostics": [
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0e5a7525f12d3548b0298a9990c319ac5478c308da54f47ae0a0d93c55bf",
+              "dense_candidate": true,
+              "dense_rank": 6,
+              "dense_score": 0.336710848347122,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015151515151515152,
+              "source_id": "src_steve_jobs_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd",
+              "dense_candidate": true,
+              "dense_rank": 5,
+              "dense_score": 0.3390992318669474,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015384615384615385,
+              "source_id": "src_7_habits_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_37ce7d37c58e09ded121b3df8e831d5218fbbfa86ea062842035b60ab013",
+              "dense_candidate": true,
+              "dense_rank": 9,
+              "dense_score": 0.3201146999891285,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014492753623188406,
+              "source_id": "src_the_prince_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_4d37fda9c5791bb9603a89eaf42b222642722b7cd684015d97453426a2cf",
+              "dense_candidate": true,
+              "dense_rank": 20,
+              "dense_score": 0.2237312774860731,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0125,
+              "source_id": "src_flour_water_salt_yeast_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_6326edff53247eb3222bb56ac4395bdd5b0490dad799886e72b7aee39cca",
+              "dense_candidate": true,
+              "dense_rank": 17,
+              "dense_score": 0.2512784261290942,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012987012987012988,
+              "source_id": "src_devotion_suspect_x_macmillan"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c",
+              "dense_candidate": true,
+              "dense_rank": 14,
+              "dense_score": 0.2899978451615924,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013513513513513514,
+              "source_id": "src_phoenix_project_it_revolution"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_721dbac193ac80ecf71d474af50a2e261d056f466a4faa3b7fde412616c8",
+              "dense_candidate": true,
+              "dense_rank": 16,
+              "dense_score": 0.2563874134734423,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013157894736842105,
+              "source_id": "src_boy_striped_pajamas_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_762548fbb03400eaa96d7f155e15f359bac8d7d6798effb7b082ae02c29e",
+              "dense_candidate": true,
+              "dense_rank": 8,
+              "dense_score": 0.32678389414456016,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014705882352941176,
+              "source_id": "src_de_men_kim_dong"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_90e6df71488366c0a18688bb9b32fd6a9be1d853cb77fc00523fe5a96abf",
+              "dense_candidate": true,
+              "dense_rank": 2,
+              "dense_score": 0.3940916908153965,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.016129032258064516,
+              "source_id": "src_socrates_express_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_9a3e6e36f1e6a26a3b5af94fa316b56cb882873bb2d6fe57bab1414de787",
+              "dense_candidate": true,
+              "dense_rank": 11,
+              "dense_score": 0.30262120459927927,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014084507042253521,
+              "source_id": "src_economix_abrams"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a098f060381965e6ea7bb574cb95dfe822f94795cdb3776c9fe8711be60a",
+              "dense_candidate": true,
+              "dense_rank": 15,
+              "dense_score": 0.2874147752560999,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013333333333333334,
+              "source_id": "src_start_up_nation_hachette"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a28d4a43a36fd29b3845a1b939c5ef7f6f5dfc3c3466bc4446dae3ae0820",
+              "dense_candidate": true,
+              "dense_rank": 12,
+              "dense_score": 0.2992038388812109,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013888888888888888,
+              "source_id": "src_little_women_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b7a1216b60d56c8b31b98f0dcffa1e371bb5606aaeb9cc4f74f0fdc4f66a",
+              "dense_candidate": true,
+              "dense_rank": 19,
+              "dense_score": 0.24719282676064666,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012658227848101266,
+              "source_id": "src_fahrenheit_451_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b8dfaf0d818c8aa02f832f976f93492caa6cc43a4232033dae6d64384599",
+              "dense_candidate": true,
+              "dense_rank": 4,
+              "dense_score": 0.3514390775255859,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015625,
+              "source_id": "src_einstein_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_c47e59ef209c5b5693f8e552d26bd0f714e7e3db0bf6a88f3bc3706b1eb8",
+              "dense_candidate": true,
+              "dense_rank": 13,
+              "dense_score": 0.2974319695336911,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0136986301369863,
+              "source_id": "src_zero_to_one_prh"
+            },
+            {
+              "channels": [
+                "bm25",
+                "dense"
+              ],
+              "chunk_id": "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+              "dense_candidate": true,
+              "dense_rank": 7,
+              "dense_score": 0.3325496303346117,
+              "disposition": "selected",
+              "lexical_candidate": true,
+              "lexical_coverage": 0.16666666666666666,
+              "lexical_rank": 1,
+              "lexical_score": 6.889128512963796,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": true,
+              "rrf_score": 0.03131881575727918,
+              "source_id": "src_morisaki_nlv"
+            },
+            {
+              "channels": [
+                "bm25",
+                "dense"
+              ],
+              "chunk_id": "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+              "dense_candidate": true,
+              "dense_rank": 1,
+              "dense_score": 0.6901064311176937,
+              "disposition": "selected",
+              "lexical_candidate": true,
+              "lexical_coverage": 0.3333333333333333,
+              "lexical_rank": 2,
+              "lexical_score": 4.327403468953329,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": true,
+              "rrf_score": 0.03252247488101534,
+              "source_id": "src_sapiens_author"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d4ad677ce4848d4044f9f603e84866453c50157eacfbac364e0cbaf9f2f2",
+              "dense_candidate": true,
+              "dense_rank": 10,
+              "dense_score": 0.30733017232393894,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014285714285714285,
+              "source_id": "src_becoming_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7",
+              "dense_candidate": true,
+              "dense_rank": 3,
+              "dense_score": 0.3746265237953318,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015873015873015872,
+              "source_id": "src_social_contract_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_efef3ea7d79928a99fa6911f804498ad8caf324d13e72b58e5643a7ad300",
+              "dense_candidate": true,
+              "dense_rank": 18,
+              "dense_score": 0.2480969518883399,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01282051282051282,
+              "source_id": "src_show_your_work_alphabooks"
+            }
+          ],
+          "expected_match": {
+            "all_expected_sources_selected": true,
+            "correct_no_answer": null,
+            "exact_expected_source_set": false,
+            "expected_source_recall": 1.0,
+            "probe_kind": "positive",
+            "unexpected_selected_source_count": 5
+          },
+          "expected_source_ids": [
+            "src_sapiens_author"
+          ],
+          "max_context_tokens": 6000,
+          "planned_queries": [
+            "Ai viết Sapiens và sách khái quát những chủ đề nào trong lịch sử loài người?",
+            "Ai viết Sapiens",
+            "sách khái quát những chủ đề nào trong lịch sử loài người"
+          ],
+          "probe_id": "p3-dev-01",
+          "query": "Ai viết Sapiens và sách khái quát những chủ đề nào trong lịch sử loài người?",
+          "selected_chunk_ids": [
+            "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+            "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+            "chk_90e6df71488366c0a18688bb9b32fd6a9be1d853cb77fc00523fe5a96abf",
+            "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7",
+            "chk_b8dfaf0d818c8aa02f832f976f93492caa6cc43a4232033dae6d64384599",
+            "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd"
+          ],
+          "selected_source_ids": [
+            "src_sapiens_author",
+            "src_morisaki_nlv",
+            "src_socrates_express_simon_schuster",
+            "src_social_contract_gutenberg",
+            "src_einstein_simon_schuster",
+            "src_7_habits_simon_schuster"
+          ],
+          "within_context_bound": true
+        },
+        {
+          "answerable": true,
+          "context_token_count": 5520,
+          "diagnostics": [
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0e5a7525f12d3548b0298a9990c319ac5478c308da54f47ae0a0d93c55bf",
+              "dense_candidate": true,
+              "dense_rank": 10,
+              "dense_score": 0.2362948256189646,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014285714285714285,
+              "source_id": "src_steve_jobs_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd",
+              "dense_candidate": true,
+              "dense_rank": 7,
+              "dense_score": 0.26837653531295613,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014925373134328358,
+              "source_id": "src_7_habits_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_37ce7d37c58e09ded121b3df8e831d5218fbbfa86ea062842035b60ab013",
+              "dense_candidate": true,
+              "dense_rank": 4,
+              "dense_score": 0.3037279565087899,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015625,
+              "source_id": "src_the_prince_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_4d37fda9c5791bb9603a89eaf42b222642722b7cd684015d97453426a2cf",
+              "dense_candidate": true,
+              "dense_rank": 15,
+              "dense_score": 0.20607752784660482,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013333333333333334,
+              "source_id": "src_flour_water_salt_yeast_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_6326edff53247eb3222bb56ac4395bdd5b0490dad799886e72b7aee39cca",
+              "dense_candidate": true,
+              "dense_rank": 6,
+              "dense_score": 0.27070093509876875,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015151515151515152,
+              "source_id": "src_devotion_suspect_x_macmillan"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c",
+              "dense_candidate": true,
+              "dense_rank": 5,
+              "dense_score": 0.27335906342022637,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015384615384615385,
+              "source_id": "src_phoenix_project_it_revolution"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_721dbac193ac80ecf71d474af50a2e261d056f466a4faa3b7fde412616c8",
+              "dense_candidate": true,
+              "dense_rank": 18,
+              "dense_score": 0.188199820018559,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01282051282051282,
+              "source_id": "src_boy_striped_pajamas_prh"
+            },
+            {
+              "channels": [
+                "bm25",
+                "dense"
+              ],
+              "chunk_id": "chk_762548fbb03400eaa96d7f155e15f359bac8d7d6798effb7b082ae02c29e",
+              "dense_candidate": true,
+              "dense_rank": 1,
+              "dense_score": 0.6352100548234336,
+              "disposition": "selected",
+              "lexical_candidate": true,
+              "lexical_coverage": 0.5,
+              "lexical_rank": 1,
+              "lexical_score": 24.056520194459015,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": true,
+              "rrf_score": 0.03278688524590164,
+              "source_id": "src_de_men_kim_dong"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_90e6df71488366c0a18688bb9b32fd6a9be1d853cb77fc00523fe5a96abf",
+              "dense_candidate": true,
+              "dense_rank": 13,
+              "dense_score": 0.22034543443196436,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0136986301369863,
+              "source_id": "src_socrates_express_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_9a3e6e36f1e6a26a3b5af94fa316b56cb882873bb2d6fe57bab1414de787",
+              "dense_candidate": true,
+              "dense_rank": 12,
+              "dense_score": 0.22929689995609392,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013888888888888888,
+              "source_id": "src_economix_abrams"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a098f060381965e6ea7bb574cb95dfe822f94795cdb3776c9fe8711be60a",
+              "dense_candidate": true,
+              "dense_rank": 20,
+              "dense_score": 0.14054538417451815,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0125,
+              "source_id": "src_start_up_nation_hachette"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a28d4a43a36fd29b3845a1b939c5ef7f6f5dfc3c3466bc4446dae3ae0820",
+              "dense_candidate": true,
+              "dense_rank": 8,
+              "dense_score": 0.26759069969120297,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014705882352941176,
+              "source_id": "src_little_women_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b7a1216b60d56c8b31b98f0dcffa1e371bb5606aaeb9cc4f74f0fdc4f66a",
+              "dense_candidate": true,
+              "dense_rank": 16,
+              "dense_score": 0.2054528825879998,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013157894736842105,
+              "source_id": "src_fahrenheit_451_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b8dfaf0d818c8aa02f832f976f93492caa6cc43a4232033dae6d64384599",
+              "dense_candidate": true,
+              "dense_rank": 9,
+              "dense_score": 0.2545635186875484,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014492753623188406,
+              "source_id": "src_einstein_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_c47e59ef209c5b5693f8e552d26bd0f714e7e3db0bf6a88f3bc3706b1eb8",
+              "dense_candidate": true,
+              "dense_rank": 17,
+              "dense_score": 0.19310665997224064,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012987012987012988,
+              "source_id": "src_zero_to_one_prh"
+            },
+            {
+              "channels": [
+                "bm25",
+                "dense"
+              ],
+              "chunk_id": "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+              "dense_candidate": true,
+              "dense_rank": 11,
+              "dense_score": 0.23610603306253994,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": true,
+              "lexical_coverage": 0.07142857142857142,
+              "lexical_rank": 2,
+              "lexical_score": 3.444564256481898,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.03021353930031804,
+              "source_id": "src_morisaki_nlv"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+              "dense_candidate": true,
+              "dense_rank": 3,
+              "dense_score": 0.309523470950878,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015873015873015872,
+              "source_id": "src_sapiens_author"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d4ad677ce4848d4044f9f603e84866453c50157eacfbac364e0cbaf9f2f2",
+              "dense_candidate": true,
+              "dense_rank": 14,
+              "dense_score": 0.20659377595157258,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013513513513513514,
+              "source_id": "src_becoming_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7",
+              "dense_candidate": true,
+              "dense_rank": 2,
+              "dense_score": 0.3221516479705578,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.016129032258064516,
+              "source_id": "src_social_contract_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_efef3ea7d79928a99fa6911f804498ad8caf324d13e72b58e5643a7ad300",
+              "dense_candidate": true,
+              "dense_rank": 19,
+              "dense_score": 0.1696985146985096,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012658227848101266,
+              "source_id": "src_show_your_work_alphabooks"
+            }
+          ],
+          "expected_match": {
+            "all_expected_sources_selected": true,
+            "correct_no_answer": null,
+            "exact_expected_source_set": false,
+            "expected_source_recall": 1.0,
+            "probe_kind": "positive",
+            "unexpected_selected_source_count": 5
+          },
+          "expected_source_ids": [
+            "src_de_men_kim_dong"
+          ],
+          "max_context_tokens": 6000,
+          "planned_queries": [
+            "Dế Mèn phiêu lưu ký của Tô Hoài nhắc tới những chủ đề nào?",
+            "Dế Mèn phiêu lưu ký của Tô Hoài nhắc tới những chủ đề nào"
+          ],
+          "probe_id": "p3-dev-02",
+          "query": "Dế Mèn phiêu lưu ký của Tô Hoài nhắc tới những chủ đề nào?",
+          "selected_chunk_ids": [
+            "chk_762548fbb03400eaa96d7f155e15f359bac8d7d6798effb7b082ae02c29e",
+            "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7",
+            "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+            "chk_37ce7d37c58e09ded121b3df8e831d5218fbbfa86ea062842035b60ab013",
+            "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c",
+            "chk_6326edff53247eb3222bb56ac4395bdd5b0490dad799886e72b7aee39cca"
+          ],
+          "selected_source_ids": [
+            "src_de_men_kim_dong",
+            "src_social_contract_gutenberg",
+            "src_sapiens_author",
+            "src_the_prince_gutenberg",
+            "src_phoenix_project_it_revolution",
+            "src_devotion_suspect_x_macmillan"
+          ],
+          "within_context_bound": true
+        },
+        {
+          "answerable": true,
+          "context_token_count": 5862,
+          "diagnostics": [
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0e5a7525f12d3548b0298a9990c319ac5478c308da54f47ae0a0d93c55bf",
+              "dense_candidate": true,
+              "dense_rank": 7,
+              "dense_score": 0.2862099221347812,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014925373134328358,
+              "source_id": "src_steve_jobs_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd",
+              "dense_candidate": true,
+              "dense_rank": 5,
+              "dense_score": 0.30388531294492993,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015384615384615385,
+              "source_id": "src_7_habits_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_37ce7d37c58e09ded121b3df8e831d5218fbbfa86ea062842035b60ab013",
+              "dense_candidate": true,
+              "dense_rank": 15,
+              "dense_score": 0.24987983431323282,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013333333333333334,
+              "source_id": "src_the_prince_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_4d37fda9c5791bb9603a89eaf42b222642722b7cd684015d97453426a2cf",
+              "dense_candidate": true,
+              "dense_rank": 13,
+              "dense_score": 0.25338551841922985,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0136986301369863,
+              "source_id": "src_flour_water_salt_yeast_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_6326edff53247eb3222bb56ac4395bdd5b0490dad799886e72b7aee39cca",
+              "dense_candidate": true,
+              "dense_rank": 18,
+              "dense_score": 0.22527148524098647,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01282051282051282,
+              "source_id": "src_devotion_suspect_x_macmillan"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c",
+              "dense_candidate": true,
+              "dense_rank": 4,
+              "dense_score": 0.3075875870564508,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015625,
+              "source_id": "src_phoenix_project_it_revolution"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_721dbac193ac80ecf71d474af50a2e261d056f466a4faa3b7fde412616c8",
+              "dense_candidate": true,
+              "dense_rank": 19,
+              "dense_score": 0.20801966287619375,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012658227848101266,
+              "source_id": "src_boy_striped_pajamas_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_762548fbb03400eaa96d7f155e15f359bac8d7d6798effb7b082ae02c29e",
+              "dense_candidate": true,
+              "dense_rank": 11,
+              "dense_score": 0.26382938320805555,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014084507042253521,
+              "source_id": "src_de_men_kim_dong"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_90e6df71488366c0a18688bb9b32fd6a9be1d853cb77fc00523fe5a96abf",
+              "dense_candidate": true,
+              "dense_rank": 6,
+              "dense_score": 0.2952408661616915,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015151515151515152,
+              "source_id": "src_socrates_express_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_9a3e6e36f1e6a26a3b5af94fa316b56cb882873bb2d6fe57bab1414de787",
+              "dense_candidate": true,
+              "dense_rank": 8,
+              "dense_score": 0.2858690908961181,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014705882352941176,
+              "source_id": "src_economix_abrams"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a098f060381965e6ea7bb574cb95dfe822f94795cdb3776c9fe8711be60a",
+              "dense_candidate": true,
+              "dense_rank": 2,
+              "dense_score": 0.3318273589691436,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.016129032258064516,
+              "source_id": "src_start_up_nation_hachette"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a28d4a43a36fd29b3845a1b939c5ef7f6f5dfc3c3466bc4446dae3ae0820",
+              "dense_candidate": true,
+              "dense_rank": 17,
+              "dense_score": 0.22645031839351118,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012987012987012988,
+              "source_id": "src_little_women_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b7a1216b60d56c8b31b98f0dcffa1e371bb5606aaeb9cc4f74f0fdc4f66a",
+              "dense_candidate": true,
+              "dense_rank": 20,
+              "dense_score": 0.20592143144928104,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0125,
+              "source_id": "src_fahrenheit_451_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b8dfaf0d818c8aa02f832f976f93492caa6cc43a4232033dae6d64384599",
+              "dense_candidate": true,
+              "dense_rank": 16,
+              "dense_score": 0.24630294604658623,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013157894736842105,
+              "source_id": "src_einstein_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_c47e59ef209c5b5693f8e552d26bd0f714e7e3db0bf6a88f3bc3706b1eb8",
+              "dense_candidate": true,
+              "dense_rank": 1,
+              "dense_score": 0.39193340127905124,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01639344262295082,
+              "source_id": "src_zero_to_one_prh"
+            },
+            {
+              "channels": [
+                "bm25",
+                "dense"
+              ],
+              "chunk_id": "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+              "dense_candidate": true,
+              "dense_rank": 12,
+              "dense_score": 0.25881547500286284,
+              "disposition": "selected",
+              "lexical_candidate": true,
+              "lexical_coverage": 0.125,
+              "lexical_rank": 1,
+              "lexical_score": 3.444564256481898,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": true,
+              "rrf_score": 0.03028233151183971,
+              "source_id": "src_morisaki_nlv"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+              "dense_candidate": true,
+              "dense_rank": 14,
+              "dense_score": 0.2514558405924727,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013513513513513514,
+              "source_id": "src_sapiens_author"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d4ad677ce4848d4044f9f603e84866453c50157eacfbac364e0cbaf9f2f2",
+              "dense_candidate": true,
+              "dense_rank": 10,
+              "dense_score": 0.269548453209922,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014285714285714285,
+              "source_id": "src_becoming_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7",
+              "dense_candidate": true,
+              "dense_rank": 9,
+              "dense_score": 0.2762222739154537,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014492753623188406,
+              "source_id": "src_social_contract_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_efef3ea7d79928a99fa6911f804498ad8caf324d13e72b58e5643a7ad300",
+              "dense_candidate": true,
+              "dense_rank": 3,
+              "dense_score": 0.3126687275711196,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015873015873015872,
+              "source_id": "src_show_your_work_alphabooks"
+            }
+          ],
+          "expected_match": {
+            "all_expected_sources_selected": true,
+            "correct_no_answer": null,
+            "exact_expected_source_set": false,
+            "expected_source_recall": 1.0,
+            "probe_kind": "positive",
+            "unexpected_selected_source_count": 5
+          },
+          "expected_source_ids": [
+            "src_zero_to_one_prh"
+          ],
+          "max_context_tokens": 6000,
+          "planned_queries": [
+            "Sách Không Đến Một nói về khởi nghiệp và sáng tạo giá trị mới như thế nào?",
+            "Sách Không Đến Một nói về khởi nghiệp",
+            "sáng tạo giá trị mới như thế nào"
+          ],
+          "probe_id": "p3-dev-03",
+          "query": "Sách Không Đến Một nói về khởi nghiệp và sáng tạo giá trị mới như thế nào?",
+          "selected_chunk_ids": [
+            "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+            "chk_c47e59ef209c5b5693f8e552d26bd0f714e7e3db0bf6a88f3bc3706b1eb8",
+            "chk_a098f060381965e6ea7bb574cb95dfe822f94795cdb3776c9fe8711be60a",
+            "chk_efef3ea7d79928a99fa6911f804498ad8caf324d13e72b58e5643a7ad300",
+            "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c",
+            "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd"
+          ],
+          "selected_source_ids": [
+            "src_morisaki_nlv",
+            "src_zero_to_one_prh",
+            "src_start_up_nation_hachette",
+            "src_show_your_work_alphabooks",
+            "src_phoenix_project_it_revolution",
+            "src_7_habits_simon_schuster"
+          ],
+          "within_context_bound": true
+        },
+        {
+          "answerable": true,
+          "context_token_count": 5764,
+          "diagnostics": [
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0e5a7525f12d3548b0298a9990c319ac5478c308da54f47ae0a0d93c55bf",
+              "dense_candidate": true,
+              "dense_rank": 16,
+              "dense_score": 0.25245852949301834,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013157894736842105,
+              "source_id": "src_steve_jobs_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd",
+              "dense_candidate": true,
+              "dense_rank": 9,
+              "dense_score": 0.2756388525189431,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014492753623188406,
+              "source_id": "src_7_habits_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_37ce7d37c58e09ded121b3df8e831d5218fbbfa86ea062842035b60ab013",
+              "dense_candidate": true,
+              "dense_rank": 14,
+              "dense_score": 0.26128611717733535,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013513513513513514,
+              "source_id": "src_the_prince_gutenberg"
+            },
+            {
+              "channels": [
+                "bm25",
+                "dense"
+              ],
+              "chunk_id": "chk_4d37fda9c5791bb9603a89eaf42b222642722b7cd684015d97453426a2cf",
+              "dense_candidate": true,
+              "dense_rank": 1,
+              "dense_score": 0.5622606229854235,
+              "disposition": "selected",
+              "lexical_candidate": true,
+              "lexical_coverage": 0.16666666666666666,
+              "lexical_rank": 1,
+              "lexical_score": 5.303091158980234,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": true,
+              "rrf_score": 0.03278688524590164,
+              "source_id": "src_flour_water_salt_yeast_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_6326edff53247eb3222bb56ac4395bdd5b0490dad799886e72b7aee39cca",
+              "dense_candidate": true,
+              "dense_rank": 7,
+              "dense_score": 0.2797086111923524,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014925373134328358,
+              "source_id": "src_devotion_suspect_x_macmillan"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c",
+              "dense_candidate": true,
+              "dense_rank": 8,
+              "dense_score": 0.2766054697759539,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014705882352941176,
+              "source_id": "src_phoenix_project_it_revolution"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_721dbac193ac80ecf71d474af50a2e261d056f466a4faa3b7fde412616c8",
+              "dense_candidate": true,
+              "dense_rank": 15,
+              "dense_score": 0.2594140075172103,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013333333333333334,
+              "source_id": "src_boy_striped_pajamas_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_762548fbb03400eaa96d7f155e15f359bac8d7d6798effb7b082ae02c29e",
+              "dense_candidate": true,
+              "dense_rank": 13,
+              "dense_score": 0.26166721019764616,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0136986301369863,
+              "source_id": "src_de_men_kim_dong"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_90e6df71488366c0a18688bb9b32fd6a9be1d853cb77fc00523fe5a96abf",
+              "dense_candidate": true,
+              "dense_rank": 19,
+              "dense_score": 0.21701743940050272,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012658227848101266,
+              "source_id": "src_socrates_express_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_9a3e6e36f1e6a26a3b5af94fa316b56cb882873bb2d6fe57bab1414de787",
+              "dense_candidate": true,
+              "dense_rank": 17,
+              "dense_score": 0.24388708349023286,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012987012987012988,
+              "source_id": "src_economix_abrams"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a098f060381965e6ea7bb574cb95dfe822f94795cdb3776c9fe8711be60a",
+              "dense_candidate": true,
+              "dense_rank": 20,
+              "dense_score": 0.21273783594186088,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0125,
+              "source_id": "src_start_up_nation_hachette"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a28d4a43a36fd29b3845a1b939c5ef7f6f5dfc3c3466bc4446dae3ae0820",
+              "dense_candidate": true,
+              "dense_rank": 3,
+              "dense_score": 0.3124355891611385,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015873015873015872,
+              "source_id": "src_little_women_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b7a1216b60d56c8b31b98f0dcffa1e371bb5606aaeb9cc4f74f0fdc4f66a",
+              "dense_candidate": true,
+              "dense_rank": 5,
+              "dense_score": 0.2880853368224197,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015384615384615385,
+              "source_id": "src_fahrenheit_451_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b8dfaf0d818c8aa02f832f976f93492caa6cc43a4232033dae6d64384599",
+              "dense_candidate": true,
+              "dense_rank": 18,
+              "dense_score": 0.22248742989618736,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01282051282051282,
+              "source_id": "src_einstein_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_c47e59ef209c5b5693f8e552d26bd0f714e7e3db0bf6a88f3bc3706b1eb8",
+              "dense_candidate": true,
+              "dense_rank": 11,
+              "dense_score": 0.2636861836553991,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014084507042253521,
+              "source_id": "src_zero_to_one_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+              "dense_candidate": true,
+              "dense_rank": 2,
+              "dense_score": 0.3142003996109896,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.016129032258064516,
+              "source_id": "src_morisaki_nlv"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+              "dense_candidate": true,
+              "dense_rank": 4,
+              "dense_score": 0.2938686359597255,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015625,
+              "source_id": "src_sapiens_author"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d4ad677ce4848d4044f9f603e84866453c50157eacfbac364e0cbaf9f2f2",
+              "dense_candidate": true,
+              "dense_rank": 10,
+              "dense_score": 0.2708318085554729,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014285714285714285,
+              "source_id": "src_becoming_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7",
+              "dense_candidate": true,
+              "dense_rank": 6,
+              "dense_score": 0.28044305154716825,
+              "disposition": "selected",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015151515151515152,
+              "source_id": "src_social_contract_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_efef3ea7d79928a99fa6911f804498ad8caf324d13e72b58e5643a7ad300",
+              "dense_candidate": true,
+              "dense_rank": 12,
+              "dense_score": 0.262381690737102,
+              "disposition": "bounded_out",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": true,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013888888888888888,
+              "source_id": "src_show_your_work_alphabooks"
+            }
+          ],
+          "expected_match": {
+            "all_expected_sources_selected": true,
+            "correct_no_answer": null,
+            "exact_expected_source_set": false,
+            "expected_source_recall": 1.0,
+            "probe_kind": "positive",
+            "unexpected_selected_source_count": 5
+          },
+          "expected_source_ids": [
+            "src_flour_water_salt_yeast_prh"
+          ],
+          "max_context_tokens": 6000,
+          "planned_queries": [
+            "Bột Nước Muối Men của Ken Forkish hướng đến loại món ăn và người đọc nào?",
+            "Bột Nước Muối Men của Ken Forkish hướng đến loại món ăn",
+            "người đọc nào"
+          ],
+          "probe_id": "p3-dev-04",
+          "query": "Bột Nước Muối Men của Ken Forkish hướng đến loại món ăn và người đọc nào?",
+          "selected_chunk_ids": [
+            "chk_4d37fda9c5791bb9603a89eaf42b222642722b7cd684015d97453426a2cf",
+            "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+            "chk_a28d4a43a36fd29b3845a1b939c5ef7f6f5dfc3c3466bc4446dae3ae0820",
+            "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+            "chk_b7a1216b60d56c8b31b98f0dcffa1e371bb5606aaeb9cc4f74f0fdc4f66a",
+            "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7"
+          ],
+          "selected_source_ids": [
+            "src_flour_water_salt_yeast_prh",
+            "src_morisaki_nlv",
+            "src_little_women_prh",
+            "src_sapiens_author",
+            "src_fahrenheit_451_simon_schuster",
+            "src_social_contract_gutenberg"
+          ],
+          "within_context_bound": true
+        },
+        {
+          "answerable": false,
+          "context_token_count": 0,
+          "diagnostics": [
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0e5a7525f12d3548b0298a9990c319ac5478c308da54f47ae0a0d93c55bf",
+              "dense_candidate": true,
+              "dense_rank": 5,
+              "dense_score": 0.18328176360925655,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015384615384615385,
+              "source_id": "src_steve_jobs_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd",
+              "dense_candidate": true,
+              "dense_rank": 13,
+              "dense_score": 0.1423740233249951,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0136986301369863,
+              "source_id": "src_7_habits_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_37ce7d37c58e09ded121b3df8e831d5218fbbfa86ea062842035b60ab013",
+              "dense_candidate": true,
+              "dense_rank": 3,
+              "dense_score": 0.1936825850712729,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015873015873015872,
+              "source_id": "src_the_prince_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_4d37fda9c5791bb9603a89eaf42b222642722b7cd684015d97453426a2cf",
+              "dense_candidate": true,
+              "dense_rank": 12,
+              "dense_score": 0.14574550123974442,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013888888888888888,
+              "source_id": "src_flour_water_salt_yeast_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_6326edff53247eb3222bb56ac4395bdd5b0490dad799886e72b7aee39cca",
+              "dense_candidate": true,
+              "dense_rank": 15,
+              "dense_score": 0.13580923639284687,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013333333333333334,
+              "source_id": "src_devotion_suspect_x_macmillan"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c",
+              "dense_candidate": true,
+              "dense_rank": 1,
+              "dense_score": 0.20773283818026703,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01639344262295082,
+              "source_id": "src_phoenix_project_it_revolution"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_721dbac193ac80ecf71d474af50a2e261d056f466a4faa3b7fde412616c8",
+              "dense_candidate": true,
+              "dense_rank": 10,
+              "dense_score": 0.15785260709713872,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014285714285714285,
+              "source_id": "src_boy_striped_pajamas_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_762548fbb03400eaa96d7f155e15f359bac8d7d6798effb7b082ae02c29e",
+              "dense_candidate": true,
+              "dense_rank": 6,
+              "dense_score": 0.17578531705662445,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015151515151515152,
+              "source_id": "src_de_men_kim_dong"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_90e6df71488366c0a18688bb9b32fd6a9be1d853cb77fc00523fe5a96abf",
+              "dense_candidate": true,
+              "dense_rank": 8,
+              "dense_score": 0.17105569531447096,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014705882352941176,
+              "source_id": "src_socrates_express_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_9a3e6e36f1e6a26a3b5af94fa316b56cb882873bb2d6fe57bab1414de787",
+              "dense_candidate": true,
+              "dense_rank": 17,
+              "dense_score": 0.1283305777262357,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012987012987012988,
+              "source_id": "src_economix_abrams"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a098f060381965e6ea7bb574cb95dfe822f94795cdb3776c9fe8711be60a",
+              "dense_candidate": true,
+              "dense_rank": 20,
+              "dense_score": 0.09534848471928452,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0125,
+              "source_id": "src_start_up_nation_hachette"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a28d4a43a36fd29b3845a1b939c5ef7f6f5dfc3c3466bc4446dae3ae0820",
+              "dense_candidate": true,
+              "dense_rank": 7,
+              "dense_score": 0.17484178869181163,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014925373134328358,
+              "source_id": "src_little_women_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b7a1216b60d56c8b31b98f0dcffa1e371bb5606aaeb9cc4f74f0fdc4f66a",
+              "dense_candidate": true,
+              "dense_rank": 14,
+              "dense_score": 0.13776614567234358,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013513513513513514,
+              "source_id": "src_fahrenheit_451_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b8dfaf0d818c8aa02f832f976f93492caa6cc43a4232033dae6d64384599",
+              "dense_candidate": true,
+              "dense_rank": 18,
+              "dense_score": 0.12283904924271366,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01282051282051282,
+              "source_id": "src_einstein_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_c47e59ef209c5b5693f8e552d26bd0f714e7e3db0bf6a88f3bc3706b1eb8",
+              "dense_candidate": true,
+              "dense_rank": 9,
+              "dense_score": 0.16556949556536255,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014492753623188406,
+              "source_id": "src_zero_to_one_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+              "dense_candidate": true,
+              "dense_rank": 16,
+              "dense_score": 0.13290776618719452,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013157894736842105,
+              "source_id": "src_morisaki_nlv"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+              "dense_candidate": true,
+              "dense_rank": 19,
+              "dense_score": 0.09917854541250401,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012658227848101266,
+              "source_id": "src_sapiens_author"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d4ad677ce4848d4044f9f603e84866453c50157eacfbac364e0cbaf9f2f2",
+              "dense_candidate": true,
+              "dense_rank": 11,
+              "dense_score": 0.15263924306174503,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014084507042253521,
+              "source_id": "src_becoming_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7",
+              "dense_candidate": true,
+              "dense_rank": 4,
+              "dense_score": 0.18957492035537843,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015625,
+              "source_id": "src_social_contract_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_efef3ea7d79928a99fa6911f804498ad8caf324d13e72b58e5643a7ad300",
+              "dense_candidate": true,
+              "dense_rank": 2,
+              "dense_score": 0.2002903946355474,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.016129032258064516,
+              "source_id": "src_show_your_work_alphabooks"
+            }
+          ],
+          "expected_match": {
+            "all_expected_sources_selected": null,
+            "correct_no_answer": true,
+            "exact_expected_source_set": true,
+            "expected_source_recall": null,
+            "probe_kind": "negative",
+            "unexpected_selected_source_count": 0
+          },
+          "expected_source_ids": [],
+          "max_context_tokens": 6000,
+          "planned_queries": [
+            "Hướng dẫn cấu hình bộ định tuyến Wi-Fi để chia mạng VLAN.",
+            "Hướng dẫn cấu hình bộ định tuyến Wi-Fi để chia mạng VLAN"
+          ],
+          "probe_id": "p3-dev-05",
+          "query": "Hướng dẫn cấu hình bộ định tuyến Wi-Fi để chia mạng VLAN.",
+          "selected_chunk_ids": [],
+          "selected_source_ids": [],
+          "within_context_bound": true
+        },
+        {
+          "answerable": false,
+          "context_token_count": 0,
+          "diagnostics": [
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0e5a7525f12d3548b0298a9990c319ac5478c308da54f47ae0a0d93c55bf",
+              "dense_candidate": true,
+              "dense_rank": 11,
+              "dense_score": 0.13019381545079226,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014084507042253521,
+              "source_id": "src_steve_jobs_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd",
+              "dense_candidate": true,
+              "dense_rank": 13,
+              "dense_score": 0.12008136542198694,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0136986301369863,
+              "source_id": "src_7_habits_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_37ce7d37c58e09ded121b3df8e831d5218fbbfa86ea062842035b60ab013",
+              "dense_candidate": true,
+              "dense_rank": 6,
+              "dense_score": 0.14532376710155484,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015151515151515152,
+              "source_id": "src_the_prince_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_4d37fda9c5791bb9603a89eaf42b222642722b7cd684015d97453426a2cf",
+              "dense_candidate": true,
+              "dense_rank": 8,
+              "dense_score": 0.140749506320943,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014705882352941176,
+              "source_id": "src_flour_water_salt_yeast_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_6326edff53247eb3222bb56ac4395bdd5b0490dad799886e72b7aee39cca",
+              "dense_candidate": true,
+              "dense_rank": 5,
+              "dense_score": 0.15133986831826776,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015384615384615385,
+              "source_id": "src_devotion_suspect_x_macmillan"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c",
+              "dense_candidate": true,
+              "dense_rank": 10,
+              "dense_score": 0.1359012138039517,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014285714285714285,
+              "source_id": "src_phoenix_project_it_revolution"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_721dbac193ac80ecf71d474af50a2e261d056f466a4faa3b7fde412616c8",
+              "dense_candidate": true,
+              "dense_rank": 12,
+              "dense_score": 0.12236520783425357,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013888888888888888,
+              "source_id": "src_boy_striped_pajamas_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_762548fbb03400eaa96d7f155e15f359bac8d7d6798effb7b082ae02c29e",
+              "dense_candidate": true,
+              "dense_rank": 3,
+              "dense_score": 0.18233731078200052,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015873015873015872,
+              "source_id": "src_de_men_kim_dong"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_90e6df71488366c0a18688bb9b32fd6a9be1d853cb77fc00523fe5a96abf",
+              "dense_candidate": true,
+              "dense_rank": 2,
+              "dense_score": 0.18709897766015787,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.016129032258064516,
+              "source_id": "src_socrates_express_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_9a3e6e36f1e6a26a3b5af94fa316b56cb882873bb2d6fe57bab1414de787",
+              "dense_candidate": true,
+              "dense_rank": 1,
+              "dense_score": 0.1916675044333472,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01639344262295082,
+              "source_id": "src_economix_abrams"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a098f060381965e6ea7bb574cb95dfe822f94795cdb3776c9fe8711be60a",
+              "dense_candidate": true,
+              "dense_rank": 19,
+              "dense_score": 0.08898824197979896,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012658227848101266,
+              "source_id": "src_start_up_nation_hachette"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a28d4a43a36fd29b3845a1b939c5ef7f6f5dfc3c3466bc4446dae3ae0820",
+              "dense_candidate": true,
+              "dense_rank": 14,
+              "dense_score": 0.10968539225997716,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013513513513513514,
+              "source_id": "src_little_women_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b7a1216b60d56c8b31b98f0dcffa1e371bb5606aaeb9cc4f74f0fdc4f66a",
+              "dense_candidate": true,
+              "dense_rank": 16,
+              "dense_score": 0.10105337988483287,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013157894736842105,
+              "source_id": "src_fahrenheit_451_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b8dfaf0d818c8aa02f832f976f93492caa6cc43a4232033dae6d64384599",
+              "dense_candidate": true,
+              "dense_rank": 20,
+              "dense_score": 0.06309395978007344,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0125,
+              "source_id": "src_einstein_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_c47e59ef209c5b5693f8e552d26bd0f714e7e3db0bf6a88f3bc3706b1eb8",
+              "dense_candidate": true,
+              "dense_rank": 17,
+              "dense_score": 0.09705793083017131,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012987012987012988,
+              "source_id": "src_zero_to_one_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+              "dense_candidate": true,
+              "dense_rank": 4,
+              "dense_score": 0.17434561081536343,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015625,
+              "source_id": "src_morisaki_nlv"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+              "dense_candidate": true,
+              "dense_rank": 7,
+              "dense_score": 0.14509348092714086,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014925373134328358,
+              "source_id": "src_sapiens_author"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d4ad677ce4848d4044f9f603e84866453c50157eacfbac364e0cbaf9f2f2",
+              "dense_candidate": true,
+              "dense_rank": 18,
+              "dense_score": 0.09345012040018337,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01282051282051282,
+              "source_id": "src_becoming_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7",
+              "dense_candidate": true,
+              "dense_rank": 15,
+              "dense_score": 0.10757034415397494,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013333333333333334,
+              "source_id": "src_social_contract_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_efef3ea7d79928a99fa6911f804498ad8caf324d13e72b58e5643a7ad300",
+              "dense_candidate": true,
+              "dense_rank": 9,
+              "dense_score": 0.13718747307107668,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014492753623188406,
+              "source_id": "src_show_your_work_alphabooks"
+            }
+          ],
+          "expected_match": {
+            "all_expected_sources_selected": null,
+            "correct_no_answer": true,
+            "exact_expected_source_set": true,
+            "expected_source_recall": null,
+            "probe_kind": "negative",
+            "unexpected_selected_source_count": 0
+          },
+          "expected_source_ids": [],
+          "max_context_tokens": 6000,
+          "planned_queries": [
+            "Cách thay dầu động cơ và lọc nhớt cho xe máy.",
+            "Cách thay dầu động cơ",
+            "lọc nhớt cho xe máy"
+          ],
+          "probe_id": "p3-dev-06",
+          "query": "Cách thay dầu động cơ và lọc nhớt cho xe máy.",
+          "selected_chunk_ids": [],
+          "selected_source_ids": [],
+          "within_context_bound": true
+        },
+        {
+          "answerable": false,
+          "context_token_count": 0,
+          "diagnostics": [
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0e5a7525f12d3548b0298a9990c319ac5478c308da54f47ae0a0d93c55bf",
+              "dense_candidate": true,
+              "dense_rank": 16,
+              "dense_score": 0.11084921662106278,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013157894736842105,
+              "source_id": "src_steve_jobs_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd",
+              "dense_candidate": true,
+              "dense_rank": 9,
+              "dense_score": 0.13925460184875632,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014492753623188406,
+              "source_id": "src_7_habits_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_37ce7d37c58e09ded121b3df8e831d5218fbbfa86ea062842035b60ab013",
+              "dense_candidate": true,
+              "dense_rank": 11,
+              "dense_score": 0.13695968516325063,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014084507042253521,
+              "source_id": "src_the_prince_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_4d37fda9c5791bb9603a89eaf42b222642722b7cd684015d97453426a2cf",
+              "dense_candidate": true,
+              "dense_rank": 2,
+              "dense_score": 0.19020095676098286,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.016129032258064516,
+              "source_id": "src_flour_water_salt_yeast_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_6326edff53247eb3222bb56ac4395bdd5b0490dad799886e72b7aee39cca",
+              "dense_candidate": true,
+              "dense_rank": 17,
+              "dense_score": 0.104670785669973,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012987012987012988,
+              "source_id": "src_devotion_suspect_x_macmillan"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c",
+              "dense_candidate": true,
+              "dense_rank": 3,
+              "dense_score": 0.18315875893164804,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015873015873015872,
+              "source_id": "src_phoenix_project_it_revolution"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_721dbac193ac80ecf71d474af50a2e261d056f466a4faa3b7fde412616c8",
+              "dense_candidate": true,
+              "dense_rank": 12,
+              "dense_score": 0.13415469319342443,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013888888888888888,
+              "source_id": "src_boy_striped_pajamas_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_762548fbb03400eaa96d7f155e15f359bac8d7d6798effb7b082ae02c29e",
+              "dense_candidate": true,
+              "dense_rank": 5,
+              "dense_score": 0.15943931570347958,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015384615384615385,
+              "source_id": "src_de_men_kim_dong"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_90e6df71488366c0a18688bb9b32fd6a9be1d853cb77fc00523fe5a96abf",
+              "dense_candidate": true,
+              "dense_rank": 18,
+              "dense_score": 0.09546137601539388,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01282051282051282,
+              "source_id": "src_socrates_express_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_9a3e6e36f1e6a26a3b5af94fa316b56cb882873bb2d6fe57bab1414de787",
+              "dense_candidate": true,
+              "dense_rank": 7,
+              "dense_score": 0.15511409209835145,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014925373134328358,
+              "source_id": "src_economix_abrams"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a098f060381965e6ea7bb574cb95dfe822f94795cdb3776c9fe8711be60a",
+              "dense_candidate": true,
+              "dense_rank": 20,
+              "dense_score": 0.03945754753457911,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0125,
+              "source_id": "src_start_up_nation_hachette"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a28d4a43a36fd29b3845a1b939c5ef7f6f5dfc3c3466bc4446dae3ae0820",
+              "dense_candidate": true,
+              "dense_rank": 6,
+              "dense_score": 0.15902739031791593,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015151515151515152,
+              "source_id": "src_little_women_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b7a1216b60d56c8b31b98f0dcffa1e371bb5606aaeb9cc4f74f0fdc4f66a",
+              "dense_candidate": true,
+              "dense_rank": 14,
+              "dense_score": 0.12859376759796926,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013513513513513514,
+              "source_id": "src_fahrenheit_451_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b8dfaf0d818c8aa02f832f976f93492caa6cc43a4232033dae6d64384599",
+              "dense_candidate": true,
+              "dense_rank": 19,
+              "dense_score": 0.04808930633229998,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012658227848101266,
+              "source_id": "src_einstein_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_c47e59ef209c5b5693f8e552d26bd0f714e7e3db0bf6a88f3bc3706b1eb8",
+              "dense_candidate": true,
+              "dense_rank": 8,
+              "dense_score": 0.14965479940512644,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014705882352941176,
+              "source_id": "src_zero_to_one_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+              "dense_candidate": true,
+              "dense_rank": 13,
+              "dense_score": 0.13016542535654885,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0136986301369863,
+              "source_id": "src_morisaki_nlv"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+              "dense_candidate": true,
+              "dense_rank": 15,
+              "dense_score": 0.11502463392096031,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013333333333333334,
+              "source_id": "src_sapiens_author"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d4ad677ce4848d4044f9f603e84866453c50157eacfbac364e0cbaf9f2f2",
+              "dense_candidate": true,
+              "dense_rank": 4,
+              "dense_score": 0.1675507201573075,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015625,
+              "source_id": "src_becoming_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7",
+              "dense_candidate": true,
+              "dense_rank": 10,
+              "dense_score": 0.13784645268332205,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014285714285714285,
+              "source_id": "src_social_contract_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_efef3ea7d79928a99fa6911f804498ad8caf324d13e72b58e5643a7ad300",
+              "dense_candidate": true,
+              "dense_rank": 1,
+              "dense_score": 0.22760916596306452,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01639344262295082,
+              "source_id": "src_show_your_work_alphabooks"
+            }
+          ],
+          "expected_match": {
+            "all_expected_sources_selected": null,
+            "correct_no_answer": true,
+            "exact_expected_source_set": true,
+            "expected_source_recall": null,
+            "probe_kind": "negative",
+            "unexpected_selected_source_count": 0
+          },
+          "expected_source_ids": [],
+          "max_context_tokens": 6000,
+          "planned_queries": [
+            "Hướng dẫn gấp origami hình rồng bằng giấy vuông.",
+            "Hướng dẫn gấp origami hình rồng bằng giấy vuông"
+          ],
+          "probe_id": "p3-dev-07",
+          "query": "Hướng dẫn gấp origami hình rồng bằng giấy vuông.",
+          "selected_chunk_ids": [],
+          "selected_source_ids": [],
+          "within_context_bound": true
+        },
+        {
+          "answerable": false,
+          "context_token_count": 0,
+          "diagnostics": [
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0e5a7525f12d3548b0298a9990c319ac5478c308da54f47ae0a0d93c55bf",
+              "dense_candidate": true,
+              "dense_rank": 10,
+              "dense_score": 0.11599236105271256,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014285714285714285,
+              "source_id": "src_steve_jobs_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd",
+              "dense_candidate": true,
+              "dense_rank": 15,
+              "dense_score": 0.08809229572330238,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013333333333333334,
+              "source_id": "src_7_habits_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_37ce7d37c58e09ded121b3df8e831d5218fbbfa86ea062842035b60ab013",
+              "dense_candidate": true,
+              "dense_rank": 13,
+              "dense_score": 0.10704937226396123,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0136986301369863,
+              "source_id": "src_the_prince_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_4d37fda9c5791bb9603a89eaf42b222642722b7cd684015d97453426a2cf",
+              "dense_candidate": true,
+              "dense_rank": 16,
+              "dense_score": 0.08733064154309177,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013157894736842105,
+              "source_id": "src_flour_water_salt_yeast_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_6326edff53247eb3222bb56ac4395bdd5b0490dad799886e72b7aee39cca",
+              "dense_candidate": true,
+              "dense_rank": 9,
+              "dense_score": 0.12305643469115067,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014492753623188406,
+              "source_id": "src_devotion_suspect_x_macmillan"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c",
+              "dense_candidate": true,
+              "dense_rank": 2,
+              "dense_score": 0.1771010730620726,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.016129032258064516,
+              "source_id": "src_phoenix_project_it_revolution"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_721dbac193ac80ecf71d474af50a2e261d056f466a4faa3b7fde412616c8",
+              "dense_candidate": true,
+              "dense_rank": 7,
+              "dense_score": 0.13312404337151956,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014925373134328358,
+              "source_id": "src_boy_striped_pajamas_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_762548fbb03400eaa96d7f155e15f359bac8d7d6798effb7b082ae02c29e",
+              "dense_candidate": true,
+              "dense_rank": 1,
+              "dense_score": 0.2035340008252591,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01639344262295082,
+              "source_id": "src_de_men_kim_dong"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_90e6df71488366c0a18688bb9b32fd6a9be1d853cb77fc00523fe5a96abf",
+              "dense_candidate": true,
+              "dense_rank": 14,
+              "dense_score": 0.09842572589553858,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013513513513513514,
+              "source_id": "src_socrates_express_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_9a3e6e36f1e6a26a3b5af94fa316b56cb882873bb2d6fe57bab1414de787",
+              "dense_candidate": true,
+              "dense_rank": 12,
+              "dense_score": 0.10744600081986182,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.013888888888888888,
+              "source_id": "src_economix_abrams"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a098f060381965e6ea7bb574cb95dfe822f94795cdb3776c9fe8711be60a",
+              "dense_candidate": true,
+              "dense_rank": 19,
+              "dense_score": 0.049851984511226875,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012658227848101266,
+              "source_id": "src_start_up_nation_hachette"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_a28d4a43a36fd29b3845a1b939c5ef7f6f5dfc3c3466bc4446dae3ae0820",
+              "dense_candidate": true,
+              "dense_rank": 6,
+              "dense_score": 0.1450708212956926,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015151515151515152,
+              "source_id": "src_little_women_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b7a1216b60d56c8b31b98f0dcffa1e371bb5606aaeb9cc4f74f0fdc4f66a",
+              "dense_candidate": true,
+              "dense_rank": 11,
+              "dense_score": 0.11307937288266728,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014084507042253521,
+              "source_id": "src_fahrenheit_451_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_b8dfaf0d818c8aa02f832f976f93492caa6cc43a4232033dae6d64384599",
+              "dense_candidate": true,
+              "dense_rank": 17,
+              "dense_score": 0.0857368862147983,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.012987012987012988,
+              "source_id": "src_einstein_simon_schuster"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_c47e59ef209c5b5693f8e552d26bd0f714e7e3db0bf6a88f3bc3706b1eb8",
+              "dense_candidate": true,
+              "dense_rank": 8,
+              "dense_score": 0.12714878444988512,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.014705882352941176,
+              "source_id": "src_zero_to_one_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b",
+              "dense_candidate": true,
+              "dense_rank": 18,
+              "dense_score": 0.06553142673722895,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.01282051282051282,
+              "source_id": "src_morisaki_nlv"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad",
+              "dense_candidate": true,
+              "dense_rank": 20,
+              "dense_score": 0.031928166302642974,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.0125,
+              "source_id": "src_sapiens_author"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_d4ad677ce4848d4044f9f603e84866453c50157eacfbac364e0cbaf9f2f2",
+              "dense_candidate": true,
+              "dense_rank": 5,
+              "dense_score": 0.1475450230460245,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015384615384615385,
+              "source_id": "src_becoming_prh"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7",
+              "dense_candidate": true,
+              "dense_rank": 3,
+              "dense_score": 0.17140266627963652,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015873015873015872,
+              "source_id": "src_social_contract_gutenberg"
+            },
+            {
+              "channels": [
+                "dense"
+              ],
+              "chunk_id": "chk_efef3ea7d79928a99fa6911f804498ad8caf324d13e72b58e5643a7ad300",
+              "dense_candidate": true,
+              "dense_rank": 4,
+              "dense_score": 0.1678288241069205,
+              "disposition": "below_relevance_threshold",
+              "lexical_candidate": false,
+              "lexical_coverage": 0.0,
+              "lexical_rank": null,
+              "lexical_score": 0.0,
+              "passes_dense_threshold": false,
+              "passes_lexical_threshold": false,
+              "rrf_score": 0.015625,
+              "source_id": "src_show_your_work_alphabooks"
+            }
+          ],
+          "expected_match": {
+            "all_expected_sources_selected": null,
+            "correct_no_answer": true,
+            "exact_expected_source_set": true,
+            "expected_source_recall": null,
+            "probe_kind": "negative",
+            "unexpected_selected_source_count": 0
+          },
+          "expected_source_ids": [],
+          "max_context_tokens": 6000,
+          "planned_queries": [
+            "Các bước sửa khóa kéo bị kẹt trên áo khoác.",
+            "Các bước sửa khóa kéo bị kẹt trên áo khoác"
+          ],
+          "probe_id": "p3-dev-08",
+          "query": "Các bước sửa khóa kéo bị kẹt trên áo khoác.",
+          "selected_chunk_ids": [],
+          "selected_source_ids": [],
+          "within_context_bound": true
+        }
+      ]
+    }
+  ],
+  "claim_limitations": "Development relevance only; no semantic entailment, held-out benchmark, or publication claim.",
+  "collection": {
+    "budget_scope_id": "p3-calibration-20260909-01",
+    "cache_sha256": "d0ad4bc1d43fb096735ae97c381515a3d3ccfc63c7a8128baad66caf992c3601",
+    "provider_call_id": "ecall_cal_0080260bf3c5d996fb7b0bd7664718ef0776edfbb8e2fe94",
+    "usage_after": {
+      "attempts_without_usage": 0,
+      "cached_input_tokens": 0,
+      "hard_limit_nano_usd": 5000000000,
+      "input_tokens": 473,
+      "known_nano_usd": 9460,
+      "output_tokens": 0,
+      "pending_attempts": 0,
+      "provider_attempts": 1,
+      "reasoning_tokens": 0,
+      "reserved_nano_usd": 0,
+      "total_tokens": 473,
+      "unknown_cost_attempts": 0,
+      "unknown_nano_usd": 0
+    },
+    "usage_before": {
+      "attempts_without_usage": 0,
+      "cached_input_tokens": 0,
+      "hard_limit_nano_usd": 5000000000,
+      "input_tokens": 0,
+      "known_nano_usd": 0,
+      "output_tokens": 0,
+      "pending_attempts": 0,
+      "provider_attempts": 0,
+      "reasoning_tokens": 0,
+      "reserved_nano_usd": 0,
+      "total_tokens": 0,
+      "unknown_cost_attempts": 0,
+      "unknown_nano_usd": 0
+    },
+    "usage_delta": {
+      "attempts_without_usage": 0,
+      "cached_input_tokens": 0,
+      "hard_limit_nano_usd": 5000000000,
+      "input_tokens": 473,
+      "known_nano_usd": 9460,
+      "output_tokens": 0,
+      "pending_attempts": 0,
+      "provider_attempts": 1,
+      "reasoning_tokens": 0,
+      "reserved_nano_usd": 0,
+      "total_tokens": 473,
+      "unknown_cost_attempts": 0,
+      "unknown_nano_usd": 0
+    },
+    "usage_fully_known": true,
+    "vector_payload_sha256": "0741d0a97112c176936c6673235c4e62116087af60661e5dc817feb911499d00"
+  },
+  "collection_snapshot": {
+    "access_fingerprint": "becd6eeb0d7fb1106021bcc56ddc1ae77f60f7db96225b0827bda827c7e164cc",
+    "authorized_catalog_sha256": "9d7deae2b6fbd652de96a7c2f688b3014ffcd6165e6afa1e02c8e70cef2fe6fc",
+    "corpus_version_id": "cor_5fb8adfd16b445f0c8c93b3da2548e0c9e022993b31bd110b48657ed1f11",
+    "index_fingerprint": "ee3afa43eb9199f0b962f467946e54127c7133424b9f56d84660975a5df34759",
+    "index_manifest_id": "idx_42faaebefa81a1529b9a52a9cffaf55a9244eb133e4b40ef884b5388dd4e",
+    "manifest_sha256": "82b2473ff9b7ee64958b6d69189ff99ca9f485e5e4f528c39b311769139b5bc3",
+    "stored_policy_sha256": "22e5b38a1aa90673c11c4e527529a39f1415a97657be946896b87edee0c58a9c"
+  },
+  "counterfactual_only": true,
+  "evaluation_snapshot": {
+    "access_fingerprint": "becd6eeb0d7fb1106021bcc56ddc1ae77f60f7db96225b0827bda827c7e164cc",
+    "authorized_catalog_sha256": "9d54e486d408c1d789284f8ec502cf27cdf4a0da2a5a206470692e1d0c7ce59c",
+    "corpus_version_id": "cor_e06f6abbf338cfcf5fe17d450eec52ed961975e0fa8ee6bae32369ed3956",
+    "index_fingerprint": "ee3afa43eb9199f0b962f467946e54127c7133424b9f56d84660975a5df34759",
+    "index_manifest_id": "idx_69af0802b50991c371bcb1f2954e79de82ccdc7855e15d3e602126b3b9c4",
+    "stored_policy": {
+      "candidate_limit": 30,
+      "default_limit": 6,
+      "dense_weight": 1.0,
+      "lexical_weight": 1.0,
+      "max_context_tokens": 6000,
+      "max_limit": 8,
+      "min_dense_relevance": 0.25,
+      "min_lexical_coverage": 0.1,
+      "rrf_k": 60,
+      "version": "p3_cal_d025_l010"
+    },
+    "stored_policy_sha256": "cb299f6133718eb6a637f756b8c0490fd87f683f4630d282537e4a39a8cb8b07"
+  },
+  "probe_manifest_sha256": "c1fd1801dc2481384ca8383f21eb140c2ee36238906c7ea294c1d544bfce3433",
+  "protocol_id": "p3-development-retrieval-v1",
+  "published_database_mutated": false,
+  "query_embedding_fingerprint": "258ee764830f82461190c35519c6918b6118e310da621e7a897bcd442bffeece",
+  "schema_version": "1.0",
+  "separating_candidate_policy_versions": [
+    "p3_cal_d025_l010"
+  ],
+  "separating_threshold_found": true
+}

@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "package": 6,
+  "git_revision": "95c9ddfa2a8ef262729bf5c45f95784cb01214e2",
+  "captured_at": "2026-09-14T03:07:04.173Z",
+  "browser": "chromium",
+  "headless": true,
+  "device_scale_factor": 2,
+  "reduced_motion": true,
+  "api_source": {
+    "kind": "strict_contract_fixture",
+    "fixture": "frontend/src/test/v2-fixtures.ts",
+    "reason": "The disposable Package 6 PostgreSQL test database has no published Package 3 corpus/index; production v2 correctly fails closed in that state."
+  },
+  "viewports": [
+    {
+      "width": 375,
+      "height": 812,
+      "screenshot": "screenshots/package-6-375.png",
+      "sha256": "0e055e2b662b3b08996d68d31d32b4437c479f61f59f1cc44b0eca7e38e674ab"
+    },
+    {
+      "width": 768,
+      "height": 1000,
+      "screenshot": "screenshots/package-6-768.png",
+      "sha256": "63da40ae887fd44d1cf67a52172e121c76157001a243cd5683d737283ef485de"
+    },
+    {
+      "width": 1024,
+      "height": 1000,
+      "screenshot": "screenshots/package-6-1024.png",
+      "sha256": "4ffb8f57d0c401a815eda391942e472697014fcc040c00ac2a3ff7656248ac41"
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "screenshot": "screenshots/package-6-1440.png",
+      "sha256": "61e04d3b78156e8c609853cd1710fdd37f327eb251de6224e61773486fe9c8b3"
+    }
+  ],
+  "interactions": [
+    "configure in-memory gateway credential",
+    "bootstrap identity, conversation list, history and memory",
+    "open exact citation evidence",
+    "open action decision dialog",
+    "verify required permission and resource version"
+  ],
+  "checks": {
+    "duplicate_ids": 0,
+    "unnamed_buttons": 0,
+    "horizontal_overflow": false,
+    "console_errors": 0,
+    "page_errors": 0
+  },
+  "status": "passed"
+}

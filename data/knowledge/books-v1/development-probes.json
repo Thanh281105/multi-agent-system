@@ -1,0 +1,61 @@
+{
+  "schema_version": "1.0",
+  "protocol_id": "p3-development-retrieval-v1",
+  "purpose": "development_retrieval_relevance_only",
+  "pre_sut_plan_sha256": "8f365b18451486245242e94b5d125e14c7b24713ff4a48ca7f3b2c2007cfe4a4",
+  "held_out_excluded_product_ids": [80, 168, 179, 101],
+  "held_out_excluded_work_ids": [
+    "work_sapiens_yuval_noah_harari",
+    "work_de_men_phieu_luu_ky_to_hoai",
+    "work_zero_to_one_peter_thiel_blake_masters",
+    "work_flour_water_salt_yeast_ken_forkish"
+  ],
+  "held_out_excluded_negative_families": [
+    "network_router_vlan_configuration",
+    "motorcycle_oil_maintenance",
+    "origami_dragon_folding",
+    "clothing_zipper_repair"
+  ],
+  "probes": [
+    {
+      "probe_id": "p3-dev-01",
+      "query": "Ai viết Sapiens và sách khái quát những chủ đề nào trong lịch sử loài người?",
+      "expected_source_ids": ["src_sapiens_author"]
+    },
+    {
+      "probe_id": "p3-dev-02",
+      "query": "Dế Mèn phiêu lưu ký của Tô Hoài nhắc tới những chủ đề nào?",
+      "expected_source_ids": ["src_de_men_kim_dong"]
+    },
+    {
+      "probe_id": "p3-dev-03",
+      "query": "Sách Không Đến Một nói về khởi nghiệp và sáng tạo giá trị mới như thế nào?",
+      "expected_source_ids": ["src_zero_to_one_prh"]
+    },
+    {
+      "probe_id": "p3-dev-04",
+      "query": "Bột Nước Muối Men của Ken Forkish hướng đến loại món ăn và người đọc nào?",
+      "expected_source_ids": ["src_flour_water_salt_yeast_prh"]
+    },
+    {
+      "probe_id": "p3-dev-05",
+      "query": "Hướng dẫn cấu hình bộ định tuyến Wi-Fi để chia mạng VLAN.",
+      "expected_source_ids": []
+    },
+    {
+      "probe_id": "p3-dev-06",
+      "query": "Cách thay dầu động cơ và lọc nhớt cho xe máy.",
+      "expected_source_ids": []
+    },
+    {
+      "probe_id": "p3-dev-07",
+      "query": "Hướng dẫn gấp origami hình rồng bằng giấy vuông.",
+      "expected_source_ids": []
+    },
+    {
+      "probe_id": "p3-dev-08",
+      "query": "Các bước sửa khóa kéo bị kẹt trên áo khoác.",
+      "expected_source_ids": []
+    }
+  ]
+}

@@ -12,7 +12,6 @@ from pydantic import ValidationError
 from app.agent_gateway import AgentGateway
 from app.agents import build_default_dispatcher
 from app.agents.reasoning import SpecialistInsight
-from app.gateway.schemas import build_chat_response
 from app.mcp.catalog import build_default_mcp_router
 from app.orchestrator import MultiAgentOrchestrator
 from app.orchestrator.aggregator import ResultAggregator
@@ -192,8 +191,6 @@ async def test_hybrid_flow_runs_all_structured_reasoning_stages() -> None:
         principal_id="user-a",
         session_id="sess_hybrid_123",
     )
-    public = build_chat_response(result)
-
     assert result.intent == "multi.recommendation"
     assert [step.agent_id for step in result.plan.steps] == [
         "product_agent",
@@ -212,10 +209,10 @@ async def test_hybrid_flow_runs_all_structured_reasoning_stages() -> None:
     assert all(item.status == "success" for item in result.model_calls)
     assert "nguồn: tiki-books:kaggle-v4:test" in result.answer
     assert "snapshot lịch sử Tiki Books" in result.answer
-    assert public.executions[1].depends_on == ("step_product",)
-    assert len(public.model_calls) == 6
+    assert result.plan.steps[1].depends_on == ("step_product",)
+    assert len(result.model_calls) == 6
     assert all(request["store"] is False for request in responses.requests)
-    assert "instructions" not in public.model_dump_json()
+    assert all("instructions" not in call.model_dump() for call in result.model_calls)
 
     routing_request = next(
         request

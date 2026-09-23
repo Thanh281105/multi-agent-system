@@ -654,11 +654,40 @@ def _render_report(report: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _load_captured_sut_source_manifest(
+    report_path: Path,
+) -> tuple[str, tuple[str, ...]]:
+    """Read the source binding recorded with the immutable observations."""
+
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            "score-only requires an existing report with captured SUT source provenance"
+        ) from exc
+    if not isinstance(report, dict):
+        raise ValueError("score-only report has an invalid shape")
+
+    source_sha256 = report.get("sut_source_sha256")
+    source_files = report.get("sut_source_files")
+    if (
+        not isinstance(source_sha256, str)
+        or len(source_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in source_sha256)
+        or not isinstance(source_files, list)
+        or not source_files
+        or any(not isinstance(path, str) or not path for path in source_files)
+    ):
+        raise ValueError("score-only report has an invalid captured SUT source binding")
+    return source_sha256, tuple(source_files)
+
+
 def _write_outputs(
     *,
     artifact: dict[str, Any],
     corpus_path: Path,
     output_directory: Path,
+    captured_sut_source_manifest: tuple[str, tuple[str, ...]] | None = None,
 ) -> None:
     output_directory.mkdir(parents=True, exist_ok=True)
     artifact_path = output_directory / "observations.json"
@@ -673,6 +702,10 @@ def _write_outputs(
         artifact_path=artifact_path,
         corpus_path=corpus_path,
     )
+    if captured_sut_source_manifest is not None:
+        source_sha256, source_files = captured_sut_source_manifest
+        report["sut_source_sha256"] = source_sha256
+        report["sut_source_files"] = list(source_files)
     (output_directory / "report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -704,6 +737,9 @@ def main() -> None:
     arguments = parser.parse_args()
     if arguments.score_only:
         artifact = _load_artifact(arguments.output / "observations.json")
+        captured_sut_source_manifest = _load_captured_sut_source_manifest(
+            arguments.output / "report.json"
+        )
     else:
         corpus = load_corpus(arguments.cases)
         artifact = asyncio.run(
@@ -714,10 +750,12 @@ def main() -> None:
                 max_cases=arguments.max_cases,
             )
         )
+        captured_sut_source_manifest = None
     _write_outputs(
         artifact=artifact,
         corpus_path=arguments.cases,
         output_directory=arguments.output,
+        captured_sut_source_manifest=captured_sut_source_manifest,
     )
 
 

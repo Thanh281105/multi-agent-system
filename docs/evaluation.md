@@ -17,6 +17,14 @@ trên snapshot lịch sử. Nó không đo toàn bộ chất lượng ngôn ng�
 preference, dữ liệu Tiki hiện tại hoặc khả năng tổng quát hóa ra marketplace.
 Regression 100% không có nghĩa “AI chính xác 100%”.
 
+Repository có ba lane cần giữ tách biệt:
+
+| Lane | Vai trò | Trạng thái |
+| --- | --- | --- |
+| v1 scripted/reference | Compatibility regression trên catalog/review snapshot | Đã có evidence lịch sử |
+| v2 paired | Historical deterministic/model-assisted comparison với `tiki_books_vi_28_v1` | Đã có protocol/capture lịch sử; không dùng làm P7/P8 result |
+| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7 successor v5 completed; P8 successors v6-v9 are preserved terminal partials; current source remediation needs a fresh source-bound P7 pilot before official live evidence |
+
 ## 2. Frozen inputs và provenance
 
 - Gold cases: [`evaluation/cases.v1.json`](../evaluation/cases.v1.json)
@@ -25,7 +33,7 @@ Regression 100% không có nghĩa “AI chính xác 100%”.
 - Bounded live configuration: [`evaluation/experiment.live-pilot.v2.json`](../evaluation/experiment.live-pilot.v2.json)
 - Pricing manifest: [`evaluation/pricing/openai-standard-2026-08-25.v2.json`](../evaluation/pricing/openai-standard-2026-08-25.v2.json)
 
-Current dataset là `tiki_books_vi_28_v1`: 28 clean cases và 16
+Historical v2 dataset là `tiki_books_vi_28_v1`: 28 clean cases và 16
 label-preserving transformations, tổng 44 correctness cases. Bốn transform type
 (`typo`, `paraphrase`, `distractor`, `injection`) có bốn case mỗi loại.
 
@@ -45,7 +53,14 @@ Gold labels không được tính lại từ SUT output trong lúc benchmark. Pr
 ghi experiment/corpus/evaluator/pricing hashes, Git revision/dirty state, network
 policy, model bindings, retrieval backend, schedule seed và execution budget.
 
-## 3. Variant hierarchy
+V3 gold/split hiện hành là [`evaluation/v3/gold.v3.json`](../evaluation/v3/gold.v3.json)
+và [`evaluation/v3/split.v3.json`](../evaluation/v3/split.v3.json): 80
+conversation, gồm 20 development và 60 held-out. Gold origin là
+`automated_pre_sut_spec`; `human_author_ids` và `human_judge_ids` đều rỗng.
+Benchmark Q/A, split, calibration labels và judge artifacts không được đưa vào
+published v2 corpus/index.
+
+## 3. Legacy v2 variant hierarchy
 
 | Variant | Parent | Mục đích |
 | --- | --- | --- |
@@ -66,7 +81,7 @@ Khi dùng `--variant`, runner tự đóng dependency chain. Chọn
 kéo thêm cả hai deterministic ancestors. Vì vậy một live smoke hybrid hiện tại
 chạy ba variants, không phải hai.
 
-## 4. Paired protocol
+## 4. Legacy v2 paired protocol
 
 Full measured matrix:
 
@@ -168,7 +183,203 @@ wiring generic lịch sử, không được dùng cho current Tiki Books claim. 
 `experiment.live-pilot.v2.json` chỉ là cấu hình có thể tái chạy, không phải kết
 quả.
 
-## 8. Evidence đã commit
+## 8. Package 7 historical protocol và successor pilot
+
+**Cập nhật sau P02:** xem [handoff hiện hành](thanh-v2/p02-successor-handoff.md).
+Protocol `c8a4…` và v4 artifacts bên dưới là lịch sử trước sửa P02. Mã hiện
+hành có protocol `28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`;
+P7 successor v5 đã hoàn tất và freeze repeat decision. P8 successor v6-v9 đã
+chạy live nhưng vẫn terminal partial; `operate` chưa được gọi.
+
+Historical corrected P7 freeze artifact do operator tạo tại
+`output/evaluation-v3/pilot-corrected-v3/`; đây là output local không được commit
+vào repository. Historical protocol SHA-256 là
+`385ae09e74a7e8e2896b170f9ad3f2549f6f79390e94b3241cd7da0e4b32721f`.
+Sau remediation merchant tại `31f3351`, source-bound successor protocol SHA-256 là
+`c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79cde`.
+
+V3 có đúng bốn variants:
+
+| Variant | Topology | Planning | RAG |
+| --- | --- | --- | --- |
+| `sa_shared_tools_rag` | single | shared | bật |
+| `ma_fixed_rag` | multi | fixed | bật |
+| `ma_adaptive_rag` | multi | adaptive, tối đa một continuation | bật |
+| `ma_adaptive_no_rag` | multi | adaptive, tối đa một continuation | tắt |
+
+Split freeze có 20 development cases và 60 held-out cases. Historical corrected
+pilot hoàn tất `36/36` terminal cells; repeat decision chọn global `3` repeats
+cho held-out matrix. Chi phí pilot thực tế là `0.05332290 USD`; projected
+held-out SUT cost là `5.72929200 USD`. Các số này chỉ là historical
+budget/projection evidence, không phải benchmark quality result và không thể
+được tái sử dụng cho protocol successor.
+
+P7 successor `run_p7_successor_v5` đã hoàn tất `36/36` terminal cells gồm `4`
+warmup và `32` measurements, với schedule SHA
+`82617ce0e4004fcda0b542a1769de9653be044643f5189a5b3e88fa0aebd2163`. Repeat
+decision chọn global `3` repeats; chi phí pilot là `0.05551620 USD` và
+projected held-out SUT cost là `5.91510600 USD`. P8 successors dùng đúng
+protocol/repeat decision này trong output riêng; không resume hay ghép cells
+vào các runs lịch sử.
+
+Remediation P02 hiện hành đọc/ground giá nhiều offer rồi tạo proposal nếu có
+target độc lập do server xác định. Thiếu target vẫn trả clarification an toàn.
+P7/P8 phải ghi nhận kết quả thực tế theo gold contract; không suy diễn proposal
+hay fabricate citation để đạt một trạng thái gold dự kiến.
+
+Semantic scoring được khai báo là automated model judge (`model_judge`) theo
+judge configuration/schema đã hash; không có human semantic judge. Deterministic
+metrics (citation precision/coverage và document recall) vẫn phải lấy từ
+receipt/evidence contracts. Calibration phải được freeze trước held-out scoring.
+
+## 9. Package 8 additive held-out driver
+
+Package 8 chỉ bổ sung các module `benchmark_*.py`. Mỗi P8 run bind chính xác
+protocol và repeat decision của P7 tương ứng; historical P7/P8 artifacts chỉ
+được đọc như evidence. CLI có các lệnh local `validate`, `dry-run`, `prepare`,
+hai lệnh SUT `run`/`resume`, và `operate` cho lifecycle sau khi SUT đã hoàn tất:
+
+```powershell
+python -m app.evaluation.benchmark_cli validate
+python -m app.evaluation.benchmark_cli dry-run --run-id run_p8_dry
+python -m app.evaluation.benchmark_cli prepare `
+  --output output/evaluation-v3/heldout
+python -m app.evaluation.benchmark_cli run `
+  --allow-network `
+  --database-url $env:DATABASE_URL `
+  --output output/evaluation-v3/heldout
+python -m app.evaluation.benchmark_cli resume `
+  --allow-network `
+  --database-url $env:DATABASE_URL `
+  --output output/evaluation-v3/heldout
+python -m app.evaluation.benchmark_cli operate `
+  --allow-network `
+  --database-url $env:DATABASE_URL `
+  --judge-budget-nano-usd 250000000 `
+  --output output/evaluation-v3/heldout
+```
+
+`validate`, `dry-run` và `prepare` là local-only, không provider call.
+`prepare` chỉ chấp nhận results không có citation; citation phải đi qua
+`operate` để exact evidence được mở lại dưới authorization đã ghi trong receipt.
+`run`, `resume` và `operate` chỉ được dispatch live khi operator truyền rõ
+`--allow-network` cùng `--database-url`; `operate` còn bắt buộc per-job judge
+budget. URL không được ghi vào output. Schedule P8 là exact
+`60 × 4 × frozen_repeats` held-out measurements (`480` hoặc `720`), không có
+warmup. Checkpoint append-only không được redispatch cell đã settled;
+orphan/ambiguous work phải giữ trạng thái partial. `operate` hash-bind
+preparation, calibration, journal, judgment và publication; catalog/review
+records chỉ được reopen từ source asset hash-pin và receipt authority tương ứng.
+Ranked, oversized hoặc provenance không đầy đủ sẽ dừng fail-closed, không dùng
+text từ answer hay gold thay thế evidence.
+
+Khi checkpoint terminal nhưng incomplete, lệnh local-only sau tạo hoặc tái xác
+thực một record bất biến `partial-execution-report.p8.json`; lệnh không dựng
+runtime live, không dispatch provider và không đưa receipt failed vào scoring:
+
+```powershell
+python -m app.evaluation.benchmark_cli partial-report `
+  --output output/evaluation-v3/heldout-corrected-v3 `
+  --run-id run_p8_heldout_corrected_v3
+```
+
+Historical held-out SUT `run_p8_heldout_corrected_v3` remains immutable at
+`678/720` completed cells and is not current successor evidence. After the
+shopper fixture correction, four fresh runs used the frozen P7 v5 protocol and
+each reached terminal partial status with zero pending, ambiguous or orphan
+work:
+
+| Run | Schedule SHA | Completed | Failed/missing |
+| --- | --- | ---: | ---: |
+| `run_p8_successor_v6` | `c0c41ae8…` | 718 | 2 |
+| `run_p8_successor_v7` | `ad5b8d57…` | 716 | 4 |
+| `run_p8_successor_v8` | `7aae9668…` | 714 | 6 |
+| `run_p8_successor_v9` | `9efb06ceb5843f069f1e84e6f099ff57c5103b6a0167114db52e09d0bc24b394` | 712 | 8 |
+
+The latest v9 safe failure codes are one `attempt_timeout_limit_exceeded`, two
+`expert_selection_not_authorized`, two `model_response_incomplete` and three
+`model_response_invalid`. The old merchant fixture-binding failure is absent
+after the source fix. Partial reports contain no raw provider payload or
+fabricated citation. Cumulative runtime ledger accounting across the live
+successors is `10.387962730 USD` known and `0.016542090 USD` unknown; these are
+not v9-only costs. Append-only checkpoints cannot redispatch terminal cells, so
+none of these runs is scored, calibrated, judge-complete or publishable.
+No calibration/judge journal, final result or paired metric exists yet.
+
+Các failed cells của v9 được ghi lại để truy vết:
+
+| Case | Variant | Repetition | Safe failure code |
+| --- | --- | ---: | --- |
+| `held_knowledge_source_04` | `ma_adaptive_rag` | 2 | `attempt_timeout_limit_exceeded` |
+| `held_multi_expert_09` | `ma_adaptive_no_rag` | 2 | `model_response_incomplete` |
+| `held_multi_expert_10` | `sa_shared_tools_rag` | 0 | `model_response_incomplete` |
+| `held_multi_expert_10` | `ma_fixed_rag` | 0 | `model_response_invalid` |
+| `held_multi_expert_10` | `ma_adaptive_no_rag` | 2 | `expert_selection_not_authorized` |
+| `held_multi_expert_12` | `ma_adaptive_rag` | 0 | `expert_selection_not_authorized` |
+| `held_shopping_merchant_02` | `sa_shared_tools_rag` | 1 | `model_response_invalid` |
+| `held_shopping_merchant_02` | `ma_adaptive_no_rag` | 2 | `model_response_invalid` |
+
+### Source remediation status — 2026-09-23
+
+The current working tree makes provider structured-response parse/validation
+errors retryable within the frozen `max_retries=1` budget. Expert-selection
+schemas now enumerate only fact and evidence IDs present in that request; the
+existing local authorization check remains fail-closed. The 18-second provider
+attempt cap is unchanged. Regression verification passed `105` tests across
+`test_model_runtime.py` and `test_v2_supervisor.py`; Ruff and mypy passed for the
+changed modules.
+
+P8 v9 is immutable, and the current P8 runner validates only the complete
+`60 × 4 × 3` schedule; its append-only checkpoint does not redispatch terminal
+cells. The change also alters source-bound P7 protocol inputs, so the official
+P8 validator reports `package7_protocol_hash_drift` until a fresh source-bound
+P7 successor pilot, protocol and repeat decision are frozen. No post-fix P8
+benchmark result is available; the diagnostic below does not change v9's counts.
+
+### Diagnostic-only replay attempts — 2026-09-23
+
+All eight v9 failed prompts and fixtures were replayed against isolated
+PostgreSQL clones. Since the generic runner binds each schedule row to a frozen
+P7 pilot case, the five distinct held-out case IDs and workgroups were mapped to
+pilot aliases; original user turns, identity and sandbox fixtures, variants,
+and repetitions were preserved. Both runs are strictly diagnostic and are not
+eligible for P8 scoring. The v9 schedule, checkpoint, and report remain
+unchanged.
+
+The first attempt, `run_p8_failed_diag_20260923_a`, ended with `0/8` successful
+observations: four cells returned `model_connection_failed`, then four returned
+`model_circuit_open`. It recorded zero tokens and zero known cost, with
+`0.05446350 USD` left as unresolved reservation evidence. After explicit user
+approval to send the held-out prompts and fixtures to the model provider, the
+second attempt, `run_p8_failed_diag_20260923_b`, completed `8/8` observations
+with no failed cells. It recorded 26 provider attempts, 48,199 input tokens,
+9,617 output tokens, `0.07320495 USD` known cost, and zero unresolved
+reservation; every cell remained under the frozen `0.25 USD` cap and total
+known cost stayed below the diagnostic `2.00 USD` limit.
+
+Checkpoints and safe summaries are in
+`output/evaluation-v3/failed-cell-diagnostic-20260923-a/` and
+`output/evaluation-v3/failed-cell-diagnostic-20260923-b/`. The successful
+diagnostic artifacts are local-only and excluded from Git. The successful
+diagnostic receipts do not repair v9's terminal failures or qualify as official
+P8 evidence because the schedule uses pilot aliases. A fresh source-bound P7
+pilot, protocol and repeat decision are still required before an official P8
+successor run. No benchmark conclusion is drawn from these diagnostic runs.
+
+Để đóng Package 8, phải có đủ các gate sau:
+
+1. Calibrated automated judge và frozen calibration/configuration bindings.
+2. Exact immutable evidence resolver mở lại đúng source/version/chunk/span từ
+   durable final `TurnResult`; citation ID hoặc text tự tạo không đủ.
+3. Đủ `60 × 4 × frozen_repeats` receipt cells (`480` hoặc `720`), ledger
+   attribution hợp lệ, no missing/ambiguous cells, rồi complete
+   blind-answer/judgment join.
+4. Analysis/report artifact với bindings, counts, paired metrics, omissions và
+   partial/complete status được validator chấp nhận.
+5. Regression, real PostgreSQL transactional/replay checks, frontend checks khi
+   ảnh hưởng, package gate và final documentation review.
+
+## 10. Evidence đã commit
 
 ### Current Tiki deterministic regression
 
@@ -207,7 +418,12 @@ python scripts/score_real_baseline.py
 python scripts/run_real_multi_agent_benchmark.py --score-only
 ```
 
-## 9. Điều kiện trước claim mạnh hơn
+`--score-only` yêu cầu report hiện có và giữ nguyên `sut_source_sha256` cùng
+`sut_source_files` của lần capture, vì report đó là provenance của observations
+bất biến. Chế độ này chỉ tính lại điểm và report; nó không gắn observations lịch
+sử với source checkout hiện tại.
+
+## 11. Điều kiện trước claim mạnh hơn
 
 1. Freeze một complete v2 bundle từ clean revision và validate độc lập.
 2. Dùng human/semantic rubric do curator độc lập thiết kế; báo agreement.

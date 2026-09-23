@@ -198,6 +198,21 @@ class Settings(BaseSettings):
         le=3_072,
         validation_alias="OPENAI_EMBEDDING_DIMENSIONS",
     )
+    v2_corpus_version_id: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_-]{2,127}$",
+        validation_alias="V2_CORPUS_VERSION_ID",
+    )
+    v2_index_manifest_id: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_-]{2,127}$",
+        validation_alias="V2_INDEX_MANIFEST_ID",
+    )
+    v2_budget_account_id: str = Field(
+        default="thanh-v2-provider-global",
+        pattern=r"^[a-z][a-z0-9_-]{2,127}$",
+        validation_alias="V2_BUDGET_ACCOUNT_ID",
+    )
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
 
     @field_validator("knowledge_backend", mode="before")
@@ -211,6 +226,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_production_secrets(self) -> Settings:
+        if self.v2_index_manifest_id is not None and self.v2_corpus_version_id is None:
+            raise ValueError("V2_INDEX_MANIFEST_ID requires V2_CORPUS_VERSION_ID")
         configured_keys = self.gateway_api_keys.get_secret_value().strip()
         if self.app_env == "production" and (
             not configured_keys

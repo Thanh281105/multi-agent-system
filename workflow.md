@@ -5,7 +5,8 @@
 > phân tán bên dưới **không mô tả runtime hiện tại**. Xem
 > [`README.md`](README.md), [`docs/architecture.md`](docs/architecture.md),
 > [`docs/data.md`](docs/data.md) và [`docs/operations.md`](docs/operations.md)
-> để biết source of truth có thể chạy/review.
+> để biết source of truth có thể chạy/review. Các URL `/api/v1` trong bản thiết
+> kế này đã bị gỡ; API hiện hành nằm tại `/api/v2`.
 
 # Vietnamese E-commerce Multi-Agent Platform Architecture (historical)
 

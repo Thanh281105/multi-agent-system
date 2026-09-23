@@ -1,0 +1,12 @@
+{
+  "version": "p3_cal_d025_l010",
+  "dense_weight": 1.0,
+  "lexical_weight": 1.0,
+  "rrf_k": 60,
+  "candidate_limit": 30,
+  "default_limit": 6,
+  "max_limit": 8,
+  "max_context_tokens": 6000,
+  "min_dense_relevance": 0.25,
+  "min_lexical_coverage": 0.1
+}

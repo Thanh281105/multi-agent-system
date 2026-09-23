@@ -24,6 +24,8 @@ x-app-environment: &app-environment
   OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
   MODEL_RUNTIME_MODE: ${MODEL_RUNTIME_MODE:-hybrid}
   EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-auto}
+  V2_CORPUS_VERSION_ID:
+  V2_INDEX_MANIFEST_ID:
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
 
 x-app-common: &app-common

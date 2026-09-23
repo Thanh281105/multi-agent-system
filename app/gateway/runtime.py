@@ -44,6 +44,7 @@ from app.shared import (
     SessionStore,
     Telemetry,
 )
+from app.v2.runtime import V2RuntimeFactory, build_v2_runtime_factory
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,6 +60,7 @@ class GatewayRuntime:
     telemetry: Telemetry
     config: Settings
     turns: TurnCoordinator
+    v2_runtime_factory: V2RuntimeFactory
     redis_client: Any | None = None
     knowledge_store: KnowledgeStore = DisabledKnowledgeStore()
     model_runtime: ModelRuntime | None = None
@@ -69,6 +71,7 @@ def build_gateway_runtime(
     config: Settings,
     *,
     knowledge_store: KnowledgeStore | None = None,
+    v2_runtime_factory: V2RuntimeFactory | None = None,
 ) -> GatewayRuntime:
     """Build one coherent runtime without module-global mutable agent state."""
 
@@ -165,6 +168,15 @@ def build_gateway_runtime(
             reasoning_effort=config.openai_reasoning_effort,
         ),
     )
+    configured_v2_runtime_factory = (
+        v2_runtime_factory
+        if v2_runtime_factory is not None
+        else build_v2_runtime_factory(
+            config,
+            model_runtime=model_runtime,
+            embedding_runtime=embedding_runtime,
+        )
+    )
     return GatewayRuntime(
         orchestrator=orchestrator,
         agent_gateway=agent_gateway,
@@ -181,6 +193,7 @@ def build_gateway_runtime(
         telemetry=telemetry,
         config=config,
         turns=turns,
+        v2_runtime_factory=configured_v2_runtime_factory,
         redis_client=redis_client,
         knowledge_store=configured_knowledge_store,
         model_runtime=model_runtime,

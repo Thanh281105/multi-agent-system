@@ -14,7 +14,22 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16.15-alpine3.24
+        env:
+          POSTGRES_USER: ecommerce_test
+          POSTGRES_PASSWORD: ci-postgres-disposable-only
+          POSTGRES_DB: thanh_v2_test_server
+        ports:
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U ecommerce_test -d thanh_v2_test_server"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
 
     steps:
       - name: Check out source
@@ -56,6 +71,8 @@ jobs:
         run: mypy app
 
       - name: Run offline test suite
+        env:
+          TEST_POSTGRES_URL: postgresql+psycopg://ecommerce_test:ci-postgres-disposable-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/thanh_v2_test_server
         run: pytest -m "not integration" -q
 
       - name: Re-score legacy captured real-model baseline
@@ -80,6 +97,7 @@ jobs:
           wheel = next(Path("dist").glob("*.whl"))
           with ZipFile(wheel) as archive:
               names = set(archive.namelist())
+          assert "app/shared/pricing-manifest.json" in names
           prefix = "app/frontend/dist/"
           assert prefix + "index.html" in names
           assert prefix + "favicon.svg" in names
@@ -171,7 +189,7 @@ jobs:
       - name: Show Compose status
         run: docker compose -f compose.yaml ps
 
-      - name: Smoke live JSON, SSE, readiness, auth, and metrics
+      - name: Smoke readiness/liveness, v2 identity/history, retired v1, auth, and metrics
         run: python scripts/ci_live_smoke.py
 
       - name: Verify PostgreSQL backup and restore drill

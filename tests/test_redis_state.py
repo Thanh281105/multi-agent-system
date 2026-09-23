@@ -122,7 +122,7 @@ async def test_redis_turn_coordinator_serializes_across_workers() -> None:
         await asyncio.sleep(0)
 
 
-def test_redis_failure_is_sanitized_and_reported_by_readiness() -> None:
+def test_redis_failure_is_reported_by_readiness() -> None:
     config = Settings(
         _env_file=None,
         app_env="test",
@@ -134,21 +134,11 @@ def test_redis_failure_is_sanitized_and_reported_by_readiness() -> None:
     client = fakeredis.FakeRedis(server=server, decode_responses=True)
     server.connected = False
     runtime = application.state.gateway_runtime
-    runtime.orchestrator.sessions = RedisSessionStore(client, key_prefix="test")
     application.state.gateway_runtime = replace(runtime, redis_client=client)
     http = TestClient(application)
 
-    failed_request = http.post(
-        "/api/v1/chat",
-        headers={"X-API-Key": "test-secret-key"},
-        json={"message": "Tìm sách của Nguyễn Nhật Ánh"},
-    )
     readiness = http.get("/readyz")
 
-    assert failed_request.status_code == 503
-    assert failed_request.json()["error"]["code"] == (
-        "gateway.shared_state_unavailable"
-    )
     assert readiness.status_code == 503
     assert readiness.json()["checks"] == {
         "runtime": "ok",

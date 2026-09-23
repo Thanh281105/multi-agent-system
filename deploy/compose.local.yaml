@@ -1,0 +1,58 @@
+name: thanh-v2-p1-services
+
+services:
+  postgres:
+    image: postgres:16.15-alpine3.24
+    environment:
+      POSTGRES_DB: ecommerce_p1
+      POSTGRES_USER: ecommerce_p1
+      POSTGRES_PASSWORD: p1-local-disposable-only
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - p1_postgres_data:/var/lib/postgresql/data
+    networks:
+      - p1_data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecommerce_p1 -d ecommerce_p1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    restart: "no"
+
+  redis:
+    image: redis:8.10.0-alpine3.23
+    environment:
+      REDIS_PASSWORD: p1-local-disposable-only
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - p1-local-disposable-only
+    ports:
+      - "127.0.0.1:56379:6379"
+    volumes:
+      - p1_redis_data:/data
+    networks:
+      - p1_data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep -q PONG
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    restart: "no"
+
+networks:
+  p1_data:
+    name: thanh-v2-p1-data
+
+volumes:
+  p1_postgres_data:
+    name: thanh-v2-p1-postgres-data
+  p1_redis_data:
+    name: thanh-v2-p1-redis-data

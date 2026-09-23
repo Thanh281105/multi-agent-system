@@ -66,7 +66,9 @@ def test_frontend_assets_are_same_origin_immutable_and_memory_only() -> None:
     styles = next(
         response for url, response in responses.items() if url.endswith(".css")
     )
-    assert "/api/v1/chat/stream" in script.text
+    assert "/api/v1/" not in script.text
+    assert "/api/v2" in script.text
+    assert "/chat/stream" in script.text
     assert "sessionStorage" in script.text
     assert "localStorage" not in script.text
     assert "thuong-tri.api-key" not in script.text
@@ -102,7 +104,7 @@ def test_spa_fallback_handles_only_safe_extensionless_client_routes() -> None:
     "path",
     [
         "/missing.js",
-        "/api/v1/not-real",
+        "/api/v2/not-real",
         "/docs/missing",
         "/%2e%2e/pyproject.toml",
         "/assets/%2e%2e/index.html",
@@ -132,8 +134,12 @@ def test_frontend_and_api_receive_strict_security_headers() -> None:
 
     frontend = client.get("/")
     unauthorized_api = client.post(
-        "/api/v1/chat",
-        json={"message": "Tìm laptop"},
+        "/api/v2/chat",
+        json={
+            "conversation_id": "conversation_test_123",
+            "client_turn_id": "turn-001",
+            "message": "Tìm laptop",
+        },
     )
 
     for response in (frontend, unauthorized_api):

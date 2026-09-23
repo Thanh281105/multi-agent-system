@@ -5,12 +5,14 @@ from pathlib import Path
 from alembic import command
 from sqlalchemy import create_engine, inspect, text
 
+from app.db.base import Base
 from app.db.migrate import (
     EXPECTED_DATABASE_REVISION,
     _migration_config,
     check_database_schema,
     upgrade_database,
 )
+from tests.v2_postgres_support import disposable_postgres_database
 
 
 def test_initial_migration_reaches_head_and_matches_orm(tmp_path: Path) -> None:
@@ -23,12 +25,8 @@ def test_initial_migration_reaches_head_and_matches_orm(tmp_path: Path) -> None:
     migration_engine = create_engine(database_url)
     try:
         inspector = inspect(migration_engine)
-        assert set(inspector.get_table_names()) == {
-            "alembic_version",
-            "dataset_sources",
-            "products",
-            "reviews",
-            "shops",
+        assert set(inspector.get_table_names()) == set(Base.metadata.tables) | {
+            "alembic_version"
         }
         with migration_engine.connect() as connection:
             revision = connection.scalar(
@@ -219,6 +217,87 @@ def test_empty_book_metadata_migration_downgrades_and_reapplies(
 
     upgrade_database(database_url)
     check_database_schema(database_url)
+
+
+def test_postgres_upgrade_downgrade_reapply_preserves_legacy_schema() -> None:
+    with disposable_postgres_database() as database_url:
+        upgrade_database(database_url, revision="20260830_0003")
+        engine = create_engine(database_url)
+        try:
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO shops (id, name, platform, rating) "
+                        "VALUES (991, 'Synthetic legacy shop', 'Tiki', 4.5)"
+                    )
+                )
+
+            upgrade_database(database_url)
+            upgrade_database(database_url)
+            check_database_schema(database_url)
+
+            inspector = inspect(engine)
+            assert set(inspector.get_table_names()) == set(Base.metadata.tables) | {
+                "alembic_version"
+            }
+            assert (
+                str(
+                    next(
+                        column["type"]
+                        for column in inspector.get_columns("v2_knowledge_vectors")
+                        if column["name"] == "vector"
+                    )
+                )
+                == "JSONB"
+            )
+            assert (
+                str(
+                    next(
+                        column["type"]
+                        for column in inspector.get_columns("v2_offers")
+                        if column["name"] == "demo_price_vnd"
+                    )
+                )
+                == "BIGINT"
+            )
+            with engine.connect() as connection:
+                assert (
+                    connection.scalar(text("SELECT version_num FROM alembic_version"))
+                    == EXPECTED_DATABASE_REVISION
+                )
+                assert (
+                    connection.scalar(text("SELECT name FROM shops WHERE id = 991"))
+                    == "Synthetic legacy shop"
+                )
+
+            migration_config = _migration_config()
+            with engine.begin() as connection:
+                migration_config.attributes["connection"] = connection
+                command.downgrade(migration_config, "20260830_0003")
+
+            assert not any(
+                table_name.startswith("v2_")
+                for table_name in inspect(engine).get_table_names()
+            )
+            with engine.connect() as connection:
+                assert (
+                    connection.scalar(text("SELECT name FROM shops WHERE id = 991"))
+                    == "Synthetic legacy shop"
+                )
+
+            upgrade_database(database_url)
+            check_database_schema(database_url)
+            with engine.connect() as connection:
+                assert (
+                    connection.scalar(text("SELECT version_num FROM alembic_version"))
+                    == EXPECTED_DATABASE_REVISION
+                )
+                assert (
+                    connection.scalar(text("SELECT name FROM shops WHERE id = 991"))
+                    == "Synthetic legacy shop"
+                )
+        finally:
+            engine.dispose()
 
 
 def _database_url(tmp_path: Path, name: str) -> str:

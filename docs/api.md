@@ -1,8 +1,12 @@
-# API v1 và SSE contract
+# API v2 và SSE contracts
+
+`/api/v2` là API HTTP có version duy nhất. Các endpoint `/api/v1` đã bị gỡ;
+client mới dùng contract hội thoại bền vững V2. Health endpoints vẫn ở root,
+còn `POST /chat` là fixture Phase 1 riêng, chỉ được mount khi bật cờ cấu hình.
 
 ## 1. Authentication và correlation
 
-Chat endpoints yêu cầu header:
+Các endpoint chat yêu cầu header:
 
 ```http
 X-API-Key: <secret>
@@ -15,11 +19,12 @@ constant-time comparison, sau đó áp dụng per-principal rate limit.
 Quyền không suy ra từ `principal_id`. `GATEWAY_PRINCIPAL_POLICIES` phải khai báo
 policy tin cậy theo format `principal:tenant:scope1|scope2`; principal đã xác
 thực nhưng chưa có policy bị từ chối với HTTP 403. Tenant và scope trong policy
-được truyền nguyên vẹn qua A2A tới Agent Gateway để kiểm tra `required_user_scope`.
+được truyền qua Agent Gateway để kiểm tra quyền.
 
 Client có thể gửi `X-Request-ID` theo pattern
 `req_[a-zA-Z0-9_-]{3,120}`. Giá trị sai pattern bị thay bằng ID server sinh.
-`X-Trace-ID` luôn do server sinh. Cả hai được trả ở response headers và body.
+`X-Trace-ID` luôn do server sinh. Cả hai được trả ở response headers và trong
+các response V2 có correlation envelope.
 
 Operations endpoints dùng credential tách biệt:
 
@@ -27,117 +32,84 @@ Operations endpoints dùng credential tách biệt:
 X-Operations-Key: <operations-secret>
 ```
 
-## 2. Chat JSON
+## 2. API v2 durable
 
-### `POST /api/v1/chat`
+Client chỉ chọn `mode` (`shopper` hoặc `merchant`); identity, store, catalog
+version, corpus version và index manifest do server bind. PostgreSQL là nguồn
+chính cho hội thoại, turn, action và published knowledge. Cấu hình runtime dùng
+`V2_CORPUS_VERSION_ID` và tùy chọn `V2_INDEX_MANIFEST_ID`; Docker Compose truyền
+hai biến này từ môi trường vào app container.
 
-Request:
+V2 chỉ nhận turn khi resolve được corpus/index đã publish trong PostgreSQL và
+embedding model/dimension khớp. Thiếu binding hoặc snapshot hợp lệ làm runtime
+fail closed với HTTP 503 (`v2.runtime_unavailable`). V2 không dùng Qdrant.
 
-```json
-{
-  "message": "Gợi ý sách dưới 150.000 đồng, rating tốt và ít tín hiệu phàn nàn.",
-  "session_id": null
-}
+### Endpoint inventory
+
+| Method | Path | Semantics |
+| --- | --- | --- |
+| `GET` | `/api/v2/me` | Identity và allowed modes |
+| `POST` | `/api/v2/conversations` | Tạo owner-bound conversation |
+| `GET` | `/api/v2/conversations?mode=...` | Liệt kê conversation |
+| `GET` / `DELETE` | `/api/v2/conversations/{conversation_id}` | Đọc hoặc xóa conversation/history |
+| `POST` | `/api/v2/chat` | Admit/claim/reuse durable turn và trả `TurnResponse` |
+| `POST` | `/api/v2/chat/stream` | Durable turn qua SSE |
+| `GET` | `/api/v2/turns/{turn_id}` | Đọc trạng thái/result của turn |
+| `POST` | `/api/v2/turns/{turn_id}/cancel` | Yêu cầu hủy turn |
+| `GET` | `/api/v2/actions/{action_id}` | Đọc action/proposal result |
+| `POST` | `/api/v2/actions/{action_id}/confirm` | Confirm bằng `Idempotency-Key` |
+| `POST` | `/api/v2/actions/{action_id}/reject` | Reject proposal |
+| `GET` / `PUT` / `DELETE` | `/api/v2/memory` | Đọc, ghi hoặc xóa explicit preference |
+
+### Tạo conversation và gửi chat
+
+Tạo conversation trước khi gửi turn:
+
+```http
+POST /api/v2/conversations
+X-API-Key: <secret>
+Content-Type: application/json
+
+{"mode":"shopper"}
 ```
 
-- `message`: sau trim từ 1 đến 2.000 ký tự;
-- `session_id`: bỏ qua ở turn đầu; follow-up dùng ID response, pattern
-  `sess_[a-zA-Z0-9_-]{3,120}`;
-- extra fields bị từ chối.
+Lấy `conversation.conversation_id` từ response. Mỗi lần gửi cần một
+`client_turn_id` mới do client tạo; retry cùng một turn phải dùng lại ID đó.
 
-Response rút gọn:
+```http
+POST /api/v2/chat
+X-API-Key: <secret>
+Content-Type: application/json
 
-```json
-{
-  "api_version": "v1",
-  "status": "success",
-  "answer": "Đã so sánh ... theo snapshot lịch sử Tiki Books ...",
-  "session_id": "sess_...",
-  "request_id": "req_...",
-  "trace_id": "trace_...",
-  "intent": "multi.recommendation",
-  "active_agent": "product_agent",
-  "selected_product_id": 2,
-  "executions": [
-    {
-      "step_id": "step_product",
-      "agent_id": "product_agent",
-      "action": "product.rank",
-      "status": "success",
-      "duration_ms": 4.2,
-      "error_codes": []
-    }
-  ],
-  "provenance": [
-    {
-      "source_type": "sample.public_dataset",
-      "source_id": "tiki-books:kaggle-v4:eval",
-      "fields": [
-        "name", "authors", "publisher", "category", "page_count",
-        "price", "rating", "sold_count"
-      ],
-      "sample_data": true,
-      "observed_at": "2026-08-30T12:34:56Z"
-    }
-  ],
-  "warnings": [],
-  "sample_data": true,
-  "duration_ms": 18.5
-}
+{"conversation_id":"conversation_...","client_turn_id":"browser:turn-001","message":"Tìm sách về lịch sử."}
 ```
 
-`executions` chỉ công khai metadata an toàn; không có prompt, chain-of-thought,
-raw tool arguments hoặc raw tool payload.
+Request có đúng ba trường: `conversation_id`, `client_turn_id` và `message` tối
+đa 2.000 ký tự. Message rỗng hoặc chỉ có khoảng trắng, ID sai pattern và extra
+fields bị từ chối. Response là `TurnResponse`; schema đầy đủ được công bố trong
+OpenAPI tại `/openapi.json`.
 
-## 3. Chat streaming
+V2 lưu trạng thái `pending → running → completed|failed|cancelled|interrupted`,
+giữ operation/evidence/usage metadata và trả lại kết quả đã settle khi client
+retry cùng identity. `Idempotency-Key` bắt buộc cho confirm action; scope, role
+và confirmation state được kiểm tra từ PostgreSQL.
 
-### `POST /api/v1/chat/stream`
+### SSE
 
-Request body/auth giống JSON endpoint. Response media type
-`text/event-stream`, `Cache-Control: no-cache, no-transform` và
-`X-Accel-Buffering: no`.
+`POST /api/v2/chat/stream` nhận cùng request/auth với JSON chat và trả
+`text/event-stream`. Event lifecycle dùng `progress`, `text_delta` và đúng một
+event `terminal`. Terminal chứa kết quả cuối cùng và `server_settled`.
+Disconnect hoặc timeout phía client không có nghĩa server đã settle turn; dùng
+`GET /api/v2/turns/{turn_id}` để đọc lại trạng thái và khôi phục.
 
-Event lifecycle:
+## 3. Error envelope
 
-```text
-status: request.accepted
-status: routing.completed
-status: planning.completed
-status: agent.started / agent.completed (0..n)
-status: aggregation.completed
-token: {"sequence":...,"delta":"...","request_id":"...","trace_id":"..."} (0..n)
-completed: GatewayChatResponse
-```
-
-Khi lỗi sau lúc stream đã mở, terminal event là `error` chứa cùng error envelope
-v1. Idle stream gửi comment `: heartbeat` mỗi 10 giây. Mỗi status event có
-`sequence`, correlation IDs và, nếu có, step/agent/status. Server gửi đúng một
-terminal event; client nên ngừng đọc ngay sau `completed` hoặc `error`. Các
-`token` event mang delta nhỏ của câu trả lời đã được grounded, được phát sau
-khi orchestration hoàn tất để giao diện hiển thị dần mà không tạo thêm nội dung
-ngoài bằng chứng.
-
-Ví dụ:
-
-```text
-id: req_abc:1
-retry: 3000
-event: status
-data: {"sequence":1,"phase":"request.accepted",...}
-
-event: token
-data: {"sequence":8,"delta":"Tai ","request_id":"req_abc",...}
-
-event: completed
-data: {"api_version":"v1",...}
-```
-
-## 4. Error envelope
+API V2 trả lỗi an toàn theo dạng:
 
 ```json
 {
   "error": {
-    "code": "gateway.validation_failed",
+    "code": "v2.validation_failed",
     "message": "Payload không hợp lệ.",
     "request_id": "req_...",
     "trace_id": "trace_...",
@@ -145,61 +117,46 @@ data: {"api_version":"v1",...}
     "validation_errors": [
       {
         "field": "body.message",
-        "type": "string_too_long",
-        "message": "String should have at most 2000 characters"
+        "type": "value_error",
+        "message": "Value error, message must contain non-whitespace text"
       }
     ]
   }
 }
 ```
 
-| HTTP | Code điển hình | Retry |
-| ---: | --- | --- |
-| 401 | `gateway.authentication_failed` | Không, sửa credential |
-| 403 | `gateway.authorization_not_configured` | Không, cấp policy cho principal |
-| 404 | `gateway.session_not_found` | Không, tạo session mới |
-| 409 | `gateway.session_busy` | Có, backoff |
-| 422 | `gateway.validation_failed` | Không, sửa payload |
-| 429 | `gateway.authentication_rate_limited`, `gateway.rate_limited` | Có, theo `Retry-After` |
-| 500 | `gateway.internal_error` | Có, dùng correlation để tra log |
-| 503 | `gateway.shared_state_unavailable`, `gateway.all_agents_failed` | Có |
-| 504 | `gateway.orchestration_timeout` | Có |
-
-401 có `WWW-Authenticate: ApiKey`. Rate-limited response có
+Các lỗi không tiết lộ prompt, chain-of-thought, tool payload hay credential.
+Response 401 có `WWW-Authenticate: ApiKey`; rate limit trả các header
 `X-RateLimit-Limit`, `X-RateLimit-Remaining` và khi cần `Retry-After`.
 
-## 5. Health và operations
+## 4. Health và operations
 
 | Endpoint | Auth | Ý nghĩa |
 | --- | --- | --- |
 | `GET /health`, `/livez` | Không | Process sống; không kiểm tra dependency |
-| `GET /readyz` | Không | Runtime + production schema revision + Redis nếu cấu hình + knowledge contract |
+| `GET /readyz` | Không | Runtime, PostgreSQL schema và Redis nếu cấu hình |
 | `GET /metrics` | Operations key ở production | Prometheus text format |
-| `GET /api/v1/operations/traces/{trace_id}` | Operations key | Redacted bounded trace events |
-| `GET /api/v1/operations/audit?limit=50` | Operations key | Agent Gateway audit, limit 1..200 |
-| `GET /api/v1/operations/agents` | Operations key | Registry inventory/capabilities |
+| `GET /api/v2/operations/traces/{trace_id}` | Operations key | Redacted bounded trace events |
+| `GET /api/v2/operations/audit?limit=50` | Operations key | Agent Gateway audit, limit 1..200 |
+| `GET /api/v2/operations/agents` | Operations key | Registry inventory/capabilities |
 
-Không dùng `/livez` để route traffic. Load balancer readiness phải gọi
-`/readyz`; 503 có body nêu dependency nào failed nhưng không lộ credential.
-Ở production, check database yêu cầu đúng Alembic revision hiện hành. Mặc định
-`KNOWLEDGE_BACKEND=disabled`, vì vậy response có `knowledge: "disabled"` và
-không cần Qdrant. Chỉ khi chủ động chọn backend `qdrant`, readiness mới yêu cầu
-service sống, collection đúng vector size/distance và có ít nhất một knowledge
-point. Development/test giữ DB check ở mức round-trip để hỗ trợ schema fixture
-cô lập.
+Không dùng `/livez` để route traffic. Load balancer readiness gọi `/readyz`;
+503 nêu dependency nào failed nhưng không lộ credential. Ở production, check
+database yêu cầu Alembic revision `20260910_0008`. Readiness không thay thế việc
+resolve binding V2: request cần corpus/index PostgreSQL đã publish và khớp
+embedding contract trước retrieval.
 
-## 6. Legacy API
+## 5. Fixture Phase 1
 
-`POST /chat` là đường Phase 1 single-agent tương thích ngược. Nó chỉ được mount
-khi `LEGACY_CHAT_ENABLED=true` và production validation bắt buộc giá trị này là
-`false`. Legacy runner dùng `store=false`; follow-up dựa trên transcript ngắn
-hạn trong memory của process, không dùng `previous_response_id`. Client mới phải
-dùng `/api/v1`.
+`POST /chat` là endpoint không version dành cho fixture single-agent Phase 1. Nó
+chỉ được mount khi `LEGACY_CHAT_ENABLED=true`; production validation bắt buộc
+giá trị này là `false`. Endpoint này không phải alias của API V2. Client ứng dụng
+và tích hợp mới dùng `/api/v2`.
 
-## 7. Browser client
+## 6. Browser client
 
-Frontend same-origin ở `/` gọi SSE bằng `fetch` để gửi custom API-key header.
-Key chỉ nằm trong JavaScript memory đến khi reload, không lưu vào localStorage
-hay sessionStorage. Session ID có thể lưu trong sessionStorage vì không phải
-credential. Dữ liệu server được render bằng `textContent`, không dùng
-`innerHTML`.
+Frontend same-origin gọi `/api/v2/chat/stream` bằng `fetch` để gửi custom API-key
+header. Key chỉ nằm trong JavaScript memory đến khi reload, không lưu vào
+localStorage hay sessionStorage. Metadata cần khôi phục conversation/turn có thể
+được lưu trong sessionStorage; server vẫn là authority cho history và trạng thái.
+Dữ liệu server được render bằng `textContent`, không dùng `innerHTML`.

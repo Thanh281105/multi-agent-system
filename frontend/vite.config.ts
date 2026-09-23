@@ -31,7 +31,6 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json-summary"],
       include: [
-        "src/lib/gateway-stream.ts",
         "src/features/chat/chat-state.ts",
         "src/features/chat/chat-storage.ts",
         "src/features/chat/use-chat-controller.ts",

@@ -3,11 +3,23 @@ import { describe, expect, it } from "vitest"
 import {
   canSubmitMessage,
   chatReducer,
+  createDurableRecoveryRequest,
   createInitialChatState,
+  selectDurableWorkspaceState,
   selectWorkspaceState,
   type ChatFailure,
 } from "@/features/chat/chat-state"
 import { completedResponse, statusEvent, tokenEvent } from "@/test/fixtures"
+import type {
+  ActionCard,
+  ConversationSummary,
+  HistoryTurn,
+  PreferenceRecord,
+  TurnArtifact,
+  TurnResponse,
+  TurnResult,
+  TurnSseEvent,
+} from "@/lib/v2-contracts"
 
 const userMessage = {
   id: "message-user-1",
@@ -253,6 +265,306 @@ describe("chat state selectors", () => {
   })
 })
 
+describe("durable v2 chat state", () => {
+  it("retains the exact recovery identity and message across transport retry", () => {
+    const started = startDurableTurn(1)
+    const failed = chatReducer(started, {
+      type: "durable.turn.transport-failed",
+      generation: 1,
+      failure,
+    })
+    const retried = chatReducer(failed, {
+      type: "durable.turn.retried",
+      generation: 2,
+    })
+
+    expect(createDurableRecoveryRequest(retried)).toEqual({
+      conversationId: "conversation_123",
+      clientTurnId: "client-turn:stable.123",
+      message: "Tìm sách bền vững",
+    })
+    expect(retried.durable.activeTurn).toMatchObject({
+      generation: 2,
+      turnId: null,
+      status: "pending",
+    })
+    expect(retried.messages).toEqual([])
+    expect(retried.durable.failure).toBeNull()
+  })
+
+  it("ignores stale generations, wrong turn identities, and replayed sequences", () => {
+    const started = startDurableTurn(1)
+    const progressed = chatReducer(started, {
+      type: "durable.turn.event",
+      generation: 1,
+      event: durableProgressEvent,
+    })
+    const staleGeneration = chatReducer(progressed, {
+      type: "durable.turn.event",
+      generation: 0,
+      event: { ...durableProgressEvent, sequence: 2 },
+    })
+    const wrongTurn = chatReducer(progressed, {
+      type: "durable.turn.event",
+      generation: 1,
+      event: {
+        ...durableProgressEvent,
+        sequence: 2,
+        turnId: "turn_other",
+      },
+    })
+    const replay = chatReducer(progressed, {
+      type: "durable.turn.event",
+      generation: 1,
+      event: durableProgressEvent,
+    })
+
+    expect(progressed.durable.activeTurn).toMatchObject({
+      turnId: "turn_123",
+      status: "running",
+      lastSequence: 1,
+    })
+    expect(staleGeneration).toBe(progressed)
+    expect(wrongTurn).toBe(progressed)
+    expect(replay).toBe(progressed)
+  })
+
+  it("accepts one terminal event without appending duplicate assistant messages", () => {
+    const progressed = chatReducer(startDurableTurn(1), {
+      type: "durable.turn.event",
+      generation: 1,
+      event: durableProgressEvent,
+    })
+    const completed = chatReducer(progressed, {
+      type: "durable.turn.event",
+      generation: 1,
+      event: completedTerminalEvent,
+    })
+    const duplicate = chatReducer(completed, {
+      type: "durable.turn.event",
+      generation: 1,
+      event: { ...completedTerminalEvent, sequence: 3 },
+    })
+
+    expect(completed.durable.terminalResult).toBe(durableResult)
+    expect(completed.durable.activeTurn).toMatchObject({
+      status: "completed",
+      lastSequence: 2,
+    })
+    expect(completed.durable.resources.byTurnId.turn_123).toEqual({
+      artifactIds: ["artifact_123"],
+      actionIds: ["action_123"],
+      preferenceIds: [],
+    })
+    expect(completed.messages).toEqual([])
+    expect(duplicate).toBe(completed)
+  })
+
+  it("keeps an unsettled terminal recoverable and accepts the same sequence after reattach", () => {
+    const progressed = chatReducer(startDurableTurn(1), {
+      type: "durable.turn.event",
+      generation: 1,
+      event: durableProgressEvent,
+    })
+    const interrupted = chatReducer(progressed, {
+      type: "durable.turn.event",
+      generation: 1,
+      event: unsettledInterruptedTerminalEvent,
+    })
+
+    expect(interrupted.durable.activeTurn).toMatchObject({
+      status: "interrupted",
+      serverSettled: false,
+      lastSequence: 2,
+    })
+    expect(interrupted.durable.terminalResult).toBeNull()
+    expect(selectDurableWorkspaceState(interrupted)).toBe("error")
+    expect(canSubmitMessage(interrupted)).toBe(false)
+    expect(createDurableRecoveryRequest(interrupted)).toEqual({
+      conversationId: "conversation_123",
+      clientTurnId: "client-turn:stable.123",
+      message: "Tìm sách bền vững",
+    })
+
+    const retried = chatReducer(interrupted, {
+      type: "durable.turn.retried",
+      generation: 2,
+    })
+    expect(retried.durable.activeTurn).toMatchObject({
+      generation: 2,
+      lastSequence: 0,
+      serverSettled: false,
+    })
+    const settled = chatReducer(retried, {
+      type: "durable.turn.event",
+      generation: 2,
+      event: completedTerminalEvent,
+    })
+    expect(settled.durable.activeTurn?.serverSettled).toBe(true)
+    expect(settled.durable.terminalResult).toBe(durableResult)
+
+    const cancelled = chatReducer(progressed, {
+      type: "durable.turn.event",
+      generation: 1,
+      event: { ...cancelledTerminalEvent, serverSettled: false },
+    })
+    expect(selectDurableWorkspaceState(cancelled)).toBe("cancelled")
+    expect(canSubmitMessage(cancelled)).toBe(false)
+  })
+
+  it("replaces local replay state with authoritative hydrated server history", () => {
+    const localCompleted = chatReducer(
+      chatReducer(startDurableTurn(1), {
+        type: "durable.turn.event",
+        generation: 1,
+        event: durableProgressEvent,
+      }),
+      {
+        type: "durable.turn.event",
+        generation: 1,
+        event: completedTerminalEvent,
+      },
+    )
+    const hydrated = chatReducer(localCompleted, {
+      type: "durable.history.hydrated",
+      generation: 2,
+      conversation,
+      turns: [serverHistoryTurn],
+      preferences: [preference],
+    })
+
+    expect(hydrated.durable.history).toEqual([serverHistoryTurn])
+    expect(hydrated.durable.activeTurn).toBeNull()
+    expect(hydrated.durable.terminalResult).toBe(serverHistoryTurn.assistantResult)
+    expect(hydrated.durable.resources.byTurnId.turn_server).toEqual({
+      artifactIds: ["artifact_123"],
+      actionIds: ["action_123"],
+      preferenceIds: ["preference_123"],
+    })
+    expect(hydrated.durable.resources.byTurnId.turn_123).toBeUndefined()
+    expect(hydrated.messages).toEqual([])
+  })
+
+  it("keeps local cancellation pending until the server response is reconciled", () => {
+    const started = startDurableTurn(1)
+    const accepted = chatReducer(started, {
+      type: "durable.turn.reconciled",
+      generation: 1,
+      response: pendingTurnResponse,
+    })
+    const cancelling = chatReducer(accepted, {
+      type: "durable.turn.cancel.requested",
+      generation: 1,
+    })
+    const serverCompleted = chatReducer(cancelling, {
+      type: "durable.turn.cancelled",
+      generation: 1,
+      response: completedTurnResponse,
+    })
+
+    expect(cancelling.durable.activeTurn?.cancellationPending).toBe(true)
+    expect(selectDurableWorkspaceState(cancelling)).toBe("running")
+    expect(serverCompleted.durable.activeTurn).toMatchObject({
+      status: "completed",
+      cancellationPending: false,
+    })
+    expect(serverCompleted.durable.terminalResult).toBe(durableResult)
+    expect(selectDurableWorkspaceState(serverCompleted)).toBe("success")
+    expect(
+      chatReducer(serverCompleted, {
+        type: "durable.turn.event",
+        generation: 1,
+        event: cancelledTerminalEvent,
+      }),
+    ).toBe(serverCompleted)
+  })
+
+  it("keeps turn status separate from dialogue outcome and exposes action states", () => {
+    expect(serverHistoryTurn.status).toBe("completed")
+    expect(serverHistoryTurn.outcome).toBe("awaiting_confirmation")
+
+    let state = chatReducer(
+      chatReducer(startDurableTurn(1), {
+        type: "durable.turn.event",
+        generation: 1,
+        event: durableProgressEvent,
+      }),
+      {
+        type: "durable.turn.event",
+        generation: 1,
+        event: completedTerminalEvent,
+      },
+    )
+
+    for (const status of [
+      "proposed",
+      "executed",
+      "rejected",
+      "expired",
+      "conflicted",
+      "failed",
+    ] as const) {
+      state = chatReducer(state, {
+        type: "durable.action.updated",
+        action: { ...actionCard, status },
+      })
+      expect(state.durable.resources.actions.action_123.status).toBe(status)
+    }
+    expect(selectDurableWorkspaceState(state)).toBe("success")
+
+    const conflicted = chatReducer(state, {
+      type: "durable.action.updated",
+      action: { ...actionCard, status: "conflicted" },
+    })
+    expect(selectWorkspaceState(conflicted)).toBe("conflict")
+    const expired = chatReducer(conflicted, {
+      type: "durable.action.updated",
+      action: { ...actionCard, status: "expired" },
+    })
+    expect(selectWorkspaceState(expired)).toBe("expired")
+  })
+
+  it("distinguishes durable loading, running, partial, empty, error, and offline phases", () => {
+    const loadingHistory = chatReducer(createReadyState(), {
+      type: "durable.history.loading",
+      generation: 1,
+    })
+    const running = chatReducer(startDurableTurn(1), {
+      type: "durable.turn.event",
+      generation: 1,
+      event: durableProgressEvent,
+    })
+    const partial = chatReducer(running, {
+      type: "durable.turn.event",
+      generation: 1,
+      event: durableTextEvent,
+    })
+    const empty = chatReducer(loadingHistory, {
+      type: "durable.history.hydrated",
+      generation: 1,
+      conversation,
+      turns: [],
+    })
+    const interrupted = chatReducer(running, {
+      type: "durable.turn.reconciled",
+      generation: 1,
+      response: interruptedTurnResponse,
+    })
+
+    expect(selectDurableWorkspaceState(loadingHistory)).toBe("loading")
+    expect(selectDurableWorkspaceState(running)).toBe("running")
+    expect(selectDurableWorkspaceState(partial)).toBe("partial")
+    expect(selectDurableWorkspaceState(empty)).toBe("empty")
+    expect(selectDurableWorkspaceState(interrupted)).toBe("error")
+    expect(
+      selectDurableWorkspaceState(
+        chatReducer(running, { type: "connection.changed", online: false }),
+      ),
+    ).toBe("offline")
+    expect(canSubmitMessage(running)).toBe(false)
+  })
+})
+
 const failure: ChatFailure = {
   source: "client",
   code: "gateway.network_error",
@@ -278,4 +590,225 @@ function completeWith(result: typeof completedResponse) {
       assistantMessageId: "assistant",
     }),
   )
+}
+
+function startDurableTurn(generation: number) {
+  return chatReducer(createReadyState(), {
+    type: "durable.turn.started",
+    generation,
+    conversationId: "conversation_123",
+    clientTurnId: "client-turn:stable.123",
+    message: "Tìm sách bền vững",
+  })
+}
+
+const conversation = {
+  conversationId: "conversation_123",
+  mode: "shopper",
+  storeId: "store_123",
+  title: "Sách bền vững",
+  createdAt: "2026-09-13T01:00:00Z",
+  updatedAt: "2026-09-13T01:01:00Z",
+} as ConversationSummary
+
+const actionCard = {
+  actionId: "action_123",
+  proposalId: "proposal_123",
+  proposalVersion: 1,
+  kind: "cart_change",
+  status: "proposed",
+  title: "Thêm sách vào giỏ",
+  requiredPermission: "cart.write",
+  confirmationRequired: false,
+  target: {
+    resourceType: "cart",
+    resourceId: "cart_123",
+    expectedResourceVersion: 1,
+    dataVersionIds: ["catalog_123"],
+  },
+  changes: [
+    {
+      resourceType: "cart_item",
+      resourceId: "cart_item_123",
+      field: "quantity",
+      beforeInteger: 0,
+      afterInteger: 1,
+      beforeText: null,
+      afterText: null,
+    },
+  ],
+  expiresAt: "2026-09-13T02:00:00Z",
+} as ActionCard
+
+const actionArtifact = {
+  artifactId: "artifact_123",
+  resourceId: "cart_123",
+  resourceVersion: 1,
+  title: "Thay đổi giỏ hàng",
+  kind: "action",
+  actionId: "action_123",
+  proposalId: "proposal_123",
+  proposalVersion: 1,
+  actionKind: "cart_change",
+  status: "proposed",
+} as TurnArtifact
+
+const durableResult = {
+  outcome: "awaiting_confirmation",
+  answer: "Tôi đã chuẩn bị thay đổi giỏ hàng.",
+  claims: [],
+  citations: [],
+  evidence: [],
+  actionCards: [actionCard],
+  artifacts: [actionArtifact],
+  plan: null,
+  executions: [],
+  warnings: [],
+} as TurnResult
+
+const durableProgressEvent = {
+  event: "progress",
+  sequence: 1,
+  requestId: "request_123",
+  traceId: "trace_123",
+  turnId: "turn_123",
+  phase: "claimed",
+  turnStatus: "running",
+  stepId: null,
+  capability: null,
+  planRevision: null,
+  stepStatus: null,
+  reused: false,
+} as TurnSseEvent
+
+const durableTextEvent = {
+  event: "text_delta",
+  sequence: 2,
+  requestId: "request_123",
+  traceId: "trace_123",
+  turnId: "turn_123",
+  turnStatus: "completed",
+  delta: "Một phần câu trả lời",
+  postGrounding: true,
+} as TurnSseEvent
+
+const completedTerminalEvent = {
+  event: "terminal",
+  sequence: 2,
+  requestId: "request_123",
+  traceId: "trace_123",
+  turnId: "turn_123",
+  payload: {
+    status: "completed",
+    result: durableResult,
+    usage: emptyUsage(),
+  },
+  reusedResult: false,
+  serverSettled: true,
+} as Extract<TurnSseEvent, { event: "terminal" }>
+
+const unsettledInterruptedTerminalEvent = {
+  ...completedTerminalEvent,
+  serverSettled: false,
+  payload: {
+    status: "interrupted",
+    error: {
+      code: "stream.interrupted",
+      message: "Luồng kết quả bị gián đoạn. Vui lòng thử lại.",
+      retryable: true,
+    },
+    usage: emptyUsage(),
+  },
+} as Extract<TurnSseEvent, { event: "terminal" }>
+
+const cancelledTerminalEvent = {
+  ...completedTerminalEvent,
+  sequence: 3,
+  payload: {
+    status: "cancelled",
+    usage: emptyUsage(),
+  },
+} as Extract<TurnSseEvent, { event: "terminal" }>
+
+const serverHistoryTurn = {
+  turnId: "turn_server",
+  clientTurnId: "client-turn:server.123",
+  status: "completed",
+  outcome: "awaiting_confirmation",
+  userMessage: "Câu hỏi từ server",
+  assistantResult: durableResult,
+  error: null,
+  actionCards: [actionCard],
+  createdAt: "2026-09-13T01:00:00Z",
+  completedAt: "2026-09-13T01:01:00Z",
+} as HistoryTurn
+
+const preference = {
+  preferenceId: "preference_123",
+  sourceTurnId: "turn_server",
+  preference: { kind: "genre", value: "Khoa học" },
+  createdAt: "2026-09-13T01:00:00Z",
+  updatedAt: "2026-09-13T01:00:00Z",
+} as PreferenceRecord
+
+const pendingTurnResponse = {
+  conversationId: "conversation_123",
+  turn: {
+    turnId: "turn_123",
+    clientTurnId: "client-turn:stable.123",
+    status: "pending",
+    outcome: null,
+    createdAt: "2026-09-13T01:00:00Z",
+    completedAt: null,
+  },
+  requestId: "request_123",
+  traceId: "trace_123",
+  result: null,
+  error: null,
+  usage: emptyUsage(),
+} as TurnResponse
+
+const completedTurnResponse = {
+  ...pendingTurnResponse,
+  turn: {
+    ...pendingTurnResponse.turn,
+    status: "completed",
+    outcome: "awaiting_confirmation",
+    completedAt: "2026-09-13T01:01:00Z",
+  },
+  result: durableResult,
+} as TurnResponse
+
+const interruptedTurnResponse = {
+  ...pendingTurnResponse,
+  turn: {
+    ...pendingTurnResponse.turn,
+    status: "interrupted",
+    completedAt: "2026-09-13T01:01:00Z",
+  },
+  error: {
+    code: "turn.interrupted",
+    message: "Lượt bị gián đoạn.",
+    retryable: true,
+  },
+} as TurnResponse
+
+function emptyUsage() {
+  return {
+    inputTokens: 0,
+    cachedInputTokens: 0,
+    outputTokens: 0,
+    reasoningTokens: 0,
+    totalTokens: 0,
+    generationCalls: 0,
+    providerAttempts: 0,
+    knowledgeRetrievals: 0,
+    draftRepairs: 0,
+    estimatedCostUsd: "0",
+    knownCostUsd: "0",
+    reservedCostUsd: "0",
+    unknownReservedCostUsd: "0",
+    unknownUsageAttempts: 0,
+    fallbackUsed: false,
+  }
 }

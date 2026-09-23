@@ -1,0 +1,339 @@
+{
+  "baseline": {
+    "products": 200,
+    "reviews": 1773,
+    "revision": "20260830_0003"
+  },
+  "catalog": {
+    "products": 200,
+    "reviews": 1773,
+    "revision": "20260909_0006"
+  },
+  "corpus_manifest": {
+    "catalog_source_commit": "b7df1cc420127e31449a777204411bf6844f5b65",
+    "mapping_count": 200,
+    "mapping_manifest_sha256": "45b6b1475f19c545fcb40234f9942181919b4816978a658250bfe02295336c96",
+    "retrieval_policy": {
+      "candidate_limit": 30,
+      "default_limit": 6,
+      "dense_weight": 1.0,
+      "lexical_weight": 1.0,
+      "max_context_tokens": 6000,
+      "max_limit": 8,
+      "min_dense_relevance": 0.25,
+      "min_lexical_coverage": 0.1,
+      "rrf_k": 60,
+      "version": "p3_cal_d025_l010"
+    },
+    "schema_version": "1.0",
+    "source_count": 20,
+    "source_manifest_sha256": "11d23df36fb19ac6fdeb1460a84f6d30b1e6515f0b12274eaa91a196b3a7acaa",
+    "source_version_ids": [
+      "svr_005d2a5129e7c3d58d35d1fd9bfab64a0747a8cf67c7c2de68dc6ad3d630",
+      "svr_01458c509bc32d7a1ca71283ab68606605bd01087cd73646f87b88ba7e2c",
+      "svr_0cafb2fd1d7cc801f525ff9a2f35f54368b31a228a8b3fb6bd2ffb09ab87",
+      "svr_149bd56d0ffab1347c8e05eb7517e4e0f7365a52aa2beb5e30c7039b2bc6",
+      "svr_18ab4e5fa3bb21a4852e461e479f73e6f2a73eccf4db93ac214d0459e8e5",
+      "svr_1f13e39636eda6714ba54cb7c98cb51093d911109280b559e858c0ffde64",
+      "svr_32927e3dbebbe0f67ee78da5143b830c414fa90283d9436674b46c92ca7e",
+      "svr_5c71ab3b8eaa134bd9a1b89d3983d4437b6eead8822b8cc73c2f0e0ace05",
+      "svr_5f168d905b078420db2f45042dcc52cccb7dca35a40c497f86c3cd4ad0c9",
+      "svr_6b3e7eaf04e5302546971216c3cab4458276b7bee1b512d5eed95fa9f619",
+      "svr_70b4cba060446aba664ef6edf8e3c9f071d934d9d83b6d8463c67c1ec358",
+      "svr_782f86493bafa274f28dc4792115f27e3f112d100b575effb88ea4934440",
+      "svr_9f42dfdd25ac44f682b4458872e8180e14fd568d27be8e758044e807bdc7",
+      "svr_b41c7718dac9eaaadc6e1f39fbbec707ee5fe5814ff1ece82ed0028381e0",
+      "svr_b7ecde65210d540bb9ba1113a990a28444c2a6f86bc052308ef14fe8f17f",
+      "svr_bb68531b78f6bc6f7de57b911fd64e12e7aaffad926e7b133a8c5b4c3711",
+      "svr_c47aeeca7cd7ddbedf5c378336ecf5e4dd24214688c1b60fa703536ba840",
+      "svr_cdb10a9c4ee3ebf39f85f5adb0f2cb41234e97658136f93e71e163706963",
+      "svr_f0a7437bb6a435ad4ba6eec4690a1875423712af897bc45b740267539294",
+      "svr_fef6e558c395ce606b73b8ec18adb0cfbeedc50430a8295c8ea6679c8eb8"
+    ]
+  },
+  "development_calibration": {
+    "candidates_sha256": "46e3670aa59019d9504df16063e26e46c1eb367e8132d8ac663e5e027e4a7b74",
+    "direct_published_store_probe_results": [
+      {
+        "answerable": true,
+        "context_token_bound": 5940,
+        "evidence_ids": [
+          "evd_30732b2973cc505f93c37828abf7b3ec697a027be11814038c88b6243083",
+          "evd_0956a5ee3db2becb9d69fd9191807a745661ac9a63bbd3ed8bafb8674115",
+          "evd_3619157e01b929aef19703add82f691484fbb2203b0660f1cc3531ac77d1",
+          "evd_f5dc17a0d6f27cea02cb1fe65c88c4cbaef9b19dbb6fb1ca7a9474a823ce",
+          "evd_9fb09910fcf7d70b5a52fde3d041e284ed7aba94067018b815267cc3d599",
+          "evd_88650d8f5eedd021ab3655ef7dc4e46fb64e735d317d5a74c94b56c33c66"
+        ],
+        "expected_source_ids": [
+          "src_sapiens_author"
+        ],
+        "probe_id": "p3-dev-01",
+        "selected_source_ids": [
+          "src_sapiens_author",
+          "src_morisaki_nlv",
+          "src_socrates_express_simon_schuster",
+          "src_social_contract_gutenberg",
+          "src_einstein_simon_schuster",
+          "src_7_habits_simon_schuster"
+        ],
+        "unexpected_source_count": 5
+      },
+      {
+        "answerable": true,
+        "context_token_bound": 5520,
+        "evidence_ids": [
+          "evd_67aa967f71124a025d0c5d3c7647566769807fd55ad8c580649b122fa1b3",
+          "evd_f5dc17a0d6f27cea02cb1fe65c88c4cbaef9b19dbb6fb1ca7a9474a823ce",
+          "evd_30732b2973cc505f93c37828abf7b3ec697a027be11814038c88b6243083",
+          "evd_630d3bb934ff9358ae1a819190917993a4606e885e369fd659e0da3f0f9b",
+          "evd_0944672bc3650f909bdc5ad84e65521d0993bba69ae621b84b1e19d50831",
+          "evd_424f73824a144926b5c8a16eb8548ed45484a00eca011a07783bb2ed05ef"
+        ],
+        "expected_source_ids": [
+          "src_de_men_kim_dong"
+        ],
+        "probe_id": "p3-dev-02",
+        "selected_source_ids": [
+          "src_de_men_kim_dong",
+          "src_social_contract_gutenberg",
+          "src_sapiens_author",
+          "src_the_prince_gutenberg",
+          "src_phoenix_project_it_revolution",
+          "src_devotion_suspect_x_macmillan"
+        ],
+        "unexpected_source_count": 5
+      },
+      {
+        "answerable": true,
+        "context_token_bound": 5862,
+        "evidence_ids": [
+          "evd_0956a5ee3db2becb9d69fd9191807a745661ac9a63bbd3ed8bafb8674115",
+          "evd_e0534cd90968dbdf3679c1cafa64b32376fbb15bf2ae874fa3812a5e32c9",
+          "evd_a341bfdf506ea675c4ce5ea66da0b3ed39b83422dfa66766cd248d74028e",
+          "evd_eb570c51d05aa226514afe26c715ff0a60111920a7844b6935ac2b4098ad",
+          "evd_0944672bc3650f909bdc5ad84e65521d0993bba69ae621b84b1e19d50831",
+          "evd_88650d8f5eedd021ab3655ef7dc4e46fb64e735d317d5a74c94b56c33c66"
+        ],
+        "expected_source_ids": [
+          "src_zero_to_one_prh"
+        ],
+        "probe_id": "p3-dev-03",
+        "selected_source_ids": [
+          "src_morisaki_nlv",
+          "src_zero_to_one_prh",
+          "src_start_up_nation_hachette",
+          "src_show_your_work_alphabooks",
+          "src_phoenix_project_it_revolution",
+          "src_7_habits_simon_schuster"
+        ],
+        "unexpected_source_count": 5
+      },
+      {
+        "answerable": true,
+        "context_token_bound": 5764,
+        "evidence_ids": [
+          "evd_942bfa39ae2314d34b5dca1cedf9a0f9242240001bb9987f4fa2f48d195e",
+          "evd_0956a5ee3db2becb9d69fd9191807a745661ac9a63bbd3ed8bafb8674115",
+          "evd_9c03f78caa45177ef4a706aa70d0a7531fd88cbcd3ef7cfebfd8cd8823f5",
+          "evd_30732b2973cc505f93c37828abf7b3ec697a027be11814038c88b6243083",
+          "evd_8367eb0d330b4481405b10cda11af544ab1e46bc0ead45ee235f2883f9ca",
+          "evd_f5dc17a0d6f27cea02cb1fe65c88c4cbaef9b19dbb6fb1ca7a9474a823ce"
+        ],
+        "expected_source_ids": [
+          "src_flour_water_salt_yeast_prh"
+        ],
+        "probe_id": "p3-dev-04",
+        "selected_source_ids": [
+          "src_flour_water_salt_yeast_prh",
+          "src_morisaki_nlv",
+          "src_little_women_prh",
+          "src_sapiens_author",
+          "src_fahrenheit_451_simon_schuster",
+          "src_social_contract_gutenberg"
+        ],
+        "unexpected_source_count": 5
+      },
+      {
+        "answerable": false,
+        "context_token_bound": 0,
+        "evidence_ids": [],
+        "expected_source_ids": [],
+        "probe_id": "p3-dev-05",
+        "selected_source_ids": [],
+        "unexpected_source_count": 0
+      },
+      {
+        "answerable": false,
+        "context_token_bound": 0,
+        "evidence_ids": [],
+        "expected_source_ids": [],
+        "probe_id": "p3-dev-06",
+        "selected_source_ids": [],
+        "unexpected_source_count": 0
+      },
+      {
+        "answerable": false,
+        "context_token_bound": 0,
+        "evidence_ids": [],
+        "expected_source_ids": [],
+        "probe_id": "p3-dev-07",
+        "selected_source_ids": [],
+        "unexpected_source_count": 0
+      },
+      {
+        "answerable": false,
+        "context_token_bound": 0,
+        "evidence_ids": [],
+        "expected_source_ids": [],
+        "probe_id": "p3-dev-08",
+        "selected_source_ids": [],
+        "unexpected_source_count": 0
+      }
+    ],
+    "exact_evidence_reopen_count": 24,
+    "limitations": "Eight development probes only. Positive results contain extra sources; this is not exact-source precision, semantic grounding, held-out quality or a benchmark claim.",
+    "negative_correct_abstention_count": 4,
+    "positive_expected_source_recall_count": 4,
+    "probe_manifest_sha256": "c1fd1801dc2481384ca8383f21eb140c2ee36238906c7ea294c1d544bfce3433",
+    "query_cache_sha256": "d0ad4bc1d43fb096735ae97c381515a3d3ccfc63c7a8128baad66caf992c3601",
+    "selected_policy_sha256": "cb299f6133718eb6a637f756b8c0490fd87f683f4630d282537e4a39a8cb8b07",
+    "selection_reason": "Dense 0.25 is the first tested grid value with 4/4 positive recall and 4/4 negative abstention. Both lexical values separate; retain the stricter existing lexical 0.10."
+  },
+  "index_manifest": {
+    "active_embedding_batch": null,
+    "build_owner_id": "p3-books-runtime-owner-01",
+    "chunk_count": 20,
+    "complete": true,
+    "completed_at": "2026-09-09T08:09:01.959941+00:00",
+    "embedding_input_hashes": {
+      "chk_0e5a7525f12d3548b0298a9990c319ac5478c308da54f47ae0a0d93c55bf": "a092ea2e2cc53719b013040fe1587d0df875ce5292131cfe1602502d8f005aa0",
+      "chk_0f81aac3bcb7e9fb2d2d28ed6d2421d16a1acc6e39c43f770067d607dbcd": "1bd94d38392e854c54c97c0e5332a733bb8991fcbfe6fef696e0dbff7f0d97bc",
+      "chk_37ce7d37c58e09ded121b3df8e831d5218fbbfa86ea062842035b60ab013": "431894d8852d35870e0223fda457db370db41ca259f3312f06834d85e34ef23b",
+      "chk_4d37fda9c5791bb9603a89eaf42b222642722b7cd684015d97453426a2cf": "55e182e663db1fb7684fb4470d4d345940c95c230d42cab8566e1d910ae03002",
+      "chk_6326edff53247eb3222bb56ac4395bdd5b0490dad799886e72b7aee39cca": "c3eaef1b362b35a223bbad3bf29633721eb251af8c3a366e9ee9eb93cd698284",
+      "chk_693906354c65d12dccdc18e6127fded82a9adc1af59ef96980871e59d01c": "af6ef8fc0ee773924d7483c7abd0f03f7d89e775d4fd2ba74050798441b83f38",
+      "chk_721dbac193ac80ecf71d474af50a2e261d056f466a4faa3b7fde412616c8": "a8fa6de8da37485875eecd05b0237727a44ededb7091d99dd5ceab3d903244be",
+      "chk_762548fbb03400eaa96d7f155e15f359bac8d7d6798effb7b082ae02c29e": "a97a739998e82cbd983eb64f9500449c90c4bb1891dc05a97e188abcb2c5be1b",
+      "chk_90e6df71488366c0a18688bb9b32fd6a9be1d853cb77fc00523fe5a96abf": "947932d1cf3d218bb3b479f2aa4739b5d5fc915279974d41b75b1983fccf16b4",
+      "chk_9a3e6e36f1e6a26a3b5af94fa316b56cb882873bb2d6fe57bab1414de787": "f120807534f403825e682b3bf0350174997a6dba10b4c1d739c8d512d1dae1bc",
+      "chk_a098f060381965e6ea7bb574cb95dfe822f94795cdb3776c9fe8711be60a": "c1704bb2358dda5a6654b9d4ca77b5137fc42384af73510d921ba88057cae958",
+      "chk_a28d4a43a36fd29b3845a1b939c5ef7f6f5dfc3c3466bc4446dae3ae0820": "3cdf3ef6b903cd24be8b42fe4da11bbc467a1bdb3fd68f52387267e475e0ac76",
+      "chk_b7a1216b60d56c8b31b98f0dcffa1e371bb5606aaeb9cc4f74f0fdc4f66a": "c7b4db990db84432eb2620bdb56df3d42c9fd365f341f8338088afbf2dbcb2cb",
+      "chk_b8dfaf0d818c8aa02f832f976f93492caa6cc43a4232033dae6d64384599": "40b3c54cc9f337b6106178f4afbb6bb5c7fc6bababc89c9608f5cd0283e27264",
+      "chk_c47e59ef209c5b5693f8e552d26bd0f714e7e3db0bf6a88f3bc3706b1eb8": "a11c417c6405cb739a05b7fa88b2e9394a97646d3c278dc969d3b838016ea301",
+      "chk_d0720141f3990596007a97d721565286c6c2ee48b369cbdf74a4cb2fa42b": "37062831204eae0e026342de0f995904ddba3caaa61c02ca49e59af57837a545",
+      "chk_d275d55aa39a946c135193820ba40277a1a9dba8793421171f7f12418fad": "3bda4c563e9a2f48d5d0ce6e21efc29b0639794b8b1f42e326b7083f62bb1ce6",
+      "chk_d4ad677ce4848d4044f9f603e84866453c50157eacfbac364e0cbaf9f2f2": "3489ee034c6da505fb0575c6fedb42ed64d76b91437222191c69757e6cc94754",
+      "chk_de452c361cfb733f669347a666db7f5d48b2f27855ffda8bf38b781039a7": "bd8f08b5dcc2c1581f272d004d64e735146b0721eadf4e82301cbc0ebd4ce5dd",
+      "chk_efef3ea7d79928a99fa6911f804498ad8caf324d13e72b58e5643a7ad300": "34eebb09d9e44aa7cc1a284dda41840cf1f165f0e57189d942c46b6f74cfeabe"
+    },
+    "query_embedding_fingerprint": "258ee764830f82461190c35519c6918b6118e310da621e7a897bcd442bffeece",
+    "schema_version": "1.0",
+    "vector_count": 20
+  },
+  "mapping_status_counts": {
+    "ambiguous": 17,
+    "exact_work": 20,
+    "unmatched": 163
+  },
+  "previous_corpus_id": "cor_5fb8adfd16b445f0c8c93b3da2548e0c9e022993b31bd110b48657ed1f11",
+  "provider_ledger": {
+    "account_id": "thanh-v2-provider-global",
+    "account_usage": {
+      "hard_limit_nano_usd": 100000000000,
+      "known_nano_usd": 52640,
+      "reserved_nano_usd": 0,
+      "unknown_nano_usd": 0,
+      "warning_threshold_nano_usd": 50000000000
+    },
+    "audit_provider_calls": 0,
+    "scope_usage": {
+      "p3-calibration-20260909-01": {
+        "attempts_without_usage": 0,
+        "cached_input_tokens": 0,
+        "costs": {
+          "hard_limit_nano_usd": 5000000000,
+          "known_nano_usd": 9460,
+          "reserved_nano_usd": 0,
+          "unknown_nano_usd": 0,
+          "warning_threshold_nano_usd": null
+        },
+        "input_tokens": 473,
+        "output_tokens": 0,
+        "pending_attempts": 0,
+        "provider_attempts": 1,
+        "reasoning_tokens": 0,
+        "total_tokens": 473,
+        "unknown_cost_attempts": 0
+      },
+      "p3-corpus-build-20260909-01": {
+        "attempts_without_usage": 0,
+        "cached_input_tokens": 0,
+        "costs": {
+          "hard_limit_nano_usd": 5000000000,
+          "known_nano_usd": 43180,
+          "reserved_nano_usd": 0,
+          "unknown_nano_usd": 0,
+          "warning_threshold_nano_usd": null
+        },
+        "input_tokens": 2159,
+        "output_tokens": 0,
+        "pending_attempts": 0,
+        "provider_attempts": 1,
+        "reasoning_tokens": 0,
+        "total_tokens": 2159,
+        "unknown_cost_attempts": 0
+      },
+      "p3-corpus-policy-20260909-01": {
+        "attempts_without_usage": 0,
+        "cached_input_tokens": 0,
+        "costs": {
+          "hard_limit_nano_usd": 5000000000,
+          "known_nano_usd": 0,
+          "reserved_nano_usd": 0,
+          "unknown_nano_usd": 0,
+          "warning_threshold_nano_usd": null
+        },
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "pending_attempts": 0,
+        "provider_attempts": 0,
+        "reasoning_tokens": 0,
+        "total_tokens": 0,
+        "unknown_cost_attempts": 0
+      }
+    }
+  },
+  "provisional_until": "Package 7 protocol freeze",
+  "same_public_chunks_and_vectors_as_previous": true,
+  "schema_version": "1.0",
+  "snapshot": {
+    "chunker_version": "table_chunker_v1",
+    "corpus_name": "books",
+    "corpus_version": "books-v1-calibrated-20260909",
+    "corpus_version_id": "cor_e06f6abbf338cfcf5fe17d450eec52ed961975e0fa8ee6bae32369ed3956",
+    "embedding_dimension": 1536,
+    "embedding_model": "text-embedding-3-small",
+    "enrichment_policy_version": "source_keywords_v1",
+    "index_fingerprint": "ee3afa43eb9199f0b962f467946e54127c7133424b9f56d84660975a5df34759",
+    "index_manifest_id": "idx_69af0802b50991c371bcb1f2954e79de82ccdc7855e15d3e602126b3b9c4",
+    "published_at": "2026-09-09T08:09:01.959941Z",
+    "query_embedding_fingerprint": "258ee764830f82461190c35519c6918b6118e310da621e7a897bcd442bffeece",
+    "retrieval_policy": {
+      "candidate_limit": 30,
+      "default_limit": 6,
+      "dense_weight": 1.0,
+      "lexical_weight": 1.0,
+      "max_context_tokens": 6000,
+      "max_limit": 8,
+      "min_dense_relevance": 0.25,
+      "min_lexical_coverage": 0.1,
+      "rrf_k": 60,
+      "version": "p3_cal_d025_l010"
+    }
+  },
+  "vector_count": 20,
+  "vector_payload_sha256": "5e877f70fc5646bfd26d4d3c505248350c33a2d7a8b1b4e67b44b2a4d3df8d5b",
+  "verified_at": "2026-09-09T08:10:58.581503+00:00"
+}

@@ -4,7 +4,9 @@ from collections.abc import Sequence
 from typing import Any
 
 from sqlalchemy import String, cast, func, or_, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.models.dataset_source import DatasetSource
 from app.models.product import Product
@@ -21,6 +23,13 @@ class EcommerceRepository:
 
     def __init__(self, session: Session) -> None:
         self.session = session
+
+    def _authors_search_text(self) -> ColumnElement[str]:
+        # PostgreSQL JSON preserves input Unicode escapes. JSONB decodes them,
+        # so text matching searches author names rather than their serialization.
+        if self.session.get_bind().dialect.name == "postgresql":
+            return cast(cast(Product.authors, JSONB), String)
+        return cast(Product.authors, String)
 
     def search_products(
         self,
@@ -49,7 +58,7 @@ class EcommerceRepository:
                 filters.append(
                     or_(
                         Product.name.ilike(pattern),
-                        cast(Product.authors, String).ilike(pattern),
+                        self._authors_search_text().ilike(pattern),
                         Product.publisher.ilike(pattern),
                         Product.category.ilike(pattern),
                         Product.description.ilike(pattern),
@@ -59,9 +68,7 @@ class EcommerceRepository:
             if category:
                 filters.append(Product.category.ilike(category.strip()))
             if author and not python_metadata_filter:
-                filters.append(
-                    cast(Product.authors, String).ilike(f"%{author.strip()}%")
-                )
+                filters.append(self._authors_search_text().ilike(f"%{author.strip()}%"))
             if publisher and not python_metadata_filter:
                 filters.append(Product.publisher.ilike(f"%{publisher.strip()}%"))
             if max_price is not None:
@@ -223,7 +230,7 @@ class EcommerceRepository:
         if category:
             filters.append(Product.category.ilike(category.strip()))
         if author and not python_metadata_filter:
-            filters.append(cast(Product.authors, String).ilike(f"%{author.strip()}%"))
+            filters.append(self._authors_search_text().ilike(f"%{author.strip()}%"))
         if publisher and not python_metadata_filter:
             filters.append(Product.publisher.ilike(f"%{publisher.strip()}%"))
         if min_price is not None:
