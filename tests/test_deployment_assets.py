@@ -212,3 +212,47 @@ def test_live_smoke_requires_retired_v1_route_to_return_404(
     ci_live_smoke._assert_v1_routes_removed()
 
     assert requests == [("POST", "/api/v1/chat")]
+
+
+def test_live_smoke_accepts_http_and_readiness_metrics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    operations_key = "smoke-operations-secret"
+    monkeypatch.setattr(ci_live_smoke, "OPERATIONS_KEY", operations_key)
+
+    def fake_request(
+        method: str, path: str, **kwargs: object
+    ) -> ci_live_smoke.HttpResult:
+        assert (method, path) == ("GET", "/metrics")
+        assert kwargs["headers"] == {"X-Operations-Key": operations_key}
+        return ci_live_smoke.HttpResult(
+            200,
+            b"http_requests_total 1\ndependency_readiness_checks_total 2\n",
+        )
+
+    monkeypatch.setattr(ci_live_smoke, "_request", fake_request)
+
+    ci_live_smoke._assert_metrics()
+
+
+@pytest.mark.parametrize(
+    "body",
+    (
+        b"http_requests_total 1\n",
+        b"dependency_readiness_checks_total 2\n",
+    ),
+)
+def test_live_smoke_rejects_missing_expected_metric(
+    monkeypatch: pytest.MonkeyPatch,
+    body: bytes,
+) -> None:
+    operations_key = "smoke-operations-secret"
+    monkeypatch.setattr(ci_live_smoke, "OPERATIONS_KEY", operations_key)
+    monkeypatch.setattr(
+        ci_live_smoke,
+        "_request",
+        lambda *args, **kwargs: ci_live_smoke.HttpResult(200, body),
+    )
+
+    with pytest.raises(SystemExit, match="live smoke failed: metrics"):
+        ci_live_smoke._assert_metrics()

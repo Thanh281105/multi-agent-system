@@ -140,7 +140,7 @@ def _assert_metrics() -> None:
     _require(
         result.status == 200
         and "http_requests_total" in body
-        and "agent_operations_total" in body,
+        and "dependency_readiness_checks_total" in body,
         "metrics",
     )
 
