@@ -6,12 +6,7 @@ import yaml
 
 from app.core.config import Settings
 from app.db.migrate import _migration_root
-from scripts.ci_live_smoke import (
-    BOOK_COMPARE_QUERY,
-    BOOK_SEARCH_QUERY,
-    _book_concurrency_query,
-    _readiness_checks_pass,
-)
+from scripts import ci_live_smoke
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -131,21 +126,89 @@ def test_migration_root_is_discovered_from_runtime_assets() -> None:
 
 
 def test_live_smoke_accepts_only_the_explicitly_disabled_knowledge_check() -> None:
-    assert _readiness_checks_pass(
+    assert ci_live_smoke._readiness_checks_pass(
         {"runtime": "ok", "database": "ok", "knowledge": "disabled"}
     )
-    assert not _readiness_checks_pass(
+    assert not ci_live_smoke._readiness_checks_pass(
         {"runtime": "ok", "database": "disabled", "knowledge": "disabled"}
     )
-    assert not _readiness_checks_pass(
+    assert not ci_live_smoke._readiness_checks_pass(
         {"runtime": "ok", "database": "ok", "knowledge": "failed"}
     )
 
 
-def test_live_smoke_uses_book_queries_backed_by_the_runtime_snapshot() -> None:
-    assert BOOK_SEARCH_QUERY == "Tìm sách Nhật Ký Tarot"
-    assert BOOK_COMPARE_QUERY == ("So sánh sách Nhật Ký Tarot với Ông Nội Vượt Ngục.")
-    assert _book_concurrency_query(0) == (
-        "Tìm sách dưới 150 nghìn, bán tốt và ít bị khách phàn nàn."
-    )
-    assert _book_concurrency_query(7).startswith("Tìm sách dưới 157 nghìn")
+def test_live_smoke_reads_v2_identity_and_history_without_writes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requests: list[tuple[str, str]] = []
+    gateway_key = "smoke-gateway-secret"
+    monkeypatch.setattr(ci_live_smoke, "GATEWAY_KEY", gateway_key)
+
+    def fake_request(
+        method: str, path: str, **kwargs: object
+    ) -> ci_live_smoke.HttpResult:
+        requests.append((method, path))
+        assert kwargs["headers"] == {"X-API-Key": gateway_key}
+        if path == "/api/v2/me":
+            return ci_live_smoke.HttpResult(
+                200,
+                b'{"principal_id":"smoke-user","allowed_modes":["shopper"]}',
+            )
+        if path == "/api/v2/conversations?mode=shopper":
+            return ci_live_smoke.HttpResult(200, b'{"conversations":[]}')
+        pytest.fail(f"unexpected live smoke request: {method} {path}")
+
+    monkeypatch.setattr(ci_live_smoke, "_request", fake_request)
+
+    ci_live_smoke._assert_v2_identity_and_history()
+
+    assert requests == [
+        ("GET", "/api/v2/me"),
+        ("GET", "/api/v2/conversations?mode=shopper"),
+    ]
+
+
+def test_live_smoke_accepts_unpublished_v2_history_safely(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gateway_key = "smoke-gateway-secret"
+    monkeypatch.setattr(ci_live_smoke, "GATEWAY_KEY", gateway_key)
+
+    def fake_request(
+        method: str, path: str, **kwargs: object
+    ) -> ci_live_smoke.HttpResult:
+        assert kwargs["headers"] == {"X-API-Key": gateway_key}
+        if path == "/api/v2/me":
+            return ci_live_smoke.HttpResult(
+                200,
+                b'{"principal_id":"smoke-user","allowed_modes":["shopper"]}',
+            )
+        if path == "/api/v2/conversations?mode=shopper":
+            return ci_live_smoke.HttpResult(
+                503,
+                b'{"error":{"code":"v2.runtime_unavailable"}}',
+            )
+        pytest.fail(f"unexpected live smoke request: {method} {path}")
+
+    monkeypatch.setattr(ci_live_smoke, "_request", fake_request)
+
+    ci_live_smoke._assert_v2_identity_and_history()
+
+
+def test_live_smoke_requires_retired_v1_route_to_return_404(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    requests: list[tuple[str, str]] = []
+
+    def fake_request(
+        method: str, path: str, **kwargs: object
+    ) -> ci_live_smoke.HttpResult:
+        requests.append((method, path))
+        assert kwargs["headers"]["X-API-Key"] == ci_live_smoke.GATEWAY_KEY
+        return ci_live_smoke.HttpResult(404, b'{"detail":"Not Found"}')
+
+    monkeypatch.setattr(ci_live_smoke, "_request", fake_request)
+
+    ci_live_smoke._assert_v1_routes_removed()
+
+    assert requests == [("POST", "/api/v1/chat")]
