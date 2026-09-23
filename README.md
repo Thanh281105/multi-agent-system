@@ -6,9 +6,10 @@ dùng PostgreSQL cho hội thoại, hành động và knowledge retrieval. Các 
 `/api/v1` đã bị gỡ; `POST /chat` chỉ còn là fixture Phase 1 riêng, có thể bật
 trong môi trường development.
 
-> **Ranh giới dữ liệu:** runtime mặc định dùng profile `eval` gồm 200 sách và
-> 1.773 review, lấy mẫu deterministic từ Kaggle Tiki Books v4 đã truy xuất ngày
-> 2026-08-24. Đây không phải API/feed Tiki trực tiếp và không phản ánh catalog,
+> **Ranh giới dữ liệu:** runtime mặc định dùng snapshot lịch sử Tiki Books,
+> profile `eval` gồm 200 sách và 1.773 review, lấy mẫu deterministic từ Kaggle
+> Tiki Books v4 đã truy xuất ngày 2026-08-24. Đây không phải API/feed Tiki
+> trực tiếp và không phản ánh catalog,
 > giá, tồn kho, người bán, review, xu hướng, nhu cầu hay thị phần hiện tại.
 
 Seed runtime/test hiện hành không còn sinh catalog tổng hợp. Dữ liệu mẫu tổng
