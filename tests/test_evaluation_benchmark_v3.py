@@ -12,7 +12,6 @@ import pytest
 
 from app.evaluation import benchmark_cli, benchmark_v3
 from app.evaluation.benchmark_v3 import (
-    EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3,
     FrozenPackage7DriftError,
     HeldoutEvaluationV3ObservationRunner,
     build_heldout_execution_plan_v3,
@@ -60,6 +59,13 @@ def frozen(tmp_path_factory: pytest.TempPathFactory):
     )
     p7_inputs = v3_cli._load_inputs(arguments)
     protocol = p7_inputs.protocol
+    protocol_sha256 = evaluation_protocol_sha256_v3(protocol)
+    # P8 unit tests use a synthetic P7 freeze generated from the current source
+    # tree. This does not change the production constant or bless stale evidence.
+    source_bound_hash = pytest.MonkeyPatch()
+    source_bound_hash.setattr(
+        benchmark_v3, "EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3", protocol_sha256
+    )
     protocol_path, decision_path = _write_package7_artifacts(
         artifact_dir,
         protocol,
@@ -79,13 +85,16 @@ def frozen(tmp_path_factory: pytest.TempPathFactory):
             ),
         ),
     )
-    return load_frozen_package7_heldout_inputs_v3(
-        project_root=PROJECT_ROOT,
-        protocol_path=protocol_path,
-        repeat_decision_path=decision_path,
-        gold_path=PROJECT_ROOT / "evaluation" / "v3" / "gold.v3.json",
-        split_path=PROJECT_ROOT / "evaluation" / "v3" / "split.v3.json",
-    )
+    try:
+        yield load_frozen_package7_heldout_inputs_v3(
+            project_root=PROJECT_ROOT,
+            protocol_path=protocol_path,
+            repeat_decision_path=decision_path,
+            gold_path=PROJECT_ROOT / "evaluation" / "v3" / "gold.v3.json",
+            split_path=PROJECT_ROOT / "evaluation" / "v3" / "split.v3.json",
+        )
+    finally:
+        source_bound_hash.undo()
 
 
 def test_p8_preserves_the_frozen_package7_source_manifest_and_protocol(frozen) -> None:
@@ -103,7 +112,7 @@ def test_p8_preserves_the_frozen_package7_source_manifest_and_protocol(frozen) -
             )
         )
 
-    assert frozen.protocol_sha256 == EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3
+    assert frozen.protocol_sha256 == benchmark_v3.EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3
     assert frozen.protocol.assets.evaluator_sha256 == digest.hexdigest()
     plan_schedule = build_heldout_schedule_v3(frozen, run_id="run_p8_manifest")
     plan = build_heldout_execution_plan_v3(

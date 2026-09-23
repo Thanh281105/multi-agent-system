@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from app.evaluation import v3_cli
+from app.evaluation import benchmark_calibration, v3_cli
 from app.evaluation.benchmark_calibration import (
     BenchmarkCalibrationValidationErrorV3,
     _exact_citations,
@@ -73,7 +73,17 @@ def package7_inputs():
     arguments = v3_cli._parser().parse_args(
         ("validate", "--project-root", str(PROJECT_ROOT))
     )
-    return v3_cli._load_inputs(arguments)
+    inputs = v3_cli._load_inputs(arguments)
+    source_bound_hash = pytest.MonkeyPatch()
+    source_bound_hash.setattr(
+        benchmark_calibration,
+        "PACKAGE7_FROZEN_PROTOCOL_SHA256_V3",
+        evaluation_protocol_sha256_v3(inputs.protocol),
+    )
+    try:
+        yield inputs
+    finally:
+        source_bound_hash.undo()
 
 
 def _synthetic_receipts(package7_inputs, run_id: str = "run_p8_calibration"):
