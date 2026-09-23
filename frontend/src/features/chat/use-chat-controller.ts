@@ -20,12 +20,6 @@ import {
   type SessionStorageAdapter,
 } from "@/features/chat/chat-storage"
 import {
-  GatewayClientError,
-  isAbortError as isGatewayAbortError,
-  sendGatewayMessage,
-  type GatewayRequest,
-} from "@/lib/gateway-stream"
-import {
   createV2ApiClient,
   isAbortError as isV2AbortError,
   V2ApiError,
@@ -44,13 +38,9 @@ import type {
 } from "@/lib/v2-contracts"
 import { V2IncompleteStreamError, V2StreamError } from "@/lib/v2-stream"
 
-type SendGatewayMessage = (request: GatewayRequest) => ReturnType<typeof sendGatewayMessage>
-
 export interface ChatControllerDependencies {
-  send?: SendGatewayMessage
   storage?: SessionStorageAdapter | null
   online?: boolean
-  createId?: () => string
   v2Api?: V2ApiClient
   createClientTurnId?: () => string
   createIdempotencyKey?: () => string
@@ -153,12 +143,10 @@ export function useChatController(
   dependencies: ChatControllerDependencies = {},
 ): ChatController & { durable: DurableChatController } {
   const [runtime] = useState(() => ({
-    send: dependencies.send ?? sendGatewayMessage,
     storage:
       dependencies.storage === undefined
         ? resolveSessionStorage()
         : dependencies.storage,
-    createId: dependencies.createId ?? createMessageId,
     v2Api: dependencies.v2Api ?? createV2ApiClient(),
     createClientTurnId: dependencies.createClientTurnId ?? createClientTurnId,
     createIdempotencyKey:
@@ -190,7 +178,6 @@ export function useChatController(
   const stateRef = useRef(state)
   const durableSnapshotRef = useRef(durableSnapshot)
   const credentialRef = useRef("")
-  const controllerRef = useRef<AbortController | null>(null)
   const durableControllersRef = useRef(new Set<AbortController>())
   const durableStreamRef = useRef<AbortController | null>(null)
   const activeTurnIdentityRef = useRef<ActiveTurnIdentity | null>(null)
@@ -201,7 +188,6 @@ export function useChatController(
   const confirmPromisesRef = useRef(
     new Map<string, Promise<ActionReadResponse | null>>(),
   )
-  const generationRef = useRef(state.request.generation)
   const durableGenerationRef = useRef(state.durable.generation)
   const [storageAvailable, setStorageAvailable] = useState(true)
 
@@ -304,7 +290,6 @@ export function useChatController(
 
   useEffect(
     () => () => {
-      controllerRef.current?.abort()
       abortDurableWork()
     },
     [abortDurableWork],
@@ -1419,82 +1404,29 @@ export function useChatController(
     [handleV2Failure, listPreferences, registerDurableController, releaseDurableController, runtime.v2Api],
   )
 
-  const sendMessage = useCallback(async (message: string): Promise<SendOutcome> => {
-    const current = stateRef.current
-    const cleaned = message.trim()
-    if (!credentialRef.current) return "credential_required"
-    if (!current.online) return "offline"
-    if (controllerRef.current) return "busy"
-    if (cleaned.length === 0 || cleaned.length > 2_000) return "invalid_message"
-
-    const generation = generationRef.current + 1
-    generationRef.current = generation
-    const controller = new AbortController()
-    controllerRef.current = controller
-    dispatch({
-      type: "request.started",
-      generation,
-      message: { id: runtime.createId(), role: "user", text: cleaned },
-    })
-
-    try {
-      const result = await runtime.send({
-        message: cleaned,
-        sessionId: current.sessionId,
-        apiKey: credentialRef.current,
-        signal: controller.signal,
-        onStatus: (status) => dispatch({ type: "request.status", generation, status }),
-        onToken: (token) => dispatch({ type: "request.token", generation, token }),
-      })
-      if (generation !== generationRef.current) return "cancelled"
-      dispatch({
-        type: "request.completed",
-        generation,
-        result,
-        assistantMessageId: runtime.createId(),
-      })
-      return "completed"
-    } catch (error) {
-      if (generation !== generationRef.current || isGatewayAbortError(error)) {
-        if (generation === generationRef.current) {
-          const nextGeneration = generation + 1
-          generationRef.current = nextGeneration
-          dispatch({ type: "request.cancelled", generation, nextGeneration })
-        }
-        return "cancelled"
-      }
-
-      const failure = toChatFailure(error)
-      if (failure.code === "gateway.authentication_failed") {
-        clearCredential()
-      }
-      dispatch({ type: "request.failed", generation, failure })
-      return "failed"
-    } finally {
-      if (controllerRef.current === controller) controllerRef.current = null
-    }
-  }, [clearCredential, runtime])
+  const sendMessage = useCallback(
+    async (message: string): Promise<SendOutcome> => {
+      const outcome = await sendDurableMessage(message)
+      return outcome === "not_ready" ? "failed" : outcome
+    },
+    [sendDurableMessage],
+  )
 
   const cancelRequest = useCallback(() => {
-    const controller = controllerRef.current
-    if (!controller) return
-    const generation = generationRef.current
-    const nextGeneration = generation + 1
-    generationRef.current = nextGeneration
-    controller.abort()
-    controllerRef.current = null
-    dispatch({ type: "request.cancelled", generation, nextGeneration })
-  }, [])
+    void cancelDurableRequest()
+  }, [cancelDurableRequest])
 
   const resetSession = useCallback(() => {
-    controllerRef.current?.abort()
-    controllerRef.current = null
-    const generation = generationRef.current + 1
-    generationRef.current = generation
-    dispatch({ type: "session.reset", generation })
+    dispatch({
+      type: "session.reset",
+      generation: stateRef.current.request.generation + 1,
+    })
     const storage = runtime.storage
     if (storage && !clearChatSnapshot(storage)) setStorageAvailable(false)
-  }, [runtime.storage])
+    if (durableSnapshotRef.current.phase === "ready") {
+      void createConversation()
+    }
+  }, [createConversation, runtime.storage])
 
   return {
     state,
@@ -1528,25 +1460,6 @@ export function useChatController(
       putPreference,
       deletePreference,
     },
-  }
-}
-
-function toChatFailure(error: unknown): ChatFailure {
-  if (error instanceof GatewayClientError) {
-    return {
-      source: error.source,
-      code: error.code,
-      message: error.message,
-      retryable: error.retryable,
-      ...(error.requestId ? { requestId: error.requestId } : {}),
-      ...(error.traceId ? { traceId: error.traceId } : {}),
-    }
-  }
-  return {
-    source: "client",
-    code: "gateway.unknown_client_error",
-    message: "Không thể xử lý yêu cầu lúc này.",
-    retryable: false,
   }
 }
 
@@ -1757,10 +1670,6 @@ function createRandomId(prefix: string): string {
   }
   fallbackId += 1
   return `${prefix}:fallback-${fallbackId}`
-}
-
-function createMessageId(): string {
-  return createRandomId("message")
 }
 
 function createClientTurnId(): string {

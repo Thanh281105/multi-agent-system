@@ -189,7 +189,7 @@ jobs:
       - name: Show Compose status
         run: docker compose -f compose.yaml ps
 
-      - name: Smoke live JSON, SSE, readiness, auth, and metrics
+      - name: Smoke readiness/liveness, v2 identity/history, retired v1, auth, and metrics
         run: python scripts/ci_live_smoke.py
 
       - name: Verify PostgreSQL backup and restore drill

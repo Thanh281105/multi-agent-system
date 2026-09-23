@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest"
 
 import { useChatController } from "@/features/chat/use-chat-controller"
 import { writeDurableChatMetadata } from "@/features/chat/chat-storage"
-import { GatewayClientError } from "@/lib/gateway-stream"
 import { V2ApiError, type V2ApiClient } from "@/lib/v2-api"
 import type {
   ActionCard,
@@ -12,7 +11,6 @@ import type {
   TurnSseEvent,
 } from "@/lib/v2-contracts"
 import { V2IncompleteStreamError } from "@/lib/v2-stream"
-import { completedResponse, statusEvent, tokenEvent } from "@/test/fixtures"
 import {
   v2ActionCard,
   v2CompletedTurnResponse,
@@ -25,121 +23,33 @@ import {
 } from "@/test/v2-fixtures"
 
 describe("useChatController", () => {
-  it("keeps credentials in memory while persisting only session and history", async () => {
-    const storage = createStorage()
-    const send = vi.fn(async (request) => {
-      request.onStatus?.(statusEvent)
-      request.onToken?.(tokenEvent)
-      return completedResponse
+  it("routes controller sends through the durable v2 API", async () => {
+    const streamChat = vi.fn<V2ApiClient["streamChat"]>(async (options) => {
+      options.onEvent?.(v2TerminalEvent)
+      return v2TerminalEvent
     })
-    const ids = createIds()
-    const { result } = renderHook(() =>
-      useChatController({ storage, send, createId: ids }),
-    )
-
-    act(() => {
-      expect(result.current.configureCredential("  gateway-secret  ")).toBe(true)
-    })
-    let outcome: Awaited<ReturnType<typeof result.current.sendMessage>> | undefined
-    await act(async () => {
-      outcome = await result.current.sendMessage("  Tìm sách chiêm tinh  ")
-    })
-
-    expect(outcome).toBe("completed")
-    expect(send).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: "gateway-secret",
-        message: "Tìm sách chiêm tinh",
-        sessionId: null,
-        onToken: expect.any(Function),
-      }),
-    )
-    expect(result.current.state.request.phase).toBe("completed")
-    expect(result.current.state.messages).toHaveLength(2)
-
-    await waitFor(() => {
-      expect(storage.dump()["thuong-tri.session-id"]).toBe("sess_test_123")
-    })
-    const persisted = JSON.stringify(storage.dump())
-    expect(persisted).not.toContain("gateway-secret")
-    expect(Object.keys(storage.dump())).toEqual([
-      "thuong-tri.history",
-      "thuong-tri.session-id",
-    ])
-  })
-
-  it("cancels by advancing generation and ignores the late result", async () => {
-    let resolveRequest: ((value: typeof completedResponse) => void) | undefined
-    const send = vi.fn(
-      () =>
-        new Promise<typeof completedResponse>((resolve) => {
-          resolveRequest = resolve
-        }),
-    )
+    const api = createV2Api({ streamChat })
     const { result } = renderHook(() =>
       useChatController({
         storage: createStorage(),
-        send,
-        createId: createIds(),
+        v2Api: api,
+        createClientTurnId: () => "browser:turn-1",
       }),
     )
-    act(() => {
-      result.current.configureCredential("gateway-secret")
-    })
-
-    let request: Promise<string>
-    act(() => {
-      request = result.current.sendMessage("Tìm sách học tiếng Anh")
-    })
-    await waitFor(() => {
-      expect(result.current.state.request.phase).toBe("streaming")
-    })
-    act(() => result.current.cancelRequest())
-    expect(result.current.state.request).toMatchObject({
-      phase: "cancelled",
-      generation: 2,
+    act(() => result.current.configureCredential("v2-secret-key"))
+    await act(async () => {
+      expect(await result.current.durable.bootstrap()).toBe("completed")
     })
 
     await act(async () => {
-      resolveRequest?.(completedResponse)
-      expect(await request).toBe("cancelled")
+      expect(await result.current.sendMessage("  Tư vấn sách  ")).toBe("completed")
     })
-    expect(result.current.state.request.phase).toBe("cancelled")
-  })
-
-  it("clears an invalid credential after an authentication failure", async () => {
-    const send = vi.fn().mockRejectedValue(
-      new GatewayClientError(
-        "gateway.authentication_failed",
-        "API key không hợp lệ.",
-        { source: "gateway", requestId: "req_auth", traceId: "trace_auth" },
-      ),
-    )
-    const { result } = renderHook(() =>
-      useChatController({ storage: createStorage(), send }),
-    )
-    act(() => {
-      result.current.configureCredential("invalid-key")
+    expect(streamChat).toHaveBeenCalledOnce()
+    expect(streamChat.mock.calls[0][0].request).toEqual({
+      conversationId: v2ConversationSummary.conversationId,
+      clientTurnId: "browser:turn-1",
+      message: "Tư vấn sách",
     })
-
-    await act(async () => {
-      expect(await result.current.sendMessage("Tìm sách học tiếng Anh")).toBe(
-        "failed",
-      )
-    })
-
-    expect(result.current.state.credentialConfigured).toBe(false)
-    expect(result.current.state.request).toMatchObject({
-      phase: "failed",
-      failure: {
-        source: "gateway",
-        code: "gateway.authentication_failed",
-        requestId: "req_auth",
-      },
-    })
-    await expect(result.current.sendMessage("Thử lại")).resolves.toBe(
-      "credential_required",
-    )
   })
 
   it("reports blocked preconditions without starting a request", async () => {
@@ -168,7 +78,7 @@ describe("useChatController", () => {
       ]),
     })
     const { result } = renderHook(() =>
-      useChatController({ storage, createId: createIds() }),
+      useChatController({ storage }),
     )
     act(() => {
       result.current.configureCredential("gateway-secret")
@@ -1011,14 +921,6 @@ function createV2Api(overrides: Partial<V2ApiClient> = {}): V2ApiClient {
     deletePreference: vi.fn(async () => undefined),
   }
   return { ...api, ...overrides }
-}
-
-function createIds() {
-  let current = 0
-  return () => {
-    current += 1
-    return `message-test-${current}`
-  }
 }
 
 function createStorage(initial: Record<string, string> = {}) {

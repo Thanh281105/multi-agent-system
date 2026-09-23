@@ -94,7 +94,7 @@ async def metrics(request: Request) -> PlainTextResponse:
     )
 
 
-@router.get("/api/v1/operations/traces/{trace_id}")
+@router.get("/api/v2/operations/traces/{trace_id}")
 async def trace_details(trace_id: str, request: Request) -> dict[str, object]:
     """Return bounded, redacted trace events for an authorized operator."""
 
@@ -114,7 +114,7 @@ async def trace_details(trace_id: str, request: Request) -> dict[str, object]:
     }
 
 
-@router.get("/api/v1/operations/audit")
+@router.get("/api/v2/operations/audit")
 async def gateway_audit(
     request: Request,
     limit: int = Query(default=50, ge=1, le=200),
@@ -130,7 +130,7 @@ async def gateway_audit(
     }
 
 
-@router.get("/api/v1/operations/agents")
+@router.get("/api/v2/operations/agents")
 async def agent_inventory(request: Request) -> dict[str, object]:
     """Expose the validated registry inventory without credentials."""
 

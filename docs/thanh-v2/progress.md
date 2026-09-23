@@ -43,7 +43,7 @@ not complete live provider, P7, P8 or `operate` execution.
 
 - Lead owns review, integration, gates and commits. Following the current routing instruction, Luna Max implements bounded tasks; Sol High is reserved for architecture, hard debugging, transactional concurrency/idempotency, supervisor and grounding.
 - Explicit file ownership precedes concurrent edits; source snapshot/review data and credentials are not delegated. `Multi-Agent-lac-v2` is read-only, including its pre-existing `.gitignore` change.
-- v1 schema/routing/SSE and captured evaluation v1/v2 artifacts remain regression boundaries.
+- `/api/v2` is the only versioned HTTP API; historical evaluation v1/v2 artifacts remain regression boundaries.
 - PostgreSQL is authoritative for durable v2 state, action execution, replay and reservations. No provider/network calls inside action transactions.
 - No live provider baseline or ingestion calls before the attempt ledger is ready. Offline regression does not establish live model quality or replace PostgreSQL integration.
 - Restart/resume uses this progress document, committed package boundaries and recorded observations; it must not replay completed steps or benchmark observations.

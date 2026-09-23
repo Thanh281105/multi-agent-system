@@ -38,7 +38,7 @@ one focused PostgreSQL test file within the reassessed estimate. Recovery and
 preclaim-failure transitions use their own locked state guards.
 
 1. Agree strict internal operation/evidence/assessment/draft interfaces around the
-   existing public v2 types; preserve the v1 boundary.
+   existing public v2 types; keep public API behavior on the v2 contract.
 2. Implement independently bounded read tools, validated planning/continuation,
    and grounded answer production; review each result and focused tests.
 3. Wire and verify a recorded, claimed read turn through PostgreSQL, the shared
@@ -176,5 +176,6 @@ reviews. This is an end-to-end development safety check, not benchmark evidence.
 
 Package 4 passes. The checked read path records before dispatch, respects all hard
 caps, reuses completed work, fails closed on authorization/grounding faults, emits
-only supported claims, and accounts for provider work. Package 5 may add durable
-history, explicit memory and sandbox actions without changing the v1 boundary.
+only supported claims, and accounts for provider work. Package 5 added durable
+history, explicit memory and sandbox actions. The later endpoint consolidation
+retired `/api/v1`; current routes are documented in [API v2](../api.md).

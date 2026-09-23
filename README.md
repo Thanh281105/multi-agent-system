@@ -1,10 +1,10 @@
 # Evidence Atlas — trợ lý sách Multi-Agent tiếng Việt
 
 Evidence Atlas là reference implementation **production-oriented** cho trợ lý
-quyết định sách dựa trên evidence. API v1 giữ nguyên đường tương thích lịch sử
-cho Product, Review, Trust và Market agents trên snapshot lịch sử Tiki Books; API v2 bổ
-sung hội thoại, hành động và knowledge retrieval với trạng thái bền vững trong
-PostgreSQL. Hai API có contract, lifecycle và bằng chứng riêng.
+quyết định sách dựa trên evidence. `/api/v2` là API HTTP có version duy nhất,
+dùng PostgreSQL cho hội thoại, hành động và knowledge retrieval. Các endpoint
+`/api/v1` đã bị gỡ; `POST /chat` chỉ còn là fixture Phase 1 riêng, có thể bật
+trong môi trường development.
 
 > **Ranh giới dữ liệu:** runtime mặc định dùng profile `eval` gồm 200 sách và
 > 1.773 review, lấy mẫu deterministic từ Kaggle Tiki Books v4 đã truy xuất ngày
@@ -23,22 +23,17 @@ secret manager, backup/restore, external monitoring và load/soak validation.
 
 ```mermaid
 flowchart LR
-    U[Web client / API consumer] -->|X-API-Key; JSON hoặc SSE| G[FastAPI Gateway]
-    G --> O[Orchestrator / v1 adapter]
-    O --> P[Product Agent]
-    O --> R[Review Agent]
-    O --> T[Trust Agent]
-    O --> M[Market Agent]
-    P & R & T & M --> AG[Agent Gateway + Registry]
-    AG --> TOOLS[Allowlisted book tools]
-    TOOLS --> PG[(PostgreSQL: cleaned Tiki Books snapshot)]
-    O <--> RS[(Redis: production session/state)]
-    O & P & R & T & M -. structured model modes .-> L[OpenAI Responses API]
-    G & O & AG --> OBS[Redacted traces + Prometheus metrics]
+    U[Web client / API consumer] -->|X-API-Key; V2 JSON/SSE| G[FastAPI Gateway]
     G --> V2[API v2 durable services]
     V2 --> PG2[(PostgreSQL: conversations, turns, actions)]
     V2 --> KI[(Published corpus/index in PostgreSQL)]
-    K[Legacy v1 knowledge boundary] -. disabled by default .-> Q[(Optional Qdrant adapter)]
+    G -. optional POST /chat fixture .-> O[Phase 1 legacy runner]
+    O --> MA[Historical domain agents / tools]
+    MA --> PG[(PostgreSQL: cleaned Tiki Books snapshot)]
+    O <--> RS[(Redis: optional shared state)]
+    O & MA -. structured model modes .-> L[OpenAI Responses API]
+    G & O & MA --> OBS[Redacted traces + Prometheus metrics]
+    K[Historical knowledge adapter] -. disabled by default .-> Q[(Optional Qdrant adapter)]
 ```
 
 Hệ thống là modular monolith: typed A2A/tool boundaries chạy trong một process
@@ -57,8 +52,8 @@ entity extraction, permission, DAG, facts, score, claim text và citation. Model
 chỉ được chọn intent/capability/fact ID/claim ID trong schema có giới hạn; output
 không grounded bị fallback hoặc fail closed theo runtime mode.
 
-Với API v1, `KNOWLEDGE_BACKEND=disabled` vẫn là mặc định và Qdrant chỉ là seam
-opt-in lịch sử. API v2 dùng `PostgresKnowledgeStore` trên PostgreSQL bền vững và
+Historical `KNOWLEDGE_BACKEND=disabled` vẫn là mặc định và Qdrant chỉ là adapter
+tương thích cũ. API v2 dùng `PostgresKnowledgeStore` trên PostgreSQL bền vững và
 chỉ resolve một corpus/index đã publish, được pin bởi
 `V2_CORPUS_VERSION_ID` và `V2_INDEX_MANIFEST_ID`; không dùng Qdrant path này.
 Runtime v2 hiện pin `books-v1-calibrated-20260909`: 20 sources/chunks/vectors,
@@ -70,7 +65,7 @@ Tài liệu chính:
 
 - [Kiến trúc hiện hành](docs/architecture.md)
 - [Vòng đời dữ liệu](docs/data.md)
-- [API v1 và SSE](docs/api.md)
+- [API v2 và SSE](docs/api.md)
 - [Đóng góp và verification](CONTRIBUTING.md)
 - [Runbook vận hành](docs/operations.md)
 - [Evaluation](docs/evaluation.md)
@@ -172,7 +167,7 @@ Thử các câu hỏi:
 Mọi answer phải nêu đây là snapshot lịch sử. Xem [runbook](docs/operations.md)
 trước khi đặt sau TLS proxy hoặc chạy Helm.
 
-## Chạy local v1 tối giản
+## Chạy fixture Phase 1 local
 
 Yêu cầu Python 3.12+ và Node toolchain theo `frontend/package-lock.json`:
 
@@ -201,9 +196,9 @@ ecommerce-seed
 uvicorn app.main:app --reload
 ```
 
-Cấu hình trên là đường v1/fixture dùng SQLite và knowledge boundary tắt. API v2
-cần PostgreSQL bền vững cùng published corpus/index; không dùng cấu hình SQLite
-này để kết luận v2 production đã sẵn sàng. Xem [API v2](docs/api.md) và
+Cấu hình trên chỉ bật `POST /chat` fixture, dùng SQLite và knowledge boundary
+tắt. API v2 cần PostgreSQL bền vững cùng published corpus/index; không dùng cấu
+hình SQLite này để kết luận V2 đã sẵn sàng. Xem [API v2](docs/api.md) và
 [runbook](docs/operations.md) để bind `V2_CORPUS_VERSION_ID` và
 `V2_INDEX_MANIFEST_ID`.
 
@@ -218,23 +213,26 @@ Model runtime modes:
 
 ## API nhanh
 
+Tạo conversation trước, rồi dùng ID server trả về cho từng turn:
+
 ```bash
-curl -X POST http://127.0.0.1:8000/api/v1/chat \
+curl -X POST http://127.0.0.1:8000/api/v2/conversations \
   -H "Content-Type: application/json" \
   -H "X-API-Key: YOUR_SECRET" \
-  -d '{"message":"Tìm sách Quân Vương và cho biết tác giả"}'
+  -d '{"mode":"shopper"}'
 ```
 
 ```bash
-curl -N -X POST http://127.0.0.1:8000/api/v1/chat/stream \
+curl -X POST http://127.0.0.1:8000/api/v2/chat \
   -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" \
   -H "X-API-Key: YOUR_SECRET" \
-  -d '{"message":"Gợi ý sách dưới 150.000 đồng, rating tốt và ít tín hiệu phàn nàn"}'
+  -d '{"conversation_id":"conversation_ID_FROM_CREATE","client_turn_id":"browser:turn-001","message":"Tìm sách Quân Vương và cho biết tác giả"}'
 ```
 
-Client gửi lại `session_id` để follow-up. Session không tồn tại, hết hạn hoặc
-thuộc principal khác đều dùng cùng lỗi `404 gateway.session_not_found`.
+Để stream, gửi cùng body tới `/api/v2/chat/stream` và thêm
+`Accept: text/event-stream`. Các request V2 cần PostgreSQL cùng published
+corpus/index đã bind bằng `V2_CORPUS_VERSION_ID` và tùy chọn
+`V2_INDEX_MANIFEST_ID`; xem [API contract](docs/api.md).
 
 ## Database, readiness và deployment
 

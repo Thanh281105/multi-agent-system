@@ -10,7 +10,6 @@ from app.gateway import build_gateway_runtime
 from app.gateway.frontend import install_frontend
 from app.gateway.middleware import install_gateway_middleware
 from app.gateway.operations import router as operations_router
-from app.gateway.routes import router as gateway_router
 from app.gateway.v2_routes import router as v2_router
 from app.knowledge import KnowledgeStore
 from app.v2.runtime import V2RuntimeFactory
@@ -47,7 +46,6 @@ def create_app(
     )
     install_gateway_middleware(application)
     application.include_router(operations_router)
-    application.include_router(gateway_router)
     application.include_router(v2_router)
     if config.legacy_chat_enabled:
         application.include_router(chat_router)

@@ -6,17 +6,16 @@
   cluster, kind chỉ dùng smoke disposable.
 - Reverse proxy TLS; backend chỉ bind loopback/private network.
 - Secret manager hoặc `.env` có quyền đọc giới hạn và không commit.
-- PostgreSQL bền; Redis authenticated cho v1 session/state production. API v2
-  dùng PostgreSQL làm authority cho conversation, turn, action, ledger và
-  published corpus/index.
+- PostgreSQL bền; Redis authenticated theo shared-state production settings.
+  API v2 dùng PostgreSQL làm authority cho conversation, turn, action, ledger
+  và published corpus/index.
 - Backup/restore drill trước migration hoặc thay snapshot.
 - External monitoring gọi `/readyz` và scrape `/metrics` bằng operations key.
 
 Runtime mặc định dùng snapshot lịch sử Tiki Books eval (200 sách/1.773 review),
-không phải feed Tiki trực tiếp. Qdrant không phải prerequisite cho v1:
-knowledge mặc định của v1 là `disabled`; khi dùng v2 knowledge retrieval, runtime
-phải resolve published PostgreSQL corpus/index đã pin. Repository không seed
-Qdrant knowledge corpus.
+không phải feed Tiki trực tiếp. Qdrant là adapter lịch sử tùy chọn; API v2 dùng
+knowledge mặc định trong `PostgresKnowledgeStore` và cần resolve published
+PostgreSQL corpus/index đã pin. Repository không seed Qdrant knowledge corpus.
 
 ## 2. Cấu hình
 
@@ -31,8 +30,8 @@ Qdrant knowledge corpus.
 | `GATEWAY_PRINCIPAL_POLICIES` | Bắt buộc | `principal:tenant:scope1|scope2` |
 | `OPERATIONS_API_KEY` | Bắt buộc, ≥16 chars | Tách khỏi user key |
 | `SHARED_STATE_BACKEND` | `redis` | Production validator bắt buộc |
-| `REDIS_URL` | Authenticated `redis[s]://` | Session, memory, turn lock |
-| `KNOWLEDGE_BACKEND` | `disabled` | `qdrant` chỉ là opt-in seam |
+| `REDIS_URL` | Authenticated `redis[s]://` | Shared-state adapter |
+| `KNOWLEDGE_BACKEND` | `disabled` | Historical adapter; API v2 uses PostgreSQL knowledge |
 | `MODEL_RUNTIME_MODE` | `hybrid` mặc định | `off`, `shadow`, `hybrid`, `required` |
 | `OPENAI_API_KEY` | Khi model mode khác `off` | Không log/render vào values |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | Phải khớp published v2 index |
@@ -40,6 +39,10 @@ Qdrant knowledge corpus.
 | `ORCHESTRATION_TIMEOUT_SECONDS` | `30` | Hợp lệ 1..300 |
 | `LEGACY_CHAT_ENABLED` | `false` | Production validator bắt buộc |
 | `LOG_LEVEL` | `INFO` khuyến nghị | Không log request/provider payload |
+
+Compose truyền tiếp `V2_CORPUS_VERSION_ID` và `V2_INDEX_MANIFEST_ID` từ shell
+hoặc `.env` vào app container. Không cần mở hay chép giá trị secret để kiểm tra
+route; corpus/index ID là binding dữ liệu server-side.
 
 `POSTGRES_PASSWORD` và `REDIS_PASSWORD` trong Compose phải URL-safe vì được nội
 suy vào connection URL. Muốn chạy không provider: đặt
@@ -228,8 +231,9 @@ kubectl -n ecommerce-kind port-forward service/ecommerce-multi-agent 8000:8000
 
 Trong terminal khác, chạy `python scripts/ci_live_smoke.py`. Expected:
 PostgreSQL/Redis Ready; `wait-for-dependencies`, `migrate`, `seed-data` exit 0;
-JSON/SSE/auth/readiness/metrics smoke pass. Xóa cluster disposable bằng
-`kind delete cluster --name ecommerce-ma`.
+readiness/liveness, V2 identity/history (history có thể fail closed nếu chưa
+publish corpus/index), V1 route trả 404, operations auth và metrics smoke pass.
+Xóa cluster disposable bằng `kind delete cluster --name ecommerce-ma`.
 
 ## 6. Health và smoke
 
@@ -256,31 +260,42 @@ Default production-like readiness:
 hiện khi client được cấu hình. Nếu opt-in Qdrant thành công, knowledge trả
 `"ok"`; false, collection rỗng hoặc contract sai làm readiness 503.
 
-Smoke chat bằng user credential riêng:
+Smoke V2 bằng user credential riêng (lệnh này tạo một conversation lưu trong
+PostgreSQL; nếu chưa publish corpus/index, V2 trả lỗi `v2.runtime_unavailable`):
 
 ```powershell
 $headers = @{"X-API-Key" = "ROTATABLE_SMOKE_SECRET"}
-$body = @{message = "Tìm sách Quân Vương và cho biết tác giả"} | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v1/chat `
+$created = Invoke-RestMethod -Method Post `
+  -Uri http://127.0.0.1:8000/api/v2/conversations `
+  -Headers $headers -ContentType "application/json" `
+  -Body '{"mode":"shopper"}'
+$body = @{
+  conversation_id = $created.conversation.conversation_id
+  client_turn_id = "browser:smoke-$([guid]::NewGuid().ToString('N'))"
+  message = "Tìm sách Quân Vương và cho biết tác giả"
+} | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v2/chat `
   -Headers $headers -ContentType "application/json" -Body $body
 ```
 
-Response phải gắn caveat snapshot lịch sử; không chấp nhận current Tiki claim.
+Bind `V2_CORPUS_VERSION_ID` và tùy chọn `V2_INDEX_MANIFEST_ID` trong môi trường
+Compose để app resolve đúng snapshot PostgreSQL đã publish. Response phải giữ
+provenance cho các claim dựa trên evidence.
 
 ## 7. Metrics và diagnosis
 
 ```powershell
 $ops = @{"X-Operations-Key" = "OPERATIONS_SECRET"}
 Invoke-WebRequest http://127.0.0.1:8000/metrics -Headers $ops
-Invoke-RestMethod http://127.0.0.1:8000/api/v1/operations/agents -Headers $ops
-Invoke-RestMethod "http://127.0.0.1:8000/api/v1/operations/audit?limit=50" -Headers $ops
+Invoke-RestMethod http://127.0.0.1:8000/api/v2/operations/agents -Headers $ops
+Invoke-RestMethod "http://127.0.0.1:8000/api/v2/operations/audit?limit=50" -Headers $ops
 ```
 
 Tra trace bằng `trace_id` từ response/header:
 
 ```powershell
 Invoke-RestMethod `
-  "http://127.0.0.1:8000/api/v1/operations/traces/trace_EXAMPLE" `
+  "http://127.0.0.1:8000/api/v2/operations/traces/trace_EXAMPLE" `
   -Headers $ops
 ```
 
@@ -324,7 +339,7 @@ Qdrant về sau, phải bổ sung versioned index backup và restore drill riên
 | `knowledge: failed` khi disabled mong đợi | Runtime config | Xác nhận `KNOWLEDGE_BACKEND=disabled`; không bật Qdrant để che lỗi |
 | Opt-in Qdrant failed | URL/key/vector contract/point count | Giữ traffic off; provision corpus bằng quy trình riêng |
 | Snapshot bootstrap refused | Manifest/hash/profile hoặc DB mixed/legacy | Không force; audit `dataset_sources` và dùng DB disposable/staging |
-| 409 session busy | Client gửi song song cùng session | Serialize turn/backoff |
+| 409 turn conflict | Client gửi lặp hoặc cạnh tranh cùng turn | Đọc lại trạng thái turn và retry theo contract |
 | 429 tăng | Auth abuse hoặc budget thấp | Kiểm tra peer/principal metrics; không tắt limiter |
 | 504 | Agent/data/provider latency | Tra trace/downstream trước khi tăng timeout |
 | 503 all agents failed | Agent errors/audit | Giữ fail closed; không bịa fallback facts |

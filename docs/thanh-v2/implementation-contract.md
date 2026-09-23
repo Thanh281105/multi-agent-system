@@ -47,13 +47,13 @@ Giữ Python 3.12, FastAPI, OpenAI Responses, PostgreSQL, Redis và React hiện
 
 Shopping là một chế độ của chatbot chung, không có supervisor thứ hai. Merchant cũng sử dụng cùng hệ thống quyền, công cụ, evidence và ngân sách.
 
-### API v2 riêng, giữ nguyên v1
+### API v2 là versioned API duy nhất
 
-Client hiện sử dụng schema nghiêm ngặt; thêm trường tùy ý vào v1 sẽ phá tương thích. Vì vậy:
+Client sử dụng schema nghiêm ngặt; API `/api/v2` là contract versioned duy nhất:
 
-- `/api/v1` giữ hành vi và schema hiện tại, dùng registry cố định để regression.
-- `/api/v2` phục vụ chatbot hợp nhất.
-- Hai phiên bản chia sẻ thư viện nền và runtime model, không sao chép toàn bộ ứng dụng.
+- Các endpoint `/api/v1` đã bị gỡ; `/api/v2` phục vụ chatbot hợp nhất.
+- `POST /chat` là fixture Phase 1 riêng, không phải alias hoặc phiên bản API.
+- Historical evaluation v1/v2 artifacts được giữ nguyên để tái lập kết quả.
 
 | API v2 | Chức năng |
 |---|---|
@@ -232,7 +232,7 @@ Tạo offers riêng cho sách trong snapshot:
 - Tồn kho khởi tạo deterministic, mặc định 10 cuốn/offer.
 - Merchant chỉnh offer, không sửa bảng sản phẩm/review lịch sử.
 - Shopper trong cửa hàng demo lọc ngân sách theo giá offer; rating/review vẫn mang nhãn snapshot.
-- API v1 tiếp tục dùng semantics lịch sử hiện có.
+- Fixture `POST /chat`, khi được bật trong development, giữ semantics Phase 1 lịch sử.
 
 **Các luồng bắt buộc**
 
@@ -387,7 +387,7 @@ Giữ `exact_plan` cho regression cũ; không phạt kế hoạch thích nghi ch
 
 | Nhóm | Tình huống phải chứng minh |
 |---|---|
-| Tương thích | V1 giữ đúng field sets, trạng thái, routing và SSE |
+| Tương thích API | OpenAPI chỉ công bố `/api/v2`; `/api/v1` routes trả 404 |
 | Điều phối | Chọn đúng capability; không bỏ yêu cầu rõ; chỉ một continuation; không lặp bước đã xong |
 | RAG | Mapping đúng tác phẩm/ấn bản; ACL; no-answer; corpus version; embedding mismatch |
 | Grounding | Citation giả, sai entity/số liệu, phủ định, nguồn mâu thuẫn, verifier lỗi |

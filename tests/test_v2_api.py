@@ -274,34 +274,29 @@ def test_openapi_mounts_complete_json_surface_and_keeps_factory_lazy() -> None:
         "/api/v2/actions/{action_id}/confirm": {"post"},
         "/api/v2/actions/{action_id}/reject": {"post"},
         "/api/v2/memory": {"get", "put", "delete"},
+        "/api/v2/operations/traces/{trace_id}": {"get"},
+        "/api/v2/operations/audit": {"get"},
+        "/api/v2/operations/agents": {"get"},
     }
     assert {
         path: set(paths[path]).intersection({"get", "post", "put", "delete"})
         for path in expected
     } == expected
+    assert not any(path.startswith("/api/v1/") for path in paths)
     schemas = application.openapi()["components"]["schemas"]
-    assert tuple(schemas["GatewayChatRequest"]["properties"]) == (
-        "message",
-        "session_id",
-    )
-    assert tuple(schemas["GatewayChatResponse"]["properties"]) == (
-        "api_version",
-        "status",
-        "answer",
-        "session_id",
-        "request_id",
-        "trace_id",
-        "intent",
-        "active_agent",
-        "selected_product_id",
-        "executions",
-        "provenance",
-        "model_calls",
-        "warnings",
-        "sample_data",
-        "duration_ms",
-    )
+    assert "GatewayChatRequest" not in schemas
+    assert "GatewayChatResponse" not in schemas
     assert factory.initialized is False
+    assert (
+        TestClient(application)
+        .post(
+            "/api/v1/chat",
+            headers=ALICE_HEADERS,
+            json={"message": "Tìm sách"},
+        )
+        .status_code
+        == 404
+    )
 
 
 def test_me_uses_authenticated_server_policy_only() -> None:

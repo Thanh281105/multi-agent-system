@@ -5,10 +5,13 @@
 Hệ thống là **modular monolith** chuyên biệt cho câu hỏi sách tiếng Việt và các
 turn v2 có evidence trên snapshot lịch sử Tiki Books. Boundary giữa Gateway,
 Orchestrator, Domain Agent, Agent Gateway, tools và shared state dùng typed
-contracts nhưng cùng chạy trong một process. V1 giữ contract tương thích; v2
-thêm durable conversation/turn/action state và knowledge retrieval trên
-PostgreSQL. Cấu trúc này đủ để kiểm thử end-to-end và chưa đưa độ phức tạp
-microservice vào khi chưa có tải thực tế chứng minh nhu cầu.
+contracts nhưng cùng chạy trong một process. Các contract lịch sử còn phục vụ
+fixture/evaluation; `/api/v2` là API có version duy nhất, cung cấp durable
+conversation/turn/action state và knowledge retrieval trên PostgreSQL. Các
+route `/api/v1` đã bị gỡ.
+`POST /chat` chỉ còn là fixture Phase 1 riêng, có cờ bật trong development.
+Cấu trúc này đủ để kiểm thử end-to-end và chưa đưa độ phức tạp microservice
+vào khi chưa có tải thực tế chứng minh nhu cầu.
 
 Mục tiêu hiện tại:
 
@@ -16,8 +19,7 @@ Mục tiêu hiện tại:
 - điều phối bốn specialist cố định với DAG có kiểm tra quyền/dependency;
 - hỗ trợ partial success và deterministic fallback có giới hạn;
 - tái lập test/evaluation trên snapshot đã qua quality gate;
-- giữ API v1 JSON/SSE ổn định, đồng thời cung cấp API v2 JSON/SSE bền vững mà
-  không lộ nội dung nhạy cảm;
+- cung cấp một API v2 JSON/SSE bền vững, không lộ nội dung nhạy cảm;
 - pin catalog, corpus và index version cho từng v2 turn trước khi dispatch.
 
 Ngoài phạm vi:
@@ -52,19 +54,20 @@ flowchart TB
     PG[(PostgreSQL: Tiki Books snapshot)]
     R[(Redis: production session/state)]
     OA[OpenAI Responses API: optional by mode]
-    Q[(Qdrant: optional legacy v1 adapter)]
+    Q[(Qdrant: optional historical adapter)]
     V2[API v2 durable services]
     C2[(PostgreSQL: conversations, turns, actions)]
     I2[(PostgreSQL: published corpus/index)]
 
-    C -->|X-API-Key; v1 JSON/SSE| G --> O --> D --> A --> T --> PG
-    C -->|X-API-Key; v2 JSON/SSE| G --> V2 --> C2
+    C -->|X-API-Key; /api/v2 JSON/SSE| G --> V2 --> C2
     V2 --> I2
+    V2 --> PG
+    G -. optional POST /chat fixture .-> O --> D --> A --> T --> PG
     O <--> R
     O & D -. model mode enabled .-> L -.-> OA
     G & O & A --> M
     G -. readiness composition .-> K
-    K -. legacy v1 only .-> Q
+    K -. historical adapter only .-> Q
 ```
 
 Default Compose dùng PostgreSQL + Redis, rồi chạy:
@@ -74,8 +77,8 @@ PostgreSQL healthy → migrate → quality-gated snapshot bootstrap → backend
 Redis healthy ────────────────────────────────────────────────────┘
 ```
 
-Qdrant nằm sau Compose profile `knowledge`, không phải dependency của v1 mặc
-định và không có `seed-knowledge`; v2 published corpus/index nằm trong
+Qdrant nằm sau Compose profile `knowledge`, không phải dependency mặc định và
+không có `seed-knowledge`; V2 published corpus/index nằm trong
 PostgreSQL. Helm production mặc định dùng external
 PostgreSQL/Redis; kind dùng dependency nội bộ, model `off`, knowledge
 `disabled`, migration và snapshot bootstrap. Cả hai profile Helm giới hạn một
@@ -90,16 +93,16 @@ và external monitoring là trách nhiệm của deployment.
 
 | Component | Trách nhiệm | Failure/grounding boundary |
 | --- | --- | --- |
-| HTTP Gateway | Auth, rate limit, correlation, v1/v2 JSON/SSE, timeout | Stable v1 envelope; v2 owner-bound resources |
+| HTTP Gateway | Auth, rate limit, correlation, v2 JSON/SSE, timeout | V2 owner-bound resources; gated Phase 1 fixture |
 | Intent Router | Book-only intent/entity extraction | Non-book request → `general.unsupported`; model entity phải extractive |
 | Planner | Biên dịch intent thành authorized DAG | Model chỉ đề xuất capability; Python kiểm tra policy/dependency |
 | Executor | Chạy ready steps đồng thời, bind upstream IDs | Exception thành typed safe error; giữ thứ tự candidate |
 | Domain Agents | Product, Review, Trust, Market | Chỉ gọi tool qua Agent Gateway và trả typed provenance |
 | Agent Gateway/Registry | Capability, permission, MCP routing, audit | Immutable allowlists; không log raw tool args/prompt |
-| PostgreSQL tools | Search/compare/review/cross-sectional aggregate và v2 durable reads | V1 đọc snapshot; v2 đọc rows/index đã publish và gắn version |
+| PostgreSQL tools | Search/compare/review/cross-sectional aggregate và v2 durable reads | Durable routes đọc rows/index đã publish và gắn version |
 | Model runtime | Routing/planning/fact selection/claim ordering | Structured schema, budget, circuit breaker, deterministic guard |
-| Shared state | V1 session/turn lock; v2 durable conversation/turn/action rows | Redis cho v1 production; PostgreSQL là authority cho v2 |
-| Knowledge boundary | Published v2 corpus/index resolver | PostgreSQL corpus/index được publish và pin theo turn; Qdrant chỉ là v1 seam |
+| Shared state | Gated fixture state; durable v2 conversation/turn/action rows | PostgreSQL là authority cho V2 |
+| Knowledge boundary | Published v2 corpus/index resolver | PostgreSQL corpus/index được publish và pin theo turn; Qdrant là adapter lịch sử |
 | Telemetry | Metrics + bounded redacted traces | Không ghi key, prompt, review text hoặc provider raw response |
 
 ## 4. Request lifecycle
@@ -108,44 +111,33 @@ và external monitoring là trách nhiệm của deployment.
 sequenceDiagram
     participant C as Client
     participant G as Gateway
-    participant O as Orchestrator
-    participant D as Book Domain Agents
-    participant A as Agent Gateway
+    participant V as Durable V2 services
+    participant K as Published knowledge store
     participant P as PostgreSQL
-    participant R as Redis
     participant L as Structured model runtime
 
-    C->>G: POST /api/v1/chat[/stream] + X-API-Key
+    C->>G: POST /api/v2/conversations, then /api/v2/chat[/stream]
     G->>G: authenticate, rate-limit, correlate
-    G->>R: validate session owner / acquire turn lock
-    G->>O: message + bounded session projection
-    O->>L: optional structured routing
-    L-->>O: intent + extractive entities
-    O->>O: compile/validate deterministic DAG
-    par ready steps
-        O->>D: immutable AgentMessage
-        D->>A: allowlisted tool request
-        A->>P: bounded snapshot read
-        P-->>A: book/review facts + provenance
-        A-->>D: typed result
-        D->>L: optional bounded fact-ID selection
-        L-->>D: selected fact IDs
-        D-->>O: AgentResult + safe errors + provenance
-    end
-    O->>O: deterministic status, score and claim catalog
-    O->>L: optional claim-ID ordering
-    L-->>O: ordered claim IDs
-    O->>R: update bounded state/memory
-    O-->>G: grounded orchestration result
-    G-->>C: JSON or status/token/terminal SSE events
+    G->>V: authorize mode and owner-bound resource
+    V->>P: resolve catalog/corpus/index bindings
+    V->>P: admit or load durable turn
+    V->>K: retrieve within pinned corpus/index
+    K->>P: authorized published evidence read
+    P-->>K: exact evidence and version metadata
+    K-->>V: bounded evidence
+    V->>L: optional structured plan and answer
+    L-->>V: schema-validated output
+    V->>P: persist operations, usage and terminal result
+    V-->>G: durable JSON result or stream events
+    G-->>C: JSON or progress/text_delta/terminal SSE events
 ```
 
-API v2 đi qua một lifecycle bền vững riêng: gateway xác thực mode và owner,
+API v2 đi qua một lifecycle bền vững: gateway xác thực mode và owner,
 ghi/admit conversation và client turn trong PostgreSQL, resolve catalog cùng
 published corpus/index, rồi claim turn trước provider/tool dispatch. Các step,
 lease, usage ledger, evidence binding và terminal result được lưu để retry hoặc
-resume đọc lại trạng thái đã settle. V2 không dùng transcript memory của v1 làm
-authority.
+resume đọc lại trạng thái đã settle. V2 không dùng transcript memory của fixture
+Phase 1 làm authority.
 
 Correlation IDs được truyền xuyên suốt. Model modes:
 
@@ -254,17 +246,18 @@ review. Xem [vòng đời dữ liệu](data.md).
 
 ### Redis và memory
 
-Production dùng Redis cho owner-bound session, active agent, last product,
-bounded turn storage và distributed turn lock. Mặc định TTL 3.600 giây, tối đa
-40 user/assistant entries mỗi session. Router/model hiện chỉ nhận message hiện
+Production settings yêu cầu Redis cho shared-state adapter của legacy runner;
+`POST /chat` bị tắt trong production. Durable API v2 ghi conversation, turn,
+action và memory vào PostgreSQL, không dùng Redis làm authority. Mặc định TTL
+legacy là 3.600 giây, tối đa 40 user/assistant entries mỗi session. Router/model nhận message hiện
 tại và structured projection (`active_agent`, `last_product_id`); free-text
 memory **chưa đưa vào routing hay aggregation**. Việc này tránh biến transcript
 chưa lọc thành prompt. Hệ thống **chưa có long-term user memory**.
 
 ### Knowledge/RAG
 
-Đường v1 vẫn giữ `KNOWLEDGE_BACKEND=disabled` cho local/Compose/Helm và Qdrant
-chỉ là adapter legacy opt-in. Đường v2 không lấy knowledge từ Qdrant: nó mở
+Historical Qdrant adapter mặc định tắt qua `KNOWLEDGE_BACKEND=disabled` và chỉ
+dùng khi opt-in. API v2 không lấy knowledge từ Qdrant: nó mở
 `PostgresKnowledgeStore`, resolve một snapshot đã publish theo
 `V2_CORPUS_VERSION_ID`/`V2_INDEX_MANIFEST_ID`, rồi pin corpus/index vào từng
 turn. Nếu thiếu binding, index chưa complete hoặc embedding model/dimension lệch,
@@ -280,15 +273,12 @@ không được ingest.
 
 - `/livez` chỉ phản ánh process.
 - `/readyz` kiểm tra runtime, DB round-trip/current production revision, Redis
-  nếu cấu hình và knowledge boundary. V1 mặc định trả `knowledge: "disabled"`;
-  v2 yêu cầu published snapshot đã resolve.
-- Orchestration timeout trả 504 retryable; concurrent turn cùng session trả 409.
-- Shared-state failure và all-agents-failed trả 503, không tạo fallback facts.
-- SSE giữ ordered status, optional grounded token deltas, heartbeat và đúng một
-  terminal `completed` hoặc `error`.
-- Public v1 request/response/event/error schema vẫn tương thích; API v2 có
-  contract riêng dưới `/api/v2` cho durable conversation, turn, action và
-  evidence responses.
+  nếu cấu hình và knowledge boundary. Resolve corpus/index V2 fail-closed khi
+  binding hoặc embedding contract sai.
+- V2 turn conflict trả 409; database/runtime unavailable trả lỗi retryable.
+- V2 SSE dùng `progress`, `text_delta` và một `terminal` event; client đọc lại
+  turn để khôi phục sau disconnect.
+- OpenAPI công bố `/api/v2` là versioned API duy nhất; `/api/v1` routes đã gỡ.
 
 ## 10. Security và observability
 
@@ -311,10 +301,10 @@ hạn hiện tại.
 | Book data | Test/eval snapshots đã clean, redact, quality-gate và hash |
 | Agents | Product/Review/Trust/Market chuyên biệt cho books |
 | Orchestrator | Authorized parallel DAG + deterministic/model-assisted modes |
-| API/UI | Authenticated v1 JSON/SSE compatibility + durable v2 JSON/SSE/UI |
+| API/UI | V2 JSON/SSE/UI; `/api/v1` routes retired |
 | Deployment | Compose + Helm production/kind, migration/snapshot bootstrap |
 | Evaluation | Historical v1/v2 lanes preserved; P7 frozen protocol and P8 additive held-out driver |
-| Knowledge/RAG | V1 disabled/Qdrant legacy seam; v2 published PostgreSQL corpus/index |
+| Knowledge/RAG | Historical Qdrant adapter disabled; V2 published PostgreSQL corpus/index |
 | Memory | TTL short-term state; chưa có long-term preference/summary/artifact memory |
 
 Thứ tự mở rộng an toàn: định nghĩa licensed/versioned corpus RAG → quality gate
