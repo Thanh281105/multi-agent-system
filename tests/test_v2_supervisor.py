@@ -97,6 +97,8 @@ class _ChoiceRuntime:
         self,
         payload: dict[str, object] | None = None,
         error: BaseException | None = None,
+        *,
+        validate_output: bool = True,
     ) -> None:
         self.payload = payload
         self.error = error
@@ -104,18 +106,25 @@ class _ChoiceRuntime:
         self.last_input_text: str | None = None
         self.last_instructions: str | None = None
         self.last_max_output_tokens: int | None = None
+        self.last_schema: type[BaseModel] | None = None
+        self.validate_output = validate_output
 
     async def generate_structured(self, **kwargs: Any) -> StructuredModelResult[Any]:
         self.calls += 1
         self.last_input_text = kwargs["input_text"]
         self.last_instructions = kwargs["instructions"]
         self.last_max_output_tokens = kwargs["max_output_tokens"]
+        self.last_schema = kwargs["schema"]
         if self.error is not None:
             raise self.error
         schema = kwargs["schema"]
         assert self.payload is not None
         return StructuredModelResult(
-            value=schema.model_validate(self.payload),
+            value=(
+                schema.model_validate(self.payload)
+                if self.validate_output
+                else self.payload
+            ),
             metadata=_metadata(),
         )
 
@@ -1764,7 +1773,8 @@ async def test_required_expert_rejects_unknown_fact_instead_of_succeeding() -> N
             {
                 "selected_fact_ids": ["fact_unknown"],
                 "selected_evidence_ids": [],
-            }
+            },
+            validate_output=False,
         ),  # type: ignore[arg-type]
         runtime_mode="required",
         model="test-model",
@@ -1774,6 +1784,20 @@ async def test_required_expert_rejects_unknown_fact_instead_of_succeeding() -> N
             DurableExecutionError, match="expert_selection_not_authorized"
         ):
             await reasoner.enrich(deterministic)
+
+    schema = reasoner.runtime.last_schema
+    assert schema is not None
+    schema_fields = schema.model_json_schema()["properties"]
+    _, allowed_fact_ids, allowed_evidence_ids = _expert_model_input(deterministic)
+    for field_name, allowed_ids in (
+        ("selected_fact_ids", allowed_fact_ids),
+        ("selected_evidence_ids", allowed_evidence_ids),
+    ):
+        field_schema = schema_fields[field_name]
+        if allowed_ids:
+            assert field_schema["items"]["enum"] == sorted(allowed_ids)
+        else:
+            assert field_schema["maxItems"] == 0
 
 
 @pytest.mark.asyncio

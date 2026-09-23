@@ -1191,8 +1191,9 @@ def _acquire_journal_lock(path: Path) -> Any:
         if os.name == "nt":
             import msvcrt
 
+            msvcrt_module: Any = msvcrt
             handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            msvcrt_module.locking(handle.fileno(), msvcrt_module.LK_NBLCK, 1)
         else:
             import fcntl
 
@@ -1211,8 +1212,9 @@ def _release_journal_lock(handle: Any) -> None:
         if os.name == "nt":
             import msvcrt
 
+            msvcrt_module: Any = msvcrt
             handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            msvcrt_module.locking(handle.fileno(), msvcrt_module.LK_UNLCK, 1)
         else:
             import fcntl
 

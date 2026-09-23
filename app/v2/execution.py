@@ -10,9 +10,9 @@ from contextlib import nullcontext
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from time import monotonic
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
-from pydantic import Field, model_validator
+from pydantic import Field, create_model, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -192,7 +192,7 @@ class ModelRuntimeExpertReasoner:
                 model=self.model,
                 instructions=_EXPERT_MODEL_INSTRUCTIONS,
                 input_text=input_text,
-                schema=ExpertEvidenceSelection,
+                schema=_bounded_expert_selection_schema(fact_ids, evidence_ids),
                 max_output_tokens=_EXPERT_MODEL_OUTPUT_BOUND,
                 reasoning_effort=self.reasoning_effort,
             )
@@ -1804,6 +1804,39 @@ def _runtime_from_durable_metadata(
         fallback_reasons=fallback.fallback_reasons,
         knowledge_retrievals=knowledge,
         draft_repairs=repairs,
+    )
+
+
+def _bounded_expert_selection_schema(
+    fact_ids: frozenset[str],
+    evidence_ids: frozenset[str],
+) -> type[ExpertEvidenceSelection]:
+    """Constrain model-authored selectors to the IDs in this request's catalog."""
+
+    def selector_field(ids: frozenset[str]) -> tuple[Any, Any]:
+        if not ids:
+            return (
+                tuple[StableId, ...],
+                Field(default=(), max_length=0),
+            )
+        json_schema_extra: Any = {"items": {"type": "string", "enum": sorted(ids)}}
+        return (
+            tuple[StableId, ...],
+            Field(
+                default=(),
+                max_length=8,
+                json_schema_extra=json_schema_extra,
+            ),
+        )
+
+    return cast(
+        type[ExpertEvidenceSelection],
+        create_model(
+            "BoundExpertEvidenceSelection",
+            __base__=ExpertEvidenceSelection,
+            selected_fact_ids=selector_field(fact_ids),
+            selected_evidence_ids=selector_field(evidence_ids),
+        ),
     )
 
 

@@ -23,7 +23,7 @@ Repository có ba lane cần giữ tách biệt:
 | --- | --- | --- |
 | v1 scripted/reference | Compatibility regression trên catalog/review snapshot | Đã có evidence lịch sử |
 | v2 paired | Historical deterministic/model-assisted comparison với `tiki_books_vi_28_v1` | Đã có protocol/capture lịch sử; không dùng làm P7/P8 result |
-| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | Historical corrected P7/P8 preserved; source remediation requires an unstarted successor P7, then successor P8 |
+| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7 successor v5 completed; P8 successors v6-v9 are preserved terminal partials; current source remediation needs a fresh source-bound P7 pilot before official live evidence |
 
 ## 2. Frozen inputs và provenance
 
@@ -305,6 +305,66 @@ successors is `10.387962730 USD` known and `0.016542090 USD` unknown; these are
 not v9-only costs. Append-only checkpoints cannot redispatch terminal cells, so
 none of these runs is scored, calibrated, judge-complete or publishable.
 No calibration/judge journal, final result or paired metric exists yet.
+
+Các failed cells của v9 được ghi lại để truy vết:
+
+| Case | Variant | Repetition | Safe failure code |
+| --- | --- | ---: | --- |
+| `held_knowledge_source_04` | `ma_adaptive_rag` | 2 | `attempt_timeout_limit_exceeded` |
+| `held_multi_expert_09` | `ma_adaptive_no_rag` | 2 | `model_response_incomplete` |
+| `held_multi_expert_10` | `sa_shared_tools_rag` | 0 | `model_response_incomplete` |
+| `held_multi_expert_10` | `ma_fixed_rag` | 0 | `model_response_invalid` |
+| `held_multi_expert_10` | `ma_adaptive_no_rag` | 2 | `expert_selection_not_authorized` |
+| `held_multi_expert_12` | `ma_adaptive_rag` | 0 | `expert_selection_not_authorized` |
+| `held_shopping_merchant_02` | `sa_shared_tools_rag` | 1 | `model_response_invalid` |
+| `held_shopping_merchant_02` | `ma_adaptive_no_rag` | 2 | `model_response_invalid` |
+
+### Source remediation status — 2026-09-23
+
+The current working tree makes provider structured-response parse/validation
+errors retryable within the frozen `max_retries=1` budget. Expert-selection
+schemas now enumerate only fact and evidence IDs present in that request; the
+existing local authorization check remains fail-closed. The 18-second provider
+attempt cap is unchanged. Regression verification passed `105` tests across
+`test_model_runtime.py` and `test_v2_supervisor.py`; Ruff and mypy passed for the
+changed modules.
+
+P8 v9 is immutable, and the current P8 runner validates only the complete
+`60 × 4 × 3` schedule; its append-only checkpoint does not redispatch terminal
+cells. The change also alters source-bound P7 protocol inputs, so the official
+P8 validator reports `package7_protocol_hash_drift` until a fresh source-bound
+P7 successor pilot, protocol and repeat decision are frozen. No post-fix P8
+benchmark result is available; the diagnostic below does not change v9's counts.
+
+### Diagnostic-only replay attempts — 2026-09-23
+
+All eight v9 failed prompts and fixtures were replayed against isolated
+PostgreSQL clones. Since the generic runner binds each schedule row to a frozen
+P7 pilot case, the five distinct held-out case IDs and workgroups were mapped to
+pilot aliases; original user turns, identity and sandbox fixtures, variants,
+and repetitions were preserved. Both runs are strictly diagnostic and are not
+eligible for P8 scoring. The v9 schedule, checkpoint, and report remain
+unchanged.
+
+The first attempt, `run_p8_failed_diag_20260923_a`, ended with `0/8` successful
+observations: four cells returned `model_connection_failed`, then four returned
+`model_circuit_open`. It recorded zero tokens and zero known cost, with
+`0.05446350 USD` left as unresolved reservation evidence. After explicit user
+approval to send the held-out prompts and fixtures to the model provider, the
+second attempt, `run_p8_failed_diag_20260923_b`, completed `8/8` observations
+with no failed cells. It recorded 26 provider attempts, 48,199 input tokens,
+9,617 output tokens, `0.07320495 USD` known cost, and zero unresolved
+reservation; every cell remained under the frozen `0.25 USD` cap and total
+known cost stayed below the diagnostic `2.00 USD` limit.
+
+Checkpoints and safe summaries are in
+`output/evaluation-v3/failed-cell-diagnostic-20260923-a/` and
+`output/evaluation-v3/failed-cell-diagnostic-20260923-b/`. The successful
+diagnostic artifacts are local-only and excluded from Git. The successful
+diagnostic receipts do not repair v9's terminal failures or qualify as official
+P8 evidence because the schedule uses pilot aliases. A fresh source-bound P7
+pilot, protocol and repeat decision are still required before an official P8
+successor run. No benchmark conclusion is drawn from these diagnostic runs.
 
 Để đóng Package 8, phải có đủ các gate sau:
 

@@ -333,6 +333,24 @@ scoring, calibration, judge-complete hay benchmark-quality result. Các run
 `9efb06ceb5843f069f1e84e6f099ff57c5103b6a0167114db52e09d0bc24b394`. V9 còn 8
 fail-closed cells (timeout, unauthorized expert selection và structured model
 response errors); merchant fixture-binding failure không lặp lại sau source fix.
+Remediation hiện tại cho phép retry lỗi structured response trong giới hạn
+`max_retries=1` đã freeze và ràng buộc schema expert selection vào ID có trong
+request. Regression suite liên quan đã pass `105` tests. Official P8 replay vẫn
+cần protocol-bound P7 successor: thay đổi source làm lệch P7 protocol hash đã
+freeze, còn runner P8 chỉ chấp nhận ma trận đầy đủ và checkpoint v9 không
+dispatch lại cell terminal.
+
+Diagnostic-only replay ngày 2026-09-23 dùng hai clone PostgreSQL riêng; case
+ID/workgroup được ánh xạ sang pilot aliases, còn prompt/fixture, variant và
+repetition giữ nguyên. Lượt A không kết nối được (`4` `model_connection_failed`,
+`4` `model_circuit_open`, `0` token) và để lại `0.05446350 USD` reservation chưa
+xác định. Sau khi được phê duyệt gửi dữ liệu, lượt B hoàn tất `8/8` cells với
+`48,199` input và `9,617` output tokens; known cost `0.07320495 USD`, không có
+reservation chưa xác định. Cả hai là diagnostic-only, không phải P8 evidence;
+v9 và benchmark counts không đổi. Artifacts nằm trong
+`output/evaluation-v3/failed-cell-diagnostic-20260923-a/` và
+`output/evaluation-v3/failed-cell-diagnostic-20260923-b/`. Các artifacts
+evaluation này chỉ được giữ local và không đưa vào Git.
 `validate`, `dry-run` và `prepare` không gọi provider; `run`/`resume` và
 lifecycle `operate` chỉ được live khi truyền rõ `--allow-network`,
 `--database-url`; `operate` còn cần hard limit judge per-job và fail-closed khi
@@ -379,10 +397,14 @@ tests/                # offline regression + optional integration
   **Chưa có long-term** preference, summary hoặc artifact memory.
 - Rate limiter, trace ring và metrics aggregation nằm trong một process; scale
   nhiều replica cần distributed replacements.
-- Current held-out live-model evidence chỉ là terminal partial của protocol cũ;
-  P7 successor và P8 successor chưa chạy. Calibrated judge output, exact evidence
-  resolver run, completed analysis matrix, human review, load/soak, fairness/drift
-  và production HA vẫn chưa được xác minh.
+- Held-out live-model evidence hiện có là P7 successor v5 và các P8 successor
+  v6-v9; cả bốn P8 runs đều terminal partial. Source remediation mới cần P7
+  successor pilot và P8 run tiếp theo trước khi có thể xác nhận kết quả live
+  chính thức sau sửa. Diagnostic replay đã hoàn tất 8/8 sau sửa, nhưng dùng
+  pilot aliases nên không đủ điều kiện benchmark.
+  Calibrated judge output, exact evidence resolver run, completed analysis
+  matrix, human review, load/soak, fairness/drift và production HA vẫn chưa được
+  xác minh.
 
 Các giới hạn này là một phần của evidence contract, không phải footnote tùy
 chọn.

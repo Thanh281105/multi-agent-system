@@ -26,7 +26,7 @@ from openai import (
     InternalServerError,
     RateLimitError,
 )
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from app.shared.budget import (
     BudgetCancelledError,
@@ -773,6 +773,8 @@ class OpenAIModelRuntime:
 
     @staticmethod
     def _is_retryable(error: BaseException) -> bool:
+        if isinstance(error, (_ModelResponseError, ValidationError)):
+            return True
         if isinstance(
             error,
             (

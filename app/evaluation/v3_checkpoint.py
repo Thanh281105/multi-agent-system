@@ -706,7 +706,8 @@ class _ExclusiveFileLock:
             if os.name == "nt":
                 import msvcrt
 
-                msvcrt.locking(self.fd, msvcrt.LK_NBLCK, 1)
+                msvcrt_module: Any = msvcrt
+                msvcrt_module.locking(self.fd, msvcrt_module.LK_NBLCK, 1)
             else:
                 import fcntl
 
@@ -730,7 +731,8 @@ class _ExclusiveFileLock:
                     if os.name == "nt":
                         import msvcrt
 
-                        msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+                        msvcrt_module: Any = msvcrt
+                        msvcrt_module.locking(fd, msvcrt_module.LK_UNLCK, 1)
                     else:
                         import fcntl
 

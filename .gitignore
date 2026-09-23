@@ -20,3 +20,5 @@ data/snapshots/tiki-books-v4-full/
 .ai-router/
 output/playwright/
 output/evaluation-v2/
+output/evaluation-v3/
+.local-pg-p6/
