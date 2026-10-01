@@ -317,14 +317,18 @@ legacy và không hỗ trợ current Tiki claim.
 Schema judge hiện khóa `SemanticMetricVerdictV3.metric` vào đúng sáu metric
 semantic. Chẩn đoán P8 v11 cho thấy schema cũ cho phép cả chín metric enum, khiến
 model trả ba metric deterministic thay cho các metric semantic còn thiếu. Fix
-được commit riêng `d030f9a`; protocol mới do `v3_cli validate` tính là
-`aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`.
+được commit riêng `d030f9a`; protocol hiện tại do `v3_cli validate` xác nhận là
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`.
 
-P7 v9 preflight hợp lệ: 36 cells (4 warmup, 32 measurements), schedule SHA-256
-`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`. Live P7
-v9 và repeat freeze chưa chạy; P7 v8 (`a249d051…`) cùng P8 v11 không còn current
-protocol evidence sau schema fix. Auto-review chặn dispatch P7 vì phê duyệt trước
-chỉ nêu payload judge P8; yêu cầu phê duyệt live P7/P8 đang chờ.
+P7 successor v9 đã chạy live một phần theo protocol trên, schedule SHA-256
+`6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`: `13/36`
+cell hoàn tất, `23` lỗi và còn thiếu. Bốn cell gặp `model_connection_failed`
+(8 provider attempts, `$0.03670500` giữ ở unknown); 19 cell sau đó bị
+`model_circuit_open`. Repeat decision chưa freeze. Resume bị automatic review
+chặn vì cần phê duyệt egress riêng cho query RAG tới OpenAI Embeddings API
+(`text-embedding-3-small`). Phạm vi Embeddings chỉ gồm query; không gửi corpus
+documents.
+Preflight cũ `aaa7026…`/`0b218d30…` đã được thay bằng hash của live run hiện tại.
 
 P8 v11 tại `output/evaluation-v3/heldout-successor-v11` có SUT coverage đủ
 `720/720`, không có cell failed, missing, ambiguous, pending hoặc orphan; schedule
@@ -334,22 +338,25 @@ Tuy nhiên `operate` không hoàn tất: 4 calibration response không hợp sch
 scoring, paired metrics hoặc publication. Sau schema fix, cần P7 v9 và P8 v12
 mới; các run v6–v11 và diagnostic `8/8` pilot aliases chỉ là lịch sử.
 
-Ledger snapshot DB clone hiện tại ghi known `$13.59111461`, unknown `$0.14897034`,
-reserved `$0`, còn `$86.25991505` trên cap `$100`. Known judge attempts mới là
+Ledger snapshot DB clone hiện tại ghi known `$13.59111461`, unknown `$0.18567534`,
+reserved `$0`, còn `$86.22321005` trên cap `$100`. Known judge attempts là
 `$0.02340150` (8 response attempts của retry v11) và `$0.00588450` (2 attempts
-của chẩn đoán schema); unknown sandbox attempts `$0.06824250` vẫn được tính đủ.
-Unknown còn gồm carry-forward `$0.07100559` (trong đó diagnostic A `$0.05446350`
-thuộc clone `p8_failed_diag_20260923_a`, thiếu SQL rows gốc) và P8 v10
-`$0.00972225`. Không có active/pending reservation. Audit local-only nằm tại
+của chẩn đoán schema); unknown gồm 8 sandbox-blocked v11 judge attempts
+`$0.06824250`, 8 P7 v9 connection-failed attempts `$0.03670500`, carry-forward
+`$0.07100559` (trong đó diagnostic A `$0.05446350` thuộc clone
+`p8_failed_diag_20260923_a`, thiếu SQL rows gốc) và P8 v10 `$0.00972225`.
+Không có active/pending reservation. Audit local-only nằm tại
 `output/evaluation-v3/current-machine-ledger/ledger-reconciliation-20261001.json`.
 
 Focused suites pass: judge schema `8`, benchmark CLI/P8 bindings `21`, citation
 reporting/calibration `13`, executor/runner/supervisor/merchant `133` tests.
-GitHub Actions xanh gần nhất là CI run
-[`35842312436`](https://github.com/Thanh281105/multi-agent-system/actions/runs/35842312436)
-trên `main` SHA `480eba50ed6bd5c32e6b6308faa907bb4c674123` ngày 2026-09-23; nó
-không bao gồm các commit local trên `thanh-v3`, nên CI cho revision hiện tại
-chưa được xác nhận.
+GitHub Actions run `36844660998` on SHA `470d1817ccb8c2294dec7aace9319a69e2c93d78`
+failed at Type-check with eight mypy errors; the suite did not start. Commit
+`802369b` fixes them. Full CI run
+[`36846265660`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36846265660)
+passed on SHA `802369b263b19da7ec4388605ef38cd19da2bc2f`, including the offline
+suite and deployment smoke checks. The five-file documentation sync after that
+code commit is local and has not been included in this CI run.
 
 ## Cấu trúc repository
 

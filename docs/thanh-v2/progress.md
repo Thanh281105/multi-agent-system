@@ -10,7 +10,7 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | 4 — supervisor, continuation, deduplication, grounding | Committed `93c7cf7` | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
 | 5 — history, memory, sandbox actions | Gate passed | 703 tests pass; real PostgreSQL recovery/concurrency, clock skew and exact v1 OpenAPI verified. |
 | 6 — API and frontend | Gate passed | JSON/SSE/UI consistency; v1 regression; PostgreSQL-backed v2 boundary |
-| 7 — evaluation v3, gold, pilot, freeze | P7 v9 preflight complete; live run and repeat freeze pending | Current protocol `aaa7026…`; 36-cell dry-run schedule `0b218d30…`; auto-review requires separate approval for P7 benchmark payloads |
+| 7 — evaluation v3, gold, pilot, freeze | P7 v9 live partial; repeat freeze pending | Protocol `36ac8f…`; schedule `6817e8…`; 13/36 complete, resume awaits Embeddings API approval |
 | 8 — benchmark, error analysis, final checks/docs | P8 v11 SUT complete; operate needs current P7/P8 | v11 reached 720/720, but judge calibration failed under the old schema; P8 v12, scoring and publication remain pending |
 
 ## Execution rules
@@ -19,11 +19,13 @@ Current continuation: [P02 and successor handoff](p02-successor-handoff.md).
 P02 now supports grounded multi-offer reads plus an independently server-bound
 proposal. The P7 v5 protocol
 `28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c` is
-historical. The semantic-only judge schema fix produces current protocol
-`aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`;
-`run_p7_successor_v9` local preflight builds 36 cells with schedule SHA
-`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`. P7 v9
-has not run live or frozen a repeat decision. P8 v6-v9 remain terminal partial
+historical. The current validated protocol is
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`;
+`run_p7_successor_v9` ran 36 cells on schedule
+`6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`, with 13
+complete and 23 failed/missing. Four connection-failed cells left eight unknown
+provider attempts; 19 later cells hit the open circuit. No repeat decision is
+frozen; resume awaits Embeddings API authorization. P8 v6-v9 remain terminal partial
 history; P8 v11 reached 720/720 SUT cells but judging failed under the previous
 schema. P8 v12 is required before scoring/publication. The final gate remains
 open. Targeted PostgreSQL executor
@@ -505,23 +507,25 @@ The global repeat decision selects three repeats, with pilot effective cost
 No completed historical cell is replayed or reused as successor evidence.
 
 The current source-bound protocol from `v3_cli validate` is
-`aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`.
-`dry-run --run-id run_p7_successor_v9` builds 36 cells with schedule SHA
-`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`, but this
-does not freeze P7 evidence or a repeat decision. The checkout `.env` still
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`.
+The earlier local preflight schedule `0b218d30…` was superseded by the P7 v9
+live schedule `6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`.
+The run is partial and has no frozen repeat decision. The checkout `.env` still
 points to SQLite. The isolated PostgreSQL ledger currently records
-`$13.59111461` known and `$0.14897034` unknown (`$13.74008495` encumbered), with
-`$86.25991505` remaining under the `$100` cap; reserved, active and pending are
+`$13.59111461` known and `$0.18567534` unknown (`$13.77678995` encumbered), with
+`$86.22321005` remaining under the `$100` cap; reserved, active and pending are
 zero. Unknown includes carry-forward `$0.07100559`, P8 v10 timeout `$0.00972225`,
-and eight sandbox-blocked v11 judge attempts `$0.06824250`. Diagnostic A's
+eight sandbox-blocked v11 judge attempts `$0.06824250`, and eight P7 v9
+connection-failed attempts `$0.03670500`. Diagnostic A's
 `$0.05446350` remains unverified against its original SQL ledger and is included
 as unknown. The audit record and credentials are in
-`output/evaluation-v3/current-machine-ledger/`. Auto-review rejected live P7
-because the existing approval covered P8 judge requests, not P7 benchmark
-payloads; separate approval is needed before dispatch. GitHub Actions CI run
-`35842312436` passed on `main` at SHA
-`480eba50ed6bd5c32e6b6308faa907bb4c674123`; it does not include local
-`thanh-v3` commits.
+`output/evaluation-v3/current-machine-ledger/`. Automatic review rejected P7
+resume pending explicit approval for query text sent to OpenAI Embeddings API;
+Responses API payloads are approved. GitHub Actions run `36844660998` failed at
+Type-check on SHA `470d1817…`. Commit `802369b` fixes the errors; full CI run
+[`36846265660`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36846265660)
+passed on SHA `802369b263b19da7ec4388605ef38cd19da2bc2f`. The current documentation
+sync is local and was not included in that run.
 
 The merchant remediation keeps ambiguous multi-product price mutations safe: it
 returns a clarification instead of choosing a target or fabricating a proposal.

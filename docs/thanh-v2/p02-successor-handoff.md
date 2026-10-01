@@ -7,24 +7,28 @@ completed and froze its repeat decision. P8 v6-v9 produced terminal partial
 checkpoints; v11 later completed all 720 SUT cells but its `operate` calibration
 failed under an outdated judge schema. No score or publication is claimed.
 
-Current continuation status (2026-10-01): the semantic-only judge schema fix
-produces protocol SHA-256
-`aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`. P7 v9
-local preflight builds 36 cells with schedule SHA
-`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`; it has not
-run live or frozen a repeat decision. P7 v5 (`28621f…`) and v8 (`a249d0…`) remain
-historical. Auto-review rejected the P7 dispatch because the existing approval
-covered P8 judge payloads, not P7 benchmark payloads; separate approval is
-required before live P7. The current isolated PostgreSQL ledger records
-`$13.59111461` known and `$0.14897034` unknown (`$13.74008495` encumbered), with
-`$86.25991505` remaining under the `$100` cap and no reserved/active/pending
-amounts. Diagnostic A's `$0.05446350` remains unverified against its original
+Current continuation status (2026-10-01): the validated current protocol is
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. P7 v9 ran
+36 cells on schedule
+`6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`; 13 completed,
+23 failed/missing (four `model_connection_failed`, 19 `model_circuit_open`). Eight
+provider attempts remain unknown at `$0.03670500`; repeat decision is not frozen.
+P7 v5 (`28621f…`) and v8 (`a249d0…`) remain historical. Responses API payloads
+are approved; automatic review blocked resume pending separate authorization for
+RAG query text sent to OpenAI Embeddings API (`text-embedding-3-small`). The
+current isolated PostgreSQL ledger records `$13.59111461` known and `$0.18567534`
+unknown (`$13.77678995` encumbered), with `$86.22321005` remaining under the
+`$100` cap and no reserved/active/pending amounts. Diagnostic A's `$0.05446350`
+remains unverified against its original
 SQL ledger and is carried as unknown. Historical attempt rows were not
 reconstructed. Audit/credentials are in
 `output/evaluation-v3/current-machine-ledger/`; `.env` still points to SQLite.
-GitHub Actions run `35842312436` passed on `main` at SHA
-`480eba50ed6bd5c32e6b6308faa907bb4c674123`; it does not include local
-`thanh-v3` commits.
+GitHub Actions run `36844660998` failed at Type-check on pushed SHA
+`470d1817ccb8c2294dec7aace9319a69e2c93d78`. Commit `802369b` fixes the eight
+mypy errors; full CI run
+[`36846265660`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36846265660)
+passed on SHA `802369b263b19da7ec4388605ef38cd19da2bc2f`. The current docs-only
+sync is local and was not included in that CI run.
 
 ## Implemented boundary
 
@@ -74,7 +78,7 @@ the supervisor/grounding source files:
   held-out SUT cost `5.91510600 USD`.
 
 The P8 protocol guards now bind to current source protocol
-`aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`. P8 v11's
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. P8 v11's
 720/720 SUT run used the previous judge schema and is not reusable as current
 evidence; v12 has not been created. The v5 protocol/repeat decision is not
 reused.
@@ -114,9 +118,11 @@ runtime payloads and dispatch behavior are unchanged.
    admitted nine metric names while the semantic validator accepted six. The
    schema-only fix is committed as `d030f9a`; a known-cost retry batch was
    `$0.02340150`, and the diagnostic scope was `$0.00588450`. Eight earlier
-   sandbox-blocked attempts remain unknown at `$0.06824250`. P7 v9 must run and
-   freeze its repeat decision before P8 v12 can reach exact evidence, calibration,
-   blind judging and report publication.
+   sandbox-blocked attempts remain unknown at `$0.06824250`; P7 v9 adds eight
+   connection-failed attempts at `$0.03670500`. The current P7 checkpoint is
+   partial, and repeat freeze awaits authorization to resume its RAG query path.
+   P8 v12 must follow the frozen repeat decision before exact evidence,
+   calibration, blind judging and report publication.
 
 The exact evidence boundary is now receipt-bound and fail-closed.
 `ImmutableBenchmarkEvidenceResolverV3` reopens knowledge, canonical
@@ -126,9 +132,9 @@ reconstructed from hash-pinned public assets. Ranked catalog records, oversized
 review samples, and mutated sandbox state still stop scoring with a typed error.
 Do not fabricate source text from the answer, title or gold, relabel sandbox
 citations as catalog citations, or soften a provenance failure. This does not
-make `operate` ready to complete: P7 v9 must first freeze its repeat decision,
-then P8 v12 must reach complete SUT coverage before evidence, calibration,
-judging and publication can run.
+make `operate` ready to complete: P7 v9 must first resume, finish and freeze its
+repeat decision, then P8 v12 must reach complete SUT coverage before evidence,
+calibration, judging and publication can run.
 
 On any failure, classify the error and inspect its checkpoint before changing
 code. Fix only the demonstrated cause; preserve completed cells and bind any

@@ -365,12 +365,14 @@ fingerprint. Không dùng nó trên dữ liệu cần giữ.
 Handoff hiện hành sau sửa P02 nằm tại
 [P02 successor handoff](thanh-v2/p02-successor-handoff.md). P7 v5 (`28621f…`)
 và v8 (`a249d0…`) là historical. Sau khi giới hạn semantic judge schema,
-source hiện tính protocol `aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`.
-P7 v9 local preflight tạo 36 cells với schedule SHA
-`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`; live
-dispatch và repeat freeze đang chờ phê duyệt riêng sau khi auto-review chặn
-payload P7. P8 v6-v9 là partial; v11 đạt 720/720 SUT nhưng operate không freeze
-calibration do judge schema cũ. P8 v12 cần protocol mới. Các hash
+source hiện tính protocol `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`.
+P7 v9 live run dùng schedule SHA
+`6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`, đạt `13/36`
+cell rồi dừng partial: 4 `model_connection_failed`, 19 `model_circuit_open`, chưa
+freeze repeat decision. Resume chờ phê duyệt riêng cho query RAG qua OpenAI
+Embeddings API sau khi automatic review chặn lệnh. P8 v6-v9 là partial; v11 đạt
+720/720 SUT nhưng operate không freeze calibration do judge schema cũ. P8 v12
+cần protocol mới. Các hash
 `315eff…`/`c8a4…`/`f37e…` bên dưới là lịch sử trước sửa shopper fixture và
 không dùng làm input mới.
 P8 exact evidence hiện đã có authority bất biến cho merchant inventory,
@@ -489,15 +491,16 @@ semantic schema và 28 job bị circuit breaker dừng; không có calibration f
 blind score hoặc report. Dùng `partial-report` để persist hoặc tái xác thực
 coverage/ledger/checkpoint hash; lệnh local-only và không mở live runtime.
 
-Ledger PostgreSQL hiện tại còn `$13.59111461` known và `$0.14897034` unknown
-(`$13.74008495` encumbered), `$86.25991505` remaining dưới cap `$100`; reserved,
+Ledger PostgreSQL hiện tại còn `$13.59111461` known và `$0.18567534` unknown
+(`$13.77678995` encumbered), `$86.22321005` remaining dưới cap `$100`; reserved,
 active và pending đều bằng 0. Unknown gồm carry-forward `$0.07100559`, P8 v10
-timeout `$0.00972225`, và tám sandbox-blocked v11 judge attempts `$0.06824250`.
+timeout `$0.00972225`, tám sandbox-blocked v11 judge attempts `$0.06824250`, và
+tám P7 v9 connection-failed attempts `$0.03670500`.
 Known additions gồm v11 retry `$0.02340150` và schema diagnostic `$0.00588450`.
 Diagnostic A `$0.05446350` vẫn chưa đối chiếu được với SQL ledger gốc, nên giữ
 ở unknown. Ledger audit/credentials nằm trong
 `output/evaluation-v3/current-machine-ledger/`, không commit; `.env` vẫn trỏ
-SQLite. Auto-review chặn P7 live vì approval hiện có chỉ bao phủ P8 judge
-requests, không bao phủ P7 benchmark payload. Cần phê duyệt riêng trước P7 v9;
-P8 v12/operate chỉ sau repeat decision đã freeze, đủ coverage, exact evidence,
-calibration và judging pass.
+SQLite. Responses API use is approved; automatic review blocked P7 resume pending
+separate authorization for OpenAI Embeddings API query text. P7 v9 must complete
+and freeze its repeat decision before P8 v12/operate can proceed through full
+coverage, exact evidence, calibration and judging.

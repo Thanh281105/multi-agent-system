@@ -189,13 +189,15 @@ quả.
 Protocol `c8a4…` và v4 artifacts bên dưới là lịch sử trước sửa P02. P7 v5
 (`28621f…`) và v8 (`a249d0…`) cũng là lịch sử. Chẩn đoán `operate` v11 cho
 thấy JSON schema cho phép cả chín evaluation metric trong khi semantic validator
-chỉ nhận sáu. Commit `d030f9a` giới hạn metric enum; `v3_cli validate` hiện tính
-protocol `aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`.
-P7 v9 preflight tạo 36 cells với schedule SHA
-`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`, nhưng live
-dispatch và repeat freeze đang chờ phê duyệt cụ thể sau khi auto-review chặn
-payload P7 tới OpenAI. P8 v11 SUT đạt 720/720, song judge/report chưa hoàn tất;
-cần P7 v9 và P8 v12 dưới schema mới.
+chỉ nhận sáu. Commit `d030f9a` giới hạn metric enum; `v3_cli validate` hiện xác nhận
+protocol `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`.
+P7 successor v9 đã chạy live một phần với schedule SHA
+`6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`: `13/36`
+cell hoàn tất, 4 gặp `model_connection_failed`, 19 bị `model_circuit_open`; repeat
+decision chưa freeze. Preflight `aaa7026…`/`0b218d30…` là snapshot cũ và đã được
+thay thế. Resume hiện bị automatic review chặn trong khi chờ phê duyệt riêng cho
+query RAG qua OpenAI Embeddings API (`text-embedding-3-small`). P8 v11 SUT đạt
+720/720 nhưng judge/report chưa hoàn tất; cần P7 v9 và P8 v12 dưới schema mới.
 
 Historical corrected P7 freeze artifact do operator tạo tại
 `output/evaluation-v3/pilot-corrected-v3/`; đây là output local không được commit
@@ -228,11 +230,13 @@ projected held-out SUT cost là `5.91510600 USD`. P8 successors dùng đúng
 protocol/repeat decision này trong output riêng; không resume hay ghép cells
 vào các runs lịch sử.
 
-Current-source P7 dry-run `run_p7_successor_v9` tạo 36 cells (4 warmup, 32
-measurements) với schedule SHA
-`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`. Đây mới là
-local preflight, không phải pilot evidence; repeat count mới chỉ được freeze sau
-khi P7 live run hoàn tất.
+The initial local preflight for `run_p7_successor_v9` produced schedule SHA
+`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`. The live
+checkpoint now binds protocol `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`
+and schedule `6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`.
+It is partial (`13/36` completed, `23` failed/missing); four connection-failed
+cells made eight unknown provider attempts, and 19 later cells hit the open
+circuit. No repeat decision is frozen; resume awaits Embeddings API authorization.
 
 Remediation P02 hiện hành đọc/ground giá nhiều offer rồi tạo proposal nếu có
 target độc lập do server xác định. Thiếu target vẫn trả clarification an toàn.
@@ -383,12 +387,11 @@ attempt cap is unchanged. Regression verification passed `105` tests across
 changed modules.
 
 P8 v6-v11 checkpoints remain immutable; none is resumed or joined into a new
-run. The semantic-only judge schema binds protocol
-`aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`. P7 v9
-live is pending separate authorization: the existing approval covered P8 judge
-requests, while auto-review rejected sending P7 benchmark payloads. P8 v12 must
-follow the frozen P7 repeat decision; any model-bound P8 SUT request also needs
-its applicable outbound authorization.
+run. The current source protocol is
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. Responses
+API payloads are approved. P7 v9 and P8 v12 RAG cells also send query text to
+OpenAI Embeddings API; its separate authorization is pending after automatic
+review rejected the resume. P8 v12 must follow the frozen P7 repeat decision.
 
 ### Diagnostic-only replay attempts — 2026-09-23
 
@@ -429,21 +432,20 @@ run. No benchmark conclusion is drawn from these diagnostic runs.
 
 The current machine has an isolated PostgreSQL ledger for successor work; the
 checkout `.env` still points to SQLite. Its latest audited balance is
-`$13.59111461` known and `$0.14897034` unknown, with `$0` reserved, active or
-pending and `$86.25991505` remaining under the `$100` cap. The unknown amount
-includes the carried-forward `$0.07100559`, P8 v10 timeout `$0.00972225`, and
-eight sandbox-blocked v11 judge attempts `$0.06824250`. Known additions include
-the v11 judge retry (`$0.02340150`) and schema diagnostic (`$0.00588450`). The
-diagnostic A reservation `$0.05446350` remains unverified against its original
-SQL ledger and is still carried as unknown. Historical attempt rows were not
-reconstructed. Local ledger credentials and the audit record are under
+`$13.59111461` known and `$0.18567534` unknown, with `$0` reserved, active or
+pending and `$86.22321005` remaining under the `$100` cap. Unknown includes the
+carried-forward `$0.07100559`, P8 v10 timeout `$0.00972225`, eight sandbox-blocked
+v11 judge attempts `$0.06824250`, and eight P7 v9 connection-failed attempts
+`$0.03670500`. Known additions include the v11 judge retry (`$0.02340150`) and
+schema diagnostic (`$0.00588450`). Diagnostic A's `$0.05446350` remains
+unverified against its original SQL ledger and is carried as unknown. Local
+ledger credentials and the audit record are under
 `output/evaluation-v3/current-machine-ledger/` and excluded from Git.
 
-P7 v9 remains a local preflight only. Automatic approval rejected the live P7
-dispatch because the existing approval covered P8 judge requests, not P7
-benchmark payloads. A separate authorization is required before P7 v9 sends
-benchmark data to OpenAI; official P8 v12 and `operate` remain downstream of
-the frozen P7 repeat decision and complete P8 coverage.
+P7 v9 is partial at `13/36`; repeat freeze has not run. Automatic review blocked
+resume pending explicit approval for RAG query text sent to OpenAI Embeddings
+API. Official P8 v12 and `operate` remain downstream of the frozen P7 repeat
+decision and complete P8 coverage.
 
 Để đóng Package 8, phải có đủ các gate sau:
 
