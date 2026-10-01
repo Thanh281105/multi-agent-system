@@ -178,11 +178,16 @@ class _ReceiptExactEvidenceResolver:
         authority: _ReceiptEvidenceAuthority,
     ) -> ResolvedExactEvidenceV3:
         catalog_review_source = None
-        if authority.reference.kind in {EvidenceKind.CATALOG, EvidenceKind.REVIEW}:
+        if authority.reference.kind in {
+            EvidenceKind.CATALOG,
+            EvidenceKind.REVIEW,
+            EvidenceKind.TRUST,
+        }:
             if self._catalog_review_source is None:
                 raise BenchmarkCLIError(
                     "generic_exact_authority_unavailable",
-                    "catalog or review evidence requires a configured immutable "
+                    "catalog, review, or trust evidence requires a configured "
+                    "immutable "
                     "exact authority",
                 )
             try:
@@ -194,7 +199,7 @@ class _ReceiptExactEvidenceResolver:
             except ValueError as exc:
                 raise BenchmarkCLIError(
                     getattr(exc, "code", "exact_evidence_resolution_failed"),
-                    "catalog or review source could not be reopened "
+                    "catalog, review, or trust source could not be reopened "
                     "under its authority",
                 ) from exc
         if authority.reference.kind not in {
@@ -202,6 +207,7 @@ class _ReceiptExactEvidenceResolver:
             EvidenceKind.SANDBOX,
             EvidenceKind.CATALOG,
             EvidenceKind.REVIEW,
+            EvidenceKind.TRUST,
         }:
             raise BenchmarkCLIError(
                 "generic_exact_authority_unavailable",
