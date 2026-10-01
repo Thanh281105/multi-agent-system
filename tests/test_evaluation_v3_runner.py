@@ -31,17 +31,21 @@ from app.evaluation.v3_protocol import (
 from app.evaluation.v3_runner import (
     EmbeddingCallEvidenceV3,
     EvaluationCaseV3,
+    EvaluationResourceLimitsV3,
     EvaluationUserTurnV3,
+    ExecutionAttributionV3,
     InitialStateResetReceiptV3,
     LedgerEventEvidenceV3,
     LedgerEventKindV3,
     ModelCallEvidenceV3,
     ObservationExecutionContextV3,
     ObservationExecutionFailureV3,
+    ObservationResourceLimitErrorV3,
     RetryEvidenceV3,
     SandboxFixtureAdapterV3,
     UserTurnExecutionRequestV3,
     UserTurnExecutionResultV3,
+    _enforce_resource_limits,
     execution_case_set_sha256_v3,
     execution_case_sha256_v3,
     initial_state_reset_receipt_v3,
@@ -54,6 +58,91 @@ from app.evaluation.v3_schedule import (
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT_PATH = PROJECT_ROOT / "evaluation" / "v3" / "experiment.v3.json"
+
+
+def _resource_limit_result(
+    *, output_tokens: int = 2_240, duration_seconds: float = 18.019608
+) -> UserTurnExecutionResultV3:
+    attribution = ExecutionAttributionV3(
+        run_id="run_resource_test",
+        canonical_turn_id="turn_resource_test",
+        execution_turn_id=f"eturn_{'a' * 64}",
+        source_turn_id="source_turn_test",
+    )
+    call = ModelCallEvidenceV3(
+        call_id="mcall_retry_test",
+        attribution=attribution,
+        model="gpt-5.4-mini-2026-03-17",
+        attempts=2,
+        input_tokens=200,
+        cached_input_tokens=0,
+        output_tokens=output_tokens,
+        reasoning_tokens=0,
+        total_tokens=200 + output_tokens,
+    )
+    return UserTurnExecutionResultV3(
+        attribution=attribution,
+        result_payload={"status": "completed"},
+        model_calls=(call,),
+        retry_events=(
+            RetryEvidenceV3(
+                retry_event_id="retry_retry_test",
+                attribution=attribution,
+                call_id=call.call_id,
+                retry_ordinal=1,
+            ),
+        ),
+        ledger_events=(
+            LedgerEventEvidenceV3(
+                ledger_event_id="ledger_retry_test",
+                attribution=attribution,
+                kind=LedgerEventKindV3.ZERO_COST,
+            ),
+        ),
+        peak_provider_concurrency=1,
+        max_attempt_duration_seconds=duration_seconds,
+        elapsed_seconds=20,
+    )
+
+
+def _resource_limits() -> EvaluationResourceLimitsV3:
+    return EvaluationResourceLimitsV3(
+        provider_concurrency=2,
+        max_generation_calls=10,
+        max_provider_attempts=16,
+        max_retries=1,
+        attempt_timeout_seconds=18.0,
+        turn_deadline_seconds=60.0,
+        per_turn_limit_usd="0.25",
+        max_input_tokens_per_generation=12_000,
+        max_output_tokens_per_generation=1_200,
+    )
+
+
+def test_retry_usage_is_bounded_per_provider_attempt_with_settlement_slack() -> None:
+    _enforce_resource_limits((_resource_limit_result(),), _resource_limits())
+
+
+def test_retry_usage_above_aggregate_attempt_bounds_is_rejected() -> None:
+    with pytest.raises(
+        ObservationResourceLimitErrorV3,
+        match="generation_output_token_limit_exceeded",
+    ):
+        _enforce_resource_limits(
+            (_resource_limit_result(output_tokens=2_401),),
+            _resource_limits(),
+        )
+
+
+def test_attempt_duration_beyond_settlement_slack_is_rejected() -> None:
+    with pytest.raises(
+        ObservationResourceLimitErrorV3,
+        match="attempt_timeout_limit_exceeded",
+    ):
+        _enforce_resource_limits(
+            (_resource_limit_result(duration_seconds=18.101),),
+            _resource_limits(),
+        )
 
 
 def _protocol() -> EvaluationProtocolV3:

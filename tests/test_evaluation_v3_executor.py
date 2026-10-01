@@ -15,6 +15,7 @@ from app.db.base import Base
 from app.evaluation.v3_executor import (
     EvaluationV3ObservationExecutor,
     _turn_result,
+    _validate_attempt_rows,
     build_evaluation_cases_v3,
 )
 from app.evaluation.v3_gold import load_evaluation_gold_v3
@@ -365,6 +366,40 @@ def test_released_reservation_remains_ledger_only_evidence(tmp_path: Path) -> No
     finally:
         Base.metadata.drop_all(engine)
         engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("usage_field", "usage_value", "error_code"),
+    [
+        ("input_tokens", 12_001, "generation_input_token_limit_exceeded"),
+        ("output_tokens", 1_201, "generation_output_token_limit_exceeded"),
+    ],
+)
+def test_each_generation_attempt_enforces_its_own_token_bounds(
+    usage_field: str,
+    usage_value: int,
+    error_code: str,
+) -> None:
+    row = SimpleNamespace(
+        attempt_sequence=1,
+        call_id="mcall_test",
+        attempt_number=1,
+        operation="generation",
+        resolved_model="gpt-5.4-mini-2026-03-17",
+        usage_status="known",
+        input_tokens=10,
+        cached_input_tokens=0,
+        output_tokens=20,
+        reasoning_tokens=0,
+        total_tokens=30,
+        actual_cost_nano_usd=1,
+        input_token_bound=12_000,
+        output_token_bound=1_200,
+    )
+    setattr(row, usage_field, usage_value)
+
+    with pytest.raises(ObservationExecutionFailureV3, match=error_code):
+        _validate_attempt_rows((row,))
 
 
 def test_executor_passes_case_product_ids_to_the_planning_context(

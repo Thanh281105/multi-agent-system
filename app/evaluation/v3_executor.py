@@ -705,6 +705,15 @@ def _validate_attempt_rows(attempts: Sequence[ProviderAttemptSnapshot]) -> None:
             )
             if any(value is None for value in usage):
                 raise ObservationExecutionFailureV3("ledger_known_usage_incomplete")
+            if row.operation == "generation":
+                if row.input_tokens > row.input_token_bound:
+                    raise ObservationExecutionFailureV3(
+                        "generation_input_token_limit_exceeded"
+                    )
+                if row.output_tokens > row.output_token_bound:
+                    raise ObservationExecutionFailureV3(
+                        "generation_output_token_limit_exceeded"
+                    )
         elif row.actual_cost_nano_usd is not None:
             raise ObservationExecutionFailureV3("ledger_unresolved_cost_ambiguous")
     for rows in grouped.values():
