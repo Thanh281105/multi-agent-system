@@ -23,7 +23,7 @@ Repository có ba lane cần giữ tách biệt:
 | --- | --- | --- |
 | v1 scripted/reference | Compatibility regression trên catalog/review snapshot | Đã có evidence lịch sử |
 | v2 paired | Historical deterministic/model-assisted comparison với `tiki_books_vi_28_v1` | Đã có protocol/capture lịch sử; không dùng làm P7/P8 result |
-| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7 successor v5 completed; P8 successors v6-v9 are preserved terminal partials; current source remediation needs a fresh source-bound P7 pilot before official live evidence |
+| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7 v5/v8 and P8 v6-v11 are historical; P7 v9 has local preflight only, while P8 v11 has 720/720 SUT cells but incomplete judging under the old schema |
 
 ## 2. Frozen inputs và provenance
 
@@ -186,10 +186,16 @@ quả.
 ## 8. Package 7 historical protocol và successor pilot
 
 **Cập nhật sau P02:** xem [handoff hiện hành](thanh-v2/p02-successor-handoff.md).
-Protocol `c8a4…` và v4 artifacts bên dưới là lịch sử trước sửa P02. Mã hiện
-hành có protocol `28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`;
-P7 successor v5 đã hoàn tất và freeze repeat decision. P8 successor v6-v9 đã
-chạy live nhưng vẫn terminal partial; `operate` chưa được gọi.
+Protocol `c8a4…` và v4 artifacts bên dưới là lịch sử trước sửa P02. P7 v5
+(`28621f…`) và v8 (`a249d0…`) cũng là lịch sử. Chẩn đoán `operate` v11 cho
+thấy JSON schema cho phép cả chín evaluation metric trong khi semantic validator
+chỉ nhận sáu. Commit `d030f9a` giới hạn metric enum; `v3_cli validate` hiện tính
+protocol `aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`.
+P7 v9 preflight tạo 36 cells với schedule SHA
+`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`, nhưng live
+dispatch và repeat freeze đang chờ phê duyệt cụ thể sau khi auto-review chặn
+payload P7 tới OpenAI. P8 v11 SUT đạt 720/720, song judge/report chưa hoàn tất;
+cần P7 v9 và P8 v12 dưới schema mới.
 
 Historical corrected P7 freeze artifact do operator tạo tại
 `output/evaluation-v3/pilot-corrected-v3/`; đây là output local không được commit
@@ -222,6 +228,12 @@ projected held-out SUT cost là `5.91510600 USD`. P8 successors dùng đúng
 protocol/repeat decision này trong output riêng; không resume hay ghép cells
 vào các runs lịch sử.
 
+Current-source P7 dry-run `run_p7_successor_v9` tạo 36 cells (4 warmup, 32
+measurements) với schedule SHA
+`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`. Đây mới là
+local preflight, không phải pilot evidence; repeat count mới chỉ được freeze sau
+khi P7 live run hoàn tất.
+
 Remediation P02 hiện hành đọc/ground giá nhiều offer rồi tạo proposal nếu có
 target độc lập do server xác định. Thiếu target vẫn trả clarification an toàn.
 P7/P8 phải ghi nhận kết quả thực tế theo gold contract; không suy diễn proposal
@@ -240,23 +252,53 @@ protocol và repeat decision của P7 tương ứng; historical P7/P8 artifacts 
 hai lệnh SUT `run`/`resume`, và `operate` cho lifecycle sau khi SUT đã hoàn tất:
 
 ```powershell
-python -m app.evaluation.benchmark_cli validate
-python -m app.evaluation.benchmark_cli dry-run --run-id run_p8_dry
+$p7Output = 'output/evaluation-v3/pilot-successor-v9'
+$p8Output = 'output/evaluation-v3/heldout-successor-v12'
+$p7RuntimeManifest = 'output/evaluation-v3/current-machine-ledger/runtime-manifest-v6.json'
+python -m app.evaluation.benchmark_cli validate `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json"
+python -m app.evaluation.benchmark_cli dry-run `
+  --run-id run_p8_successor_v12 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json"
 python -m app.evaluation.benchmark_cli prepare `
-  --output output/evaluation-v3/heldout
+  --run-id run_p8_successor_v12 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
+  --pilot-checkpoint "$p7Output/pilot-checkpoint.v3.jsonl" `
+  --pilot-schedule "$p7Output/pilot-schedule.v3.json" `
+  --output $p8Output
 python -m app.evaluation.benchmark_cli run `
+  --run-id run_p8_successor_v12 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
   --allow-network `
   --database-url $env:DATABASE_URL `
-  --output output/evaluation-v3/heldout
+  --output $p8Output
 python -m app.evaluation.benchmark_cli resume `
+  --run-id run_p8_successor_v12 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
   --allow-network `
   --database-url $env:DATABASE_URL `
-  --output output/evaluation-v3/heldout
+  --output $p8Output
 python -m app.evaluation.benchmark_cli operate `
+  --run-id run_p8_successor_v12 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
+  --pilot-checkpoint "$p7Output/pilot-checkpoint.v3.jsonl" `
+  --pilot-schedule "$p7Output/pilot-schedule.v3.json" `
   --allow-network `
   --database-url $env:DATABASE_URL `
   --judge-budget-nano-usd 250000000 `
-  --output output/evaluation-v3/heldout
+  --output $p8Output
 ```
 
 `validate`, `dry-run` và `prepare` là local-only, không provider call.
@@ -300,11 +342,22 @@ The latest v9 safe failure codes are one `attempt_timeout_limit_exceeded`, two
 `expert_selection_not_authorized`, two `model_response_incomplete` and three
 `model_response_invalid`. The old merchant fixture-binding failure is absent
 after the source fix. Partial reports contain no raw provider payload or
-fabricated citation. Cumulative runtime ledger accounting across the live
-successors is `10.387962730 USD` known and `0.016542090 USD` unknown; these are
-not v9-only costs. Append-only checkpoints cannot redispatch terminal cells, so
+fabricated citation. Historical v6-v9 runtime ledger accounting was
+`10.387962730 USD` known and `0.016542090 USD` unknown; these are not v9-only
+costs. Append-only checkpoints cannot redispatch terminal cells, so
 none of these runs is scored, calibrated, judge-complete or publishable.
-No calibration/judge journal, final result or paired metric exists yet.
+No calibration/judge journal, final result or paired metric exists for those
+historical v6-v9 runs.
+
+P8 successor `run_p8_successor_v11` later completed all `720/720` SUT cells with
+schedule SHA `92b387b2d453042e4e17ccedc3e914bc9f9ebd9535cf17d7bbfbd14595f1499e`;
+failed, missing, ambiguous, pending and orphan counts were all zero. Its
+`operate` reached exact evidence preparation but did not freeze calibration:
+four model responses failed semantic schema validation, then 28 jobs were
+stopped by circuit breaker. A one-case diagnostic identified non-semantic
+metric values admitted by the old provider JSON schema. The corrected schema
+has a new protocol hash, so v11 judge results are not benchmark evidence; there
+is no calibration freeze, blind score, paired metric or publication.
 
 Các failed cells của v9 được ghi lại để truy vết:
 
@@ -321,20 +374,21 @@ Các failed cells của v9 được ghi lại để truy vết:
 
 ### Source remediation status — 2026-09-23
 
-The current working tree makes provider structured-response parse/validation
-errors retryable within the frozen `max_retries=1` budget. Expert-selection
+Current code makes provider structured-response parse/validation errors
+retryable within the frozen `max_retries=1` budget. Expert-selection
 schemas now enumerate only fact and evidence IDs present in that request; the
 existing local authorization check remains fail-closed. The 18-second provider
 attempt cap is unchanged. Regression verification passed `105` tests across
 `test_model_runtime.py` and `test_v2_supervisor.py`; Ruff and mypy passed for the
 changed modules.
 
-P8 v9 is immutable, and the current P8 runner validates only the complete
-`60 × 4 × 3` schedule; its append-only checkpoint does not redispatch terminal
-cells. The change also alters source-bound P7 protocol inputs, so the official
-P8 validator reports `package7_protocol_hash_drift` until a fresh source-bound
-P7 successor pilot, protocol and repeat decision are frozen. No post-fix P8
-benchmark result is available; the diagnostic below does not change v9's counts.
+P8 v6-v11 checkpoints remain immutable; none is resumed or joined into a new
+run. The semantic-only judge schema binds protocol
+`aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`. P7 v9
+live is pending separate authorization: the existing approval covered P8 judge
+requests, while auto-review rejected sending P7 benchmark payloads. P8 v12 must
+follow the frozen P7 repeat decision; any model-bound P8 SUT request also needs
+its applicable outbound authorization.
 
 ### Diagnostic-only replay attempts — 2026-09-23
 
@@ -349,7 +403,14 @@ unchanged.
 The first attempt, `run_p8_failed_diag_20260923_a`, ended with `0/8` successful
 observations: four cells returned `model_connection_failed`, then four returned
 `model_circuit_open`. It recorded zero tokens and zero known cost, with
-`0.05446350 USD` left as unresolved reservation evidence. After explicit user
+`0.05446350 USD` left as unresolved reservation evidence. Its manifest names
+the isolated database clone `p8_failed_diag_20260923_a`; all eight unresolved
+reservation events in its checkpoint are attributed to that diagnostic run.
+Attempt B used a separate clone, `p8_failed_diag_20260923_b`, and has zero
+unresolved reservations. Clone A is absent from the current Docker
+container/volume inventory, so the artifacts identify its ledger but its SQL
+settlement record is unavailable for direct inspection. Keep the A amount
+separate from the cumulative live-ledger total until reconciliation. After explicit user
 approval to send the held-out prompts and fixtures to the model provider, the
 second attempt, `run_p8_failed_diag_20260923_b`, completed `8/8` observations
 with no failed cells. It recorded 26 provider attempts, 48,199 input tokens,
@@ -362,9 +423,27 @@ Checkpoints and safe summaries are in
 `output/evaluation-v3/failed-cell-diagnostic-20260923-b/`. The successful
 diagnostic artifacts are local-only and excluded from Git. The successful
 diagnostic receipts do not repair v9's terminal failures or qualify as official
-P8 evidence because the schedule uses pilot aliases. A fresh source-bound P7
-pilot, protocol and repeat decision are still required before an official P8
-successor run. No benchmark conclusion is drawn from these diagnostic runs.
+P8 evidence because the schedule uses pilot aliases. P7 v9 must complete its
+source-bound live pilot and freeze a repeat decision before official P8 v12 can
+run. No benchmark conclusion is drawn from these diagnostic runs.
+
+The current machine has an isolated PostgreSQL ledger for successor work; the
+checkout `.env` still points to SQLite. Its latest audited balance is
+`$13.59111461` known and `$0.14897034` unknown, with `$0` reserved, active or
+pending and `$86.25991505` remaining under the `$100` cap. The unknown amount
+includes the carried-forward `$0.07100559`, P8 v10 timeout `$0.00972225`, and
+eight sandbox-blocked v11 judge attempts `$0.06824250`. Known additions include
+the v11 judge retry (`$0.02340150`) and schema diagnostic (`$0.00588450`). The
+diagnostic A reservation `$0.05446350` remains unverified against its original
+SQL ledger and is still carried as unknown. Historical attempt rows were not
+reconstructed. Local ledger credentials and the audit record are under
+`output/evaluation-v3/current-machine-ledger/` and excluded from Git.
+
+P7 v9 remains a local preflight only. Automatic approval rejected the live P7
+dispatch because the existing approval covered P8 judge requests, not P7
+benchmark payloads. A separate authorization is required before P7 v9 sends
+benchmark data to OpenAI; official P8 v12 and `operate` remain downstream of
+the frozen P7 repeat decision and complete P8 coverage.
 
 Để đóng Package 8, phải có đủ các gate sau:
 

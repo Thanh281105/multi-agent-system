@@ -363,11 +363,16 @@ fingerprint. Không dùng nó trên dữ liệu cần giữ.
 ## 11. V2 và Package 8 evaluation handoff
 
 Handoff hiện hành sau sửa P02 nằm tại
-[P02 successor handoff](thanh-v2/p02-successor-handoff.md), với protocol
-`28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`.
-Các hash `315eff…`/`c8a4…`/`f37e…` bên dưới là lịch sử trước sửa shopper
-fixture. P7 successor v5 đã freeze; P8 successor v6-v9 có terminal partial
-evidence nhưng chưa có kết quả benchmark hoàn chỉnh.
+[P02 successor handoff](thanh-v2/p02-successor-handoff.md). P7 v5 (`28621f…`)
+và v8 (`a249d0…`) là historical. Sau khi giới hạn semantic judge schema,
+source hiện tính protocol `aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647`.
+P7 v9 local preflight tạo 36 cells với schedule SHA
+`0b218d30ba8262a7e7da6574945a23202c75eaf8676d1051a116aea4312be5dd`; live
+dispatch và repeat freeze đang chờ phê duyệt riêng sau khi auto-review chặn
+payload P7. P8 v6-v9 là partial; v11 đạt 720/720 SUT nhưng operate không freeze
+calibration do judge schema cũ. P8 v12 cần protocol mới. Các hash
+`315eff…`/`c8a4…`/`f37e…` bên dưới là lịch sử trước sửa shopper fixture và
+không dùng làm input mới.
 P8 exact evidence hiện đã có authority bất biến cho merchant inventory,
 shopper cart/checkout preview reads, `catalog_product_N` và
 `review_sample_N` khi receipt còn gắn đúng reset fixture/source asset,
@@ -398,10 +403,26 @@ cells (4 warmup, 32 measurements), chọn 3 repeats. Package 8 vẫn là additiv
 held-out work. Các lệnh local không gọi provider:
 
 ```powershell
-python -m app.evaluation.benchmark_cli validate
-python -m app.evaluation.benchmark_cli dry-run --run-id run_p8_dry
+$p7Output = 'output/evaluation-v3/pilot-successor-v9'
+$p8Output = 'output/evaluation-v3/heldout-successor-v12'
+$p7RuntimeManifest = 'output/evaluation-v3/current-machine-ledger/runtime-manifest-v6.json'
+python -m app.evaluation.benchmark_cli validate `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json"
+python -m app.evaluation.benchmark_cli dry-run `
+  --run-id run_p8_successor_v12 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json"
 python -m app.evaluation.benchmark_cli prepare `
-  --output output/evaluation-v3/heldout
+  --run-id run_p8_successor_v12 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
+  --pilot-checkpoint "$p7Output/pilot-checkpoint.v3.jsonl" `
+  --pilot-schedule "$p7Output/pilot-schedule.v3.json" `
+  --output $p8Output
 python -m app.evaluation.benchmark_cli partial-report `
   --output output/evaluation-v3/heldout-corrected-v3 `
   --run-id run_p8_heldout_corrected_v3
@@ -411,20 +432,34 @@ Live execution phải truyền explicit consent và durable database URL:
 
 ```powershell
 python -m app.evaluation.benchmark_cli run `
+  --run-id run_p8_successor_v12 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
   --allow-network `
   --database-url $env:DATABASE_URL `
-  --output output/evaluation-v3/heldout
+  --output $p8Output
 
 python -m app.evaluation.benchmark_cli resume `
+  --run-id run_p8_successor_v12 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
   --allow-network `
   --database-url $env:DATABASE_URL `
-  --output output/evaluation-v3/heldout
+  --output $p8Output
 
 python -m app.evaluation.benchmark_cli operate `
+  --run-id run_p8_successor_v12 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
+  --pilot-checkpoint "$p7Output/pilot-checkpoint.v3.jsonl" `
+  --pilot-schedule "$p7Output/pilot-schedule.v3.json" `
   --allow-network `
   --database-url $env:DATABASE_URL `
   --judge-budget-nano-usd 250000000 `
-  --output output/evaluation-v3/heldout
+  --output $p8Output
 ```
 
 `operate` chỉ chạy sau checkpoint SUT đã complete; nó rebuild/verify preparation,
@@ -434,7 +469,7 @@ account tất cả attempt, retry và reservation. Citation catalog/review chỉ
 reopen từ source asset đã hash-pin và receipt authority tương ứng; record không
 đủ provenance sẽ block lifecycle thay vì tự dựng evidence.
 
-P8 hiện có bốn SUT successor run terminal partial, đều `0` pending, `0`
+Các P8 v6-v9 là SUT successor run terminal partial, đều `0` pending, `0`
 ambiguous và `0` orphan:
 
 | Run | Schedule | Completed | Failed/missing |
@@ -447,9 +482,22 @@ ambiguous và `0` orphan:
 V9 failure codes gồm 1 `attempt_timeout_limit_exceeded`, 2
 `expert_selection_not_authorized`, 2 `model_response_incomplete` và 3
 `model_response_invalid`. Không có raw provider payload hay fabricated citation
-trong partial report. Cumulative live ledger là `10.387962730 USD` known và
-`0.016542090 USD` unknown, không phải riêng v9. Dùng `partial-report` để
-persist hoặc tái xác thực coverage/ledger/checkpoint hash; lệnh local-only và
-không mở live runtime. Không báo cáo partial checkpoint như complete, scored,
-calibrated hoặc judge-complete; `operate` chỉ chạy sau khi một SUT run đủ tất
-cả receipt cells và các gate evidence/calibration/judging pass.
+trong partial report. Ledger snapshot tại thời điểm v6-v9 ghi
+`10.387962730 USD` known và `0.016542090 USD` unknown; đây không phải số hiện
+tại. V11 đạt đủ `720/720` SUT cells, nhưng operate gặp bốn judge response sai
+semantic schema và 28 job bị circuit breaker dừng; không có calibration freeze,
+blind score hoặc report. Dùng `partial-report` để persist hoặc tái xác thực
+coverage/ledger/checkpoint hash; lệnh local-only và không mở live runtime.
+
+Ledger PostgreSQL hiện tại còn `$13.59111461` known và `$0.14897034` unknown
+(`$13.74008495` encumbered), `$86.25991505` remaining dưới cap `$100`; reserved,
+active và pending đều bằng 0. Unknown gồm carry-forward `$0.07100559`, P8 v10
+timeout `$0.00972225`, và tám sandbox-blocked v11 judge attempts `$0.06824250`.
+Known additions gồm v11 retry `$0.02340150` và schema diagnostic `$0.00588450`.
+Diagnostic A `$0.05446350` vẫn chưa đối chiếu được với SQL ledger gốc, nên giữ
+ở unknown. Ledger audit/credentials nằm trong
+`output/evaluation-v3/current-machine-ledger/`, không commit; `.env` vẫn trỏ
+SQLite. Auto-review chặn P7 live vì approval hiện có chỉ bao phủ P8 judge
+requests, không bao phủ P7 benchmark payload. Cần phê duyệt riêng trước P7 v9;
+P8 v12/operate chỉ sau repeat decision đã freeze, đủ coverage, exact evidence,
+calibration và judging pass.
