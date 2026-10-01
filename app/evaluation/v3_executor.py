@@ -706,6 +706,8 @@ def _validate_attempt_rows(attempts: Sequence[ProviderAttemptSnapshot]) -> None:
             if any(value is None for value in usage):
                 raise ObservationExecutionFailureV3("ledger_known_usage_incomplete")
             if row.operation == "generation":
+                if row.input_tokens is None or row.output_tokens is None:
+                    raise ObservationExecutionFailureV3("ledger_known_usage_incomplete")
                 if row.input_tokens > row.input_token_bound:
                     raise ObservationExecutionFailureV3(
                         "generation_input_token_limit_exceeded"

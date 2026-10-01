@@ -525,7 +525,9 @@ def run_development_calibration_case_v3(
         calibration_sha256=None,
         judge=judge,
     )
-    observed = {item.metric: item.score for item in output.verdicts}
+    observed: dict[EvaluationMetricV3, float] = {
+        item.metric: item.score for item in output.verdicts
+    }
     errors = {
         metric: abs(references[metric] - observed[metric])
         for metric in SEMANTIC_JUDGE_METRICS_V3
@@ -675,9 +677,14 @@ def judge_blinded_packet_v3(
             calibration_sha256=calibration.calibration_sha256,
             judge=judge,
         )
-        model_scores = {item.metric: item.score for item in output.verdicts}
+        model_scores: dict[EvaluationMetricV3, float] = {
+            item.metric: item.score for item in output.verdicts
+        }
         deterministic_scores = score_deterministic_metrics_v3(answer)
-        scores = {**model_scores, **deterministic_scores}
+        scores: dict[EvaluationMetricV3, float] = {
+            **model_scores,
+            **deterministic_scores,
+        }
         score_sources: dict[
             EvaluationMetricV3,
             Literal["deterministic", "model_judge", "human_review"],

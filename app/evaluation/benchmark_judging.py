@@ -958,7 +958,9 @@ def _build_calibration_record(
     thresholds: CalibrationThresholdsV3,
     output: ModelJudgeOutputV3,
 ) -> CalibrationRecordV3:
-    observed = {item.metric: item.score for item in output.verdicts}
+    observed: dict[EvaluationMetricV3, float] = {
+        item.metric: item.score for item in output.verdicts
+    }
     references = dict(reference.scores)
     errors = {
         metric: abs(references[metric] - observed[metric])
@@ -1001,9 +1003,14 @@ def _build_heldout_record(
     answer: BlindedAnswerV3,
     output: ModelJudgeOutputV3,
 ) -> JudgmentRecordV3:
-    model_scores = {item.metric: item.score for item in output.verdicts}
+    model_scores: dict[EvaluationMetricV3, float] = {
+        item.metric: item.score for item in output.verdicts
+    }
     deterministic_scores = score_deterministic_metrics_v3(answer)
-    scores = {**model_scores, **deterministic_scores}
+    scores: dict[EvaluationMetricV3, float] = {
+        **model_scores,
+        **deterministic_scores,
+    }
     score_sources: dict[
         EvaluationMetricV3,
         Literal["deterministic", "model_judge", "human_review"],
