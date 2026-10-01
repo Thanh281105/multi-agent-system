@@ -34,6 +34,7 @@ from app.evaluation.v3_judge import (
     CalibrationFreezeV3,
     DevelopmentCalibrationCaseV3,
     ModelJudgeConfigurationV3,
+    ModelJudgeOutputV3,
     ModelJudgeRequestV3,
     build_calibration_reference_bundle_v3,
     build_calibration_reference_labels_v3,
@@ -53,6 +54,15 @@ from app.evaluation.v3_models import EvaluationMetricV3, GenerationBindingV3
 
 PROMPT = "Score only the blinded answer against the supplied frozen rubric."
 MODEL = GenerationBindingV3(model="gpt-5.4-mini-2026-03-17")
+
+
+def test_model_judge_output_schema_only_allows_semantic_metrics() -> None:
+    schema = ModelJudgeOutputV3.model_json_schema()
+    verdict_schema = schema["$defs"]["SemanticMetricVerdictV3"]
+
+    assert set(verdict_schema["properties"]["metric"]["enum"]) == {
+        metric.value for metric in SEMANTIC_JUDGE_METRICS_V3
+    }
 
 
 def test_calibrated_model_judge_is_blinded_attributed_and_complete() -> None:

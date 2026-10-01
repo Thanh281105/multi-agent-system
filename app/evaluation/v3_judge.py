@@ -55,7 +55,14 @@ class FrozenJudgeContractV3(BaseModel):
 
 
 class SemanticMetricVerdictV3(FrozenJudgeContractV3):
-    metric: EvaluationMetricV3
+    metric: Literal[
+        EvaluationMetricV3.TASK_COMPLETION,
+        EvaluationMetricV3.ANSWERABILITY_ABSTENTION,
+        EvaluationMetricV3.CLAIM_SUPPORT,
+        EvaluationMetricV3.AUTHORIZATION,
+        EvaluationMetricV3.VALID_PLAN,
+        EvaluationMetricV3.USEFUL_CONTINUATION,
+    ]
     score: float = Field(ge=0, le=1)
     rubric_fact_indices: tuple[int, ...] = ()
     citation_labels: tuple[str, ...] = ()

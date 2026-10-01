@@ -50,7 +50,7 @@ from app.shared.budget import ProviderBudgetContext, provider_budget_scope
 from app.shared.model_runtime import ModelRuntime
 
 EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3 = (
-    "28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c"
+    "aaa7026d2ccfe77925644c468c645ee3e021125916758659ebf816488bea7647"
 )
 
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
