@@ -355,8 +355,10 @@ failed at Type-check with eight mypy errors; the suite did not start. Commit
 `802369b` fixes them. Full CI run
 [`36846265660`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36846265660)
 passed on SHA `802369b263b19da7ec4388605ef38cd19da2bc2f`, including the offline
-suite and deployment smoke checks. The five-file documentation sync after that
-code commit is local and has not been included in this CI run.
+suite and deployment smoke checks. The five-file documentation commit `1331897`
+also passed full CI run
+[`36848384922`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36848384922)
+on SHA `13318976919d349be73189194f08d354715761ab`.
 
 ## Cấu trúc repository
 

@@ -27,8 +27,10 @@ GitHub Actions run `36844660998` failed at Type-check on pushed SHA
 `470d1817ccb8c2294dec7aace9319a69e2c93d78`. Commit `802369b` fixes the eight
 mypy errors; full CI run
 [`36846265660`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36846265660)
-passed on SHA `802369b263b19da7ec4388605ef38cd19da2bc2f`. The current docs-only
-sync is local and was not included in that CI run.
+passed on SHA `802369b263b19da7ec4388605ef38cd19da2bc2f`. Documentation commit
+`1331897` is pushed, and full CI run
+[`36848384922`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36848384922)
+passed on SHA `13318976919d349be73189194f08d354715761ab`.
 
 ## Implemented boundary
 
