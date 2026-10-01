@@ -322,12 +322,19 @@ def _exact_citations(
 ) -> tuple[CitationForReviewV3, ...]:
     evidence_by_id = {item.evidence_id: item for item in result.evidence}
     review_citations: list[CitationForReviewV3] = []
-    labels: set[str] = set()
+    labels: dict[str, EvidenceBindingKeyV3] = {}
     for citation in result.citations:
         evidence = evidence_by_id.get(citation.evidence_id)
         if evidence is None:
             raise BenchmarkCalibrationValidationErrorV3("citation evidence is absent")
         binding = _evidence_binding(citation, evidence)
+        previous_binding = labels.get(citation.display_label)
+        if previous_binding is not None:
+            if previous_binding != binding:
+                raise BenchmarkCalibrationValidationErrorV3(
+                    "citation label maps to multiple evidence bindings"
+                )
+            continue
         try:
             resolved = resolver.resolve(binding)
         except Exception as exc:
@@ -338,11 +345,7 @@ def _exact_citations(
             raise BenchmarkCalibrationValidationErrorV3(
                 "citation could not be resolved to exact immutable evidence"
             )
-        if citation.display_label in labels:
-            raise BenchmarkCalibrationValidationErrorV3(
-                "citation labels must be unique"
-            )
-        labels.add(citation.display_label)
+        labels[citation.display_label] = binding
         review_citations.append(
             CitationForReviewV3(
                 label=citation.display_label,

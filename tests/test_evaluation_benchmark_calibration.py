@@ -318,6 +318,13 @@ def test_citations_require_the_exact_resolved_evidence() -> None:
         span_id=evidence.span_id,
         display_label=evidence.display_label,
     )
+    repeated_citation = Citation(
+        citation_id="citation_source_repeat",
+        claim_id="claim_source_repeat",
+        evidence_id=evidence.evidence_id,
+        span_id=evidence.span_id,
+        display_label=evidence.display_label,
+    )
     result = TurnResult(
         outcome=DialogueOutcome.ANSWERED,
         answer="Synthetic answer.",
@@ -327,8 +334,13 @@ def test_citations_require_the_exact_resolved_evidence() -> None:
                 text="Synthetic",
                 citation_ids=(citation.citation_id,),
             ),
+            Claim(
+                claim_id="claim_source_repeat",
+                text="Another synthetic claim",
+                citation_ids=(repeated_citation.citation_id,),
+            ),
         ),
-        citations=(citation,),
+        citations=(citation, repeated_citation),
         evidence=(evidence,),
     )
     binding = EvidenceBindingKeyV3(
@@ -339,12 +351,11 @@ def test_citations_require_the_exact_resolved_evidence() -> None:
         span_id=evidence.span_id,
     )
 
-    assert (
-        _exact_citations(result, _Resolver({binding: "immutable exact excerpt"}))[
-            0
-        ].evidence
-        == "immutable exact excerpt"
+    exact_citations = _exact_citations(
+        result, _Resolver({binding: "immutable exact excerpt"})
     )
+    assert len(exact_citations) == 1
+    assert exact_citations[0].evidence == "immutable exact excerpt"
     with pytest.raises(
         BenchmarkCalibrationValidationErrorV3, match="could not be resolved"
     ):

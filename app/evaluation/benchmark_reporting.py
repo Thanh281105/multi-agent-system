@@ -1056,7 +1056,7 @@ def _extract_citations(
     evidence_by_id = {item.evidence_id: item for item in result.evidence}
     citations: list[CitationForReviewV3] = []
     bindings: list[EvidenceBindingKeyV3] = []
-    labels: set[str] = set()
+    labels: dict[str, EvidenceBindingKeyV3] = {}
     for citation in result.citations:
         evidence = evidence_by_id.get(citation.evidence_id)
         if evidence is None:
@@ -1074,6 +1074,13 @@ def _extract_citations(
             chunk_id=evidence.chunk_id,
             span_id=evidence.span_id,
         )
+        previous_binding = labels.get(citation.display_label)
+        if previous_binding is not None:
+            if previous_binding != binding:
+                raise BenchmarkReportingValidationErrorV3(
+                    "TurnResult citation label maps to multiple evidence bindings"
+                )
+            continue
         try:
             resolved = evidence_resolver.resolve(binding)
         except Exception as exc:
@@ -1096,11 +1103,7 @@ def _extract_citations(
             raise BenchmarkReportingValidationErrorV3(
                 "immutable evidence resolver returned a foreign evidence binding"
             )
-        if citation.display_label in labels:
-            raise BenchmarkReportingValidationErrorV3(
-                "TurnResult citations reuse a display label"
-            )
-        labels.add(citation.display_label)
+        labels[citation.display_label] = binding
         citations.append(
             CitationForReviewV3(
                 label=citation.display_label,
