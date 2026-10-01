@@ -339,13 +339,20 @@ def test_exact_resolver_refuses_missing_authority_without_service_call() -> None
     assert caught.value.code == "exact_evidence_authority_unavailable"
 
 
-@pytest.mark.parametrize("kind", (EvidenceKind.CATALOG, EvidenceKind.REVIEW))
+@pytest.mark.parametrize(
+    "kind", (EvidenceKind.CATALOG, EvidenceKind.REVIEW, EvidenceKind.TRUST)
+)
 def test_exact_resolver_validates_every_receipt_authority_for_shared_public_record(
     kind: EvidenceKind,
 ) -> None:
+    source_id = {
+        EvidenceKind.CATALOG: "catalog_product_1",
+        EvidenceKind.REVIEW: "review_sample_1",
+        EvidenceKind.TRUST: "trust_sample_1",
+    }[kind]
     binding = benchmark_cli.EvidenceBindingKeyV3(
         evidence_id="evidence_catalog",
-        source_id="catalog_product_1",
+        source_id=source_id,
         source_version_id="cat_" + "c" * 64,
     )
     reference = EvidenceReference(

@@ -279,7 +279,11 @@ def _public_runtime_evidence(kind: EvidenceKind, *, product_id: int = 109):
     if kind is EvidenceKind.CATALOG:
         _, evidence = tools._catalog([product])
     else:
-        _, evidence = tools._reviews(Repository(), (product_id,), trust=False)
+        _, evidence = tools._reviews(
+            Repository(),
+            (product_id,),
+            trust=kind is EvidenceKind.TRUST,
+        )
     return evidence.references[0], evidence.excerpts[0].exact_text
 
 
@@ -299,6 +303,36 @@ def test_public_asset_resolution_matches_production_tool_record(
     assert resolved.reference.kind is kind
     assert resolved.authorization == _authorization()
     assert resolved.content_sha256 == sha256_utf8(exact_text)
+
+
+@pytest.mark.parametrize("product_id", (108, 141))
+def test_public_asset_trust_resolution_matches_production_tool_record(
+    product_id: int,
+) -> None:
+    root, bindings = _public_asset_bindings()
+    source = ImmutableCatalogReviewSourceV3(
+        project_root=root,
+        bindings=bindings,
+        snapshot_version_id=SANDBOX_SOURCE_VERSION_ID,
+    )
+    reference, exact_text = _public_runtime_evidence(
+        EvidenceKind.TRUST,
+        product_id=product_id,
+    )
+
+    resolved = source.reopen(reference, _authorization())
+
+    assert resolved.exact_text == exact_text
+    assert resolved.reference.kind is EvidenceKind.TRUST
+    assert resolved.authorization == _authorization()
+    assert resolved.content_sha256 == sha256_utf8(exact_text)
+
+    resolver = _resolver(
+        _FakeKnowledgeService(None),
+        reference_source=_ReferenceSource(reference),
+        catalog_review_source=_CatalogReviewSource(resolved),
+    )
+    assert resolver.resolve(resolved.binding).exact_text == exact_text
 
 
 @pytest.mark.parametrize(
