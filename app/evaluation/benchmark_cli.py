@@ -432,7 +432,10 @@ def _operate(arguments: argparse.Namespace) -> int:
         pilot_checkpoint=arguments.pilot_checkpoint,
         pilot_schedule_path=arguments.pilot_schedule,
     )
-    pilot_cases = _load_pilot_cases(frozen)
+    pilot_cases = _load_pilot_cases(
+        frozen,
+        runtime_manifest_path=arguments.p7_runtime_manifest,
+    )
     authorities = _receipt_evidence_authorities(
         batches=(
             (schedule, heldout, frozen.heldout_cases),
@@ -444,6 +447,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         project_root=frozen.project_root,
         database_url=arguments.database_url,
         expected_protocol=frozen.protocol,
+        runtime_manifest_path=arguments.p7_runtime_manifest,
     )
     evidence_resolver = _ReceiptExactEvidenceResolver(
         knowledge_service=resources.knowledge_service,
@@ -672,6 +676,7 @@ def _execute(arguments: argparse.Namespace) -> int:
             project_root=frozen.project_root,
             database_url=arguments.database_url,
             expected_protocol=frozen.protocol,
+            runtime_manifest_path=arguments.p7_runtime_manifest,
         )
         result = asyncio.run(
             run_heldout_benchmark_v3(
@@ -1108,6 +1113,7 @@ def _load_frozen(arguments: argparse.Namespace) -> FrozenPackage7HeldoutInputsV3
         repeat_decision_path=arguments.p7_repeat_decision,
         gold_path=arguments.gold,
         split_path=arguments.split,
+        runtime_manifest_path=arguments.p7_runtime_manifest,
     )
 
 
@@ -1128,14 +1134,17 @@ def _require_operator_guard(arguments: argparse.Namespace) -> None:
 
 def _load_pilot_cases(
     frozen: FrozenPackage7HeldoutInputsV3,
+    *,
+    runtime_manifest_path: Path | None = None,
 ) -> Mapping[str, EvaluationCaseV3]:
     """Reload P7's current verified cases before using receipt authorization."""
 
     from app.evaluation import v3_cli
 
-    arguments = v3_cli._parser().parse_args(
-        ("validate", "--project-root", str(frozen.project_root))
-    )
+    argv = ["validate", "--project-root", str(frozen.project_root)]
+    if runtime_manifest_path is not None:
+        argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != frozen.protocol:
         raise FrozenPackage7DriftError("package7_pilot_protocol_binding_drift")
@@ -1565,6 +1574,7 @@ def _build_live_operator_resources(
     project_root: Path,
     database_url: str,
     expected_protocol: object,
+    runtime_manifest_path: Path | None = None,
 ) -> _LiveOperatorResources:
     """Reuse P7's guarded graph and shared ledger without exposing its settings."""
 
@@ -1572,6 +1582,7 @@ def _build_live_operator_resources(
         project_root=project_root,
         database_url=database_url,
         expected_protocol=expected_protocol,
+        runtime_manifest_path=runtime_manifest_path,
     )
     composer = getattr(factory, "composer", None)
     services = getattr(factory, "shared_services", None)
@@ -1619,14 +1630,16 @@ def _build_package7_live_executor_factory(
     project_root: Path,
     database_url: str,
     expected_protocol: object,
+    runtime_manifest_path: Path | None = None,
 ) -> ObservationExecutorFactoryV3:
     """Delegate live setup to P7's already validated factory without logging it."""
 
     from app.evaluation import v3_cli
 
-    arguments = v3_cli._parser().parse_args(
-        ("validate", "--project-root", str(project_root))
-    )
+    argv = ["validate", "--project-root", str(project_root)]
+    if runtime_manifest_path is not None:
+        argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != expected_protocol:
         raise FrozenPackage7DriftError("package7_live_protocol_binding_drift")
@@ -1943,6 +1956,7 @@ def _add_inputs(parser: argparse.ArgumentParser, project_root: Path) -> None:
         type=Path,
         default=p7_output / "repeat-decision.v3.json",
     )
+    parser.add_argument("--p7-runtime-manifest", type=Path)
     parser.add_argument(
         "--gold",
         type=Path,
