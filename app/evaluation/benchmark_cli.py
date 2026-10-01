@@ -356,6 +356,7 @@ def _prepare(arguments: argparse.Namespace) -> int:
         frozen=frozen,
         pilot_checkpoint=arguments.pilot_checkpoint,
         pilot_schedule_path=arguments.pilot_schedule,
+        runtime_manifest_path=arguments.p7_runtime_manifest,
     )
     _reject_unresolved_local_citations((*heldout, *pilot_receipts))
     calibration_inputs = build_package8_pilot_calibration_inputs_v3(
@@ -431,6 +432,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         frozen=frozen,
         pilot_checkpoint=arguments.pilot_checkpoint,
         pilot_schedule_path=arguments.pilot_schedule,
+        runtime_manifest_path=arguments.p7_runtime_manifest,
     )
     pilot_cases = _load_pilot_cases(
         frozen,
@@ -789,6 +791,7 @@ def _load_complete_pilot_receipts(
     frozen: FrozenPackage7HeldoutInputsV3,
     pilot_checkpoint: Path,
     pilot_schedule_path: Path,
+    runtime_manifest_path: Path | None = None,
 ) -> tuple[tuple[ScheduledTurnV3, ...], tuple[ObservationRunReceiptV3, ...]]:
     """Read P7 pilot receipts only through its non-dispatch recovery path."""
 
@@ -814,9 +817,10 @@ def _load_complete_pilot_receipts(
             "pilot_checkpoint_missing",
             "prepare requires the completed Package 7 pilot checkpoint",
         )
-    arguments = v3_cli._parser().parse_args(
-        ("validate", "--project-root", str(frozen.project_root))
-    )
+    argv = ["validate", "--project-root", str(frozen.project_root)]
+    if runtime_manifest_path is not None:
+        argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != frozen.protocol:
         raise FrozenPackage7DriftError("package7_pilot_protocol_binding_drift")
