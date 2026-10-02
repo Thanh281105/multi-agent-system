@@ -55,8 +55,15 @@ class FrozenJudgeContractV3(BaseModel):
 
 
 class SemanticMetricVerdictV3(FrozenJudgeContractV3):
-    metric: EvaluationMetricV3
-    score: float = Field(ge=0, le=1)
+    metric: Literal[
+        EvaluationMetricV3.TASK_COMPLETION,
+        EvaluationMetricV3.ANSWERABILITY_ABSTENTION,
+        EvaluationMetricV3.CLAIM_SUPPORT,
+        EvaluationMetricV3.AUTHORIZATION,
+        EvaluationMetricV3.VALID_PLAN,
+        EvaluationMetricV3.USEFUL_CONTINUATION,
+    ]
+    score: float = Field(strict=True, json_schema_extra={"enum": [0.0, 1.0]})
     rubric_fact_indices: tuple[int, ...] = ()
     citation_labels: tuple[str, ...] = ()
 
@@ -64,6 +71,8 @@ class SemanticMetricVerdictV3(FrozenJudgeContractV3):
     def validate_references(self) -> SemanticMetricVerdictV3:
         if self.metric not in SEMANTIC_JUDGE_METRICS_V3:
             raise ValueError("model output contains a non-semantic metric")
+        if self.score not in (0.0, 1.0):
+            raise ValueError("semantic metric score must be binary")
         if len(self.rubric_fact_indices) != len(set(self.rubric_fact_indices)):
             raise ValueError("rubric fact references must be unique")
         if any(index < 0 for index in self.rubric_fact_indices):
@@ -87,8 +96,10 @@ class ModelJudgeOutputV3(FrozenJudgeContractV3):
     @model_validator(mode="after")
     def validate_complete_metric_set(self) -> ModelJudgeOutputV3:
         metrics = tuple(item.metric for item in self.verdicts)
-        if metrics != SEMANTIC_JUDGE_METRICS_V3:
-            raise ValueError("model output must contain every semantic metric in order")
+        if set(metrics) != set(SEMANTIC_JUDGE_METRICS_V3):
+            raise ValueError(
+                "model output must contain every semantic metric exactly once"
+            )
         expected_schema_hash = model_judge_output_schema_sha256_v3()
         if self.output_schema_sha256 != expected_schema_hash:
             raise ValueError("model output schema hash mismatch")
@@ -518,7 +529,9 @@ def run_development_calibration_case_v3(
         calibration_sha256=None,
         judge=judge,
     )
-    observed = {item.metric: item.score for item in output.verdicts}
+    observed: dict[EvaluationMetricV3, float] = {
+        item.metric: item.score for item in output.verdicts
+    }
     errors = {
         metric: abs(references[metric] - observed[metric])
         for metric in SEMANTIC_JUDGE_METRICS_V3
@@ -668,9 +681,14 @@ def judge_blinded_packet_v3(
             calibration_sha256=calibration.calibration_sha256,
             judge=judge,
         )
-        model_scores = {item.metric: item.score for item in output.verdicts}
+        model_scores: dict[EvaluationMetricV3, float] = {
+            item.metric: item.score for item in output.verdicts
+        }
         deterministic_scores = score_deterministic_metrics_v3(answer)
-        scores = {**model_scores, **deterministic_scores}
+        scores: dict[EvaluationMetricV3, float] = {
+            **model_scores,
+            **deterministic_scores,
+        }
         score_sources: dict[
             EvaluationMetricV3,
             Literal["deterministic", "model_judge", "human_review"],

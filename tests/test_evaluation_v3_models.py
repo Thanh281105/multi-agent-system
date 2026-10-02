@@ -61,6 +61,8 @@ def test_experiment_freezes_variants_cases_models_metrics_and_labels() -> None:
     assert {
         variant.generation_binding.reasoning_effort for variant in config.variants
     } == {"low"}
+    assert config.judgment_policy.model_binding is not None
+    assert config.judgment_policy.model_binding.reasoning_effort == "medium"
     assert config.variants[2].rag_enabled is True
     assert config.variants[3].rag_enabled is False
     assert config.metrics == PACKAGE7_METRICS

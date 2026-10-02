@@ -1197,7 +1197,8 @@ def _enforce_resource_limits(
         effective_cost = result.known_cost_usd + result.unresolved_reserved_cost_usd
         if effective_cost > limits.per_turn_limit_usd:
             raise ObservationResourceLimitErrorV3("per_turn_cost_limit_exceeded")
-        if result.max_attempt_duration_seconds > limits.attempt_timeout_seconds:
+        # Persisted attempt duration includes the ledger settlement transaction.
+        if result.max_attempt_duration_seconds > limits.attempt_timeout_seconds + 0.1:
             raise ObservationResourceLimitErrorV3("attempt_timeout_limit_exceeded")
         if result.elapsed_seconds > limits.turn_deadline_seconds:
             raise ObservationResourceLimitErrorV3("turn_deadline_limit_exceeded")
@@ -1208,11 +1209,16 @@ def _enforce_resource_limits(
             if max(0, embedding_call.attempts - 1) > limits.max_retries:
                 raise ObservationResourceLimitErrorV3("provider_retry_limit_exceeded")
         for model_call in result.model_calls:
-            if model_call.input_tokens > limits.max_input_tokens_per_generation:
+            attempt_count = max(model_call.attempts, 1)
+            if model_call.input_tokens > (
+                limits.max_input_tokens_per_generation * attempt_count
+            ):
                 raise ObservationResourceLimitErrorV3(
                     "generation_input_token_limit_exceeded"
                 )
-            if model_call.output_tokens > limits.max_output_tokens_per_generation:
+            if model_call.output_tokens > (
+                limits.max_output_tokens_per_generation * attempt_count
+            ):
                 raise ObservationResourceLimitErrorV3(
                     "generation_output_token_limit_exceeded"
                 )

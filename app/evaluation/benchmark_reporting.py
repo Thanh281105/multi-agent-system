@@ -25,6 +25,8 @@ from app.evaluation.v3_artifacts import (
     JudgmentRecordV3,
     UnblindingKeyV3,
     build_evaluation_report_v3,
+    claim_evidence_v3,
+    runtime_rubric_evidence_v3,
 )
 from app.evaluation.v3_comparison import (
     ArtifactBindingsV3,
@@ -994,6 +996,8 @@ def _provisional_from_receipt(
             repetition=observation.repetition,
             answer=final_result.answer,
             citations=citations,
+            claims=claim_evidence_v3(final_result),
+            runtime_evidence=runtime_rubric_evidence_v3(final_result),
         ),
         final_turn_result=final_result,
         authoritative_evidence=authoritative_evidence,
@@ -1056,7 +1060,7 @@ def _extract_citations(
     evidence_by_id = {item.evidence_id: item for item in result.evidence}
     citations: list[CitationForReviewV3] = []
     bindings: list[EvidenceBindingKeyV3] = []
-    labels: set[str] = set()
+    labels: dict[str, EvidenceBindingKeyV3] = {}
     for citation in result.citations:
         evidence = evidence_by_id.get(citation.evidence_id)
         if evidence is None:
@@ -1074,6 +1078,13 @@ def _extract_citations(
             chunk_id=evidence.chunk_id,
             span_id=evidence.span_id,
         )
+        previous_binding = labels.get(citation.display_label)
+        if previous_binding is not None:
+            if previous_binding != binding:
+                raise BenchmarkReportingValidationErrorV3(
+                    "TurnResult citation label maps to multiple evidence bindings"
+                )
+            continue
         try:
             resolved = evidence_resolver.resolve(binding)
         except Exception as exc:
@@ -1096,11 +1107,7 @@ def _extract_citations(
             raise BenchmarkReportingValidationErrorV3(
                 "immutable evidence resolver returned a foreign evidence binding"
             )
-        if citation.display_label in labels:
-            raise BenchmarkReportingValidationErrorV3(
-                "TurnResult citations reuse a display label"
-            )
-        labels.add(citation.display_label)
+        labels[citation.display_label] = binding
         citations.append(
             CitationForReviewV3(
                 label=citation.display_label,

@@ -51,7 +51,6 @@ from app.v2.execution import (
 from app.v2.history import ContextConstraint, HistoryTurn, ModelContext
 from app.v2.planning import (
     BoundedV2Planner,
-    ModelPlanRejectedError,
     PlanningContext,
     PlanningError,
     RuntimeDataVersions,
@@ -498,11 +497,46 @@ async def test_model_cannot_select_an_unimplemented_registry_template() -> None:
     assert hybrid.fallback_reason == "model_plan_not_authorized"
 
     with provider_budget_scope(_budget_context()):
-        with pytest.raises(ModelPlanRejectedError):
-            await BoundedV2Planner(
-                model_runtime=_ChoiceRuntime(unavailable),
-                runtime_mode="required",
-            ).plan("Tìm sách Sapiens", _context())
+        required = await BoundedV2Planner(
+            model_runtime=_ChoiceRuntime(unavailable),
+            runtime_mode="required",
+        ).plan("Tìm sách Sapiens", _context())
+    assert required.clarification_code == "action_mode_mismatch"
+    assert required.desired_capabilities == ()
+    assert required.initial_operations == ()
+
+
+@pytest.mark.asyncio
+async def test_required_shopper_unauthorized_merchant_plan_clarifies() -> None:
+    message = "Chuyển mức niêm yết Economix về 109.000 đồng."
+    runtime = _ChoiceRuntime(
+        {
+            "template_id": "merchant_proposal",
+            "capabilities": [
+                "merchant.inventory.read",
+                "merchant.offer.propose",
+            ],
+            "selected_product_ids": [141, 158],
+            "candidate_limit": 5,
+        }
+    )
+    with provider_budget_scope(_budget_context()):
+        planned = await BoundedV2Planner(
+            model_runtime=runtime,
+            runtime_mode="required",
+        ).plan(
+            message,
+            _context(
+                mode=ConversationMode.SHOPPER,
+                resolved_product_ids=(141, 158),
+                write=True,
+            ),
+        )
+
+    assert runtime.calls == 1
+    assert planned.clarification_code == "action_mode_mismatch"
+    assert planned.desired_capabilities == ()
+    assert planned.initial_operations == ()
 
 
 @pytest.mark.asyncio
@@ -1136,18 +1170,19 @@ async def test_required_model_rejects_execute_or_invented_proposal_capability(
         }
     )
     with provider_budget_scope(_budget_context()):
-        with pytest.raises(ModelPlanRejectedError, match="model_plan_not_authorized"):
-            await BoundedV2Planner(
-                model_runtime=runtime,  # type: ignore[arg-type]
-                runtime_mode="required",
-            ).plan(
-                "Đổi giá thành 200000 VND",
-                _context(
-                    mode=ConversationMode.MERCHANT,
-                    resolved_product_ids=(7,),
-                    write=True,
-                ),
-            )
+        required = await BoundedV2Planner(
+            model_runtime=runtime,  # type: ignore[arg-type]
+            runtime_mode="required",
+        ).plan(
+            "Đổi giá thành 200000 VND",
+            _context(
+                mode=ConversationMode.MERCHANT,
+                resolved_product_ids=(7,),
+                write=True,
+            ),
+        )
+    assert required.clarification_code == "action_mode_mismatch"
+    assert required.initial_operations == ()
 
 
 @pytest.mark.asyncio
@@ -1165,14 +1200,12 @@ async def test_required_model_cannot_lower_checkout_proposal_candidate_limit() -
         }
     )
     with provider_budget_scope(_budget_context()):
-        with pytest.raises(ModelPlanRejectedError, match="model_plan_not_authorized"):
-            await BoundedV2Planner(
-                model_runtime=runtime,  # type: ignore[arg-type]
-                runtime_mode="required",
-            ).plan(
-                "Thanh toán giỏ hàng",
-                _context(write=True),
-            )
+        required = await BoundedV2Planner(
+            model_runtime=runtime,  # type: ignore[arg-type]
+            runtime_mode="required",
+        ).plan("Thanh toán giỏ hàng", _context(write=True))
+    assert required.clarification_code == "action_mode_mismatch"
+    assert required.initial_operations == ()
 
 
 @pytest.mark.asyncio
@@ -1644,11 +1677,12 @@ async def test_hybrid_rejects_invented_ids_and_required_keeps_failure_visible() 
     assert comparison.parameters["product_ids"] == [1, 2]
 
     with provider_budget_scope(_budget_context()):
-        with pytest.raises(ModelPlanRejectedError):
-            await BoundedV2Planner(
-                model_runtime=_ChoiceRuntime(malicious),
-                runtime_mode="required",
-            ).plan("So sánh hai sách", context)
+        required = await BoundedV2Planner(
+            model_runtime=_ChoiceRuntime(malicious),
+            runtime_mode="required",
+        ).plan("So sánh hai sách", context)
+    assert required.clarification_code == "action_mode_mismatch"
+    assert required.initial_operations == ()
 
 
 @pytest.mark.asyncio

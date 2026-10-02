@@ -178,11 +178,16 @@ class _ReceiptExactEvidenceResolver:
         authority: _ReceiptEvidenceAuthority,
     ) -> ResolvedExactEvidenceV3:
         catalog_review_source = None
-        if authority.reference.kind in {EvidenceKind.CATALOG, EvidenceKind.REVIEW}:
+        if authority.reference.kind in {
+            EvidenceKind.CATALOG,
+            EvidenceKind.REVIEW,
+            EvidenceKind.TRUST,
+        }:
             if self._catalog_review_source is None:
                 raise BenchmarkCLIError(
                     "generic_exact_authority_unavailable",
-                    "catalog or review evidence requires a configured immutable "
+                    "catalog, review, or trust evidence requires a configured "
+                    "immutable "
                     "exact authority",
                 )
             try:
@@ -194,7 +199,7 @@ class _ReceiptExactEvidenceResolver:
             except ValueError as exc:
                 raise BenchmarkCLIError(
                     getattr(exc, "code", "exact_evidence_resolution_failed"),
-                    "catalog or review source could not be reopened "
+                    "catalog, review, or trust source could not be reopened "
                     "under its authority",
                 ) from exc
         if authority.reference.kind not in {
@@ -202,6 +207,7 @@ class _ReceiptExactEvidenceResolver:
             EvidenceKind.SANDBOX,
             EvidenceKind.CATALOG,
             EvidenceKind.REVIEW,
+            EvidenceKind.TRUST,
         }:
             raise BenchmarkCLIError(
                 "generic_exact_authority_unavailable",
@@ -356,6 +362,7 @@ def _prepare(arguments: argparse.Namespace) -> int:
         frozen=frozen,
         pilot_checkpoint=arguments.pilot_checkpoint,
         pilot_schedule_path=arguments.pilot_schedule,
+        runtime_manifest_path=arguments.p7_runtime_manifest,
     )
     _reject_unresolved_local_citations((*heldout, *pilot_receipts))
     calibration_inputs = build_package8_pilot_calibration_inputs_v3(
@@ -431,8 +438,12 @@ def _operate(arguments: argparse.Namespace) -> int:
         frozen=frozen,
         pilot_checkpoint=arguments.pilot_checkpoint,
         pilot_schedule_path=arguments.pilot_schedule,
+        runtime_manifest_path=arguments.p7_runtime_manifest,
     )
-    pilot_cases = _load_pilot_cases(frozen)
+    pilot_cases = _load_pilot_cases(
+        frozen,
+        runtime_manifest_path=arguments.p7_runtime_manifest,
+    )
     authorities = _receipt_evidence_authorities(
         batches=(
             (schedule, heldout, frozen.heldout_cases),
@@ -444,6 +455,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         project_root=frozen.project_root,
         database_url=arguments.database_url,
         expected_protocol=frozen.protocol,
+        runtime_manifest_path=arguments.p7_runtime_manifest,
     )
     evidence_resolver = _ReceiptExactEvidenceResolver(
         knowledge_service=resources.knowledge_service,
@@ -672,6 +684,7 @@ def _execute(arguments: argparse.Namespace) -> int:
             project_root=frozen.project_root,
             database_url=arguments.database_url,
             expected_protocol=frozen.protocol,
+            runtime_manifest_path=arguments.p7_runtime_manifest,
         )
         result = asyncio.run(
             run_heldout_benchmark_v3(
@@ -784,6 +797,7 @@ def _load_complete_pilot_receipts(
     frozen: FrozenPackage7HeldoutInputsV3,
     pilot_checkpoint: Path,
     pilot_schedule_path: Path,
+    runtime_manifest_path: Path | None = None,
 ) -> tuple[tuple[ScheduledTurnV3, ...], tuple[ObservationRunReceiptV3, ...]]:
     """Read P7 pilot receipts only through its non-dispatch recovery path."""
 
@@ -809,9 +823,10 @@ def _load_complete_pilot_receipts(
             "pilot_checkpoint_missing",
             "prepare requires the completed Package 7 pilot checkpoint",
         )
-    arguments = v3_cli._parser().parse_args(
-        ("validate", "--project-root", str(frozen.project_root))
-    )
+    argv = ["validate", "--project-root", str(frozen.project_root)]
+    if runtime_manifest_path is not None:
+        argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != frozen.protocol:
         raise FrozenPackage7DriftError("package7_pilot_protocol_binding_drift")
@@ -1108,6 +1123,7 @@ def _load_frozen(arguments: argparse.Namespace) -> FrozenPackage7HeldoutInputsV3
         repeat_decision_path=arguments.p7_repeat_decision,
         gold_path=arguments.gold,
         split_path=arguments.split,
+        runtime_manifest_path=arguments.p7_runtime_manifest,
     )
 
 
@@ -1128,14 +1144,17 @@ def _require_operator_guard(arguments: argparse.Namespace) -> None:
 
 def _load_pilot_cases(
     frozen: FrozenPackage7HeldoutInputsV3,
+    *,
+    runtime_manifest_path: Path | None = None,
 ) -> Mapping[str, EvaluationCaseV3]:
     """Reload P7's current verified cases before using receipt authorization."""
 
     from app.evaluation import v3_cli
 
-    arguments = v3_cli._parser().parse_args(
-        ("validate", "--project-root", str(frozen.project_root))
-    )
+    argv = ["validate", "--project-root", str(frozen.project_root)]
+    if runtime_manifest_path is not None:
+        argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != frozen.protocol:
         raise FrozenPackage7DriftError("package7_pilot_protocol_binding_drift")
@@ -1565,6 +1584,7 @@ def _build_live_operator_resources(
     project_root: Path,
     database_url: str,
     expected_protocol: object,
+    runtime_manifest_path: Path | None = None,
 ) -> _LiveOperatorResources:
     """Reuse P7's guarded graph and shared ledger without exposing its settings."""
 
@@ -1572,6 +1592,7 @@ def _build_live_operator_resources(
         project_root=project_root,
         database_url=database_url,
         expected_protocol=expected_protocol,
+        runtime_manifest_path=runtime_manifest_path,
     )
     composer = getattr(factory, "composer", None)
     services = getattr(factory, "shared_services", None)
@@ -1619,14 +1640,16 @@ def _build_package7_live_executor_factory(
     project_root: Path,
     database_url: str,
     expected_protocol: object,
+    runtime_manifest_path: Path | None = None,
 ) -> ObservationExecutorFactoryV3:
     """Delegate live setup to P7's already validated factory without logging it."""
 
     from app.evaluation import v3_cli
 
-    arguments = v3_cli._parser().parse_args(
-        ("validate", "--project-root", str(project_root))
-    )
+    argv = ["validate", "--project-root", str(project_root)]
+    if runtime_manifest_path is not None:
+        argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != expected_protocol:
         raise FrozenPackage7DriftError("package7_live_protocol_binding_drift")
@@ -1943,6 +1966,7 @@ def _add_inputs(parser: argparse.ArgumentParser, project_root: Path) -> None:
         type=Path,
         default=p7_output / "repeat-decision.v3.json",
     )
+    parser.add_argument("--p7-runtime-manifest", type=Path)
     parser.add_argument(
         "--gold",
         type=Path,

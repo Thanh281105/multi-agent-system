@@ -71,6 +71,7 @@ _POSTPROCESSING_SOURCE_NAMES = (
     "benchmark_cli.py",
     "benchmark_v3.py",
     "benchmark_evidence.py",
+    "benchmark_calibration.py",
     "benchmark_reporting.py",
     "benchmark_judging.py",
     "benchmark_finalization.py",

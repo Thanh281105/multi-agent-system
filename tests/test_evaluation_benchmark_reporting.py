@@ -222,6 +222,12 @@ def test_receipt_conversion_uses_only_actual_citation_evidence() -> None:
     )
     assert provisional.answer_evidence.citations[0].label == "[C1]"
     assert provisional.answer_evidence.citations[0].evidence == "Exact source span."
+    assert provisional.answer_evidence.claims[0].text == "Synthetic sourced claim."
+    assert provisional.answer_evidence.claims[0].citation_labels == ("[C1]",)
+    assert (
+        provisional.answer_evidence.runtime_evidence.outcome is DialogueOutcome.ANSWERED
+    )
+    assert provisional.answer_evidence.runtime_evidence.plan_revision_count == 0
     assert provisional.operational.input_tokens == 13
     assert provisional.operational.output_tokens == 5
     assert provisional.operational.generation_call_count == 1
@@ -266,6 +272,49 @@ def test_receipt_conversion_uses_only_actual_citation_evidence() -> None:
             admission=admission,
             evidence_resolver=resolver,
         )
+
+
+def test_repeated_reference_label_is_deduplicated_for_blind_evidence() -> None:
+    receipt = _receipt(0)
+    payload = receipt.turn_results[-1].result_payload
+    assert isinstance(payload["result"], dict)
+    result = payload["result"]
+    citation = result["citations"][0]
+    repeated_citation = {
+        **citation,
+        "citation_id": "citation_source_repeat",
+        "claim_id": "claim_source_repeat",
+    }
+    repeated_claim = {
+        "claim_id": "claim_source_repeat",
+        "text": "A second claim supported by the same source.",
+        "citation_ids": ["citation_source_repeat"],
+    }
+    repeated_result = {
+        **result,
+        "citations": [*result["citations"], repeated_citation],
+        "claims": [*result["claims"], repeated_claim],
+    }
+    repeated_payload = {**payload, "result": repeated_result}
+    repeated_receipt = receipt.model_copy(
+        update={
+            "turn_results": (
+                receipt.turn_results[-1].model_copy(
+                    update={"result_payload": repeated_payload}
+                ),
+            )
+        }
+    )
+
+    provisional = convert_completed_receipts_to_provisionals_v3(
+        (repeated_receipt,),
+        admission=_admission(repeated_receipt),
+        evidence_resolver=_resolver_for_receipt(receipt),
+    )[0]
+
+    assert len(provisional.answer_evidence.citations) == 1
+    assert provisional.answer_evidence.citations[0].label == "[C1]"
+    assert len(provisional.authoritative_evidence) == 1
 
 
 def test_source_level_catalog_citation_resolves_server_owned_exact_text() -> None:
@@ -751,12 +800,18 @@ def _blind_context(provisional):
         prompt=("Synthetic blind prompt",),
         answer=provisional.answer_evidence.answer,
         citations=provisional.answer_evidence.citations,
+        claims=provisional.answer_evidence.claims,
+        runtime_evidence=provisional.answer_evidence.runtime_evidence,
         rubric_context=RubricContextV3(
             answerability=AnswerabilityV3.ANSWERABLE,
             required_response_mode=RequiredResponseModeV3.DIRECT_ANSWER,
             required_facts=(),
             forbidden_claims=(),
             expected_action_outcome="complete",
+            expected_dialogue_outcome=DialogueOutcome.ANSWERED,
+            allowed_capabilities=(),
+            required_capabilities=(),
+            forbidden_capabilities=(),
         ),
     )
     packet_payload = {

@@ -1,11 +1,49 @@
 # P02 remediation and successor execution status
 
-This record supersedes the unstarted `31f3351` successor handoff. Live egress
-was authorized for the successor lifecycle and the local PostgreSQL runtime was
-prepared on the dedicated loopback database. P7 successor v5 completed and
-froze its repeat decision. P8 successors v6 through v9 then produced terminal
-partial checkpoints; no scoring, calibration, judging or publication report is
-claimed because every held-out run still has fail-closed cells.
+This handoff records the completed P7/P8 successor lifecycle. P7 successor
+`run_p7_successor_v18` completed 36/36 cells with no failures and froze 3 repeats
+on protocol SHA-256
+`2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23`; repeat
+decision SHA-256 is
+`40ea5ec8a1890c34195b8e3f4fd29935203834985625605af92fa24bbbd8c5cd`.
+
+P8 successor `run_p8_successor_v23` completed 720/720 SUT cells under schedule
+SHA-256 `f46949cdae870718dd8d2411a343522842eb34c466554e5350ae960ea7e8892e`.
+Exact evidence resolution, 32/32 calibration records, judge freeze, 720 blind
+judgments, result joining, report and paired metrics all completed. Calibration
+SHA-256 is
+`8176e307bd5a34610f2855e71777f46b708058823621120b1ec209993e1f9031`; report
+SHA-256 is
+`cf772ac876e0a2f69aef78f68ffa729925eb991359b76bc94da4f26fc6787f5d`.
+Publication files are under
+`output/evaluation-v3/heldout-successor-v23/p8-publication/`; these benchmark
+artifacts are local-only.
+
+The PostgreSQL ledger is isolated from the checkout `.env` (which still points
+to SQLite). The final `codex-p7-p8-ledger` snapshot records `$41.57320211` known,
+`$0.47555784` unknown, `$0` reserved/active and `$57.95124005` remaining under
+the `$100` cap. Current SQL scopes account for `$0.40455225` unknown; the
+remaining `$0.07100559` is account-level carry-forward without original scope
+rows. Diagnostic A's `$0.05446350` belongs to historical clone
+`p8_failed_diag_20260923_a` and is included within that carry-forward. Its SQL
+rows are unavailable, so the amount remains unknown and is not added twice.
+P7 v18 known cost is `$0.05163060`. P8 v23 known provider usage is
+`$4.90357425`; published effective cost is `$4.91358675`, including the report's
+`$0.01001250` unresolved-reservation estimate. This estimate is not an active
+PostgreSQL reservation. No P7/P8 Embeddings API attempts were recorded; the
+three embedding attempts in this database belong to ingestion.
+
+The local-only reconciliation is
+`output/evaluation-v3/current-machine-ledger/ledger-reconciliation-20261002-v23-final.json`.
+Diagnostic A's original clone remains unavailable and no active reservation is
+left in the current account. Earlier CI history: run `36844660998` failed at
+Type-check on SHA `470d1817ccb8c2294dec7aace9319a69e2c93d78`; commit `802369b`
+fixed the eight mypy errors. Full CI run
+[`36846265660`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36846265660)
+passed on SHA `802369b263b19da7ec4388605ef38cd19da2bc2f`. Documentation commit
+`1331897` is pushed, and full CI run
+[`36848384922`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36848384922)
+passed on SHA `13318976919d349be73189194f08d354715761ab`.
 
 ## Implemented boundary
 
@@ -43,8 +81,8 @@ The old protocol `c8a4b4fb912039b93071fa37030cdbb11971cf3a15c65000d7c7e2ddfff79c
 and schedule `f37eaa4482cafa85b9c665bf6ea25f30a81872df277e3e803949035209b7da13`
 describe the pre-P02 source. They must not be used for this implementation.
 
-The corrected protocol additionally binds the shopper fixture guard and the
-supervisor/grounding source files:
+The historical v5 protocol additionally binds the shopper fixture guard and
+the supervisor/grounding source files:
 
 - Protocol: `28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`.
 - Frozen P7 run: `run_p7_successor_v5`.
@@ -54,8 +92,12 @@ supervisor/grounding source files:
 - Repeat decision: 3 repeats; pilot effective cost `0.05551620 USD`, projected
   held-out SUT cost `5.91510600 USD`.
 
-The three P8 protocol guards are rebound to this exact source protocol. No P8
-run is created by that code change. No previous repeat decision is reused.
+In the historical v11 snapshot, the P8 protocol guards bound to P7 v10 protocol
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. P8 v11
+used the previous judge schema; v12-v15 are historical or partial. P8 v16 was
+the next official run in that snapshot. Both were later superseded by P7 v18 and
+P8 v23, documented at the top of this handoff. The v5 protocol/repeat decision
+is not reused.
 
 Fresh Windows checkouts previously changed immutable source hashes. Git attributes
 now preserve LF text, except `sources.json` and `mappings.json`, whose already
@@ -63,7 +105,7 @@ frozen bindings require CRLF. Gold, split and source JSON content are unchanged.
 The OpenAI adapter also has a type-only cast for the pinned SDK's TypedDict return;
 runtime payloads and dispatch behavior are unchanged.
 
-## Successor execution record
+## Historical successor execution record (through P8 v16)
 
 1. Preflight validated the corrected protocol and the exact 36-cell P7 v5
    schedule. The live pilot was dispatched with explicit network consent and a
@@ -84,29 +126,40 @@ runtime payloads and dispatch behavior are unchanged.
    `model_response_invalid`; the shopper merchant-target binding failure from
    the older protocol no longer appears.
 3. Existing terminal cells were never redispatched. `resume` cannot repair a
-   terminal partial checkpoint, and no run is eligible for `operate` until every
-   scheduled receipt cell is complete and the ledger has no unresolved work.
-4. `benchmark_cli operate` remains intentionally uncalled. It still requires
-   the same P7 checkpoint/schedule, exact evidence resolution and explicit judge
-   budget, and it may publish only after calibration, blind judging and all
-   validators succeed.
+   terminal partial checkpoint. P8 v11 did have complete SUT coverage, but
+   `operate` failed calibration: four model responses violated semantic schema,
+   then 28 jobs were stopped by the circuit breaker. The corrected schema
+   changes the protocol, so v11 cannot be carried forward.
+4. The one-case diagnostic isolated the cause: the old provider JSON schema
+   admitted nine metric names while the semantic validator accepted six. The
+   schema-only fix is committed as `d030f9a`; a known-cost retry batch was
+   `$0.02340150`, and the diagnostic scope was `$0.00588450`. Eight earlier
+   sandbox-blocked attempts remain historical unknown at `$0.06824250`; P7 v9's
+   eight connection-failed attempts remain historical unknown at `$0.03670500`.
+   P7 v10 has since completed and frozen the repeat decision. P8 v16 now has
+   full SUT coverage and exact evidence resolution, but calibration failed its
+   frozen threshold; blind judging and report publication did not run.
 
 The exact evidence boundary is now receipt-bound and fail-closed.
 `ImmutableBenchmarkEvidenceResolverV3` reopens knowledge, canonical
 merchant-inventory and shopper cart/checkout preview reads reconstructed from
-the hashed reset fixture, and `catalog_product_N`/`review_sample_N` records
-reconstructed from hash-pinned public assets. Ranked catalog records, oversized
-review samples, and mutated sandbox state still stop scoring with a typed error.
+the hashed reset fixture, plus `catalog_product_N`, `review_sample_N` and
+`trust_sample_N` records reconstructed from hash-pinned public assets. Trust
+samples are accepted only when their full review set fits the runtime limit.
+Ranked catalog records, oversized review samples, and mutated sandbox state
+still stop scoring with a typed error.
 Do not fabricate source text from the answer, title or gold, relabel sandbox
-citations as catalog citations, or soften a provenance failure. This does not
-make `operate` ready to complete: successor P7 is frozen, but P8 must first
-reach complete SUT coverage before evidence, calibration, judging and
-publication can run.
+citations as catalog citations, or soften a provenance failure. At the v16
+checkpoint, P7 v10 was frozen and P8 v16 had complete SUT coverage and exact
+evidence resolution, but calibration failed and no blind judging ran. That
+checkpoint is historical; P7 v18/P8 v23 completed the lifecycle as recorded at
+the top of this handoff.
 
 On any failure, classify the error and inspect its checkpoint before changing
 code. Fix only the demonstrated cause; preserve completed cells and bind any
-source change to a distinct compatible run. Final P7/P8 quality and final package
-closure remain pending live evidence and the successor lifecycle gates.
+source change to a distinct compatible run. The v10/v16 statements in this
+execution record describe the earlier checkpoint and are superseded by the
+completed v18/v23 results above.
 
 ## Local verification
 
@@ -131,5 +184,7 @@ database-dependent cases against a loopback disposable PostgreSQL URL passed 17
 tests with 1 existing Starlette/httpx warning. An additional PostgreSQL v2
 action/history/lease/persistence/runtime/tools/sandbox suite passed 103 tests.
 Together these local results close the broader API v2/action/replay PostgreSQL
-verification. P7 is complete and frozen; P8 SUT is terminal partial and
-`operate` remains blocked by the missing/failed cells above.
+verification. P7 v5/v9 and P8 v11/v14/v16 remain historical checkpoints. The
+current frozen pilot is P7 v18; P8 v23 has complete SUT coverage, frozen
+calibration, blind judgments, and published report/paired metrics as recorded
+above.

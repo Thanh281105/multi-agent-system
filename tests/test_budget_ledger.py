@@ -21,6 +21,7 @@ from app.models.budget import (
     ProviderBudgetScope,
 )
 from app.shared.budget import (
+    GENERATION_INPUT_TOKEN_LIMIT,
     BudgetAttemptLimitError,
     BudgetConcurrencyError,
     BudgetConflictError,
@@ -221,7 +222,7 @@ def test_central_limits_purpose_and_pricing_identity_fail_closed(
     with pytest.raises(BudgetConflictError, match="purpose_scope_mismatch"):
         _reserve(ledger, purpose="judge")
     with pytest.raises(BudgetLimitExceededError, match="payload_limit"):
-        _reserve(ledger, input_bound=12_001)
+        _reserve(ledger, input_bound=GENERATION_INPUT_TOKEN_LIMIT + 1)
 
     reservation = _reserve(ledger)
     ledger.mark_dispatched(scope_id="turn-1", attempt_id=reservation.attempt_id)

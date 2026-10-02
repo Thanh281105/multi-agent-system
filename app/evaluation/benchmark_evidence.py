@@ -22,6 +22,7 @@ from typing import Any, Literal, Protocol
 from pydantic import Field, ValidationError, model_validator
 
 from app.agents.review.skills import extract_review_aspects
+from app.agents.trust.skills import analyze_review_trust, detect_complaints
 from app.data.contracts import DatasetManifest, NormalizedProduct, NormalizedReview
 from app.evaluation.benchmark_reporting import (
     EvidenceBindingKeyV3,
@@ -119,15 +120,15 @@ class ResolvedCitationTextV3(ResolvedExactEvidenceV3):
 
 
 class CatalogReviewResolvedEvidenceV3(FrozenBenchmarkReportingContractV3):
-    """Typed, immutable catalog/review text supplied by a read-only authority."""
+    """Typed, immutable catalog/review/trust text from a read-only authority."""
 
     binding: EvidenceBindingKeyV3
     reference: EvidenceReference
     authorization: ResourceAuthorization
     exact_text: str = Field(min_length=1, max_length=4_000)
     content_sha256: str = Field(pattern=_SHA256)
-    authority: Literal["catalog_review_immutable_source"] = (
-        "catalog_review_immutable_source"
+    authority: Literal["catalog_review_trust_immutable_source"] = (
+        "catalog_review_trust_immutable_source"
     )
 
     @model_validator(mode="after")
@@ -229,24 +230,29 @@ class ImmutableCatalogReviewSourceV3:
         prefix = {
             EvidenceKind.CATALOG: "catalog_product",
             EvidenceKind.REVIEW: "review_sample",
+            EvidenceKind.TRUST: "trust_sample",
         }.get(reference.kind)
         match = re.fullmatch(rf"{prefix}_([1-9][0-9]*)", reference.source_id)
         if prefix is None or match is None:
             raise CatalogReviewAuthorityUnavailableErrorV3(
-                "catalog/review source is not a fully reconstructible asset record"
+                "catalog/review/trust source is not a fully "
+                "reconstructible asset record"
             )
         line = int(match.group(1))
         if line > len(self._products):
             raise CatalogReviewAuthorityUnavailableErrorV3(
-                "catalog/review product is outside the immutable source asset"
+                "catalog/review/trust product is outside the immutable source asset"
             )
         product = self._products[line - 1]
         if reference.kind is EvidenceKind.CATALOG:
             text = _catalog_product_text(product)
             title = f"{product.name} — dữ liệu catalog lịch sử"
-        else:
+        elif reference.kind is EvidenceKind.REVIEW:
             text = _catalog_review_sample_text(self._reviews[product.external_id])
             title = f"{product.name} — mẫu tối đa 20 review lịch sử"
+        else:
+            text = _catalog_trust_sample_text(self._reviews[product.external_id])
+            title = f"{product.name} — heuristic trên tối đa 20 review snapshot"
         observed_at = self._manifest.retrieved_at
         observed_at = (
             observed_at.replace(tzinfo=UTC)
@@ -260,7 +266,7 @@ class ImmutableCatalogReviewSourceV3:
             or reference.url is not None
         ):
             raise EvidenceProvenanceMismatchErrorV3(
-                "catalog/review reference differs from the pinned source identity"
+                "catalog/review/trust reference differs from the pinned source identity"
             )
         binding = _binding_from_reference(reference)
         _verify_stable_span_binding(binding)
@@ -277,7 +283,7 @@ class ImmutableCatalogReviewSourceV3:
         )
         if binding.chunk_id != chunk_id or binding.span_id != span_id:
             raise EvidenceProvenanceMismatchErrorV3(
-                "catalog/review exact source text does not match its tool record"
+                "catalog/review/trust exact source text does not match its tool record"
             )
         return CatalogReviewResolvedEvidenceV3(
             binding=binding,
@@ -364,6 +370,27 @@ def _catalog_review_sample_text(reviews: tuple[NormalizedReview, ...]) -> str:
     return "\n".join(entries)
 
 
+def _catalog_trust_sample_text(reviews: tuple[NormalizedReview, ...]) -> str:
+    # Above the runtime limit, DB ordering determines which reviews are sampled.
+    if len(reviews) > 20:
+        raise CatalogReviewAuthorityUnavailableErrorV3(
+            "trust sample requires unavailable database row ordering authority"
+        )
+    sample = [
+        {"id": index, "rating": row.rating, "content": row.content}
+        for index, row in enumerate(reviews, start=1)
+    ]
+    complaints = detect_complaints(sample)
+    signals = analyze_review_trust(sample)
+    entries = (
+        f"sampled_review_count: {len(sample)} review",
+        f"complaint_count: {int(complaints['complaint_count'])} complaint",
+        f"flagged_review_count: {int(signals['flagged_text_quality_count'])} review",
+        f"trust_limitation: {signals['limitation']}",
+    )
+    return "\n".join(entries)
+
+
 class SandboxResolvedEvidenceV3(FrozenBenchmarkReportingContractV3):
     """Exact sandbox read record bound to a reset fixture and receipt authority.
 
@@ -438,7 +465,7 @@ class EvidenceReferenceResolverV3(Protocol):
 
 
 class CatalogReviewEvidenceResolverV3(Protocol):
-    """Read-only authority for exact catalog or review source text."""
+    """Read-only authority for exact catalog, review, or trust source text."""
 
     def resolve(
         self, binding: EvidenceBindingKeyV3
@@ -524,7 +551,7 @@ class ImmutableBenchmarkEvidenceResolverV3:
         kind = reference.kind
         if kind is EvidenceKind.KNOWLEDGE:
             return self._resolve_knowledge(normalized_binding, reference)
-        if kind in {EvidenceKind.CATALOG, EvidenceKind.REVIEW}:
+        if kind in {EvidenceKind.CATALOG, EvidenceKind.REVIEW, EvidenceKind.TRUST}:
             return self._resolve_catalog_or_review(normalized_binding, reference)
         if kind is EvidenceKind.SANDBOX:
             return self._resolve_sandbox(normalized_binding, reference)
@@ -623,14 +650,14 @@ class ImmutableBenchmarkEvidenceResolverV3:
     ) -> ResolvedCitationTextV3:
         if self._catalog_review_source is None:
             raise EvidenceMetadataUnavailableErrorV3(
-                "catalog/review evidence has no configured immutable source"
+                "catalog/review/trust evidence has no configured immutable source"
             )
         _validate_immutable_version_id(binding.source_version_id)
         _verify_stable_span_binding(binding, allow_missing_location=True)
         candidate = _read_source(self._catalog_review_source, binding)
         if not isinstance(candidate, CatalogReviewResolvedEvidenceV3):
             raise EvidenceProvenanceMismatchErrorV3(
-                "catalog/review source did not return typed exact evidence"
+                "catalog/review/trust source did not return typed exact evidence"
             )
         try:
             resolved = CatalogReviewResolvedEvidenceV3.model_validate(
@@ -638,7 +665,7 @@ class ImmutableBenchmarkEvidenceResolverV3:
             )
         except (TypeError, ValidationError) as exc:
             raise EvidenceProvenanceMismatchErrorV3(
-                "catalog/review source returned invalid exact evidence"
+                "catalog/review/trust source returned invalid exact evidence"
             ) from exc
         if (
             resolved.binding != binding
@@ -647,7 +674,7 @@ class ImmutableBenchmarkEvidenceResolverV3:
             or resolved.reference.kind is not reference.kind
         ):
             raise EvidenceProvenanceMismatchErrorV3(
-                "catalog/review source does not match trusted provenance"
+                "catalog/review/trust source does not match trusted provenance"
             )
         if resolved.authorization != self._authorization:
             raise CatalogReviewAuthorizationMismatchErrorV3(

@@ -435,6 +435,27 @@ class BoundedV2Planner:
         fallback_reason: str | None = None
         if self.runtime_mode != "off" and policy_request.capabilities:
             choice, fallback_reason = await self._model_choice(policy_request, context)
+            if (
+                self.runtime_mode == "required"
+                and fallback_reason == "model_plan_not_authorized"
+            ):
+                clarification = _action_clarification_request(
+                    message,
+                    "action_mode_mismatch",
+                )
+                return PlannedTurn(
+                    plan_id=plan_id,
+                    intent=clarification.intent,
+                    template_id=clarification.template_id,
+                    obligations=(),
+                    desired_capabilities=(),
+                    initial_operations=(),
+                    deferred_capabilities=(),
+                    candidate_limit=clarification.candidate_limit,
+                    query=clarification.query,
+                    clarification_code=clarification.clarification_code,
+                    fallback_reason=fallback_reason,
+                )
             if choice is not None:
                 selected_template = choice.template_id
                 if self.runtime_mode in {"hybrid", "required"}:
@@ -767,10 +788,8 @@ class BoundedV2Planner:
                 context,
                 options=options,
             )
-        except ValueError as exc:
+        except ValueError:
             mark_model_call_fallback(generated.metadata, "v2_plan_rejected")
-            if self.runtime_mode == "required":
-                raise ModelPlanRejectedError("model_plan_not_authorized") from exc
             return None, "model_plan_not_authorized"
 
         if self.runtime_mode == "shadow":

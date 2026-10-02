@@ -13,7 +13,6 @@ from app.v2.contracts import ConversationMode, DialogueOutcome, SafeExecutionErr
 from app.v2.execution import OperationBatch
 from app.v2.planning import (
     BoundedV2Planner,
-    ModelPlanRejectedError,
     PlanningContext,
     ResolvedMerchantTarget,
 )
@@ -230,11 +229,12 @@ async def test_combined_model_cannot_drop_read_product_or_choose_target():
         }
     )
     with provider_budget_scope(_budget_context()):
-        with pytest.raises(ModelPlanRejectedError, match="model_plan_not_authorized"):
-            await BoundedV2Planner(model_runtime=runtime, runtime_mode="required").plan(
-                MESSAGE,
-                _merchant_context(),
-            )
+        required = await BoundedV2Planner(
+            model_runtime=runtime,
+            runtime_mode="required",
+        ).plan(MESSAGE, _merchant_context())
+    assert required.clarification_code == "action_mode_mismatch"
+    assert required.initial_operations == ()
 
 
 @pytest.mark.asyncio

@@ -26,12 +26,13 @@ from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_artifacts import (
     BlindedAnswerV3,
     CitationForReviewV3,
-    RubricContextV3,
-    RubricFactV3,
+    build_rubric_context_v3,
+    claim_evidence_v3,
+    expected_dialogue_outcome_v3,
+    runtime_rubric_evidence_v3,
 )
 from app.evaluation.v3_gold import (
     ActionBoundaryOutcomeV3,
-    AnswerabilityV3,
     CatalogPointerSupportV3,
     EvaluationSplitV3,
     GoldConversationV3,
@@ -72,7 +73,7 @@ from app.v2.contracts import DialogueOutcome, TurnResult, TurnStatus
 from app.v2.execution import DurableTurnOutcome
 
 PACKAGE7_FROZEN_PROTOCOL_SHA256_V3 = (
-    "28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c"
+    "2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23"
 )
 PACKAGE8_CALIBRATION_POLICY_ID_V3 = "package8_pilot_gold_derived_v1"
 PACKAGE8_CALIBRATION_POLICY_SCHEMA_VERSION_V3 = "8.0"
@@ -242,55 +243,7 @@ def _inputs_hash_payload(inputs: Package8PilotCalibrationInputsV3) -> dict[str, 
 
 
 def _expected_dialogue_outcome(gold: GoldConversationV3) -> DialogueOutcome:
-    if (
-        gold.action_capability_blueprint.expected_outcome
-        is ActionBoundaryOutcomeV3.AWAITING_CONFIRMATION
-    ):
-        return DialogueOutcome.AWAITING_CONFIRMATION
-    if (
-        gold.action_capability_blueprint.expected_outcome
-        is ActionBoundaryOutcomeV3.DENIED
-    ):
-        return DialogueOutcome.ABSTAINED
-    mapping = {
-        AnswerabilityV3.ANSWERABLE: DialogueOutcome.ANSWERED,
-        AnswerabilityV3.PARTIALLY_ANSWERABLE: DialogueOutcome.ANSWERED,
-        AnswerabilityV3.UNANSWERABLE: DialogueOutcome.ABSTAINED,
-        AnswerabilityV3.CONFLICTED_REQUIRES_CLARIFICATION: (
-            DialogueOutcome.NEEDS_CLARIFICATION
-        ),
-    }
-    return mapping[gold.answerability]
-
-
-def _rubric_context(gold: GoldConversationV3) -> RubricContextV3:
-    required_facts: list[RubricFactV3] = []
-    for fact in gold.required_fact_blueprints:
-        if isinstance(fact.support, SourceExcerptSupportV3):
-            evidence = fact.support.exact_excerpt
-        elif isinstance(fact.support, CatalogPointerSupportV3):
-            evidence = (
-                f"{fact.support.artifact_path}{fact.support.json_pointer}="
-                f"{json.dumps(fact.expected_value, ensure_ascii=False, sort_keys=True)}"
-            )
-        else:  # Gold validation owns the union; keep this bridge fail-closed.
-            raise BenchmarkCalibrationValidationErrorV3("unsupported gold fact support")
-        required_facts.append(
-            RubricFactV3(
-                claim=fact.claim_blueprint,
-                expected_value=fact.expected_value,
-                evidence=evidence,
-            )
-        )
-    return RubricContextV3(
-        answerability=gold.answerability,
-        required_response_mode=gold.required_response_mode,
-        required_facts=tuple(required_facts),
-        forbidden_claims=tuple(
-            item.matcher_blueprint for item in gold.forbidden_fact_blueprints
-        ),
-        expected_action_outcome=gold.action_capability_blueprint.expected_outcome.value,
-    )
+    return expected_dialogue_outcome_v3(gold)
 
 
 def _evidence_binding(citation: object, evidence: object) -> EvidenceBindingKeyV3:
@@ -322,12 +275,19 @@ def _exact_citations(
 ) -> tuple[CitationForReviewV3, ...]:
     evidence_by_id = {item.evidence_id: item for item in result.evidence}
     review_citations: list[CitationForReviewV3] = []
-    labels: set[str] = set()
+    labels: dict[str, EvidenceBindingKeyV3] = {}
     for citation in result.citations:
         evidence = evidence_by_id.get(citation.evidence_id)
         if evidence is None:
             raise BenchmarkCalibrationValidationErrorV3("citation evidence is absent")
         binding = _evidence_binding(citation, evidence)
+        previous_binding = labels.get(citation.display_label)
+        if previous_binding is not None:
+            if previous_binding != binding:
+                raise BenchmarkCalibrationValidationErrorV3(
+                    "citation label maps to multiple evidence bindings"
+                )
+            continue
         try:
             resolved = resolver.resolve(binding)
         except Exception as exc:
@@ -338,11 +298,7 @@ def _exact_citations(
             raise BenchmarkCalibrationValidationErrorV3(
                 "citation could not be resolved to exact immutable evidence"
             )
-        if citation.display_label in labels:
-            raise BenchmarkCalibrationValidationErrorV3(
-                "citation labels must be unique"
-            )
-        labels.add(citation.display_label)
+        labels[citation.display_label] = binding
         review_citations.append(
             CitationForReviewV3(
                 label=citation.display_label,
@@ -551,7 +507,9 @@ def _blinded_answer(
         prompt=tuple(turn.message for turn in gold.user_turns),
         answer=result.answer,
         citations=citations,
-        rubric_context=_rubric_context(gold),
+        claims=claim_evidence_v3(result),
+        runtime_evidence=runtime_rubric_evidence_v3(result),
+        rubric_context=build_rubric_context_v3(gold),
     )
 
 

@@ -33,6 +33,16 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_DATABASE_URL = "postgresql+psycopg://evaluation@example.invalid/package7"
 
 
+def test_judge_prompt_computes_missing_required_capabilities() -> None:
+    prompt = " ".join(v3_cli.PACKAGE7_JUDGE_PROMPT_V3.split())
+
+    assert '"complete"' in prompt
+    assert '"awaiting_confirmation"' in prompt
+    assert "missing_required" in prompt
+    assert "Planned capabilities do not count as successful." in prompt
+    assert "required capabilities are [a, b, c]" in prompt
+
+
 class _ControlledFactory:
     def __init__(self, *, known_cost: Decimal = Decimal("0.001")) -> None:
         self.known_cost = known_cost

@@ -50,7 +50,7 @@ from app.shared.budget import ProviderBudgetContext, provider_budget_scope
 from app.shared.model_runtime import ModelRuntime
 
 EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3 = (
-    "28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c"
+    "2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23"
 )
 
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
@@ -880,7 +880,7 @@ class DurableModelJudgeRunnerV3:
                 agent_id="model_judge",
                 model=configuration.model_binding.model,
                 instructions=configuration.judge_prompt,
-                input_text=canonical_json_bytes(request).decode("utf-8"),
+                input_text=_serialize_model_judge_input(request),
                 schema=ModelJudgeOutputV3,
                 max_output_tokens=1_200,
                 reasoning_effort=configuration.model_binding.reasoning_effort,
@@ -898,6 +898,20 @@ class DurableModelJudgeRunnerV3:
             return self._attempt_snapshots(scope_id)
         except BaseException:
             return ()
+
+
+def _serialize_model_judge_input(request: ModelJudgeRequestV3) -> str:
+    """Keep the wire input lean; the full judge prompt is already instructions."""
+
+    payload = request.model_dump(
+        mode="json",
+        exclude={
+            "judge_prompt",
+            "configuration_sha256",
+            "calibration_sha256",
+        },
+    )
+    return canonical_json_bytes(payload).decode("utf-8")
 
 
 def _normalize_configuration(
@@ -958,7 +972,9 @@ def _build_calibration_record(
     thresholds: CalibrationThresholdsV3,
     output: ModelJudgeOutputV3,
 ) -> CalibrationRecordV3:
-    observed = {item.metric: item.score for item in output.verdicts}
+    observed: dict[EvaluationMetricV3, float] = {
+        item.metric: item.score for item in output.verdicts
+    }
     references = dict(reference.scores)
     errors = {
         metric: abs(references[metric] - observed[metric])
@@ -1001,9 +1017,14 @@ def _build_heldout_record(
     answer: BlindedAnswerV3,
     output: ModelJudgeOutputV3,
 ) -> JudgmentRecordV3:
-    model_scores = {item.metric: item.score for item in output.verdicts}
+    model_scores: dict[EvaluationMetricV3, float] = {
+        item.metric: item.score for item in output.verdicts
+    }
     deterministic_scores = score_deterministic_metrics_v3(answer)
-    scores = {**model_scores, **deterministic_scores}
+    scores: dict[EvaluationMetricV3, float] = {
+        **model_scores,
+        **deterministic_scores,
+    }
     score_sources: dict[
         EvaluationMetricV3,
         Literal["deterministic", "model_judge", "human_review"],

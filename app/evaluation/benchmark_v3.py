@@ -76,7 +76,7 @@ from app.evaluation.v3_schedule import (
 )
 
 EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3 = (
-    "28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c"
+    "2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23"
 )
 PACKAGE8_HELDOUT_EXTENSION_ID_V3 = "package8_heldout_driver_v1"
 PACKAGE8_HELDOUT_SCHEDULE_ID_V3 = "package8_heldout_interleaved_v1"
@@ -193,6 +193,7 @@ def load_frozen_package7_heldout_inputs_v3(
     repeat_decision_path: Path,
     gold_path: Path,
     split_path: Path,
+    runtime_manifest_path: Path | None = None,
 ) -> FrozenPackage7HeldoutInputsV3:
     """Load P7 artifacts, reject drift, and adapt all and only held-out cases."""
 
@@ -222,7 +223,11 @@ def load_frozen_package7_heldout_inputs_v3(
         or protocol.assets.split_sha256 != loaded_gold.split_sha256
     ):
         raise FrozenPackage7DriftError("package7_gold_split_binding_drift")
-    _validate_live_package7_binding(root, protocol)
+    _validate_live_package7_binding(
+        root,
+        protocol,
+        runtime_manifest_path=runtime_manifest_path,
+    )
     heldout_cases = build_heldout_cases_v3(loaded_gold)
     return FrozenPackage7HeldoutInputsV3(
         project_root=root,
@@ -761,14 +766,17 @@ def _validated_repeat_count_v3(decision: RepeatDecisionV3) -> Literal[2, 3]:
 def _validate_live_package7_binding(
     project_root: Path,
     protocol: EvaluationProtocolV3,
+    *,
+    runtime_manifest_path: Path | None = None,
 ) -> None:
     """Use P7's own local loader to detect frozen-source or asset drift."""
 
     from app.evaluation import v3_cli
 
-    arguments = v3_cli._parser().parse_args(
-        ("validate", "--project-root", str(project_root))
-    )
+    argv = ["validate", "--project-root", str(project_root)]
+    if runtime_manifest_path is not None:
+        argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    arguments = v3_cli._parser().parse_args(argv)
     current = v3_cli._load_inputs(arguments).protocol
     if current != protocol:
         raise FrozenPackage7DriftError("package7_live_protocol_binding_drift")

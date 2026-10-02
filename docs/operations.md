@@ -363,14 +363,30 @@ fingerprint. Không dùng nó trên dữ liệu cần giữ.
 ## 11. V2 và Package 8 evaluation handoff
 
 Handoff hiện hành sau sửa P02 nằm tại
-[P02 successor handoff](thanh-v2/p02-successor-handoff.md), với protocol
-`28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c`.
-Các hash `315eff…`/`c8a4…`/`f37e…` bên dưới là lịch sử trước sửa shopper
-fixture. P7 successor v5 đã freeze; P8 successor v6-v9 có terminal partial
-evidence nhưng chưa có kết quả benchmark hoàn chỉnh.
+[P02 successor handoff](thanh-v2/p02-successor-handoff.md). Current P7 is
+`run_p7_successor_v18`: protocol SHA-256
+`2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23`, 36/36
+cells complete, zero failed, and 3 repeats frozen by decision
+`40ea5ec8a1890c34195b8e3f4fd29935203834985625605af92fa24bbbd8c5cd`.
+Current P8 is `run_p8_successor_v23`, schedule SHA-256
+`f46949cdae870718dd8d2411a343522842eb34c466554e5350ae960ea7e8892e`: 720/720
+SUT cells, exact evidence resolution, 32/32 calibration records and frozen
+judge, 720 blind judgments, result join, report and paired metrics complete.
+Report SHA-256 is
+`cf772ac876e0a2f69aef78f68ffa729925eb991359b76bc94da4f26fc6787f5d`; publication
+is under `output/evaluation-v3/heldout-successor-v23/p8-publication/`. P7 v5/v8,
+P7 v9/v10 and P8 v6-v16 are historical. Embeddings API permission is approved;
+the ledger records no P7/P8 embedding attempts. Recovery r8 used a temporary,
+single-process input-token bound of `17,526` for one exact target (source limit
+`16,000`; reservation quote `$0.01854450` under the `$0.25` scope cap). The
+override is recorded in the local audit; tracked source remains at `16,000`.
+The hashes
+`315eff…`/`c8a4…`/`f37e…` bên dưới là lịch sử trước sửa shopper fixture và
+không dùng làm input mới.
 P8 exact evidence hiện đã có authority bất biến cho merchant inventory,
 shopper cart/checkout preview reads, `catalog_product_N` và
-`review_sample_N` khi receipt còn gắn đúng reset fixture/source asset,
+`review_sample_N`, and `trust_sample_N` with at most 20 reviews, when the
+receipt remains bound to the exact source asset,
 namespace và authorization. Ranked catalog records, review samples vượt giới
 hạn runtime, và mọi source không tái dựng đủ vẫn bị chặn fail-closed.
 
@@ -398,10 +414,26 @@ cells (4 warmup, 32 measurements), chọn 3 repeats. Package 8 vẫn là additiv
 held-out work. Các lệnh local không gọi provider:
 
 ```powershell
-python -m app.evaluation.benchmark_cli validate
-python -m app.evaluation.benchmark_cli dry-run --run-id run_p8_dry
+$p7Output = 'output/evaluation-v3/pilot-successor-v18'
+$p8Output = 'output/evaluation-v3/heldout-successor-v23'
+$p7RuntimeManifest = 'output/evaluation-v3/current-machine-ledger/runtime-manifest-v6.json'
+python -m app.evaluation.benchmark_cli validate `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json"
+python -m app.evaluation.benchmark_cli dry-run `
+  --run-id run_p8_successor_v23 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json"
 python -m app.evaluation.benchmark_cli prepare `
-  --output output/evaluation-v3/heldout
+  --run-id run_p8_successor_v23 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
+  --pilot-checkpoint "$p7Output/pilot-checkpoint.v3.jsonl" `
+  --pilot-schedule "$p7Output/pilot-schedule.v3.json" `
+  --output $p8Output
 python -m app.evaluation.benchmark_cli partial-report `
   --output output/evaluation-v3/heldout-corrected-v3 `
   --run-id run_p8_heldout_corrected_v3
@@ -411,30 +443,47 @@ Live execution phải truyền explicit consent và durable database URL:
 
 ```powershell
 python -m app.evaluation.benchmark_cli run `
+  --run-id run_p8_successor_v23 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
   --allow-network `
   --database-url $env:DATABASE_URL `
-  --output output/evaluation-v3/heldout
+  --output $p8Output
 
 python -m app.evaluation.benchmark_cli resume `
+  --run-id run_p8_successor_v23 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
   --allow-network `
   --database-url $env:DATABASE_URL `
-  --output output/evaluation-v3/heldout
+  --output $p8Output
 
 python -m app.evaluation.benchmark_cli operate `
+  --run-id run_p8_successor_v23 `
+  --p7-runtime-manifest $p7RuntimeManifest `
+  --p7-protocol "$p7Output/protocol.v3.json" `
+  --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
+  --pilot-checkpoint "$p7Output/pilot-checkpoint.v3.jsonl" `
+  --pilot-schedule "$p7Output/pilot-schedule.v3.json" `
   --allow-network `
   --database-url $env:DATABASE_URL `
   --judge-budget-nano-usd 250000000 `
-  --output output/evaluation-v3/heldout
+  --output $p8Output
 ```
 
 `operate` chỉ chạy sau checkpoint SUT đã complete; nó rebuild/verify preparation,
-calibrate judge trên các pilot measurement đã freeze, freeze calibration, judge blind packet
-và publish final report. Nó require explicit per-job budget; shared ledger vẫn
+calibrate judge trên các pilot measurement đã freeze, kiểm tra ngưỡng trước khi
+freeze calibration, judge blind packet và publish final report. P8 v23 đã hoàn
+tất lifecycle với 32 calibration records và 720 blind judgments. Known provider
+usage là `$4.90357425`; report ghi effective cost `$4.91358675`, gồm
+`$0.01001250` unresolved-reservation estimate. Lệnh require explicit per-job budget; shared ledger vẫn
 account tất cả attempt, retry và reservation. Citation catalog/review chỉ được
 reopen từ source asset đã hash-pin và receipt authority tương ứng; record không
 đủ provenance sẽ block lifecycle thay vì tự dựng evidence.
 
-P8 hiện có bốn SUT successor run terminal partial, đều `0` pending, `0`
+Các P8 v6-v9 là SUT successor run terminal partial, đều `0` pending, `0`
 ambiguous và `0` orphan:
 
 | Run | Schedule | Completed | Failed/missing |
@@ -447,9 +496,22 @@ ambiguous và `0` orphan:
 V9 failure codes gồm 1 `attempt_timeout_limit_exceeded`, 2
 `expert_selection_not_authorized`, 2 `model_response_incomplete` và 3
 `model_response_invalid`. Không có raw provider payload hay fabricated citation
-trong partial report. Cumulative live ledger là `10.387962730 USD` known và
-`0.016542090 USD` unknown, không phải riêng v9. Dùng `partial-report` để
-persist hoặc tái xác thực coverage/ledger/checkpoint hash; lệnh local-only và
-không mở live runtime. Không báo cáo partial checkpoint như complete, scored,
-calibrated hoặc judge-complete; `operate` chỉ chạy sau khi một SUT run đủ tất
-cả receipt cells và các gate evidence/calibration/judging pass.
+trong partial report. Ledger snapshot tại thời điểm v6-v9 ghi
+`10.387962730 USD` known và `0.016542090 USD` unknown; đây không phải số hiện
+tại. V11 đạt đủ `720/720` SUT cells, nhưng operate gặp bốn judge response sai
+semantic schema và 28 job bị circuit breaker dừng; không có calibration freeze,
+blind score hoặc report. Dùng `partial-report` để persist hoặc tái xác thực
+coverage/ledger/checkpoint hash; lệnh local-only và không mở live runtime.
+
+Ledger PostgreSQL snapshot sau P8 v23: `$41.57320211` known, `$0.47555784`
+unknown, `$0` reserved/active và `$57.95124005` còn lại dưới cap `$100`. Các SQL
+scopes có `$0.40455225` unknown; `$0.07100559` còn lại là account-level
+carry-forward. Diagnostic A `$0.05446350` thuộc clone lịch sử
+`p8_failed_diag_20260923_a` và nằm trong carry-forward; SQL rows gốc không còn,
+nên vẫn là unknown nhưng không được cộng riêng lần nữa. P7 v18 cost
+`$0.05163060`. P8 v23 known provider usage `$4.90357425`. Không có P7/P8
+Embeddings API attempts; ba embedding attempts trong ledger đều thuộc ingestion.
+Audit local-only, không commit:
+`output/evaluation-v3/current-machine-ledger/ledger-reconciliation-20261002-v23-final.json`.
+Checkout `.env` vẫn trỏ SQLite. P7 v18 đã freeze repeat decision; P8 v23 hoàn
+tất scoring, report và paired metrics. Các snapshot trước đó ở đây là lịch sử.
