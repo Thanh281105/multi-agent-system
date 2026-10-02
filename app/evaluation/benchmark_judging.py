@@ -880,7 +880,7 @@ class DurableModelJudgeRunnerV3:
                 agent_id="model_judge",
                 model=configuration.model_binding.model,
                 instructions=configuration.judge_prompt,
-                input_text=canonical_json_bytes(request).decode("utf-8"),
+                input_text=_serialize_model_judge_input(request),
                 schema=ModelJudgeOutputV3,
                 max_output_tokens=1_200,
                 reasoning_effort=configuration.model_binding.reasoning_effort,
@@ -898,6 +898,21 @@ class DurableModelJudgeRunnerV3:
             return self._attempt_snapshots(scope_id)
         except BaseException:
             return ()
+
+
+def _serialize_model_judge_input(request: ModelJudgeRequestV3) -> str:
+    """Keep the wire input lean; the full judge prompt is already instructions."""
+
+    payload = request.model_dump(
+        mode="json",
+        exclude={
+            "judge_prompt",
+            "output_schema_sha256",
+            "configuration_sha256",
+            "calibration_sha256",
+        },
+    )
+    return canonical_json_bytes(payload).decode("utf-8")
 
 
 def _normalize_configuration(

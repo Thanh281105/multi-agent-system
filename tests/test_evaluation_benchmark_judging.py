@@ -171,6 +171,8 @@ async def test_runner_is_blind_budgeted_and_replays_completed_jobs_without_egres
     request = runtime.requests[0]
     assert request["phase"] == "held_out_scoring"
     assert request["answer"] == answer.model_dump(mode="json")
+    assert set(request) == {"schema_version", "phase", "answer"}
+    assert runtime.instructions == [configuration.judge_prompt]
     serialized = json.dumps(request, sort_keys=True)
     for forbidden in (
         "unblinding",
@@ -318,7 +320,8 @@ async def test_development_runner_records_calibration_provenance_and_budget_scop
     assert calibration_record.reference_sha256 == reference.reference_sha256
     assert calibration_record.thresholds_sha256 == thresholds.thresholds_sha256
     assert runtime.requests[0]["phase"] == "development_calibration"
-    assert runtime.requests[0]["calibration_sha256"] is None
+    assert set(runtime.requests[0]) == {"schema_version", "phase", "answer"}
+    assert runtime.instructions == [configuration.judge_prompt]
 
 
 @pytest.mark.asyncio
@@ -483,6 +486,7 @@ class _FakeRuntime:
         self.fabricated_citation = fabricated_citation
         self.interrupt_with = interrupt_with
         self.requests: list[dict[str, object]] = []
+        self.instructions: list[str] = []
 
     async def generate_structured(self, **kwargs: Any) -> _RuntimeResult:
         budget = current_provider_budget()
@@ -494,6 +498,7 @@ class _FakeRuntime:
         assert kwargs["schema"].__name__ == "ModelJudgeOutputV3"
         request = json.loads(kwargs["input_text"])
         self.requests.append(request)
+        self.instructions.append(kwargs["instructions"])
         self.ledger.reserve(budget.scope_id)
         if self.interrupt_with is not None:
             raise self.interrupt_with()
