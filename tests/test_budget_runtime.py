@@ -26,6 +26,7 @@ from app.shared.budget import (
     BudgetDeadlineError,
     BudgetDuplicateAttemptError,
     BudgetLimitExceededError,
+    GENERATION_INPUT_TOKEN_LIMIT,
     PricingManifest,
     PricingManifestError,
     ProviderBudgetContext,
@@ -806,7 +807,7 @@ async def test_scoped_payload_caps_and_expired_deadline_block_transport(
                 agent_id="orchestrator",
                 model="gpt-5.4-mini",
                 instructions="Return the schema.",
-                input_text="x" * 12_001,
+                input_text="x" * (GENERATION_INPUT_TOKEN_LIMIT + 1),
                 schema=Answer,
             )
     assert generation_client.responses.create_requests == []
