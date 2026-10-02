@@ -96,8 +96,10 @@ class ModelJudgeOutputV3(FrozenJudgeContractV3):
     @model_validator(mode="after")
     def validate_complete_metric_set(self) -> ModelJudgeOutputV3:
         metrics = tuple(item.metric for item in self.verdicts)
-        if metrics != SEMANTIC_JUDGE_METRICS_V3:
-            raise ValueError("model output must contain every semantic metric in order")
+        if set(metrics) != set(SEMANTIC_JUDGE_METRICS_V3):
+            raise ValueError(
+                "model output must contain every semantic metric exactly once"
+            )
         expected_schema_hash = model_judge_output_schema_sha256_v3()
         if self.output_schema_sha256 != expected_schema_hash:
             raise ValueError("model output schema hash mismatch")

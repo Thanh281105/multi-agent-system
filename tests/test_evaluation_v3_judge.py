@@ -69,6 +69,19 @@ def test_model_judge_output_schema_only_allows_semantic_metrics() -> None:
     assert verdict_schema["properties"]["score"]["enum"] == [0.0, 1.0]
 
 
+def test_model_judge_accepts_semantic_metrics_in_any_order() -> None:
+    answer = _answer("answer_000000000000000000000001")
+    payload = _output(answer)
+    verdicts = cast(list[dict[str, object]], payload["verdicts"])
+    verdicts.reverse()
+
+    validated = validate_model_judge_output_v3(payload, answer)
+
+    assert {item.metric for item in validated.verdicts} == set(
+        SEMANTIC_JUDGE_METRICS_V3
+    )
+
+
 def test_model_judge_rejects_fractional_semantic_score() -> None:
     answer = _answer("answer_000000000000000000000001")
     payload = _output(answer)
