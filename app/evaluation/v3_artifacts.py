@@ -758,7 +758,9 @@ def build_rubric_context_v3(case: GoldConversationV3) -> RubricContextV3:
         support = fact.support
         if isinstance(support, SourceExcerptSupportV3):
             evidence = support.exact_excerpt
-            support_kind = "source_excerpt"
+            support_kind: Literal["source_excerpt", "catalog_pointer"] = (
+                "source_excerpt"
+            )
         elif isinstance(support, CatalogPointerSupportV3):
             evidence = (
                 f"{support.artifact_path}{support.json_pointer}="

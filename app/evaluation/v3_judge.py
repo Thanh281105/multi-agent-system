@@ -63,7 +63,7 @@ class SemanticMetricVerdictV3(FrozenJudgeContractV3):
         EvaluationMetricV3.VALID_PLAN,
         EvaluationMetricV3.USEFUL_CONTINUATION,
     ]
-    score: Literal[0.0, 1.0]
+    score: float = Field(strict=True, json_schema_extra={"enum": [0.0, 1.0]})
     rubric_fact_indices: tuple[int, ...] = ()
     citation_labels: tuple[str, ...] = ()
 
@@ -71,6 +71,8 @@ class SemanticMetricVerdictV3(FrozenJudgeContractV3):
     def validate_references(self) -> SemanticMetricVerdictV3:
         if self.metric not in SEMANTIC_JUDGE_METRICS_V3:
             raise ValueError("model output contains a non-semantic metric")
+        if self.score not in (0.0, 1.0):
+            raise ValueError("semantic metric score must be binary")
         if len(self.rubric_fact_indices) != len(set(self.rubric_fact_indices)):
             raise ValueError("rubric fact references must be unique")
         if any(index < 0 for index in self.rubric_fact_indices):
