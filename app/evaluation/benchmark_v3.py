@@ -76,7 +76,7 @@ from app.evaluation.v3_schedule import (
 )
 
 EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3 = (
-    "326dffb56786f80a0750bf08766f146ed1bfded87bb203a0aa18fae91754b7a8"
+    "2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23"
 )
 PACKAGE8_HELDOUT_EXTENSION_ID_V3 = "package8_heldout_driver_v1"
 PACKAGE8_HELDOUT_SCHEDULE_ID_V3 = "package8_heldout_interleaved_v1"
