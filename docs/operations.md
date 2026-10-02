@@ -364,20 +364,30 @@ fingerprint. Không dùng nó trên dữ liệu cần giữ.
 
 Handoff hiện hành sau sửa P02 nằm tại
 [P02 successor handoff](thanh-v2/p02-successor-handoff.md). P7 v5 (`28621f…`)
-và v8 (`a249d0…`) là historical. Sau khi giới hạn semantic judge schema,
-source hiện tính protocol `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`.
-P7 v9 live run dùng schedule SHA
-`6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`, đạt `13/36`
-cell rồi dừng partial: 4 `model_connection_failed`, 19 `model_circuit_open`, chưa
-freeze repeat decision. Resume chờ phê duyệt riêng cho query RAG qua OpenAI
-Embeddings API sau khi automatic review chặn lệnh. P8 v6-v9 là partial; v11 đạt
-720/720 SUT nhưng operate không freeze calibration do judge schema cũ. P8 v12
-cần protocol mới. Các hash
+và v8 (`a249d0…`) là historical. Current P7 is
+`run_p7_successor_v10`: protocol
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`, 36/36
+cells complete, zero failed, and 3 repeats frozen by decision
+`9b4a7552919e687bdfe57a67f144571d26daf1c0ffbbcd432dc721411386c3df`.
+P7 v9's 13/36 run is historical. The user has approved the OpenAI Embeddings
+API for this benchmark. P8 v14 had 720/720 SUT cells, but `operate` stopped at
+exact `trust` evidence resolution. P8 v15 is a terminal partial after a local
+network restriction. Current full successor `run_p8_successor_v16` completed
+with the corrected resolver, on schedule
+`5c7930f734fb29ede24ef04c3cfec64c7c3fd70bc241a76f8ed93918a63ddb25`.
+All 720/720 cells completed with zero failed, missing, ambiguous, pending or
+orphan cells. `operate` passed exact evidence resolution and generated 32/32
+calibration records, but the frozen max-absolute-error threshold `0.25` failed
+for all six semantic metrics (maximum observed error `1.0` each). Calibration
+was not frozen; no blind held-out judging, final score, paired metrics or report
+was produced. P8 v6-v13 and their judge/schema history remain historical.
+The hashes
 `315eff…`/`c8a4…`/`f37e…` bên dưới là lịch sử trước sửa shopper fixture và
 không dùng làm input mới.
 P8 exact evidence hiện đã có authority bất biến cho merchant inventory,
 shopper cart/checkout preview reads, `catalog_product_N` và
-`review_sample_N` khi receipt còn gắn đúng reset fixture/source asset,
+`review_sample_N`, and `trust_sample_N` with at most 20 reviews, when the
+receipt remains bound to the exact source asset,
 namespace và authorization. Ranked catalog records, review samples vượt giới
 hạn runtime, và mọi source không tái dựng đủ vẫn bị chặn fail-closed.
 
@@ -405,20 +415,20 @@ cells (4 warmup, 32 measurements), chọn 3 repeats. Package 8 vẫn là additiv
 held-out work. Các lệnh local không gọi provider:
 
 ```powershell
-$p7Output = 'output/evaluation-v3/pilot-successor-v9'
-$p8Output = 'output/evaluation-v3/heldout-successor-v12'
+$p7Output = 'output/evaluation-v3/pilot-successor-v10'
+$p8Output = 'output/evaluation-v3/heldout-successor-v16'
 $p7RuntimeManifest = 'output/evaluation-v3/current-machine-ledger/runtime-manifest-v6.json'
 python -m app.evaluation.benchmark_cli validate `
   --p7-runtime-manifest $p7RuntimeManifest `
   --p7-protocol "$p7Output/protocol.v3.json" `
   --p7-repeat-decision "$p7Output/repeat-decision.v3.json"
 python -m app.evaluation.benchmark_cli dry-run `
-  --run-id run_p8_successor_v12 `
+  --run-id run_p8_successor_v16 `
   --p7-runtime-manifest $p7RuntimeManifest `
   --p7-protocol "$p7Output/protocol.v3.json" `
   --p7-repeat-decision "$p7Output/repeat-decision.v3.json"
 python -m app.evaluation.benchmark_cli prepare `
-  --run-id run_p8_successor_v12 `
+  --run-id run_p8_successor_v16 `
   --p7-runtime-manifest $p7RuntimeManifest `
   --p7-protocol "$p7Output/protocol.v3.json" `
   --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
@@ -434,7 +444,7 @@ Live execution phải truyền explicit consent và durable database URL:
 
 ```powershell
 python -m app.evaluation.benchmark_cli run `
-  --run-id run_p8_successor_v12 `
+  --run-id run_p8_successor_v16 `
   --p7-runtime-manifest $p7RuntimeManifest `
   --p7-protocol "$p7Output/protocol.v3.json" `
   --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
@@ -443,7 +453,7 @@ python -m app.evaluation.benchmark_cli run `
   --output $p8Output
 
 python -m app.evaluation.benchmark_cli resume `
-  --run-id run_p8_successor_v12 `
+  --run-id run_p8_successor_v16 `
   --p7-runtime-manifest $p7RuntimeManifest `
   --p7-protocol "$p7Output/protocol.v3.json" `
   --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
@@ -452,7 +462,7 @@ python -m app.evaluation.benchmark_cli resume `
   --output $p8Output
 
 python -m app.evaluation.benchmark_cli operate `
-  --run-id run_p8_successor_v12 `
+  --run-id run_p8_successor_v16 `
   --p7-runtime-manifest $p7RuntimeManifest `
   --p7-protocol "$p7Output/protocol.v3.json" `
   --p7-repeat-decision "$p7Output/repeat-decision.v3.json" `
@@ -465,8 +475,10 @@ python -m app.evaluation.benchmark_cli operate `
 ```
 
 `operate` chỉ chạy sau checkpoint SUT đã complete; nó rebuild/verify preparation,
-calibrate judge trên các pilot measurement đã freeze, freeze calibration, judge blind packet
-và publish final report. Nó require explicit per-job budget; shared ledger vẫn
+calibrate judge trên các pilot measurement đã freeze, kiểm tra ngưỡng trước khi
+freeze calibration, judge blind packet và publish final report. Với P8 v16,
+calibration đủ 32 records nhưng không đạt ngưỡng frozen nên lifecycle dừng trước
+blind judging. Lệnh require explicit per-job budget; shared ledger vẫn
 account tất cả attempt, retry và reservation. Citation catalog/review chỉ được
 reopen từ source asset đã hash-pin và receipt authority tương ứng; record không
 đủ provenance sẽ block lifecycle thay vì tự dựng evidence.
@@ -491,16 +503,16 @@ semantic schema và 28 job bị circuit breaker dừng; không có calibration f
 blind score hoặc report. Dùng `partial-report` để persist hoặc tái xác thực
 coverage/ledger/checkpoint hash; lệnh local-only và không mở live runtime.
 
-Ledger PostgreSQL hiện tại còn `$13.59111461` known và `$0.18567534` unknown
-(`$13.77678995` encumbered), `$86.22321005` remaining dưới cap `$100`; reserved,
-active và pending đều bằng 0. Unknown gồm carry-forward `$0.07100559`, P8 v10
-timeout `$0.00972225`, tám sandbox-blocked v11 judge attempts `$0.06824250`, và
-tám P7 v9 connection-failed attempts `$0.03670500`.
-Known additions gồm v11 retry `$0.02340150` và schema diagnostic `$0.00588450`.
-Diagnostic A `$0.05446350` vẫn chưa đối chiếu được với SQL ledger gốc, nên giữ
-ở unknown. Ledger audit/credentials nằm trong
-`output/evaluation-v3/current-machine-ledger/`, không commit; `.env` vẫn trỏ
-SQLite. Responses API use is approved; automatic review blocked P7 resume pending
-separate authorization for OpenAI Embeddings API query text. P7 v9 must complete
-and freeze its repeat decision before P8 v12/operate can proceed through full
-coverage, exact evidence, calibration and judging.
+Ledger PostgreSQL snapshot lúc 2026-10-02 02:07 UTC ghi `$19.60072061` known,
+`$0.32514984` unknown, `$0` reserved/active/pending và `$80.07412955` còn lại
+dưới cap `$100`. Unknown gồm carry-forward `$0.18567534`, P8 v15 `$0.13102500`
+và một timeout judge P8 v16 `$0.00844950`. Diagnostic A `$0.05446350` được
+nhận diện là aggregate từ clone lịch sử `p8_failed_diag_20260923_a`; SQL rows
+gốc không còn nên vẫn được tính là unknown carry-forward. P7 v10 cost
+`$0.05652510` khớp 34 DB attempts; P8 v16 SUT cost `$1.47381435` khớp 768
+attempts. Judge có `$0.08778375` known usage và timeout unknown nêu trên. Audit
+local-only tại `output/evaluation-v3/current-machine-ledger/`; không commit.
+Checkout `.env` vẫn trỏ SQLite. Người dùng đã cho phép Responses và Embeddings
+API cho P7/P8. P7 v10 đã freeze repeat decision; P8 v16 đủ coverage và exact
+evidence, nhưng calibration không đạt ngưỡng frozen, nên chưa chạy blind judge
+hoặc tạo final report/paired metrics.

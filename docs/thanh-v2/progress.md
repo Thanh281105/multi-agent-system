@@ -10,8 +10,8 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | 4 — supervisor, continuation, deduplication, grounding | Committed `93c7cf7` | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
 | 5 — history, memory, sandbox actions | Gate passed | 703 tests pass; real PostgreSQL recovery/concurrency, clock skew and exact v1 OpenAPI verified. |
 | 6 — API and frontend | Gate passed | JSON/SSE/UI consistency; v1 regression; PostgreSQL-backed v2 boundary |
-| 7 — evaluation v3, gold, pilot, freeze | P7 v9 live partial; repeat freeze pending | Protocol `36ac8f…`; schedule `6817e8…`; 13/36 complete, resume awaits Embeddings API approval |
-| 8 — benchmark, error analysis, final checks/docs | P8 v11 SUT complete; operate needs current P7/P8 | v11 reached 720/720, but judge calibration failed under the old schema; P8 v12, scoring and publication remain pending |
+| 7 — evaluation v3, gold, pilot, freeze | P7 v10 frozen | Protocol `36ac8f…`; 36/36 complete, zero failures; 3 repeats frozen |
+| 8 — benchmark, error analysis, final checks/docs | P8 v16 SUT complete; calibration gate failed | 720/720 cells and exact evidence resolution passed; 32/32 calibration records produced, but frozen threshold failed, so no blind score or paired metrics |
 
 ## Execution rules
 
@@ -19,16 +19,21 @@ Current continuation: [P02 and successor handoff](p02-successor-handoff.md).
 P02 now supports grounded multi-offer reads plus an independently server-bound
 proposal. The P7 v5 protocol
 `28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c` is
-historical. The current validated protocol is
+historical. Current protocol is
 `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`;
-`run_p7_successor_v9` ran 36 cells on schedule
-`6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`, with 13
-complete and 23 failed/missing. Four connection-failed cells left eight unknown
-provider attempts; 19 later cells hit the open circuit. No repeat decision is
-frozen; resume awaits Embeddings API authorization. P8 v6-v9 remain terminal partial
-history; P8 v11 reached 720/720 SUT cells but judging failed under the previous
-schema. P8 v12 is required before scoring/publication. The final gate remains
-open. Targeted PostgreSQL executor
+`run_p7_successor_v10` completed 36/36 cells with zero failures and froze three
+repeats under decision SHA
+`9b4a7552919e687bdfe57a67f144571d26daf1c0ffbbcd432dc721411386c3df`. P7 v9 is
+historical. P8 v14 completed 720/720 SUT cells but `operate` stopped at exact
+trust evidence resolution; v15 stopped partial after sandbox network failures.
+Official P8 v16 completed 720/720 cells with zero failures or missing work under
+schedule SHA
+`5c7930f734fb29ede24ef04c3cfec64c7c3fd70bc241a76f8ed93918a63ddb25`. Exact
+evidence resolution passed and 32/32 development calibration records were
+created, but the frozen `0.25` max-absolute-error threshold failed for all six
+semantic metrics (maximum error `1.0` each). Calibration did not freeze, so blind
+judging and paired metrics were not produced; the final gate remains open.
+Targeted PostgreSQL executor
 (5 tests) and v2 action/sandbox seed (46 tests) gates pass; later local
 verification also closes the broader API v2/action/replay PostgreSQL matrix.
 
@@ -506,28 +511,39 @@ The global repeat decision selects three repeats, with pilot effective cost
 `0.05551620 USD` and projected held-out SUT cost `5.91510600 USD`.
 No completed historical cell is replayed or reused as successor evidence.
 
-The current source-bound protocol from `v3_cli validate` is
+The source-bound protocol from `v3_cli validate` is
 `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`.
-The earlier local preflight schedule `0b218d30…` was superseded by the P7 v9
-live schedule `6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`.
-The run is partial and has no frozen repeat decision. The checkout `.env` still
-points to SQLite. The isolated PostgreSQL ledger currently records
+The earlier local preflight `0b218d30…` and P7 v9 schedule
+`6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b` are
+historical. The ledger numbers below are a snapshot audited at 2026-10-01
+10:35 UTC, not the current balance. The checkout `.env` still points to SQLite.
+At that snapshot, the isolated PostgreSQL ledger recorded
 `$13.59111461` known and `$0.18567534` unknown (`$13.77678995` encumbered), with
 `$86.22321005` remaining under the `$100` cap; reserved, active and pending are
 zero. Unknown includes carry-forward `$0.07100559`, P8 v10 timeout `$0.00972225`,
 eight sandbox-blocked v11 judge attempts `$0.06824250`, and eight P7 v9
-connection-failed attempts `$0.03670500`. Diagnostic A's
-`$0.05446350` remains unverified against its original SQL ledger and is included
-as unknown. The audit record and credentials are in
-`output/evaluation-v3/current-machine-ledger/`. Automatic review rejected P7
-resume pending explicit approval for query text sent to OpenAI Embeddings API;
-Responses API payloads are approved. GitHub Actions run `36844660998` failed at
+connection-failed attempts `$0.03670500`. Diagnostic A's `$0.05446350` is
+identified as a historical clone aggregate but remains unknown because its
+original SQL rows are unavailable. The audit record and credentials are in
+`output/evaluation-v3/current-machine-ledger/`. Responses and Embeddings API are
+approved for P7/P8. P7 v10 is frozen; P8 v16 has full SUT coverage but failed
+calibration. GitHub Actions
+run `36844660998` failed at
 Type-check on SHA `470d1817…`. Commit `802369b` fixes the errors; full CI run
 [`36846265660`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36846265660)
 passed on SHA `802369b263b19da7ec4388605ef38cd19da2bc2f`. Documentation commit
 `1331897` is pushed, and full CI run
 [`36848384922`](https://github.com/Thanh281105/multi-agent-system/actions/runs/36848384922)
 passed on SHA `13318976919d349be73189194f08d354715761ab`.
+
+Current 2026-10-02 02:07 UTC ledger snapshot: `$19.60072061` known,
+`$0.32514984` unknown, `$0` reserved/active/pending, `$80.07412955` remaining
+under the `$100` cap. Unknown consists of `$0.18567534` historical carry-forward,
+`$0.13102500` from P8 v15, and one P8 v16 judge timeout (`$0.00844950`). The
+local-only audit is `output/evaluation-v3/current-machine-ledger/ledger-reconciliation-20261002.json`.
+P7 v10 has 34 attributed attempts costing `$0.05652510`; P8 v16 SUT has 768
+known attempts costing `$1.47381435`. Exact evidence resolution passed, but the
+32-case development calibration did not meet its frozen threshold.
 
 The merchant remediation keeps ambiguous multi-product price mutations safe: it
 returns a clarification instead of choosing a target or fabricating a proposal.
@@ -594,11 +610,12 @@ paired metric or publication and cannot qualify as current protocol evidence.
 or validates an immutable partial record. It does not dispatch a provider,
 score receipts, reopen citation authority, calibrate the judge, or publish a
 benchmark result. The append-only checkpoints cannot redispatch settled cells,
-so none of these runs can become complete through `resume`. The P8 final gate
-remains open until a current-protocol run has no failed or missing cells and the
-exact evidence, calibration, judging and publication gates pass. P8 v12 follows
-P7 v9's frozen repeat decision; failures are not converted to deterministic or
-hybrid fallback results.
+so none of these runs can become complete through `resume`. The P8 v16 SUT
+checkpoint has no failed or missing cells and exact evidence
+resolution passed. Its calibration records failed the frozen error threshold,
+so calibration did not freeze and blind judging/publication remain blocked. P8 v16
+follows P7 v10's frozen repeat decision; failures are not converted to
+deterministic or hybrid fallback results.
 
 Package 8 remains open until all of the following are complete and independently
 validated: calibrated automated judge and frozen bindings; exact immutable
@@ -608,4 +625,4 @@ attribution and no missing/ambiguous work; blind-answer/judgment
 join; analysis/report artifacts; frontend checks when affected; package gates;
 and final documentation review. The broader local PostgreSQL
 transactional/replay gate is complete as recorded above; it does not alter the
-terminal-partial P8 status or authorize scoring/publication.
+P8 calibration failure or authorize blind scoring/publication.

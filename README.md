@@ -320,32 +320,47 @@ model trả ba metric deterministic thay cho các metric semantic còn thiếu. 
 được commit riêng `d030f9a`; protocol hiện tại do `v3_cli validate` xác nhận là
 `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`.
 
-P7 successor v9 đã chạy live một phần theo protocol trên, schedule SHA-256
-`6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`: `13/36`
-cell hoàn tất, `23` lỗi và còn thiếu. Bốn cell gặp `model_connection_failed`
-(8 provider attempts, `$0.03670500` giữ ở unknown); 19 cell sau đó bị
-`model_circuit_open`. Repeat decision chưa freeze. Resume bị automatic review
-chặn vì cần phê duyệt egress riêng cho query RAG tới OpenAI Embeddings API
-(`text-embedding-3-small`). Phạm vi Embeddings chỉ gồm query; không gửi corpus
-documents.
-Preflight cũ `aaa7026…`/`0b218d30…` đã được thay bằng hash của live run hiện tại.
+`run_p7_successor_v10` hoàn tất 36/36 cell, không lỗi, theo protocol
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. Repeat
+decision `9b4a7552919e687bdfe57a67f144571d26daf1c0ffbbcd432dc721411386c3df`
+freeze 3 lần lặp; projected held-out SUT cost `$5.97439800`. P7 v9 partial và
+preflight `aaa7026…`/`0b218d30…` là lịch sử. Người dùng đã cho phép Embeddings
+API cho P7/P8.
 
-P8 v11 tại `output/evaluation-v3/heldout-successor-v11` có SUT coverage đủ
-`720/720`, không có cell failed, missing, ambiguous, pending hoặc orphan; schedule
-SHA-256 `92b387b2d453042e4e17ccedc3e914bc9f9ebd9535cf17d7bbfbd14595f1499e`.
-Tuy nhiên `operate` không hoàn tất: 4 calibration response không hợp schema,
-28 job bị circuit breaker dừng. Run này không có calibration freeze, blind
-scoring, paired metrics hoặc publication. Sau schema fix, cần P7 v9 và P8 v12
-mới; các run v6–v11 và diagnostic `8/8` pilot aliases chỉ là lịch sử.
+P8 v14 có 720/720 SUT cell nhưng `operate` dừng ở exact `trust` evidence.
+P8 v15 dừng sau 213 cell, 82 lỗi mạng (`12 model_connection_failed`, 70
+`model_circuit_open`) và 425 cell chưa chạy; 24 provider attempts giữ
+`$0.131025` trong unknown. P8 v16 hoàn tất đủ 720/720 cell, 0 lỗi/thiếu/mơ hồ,
+schedule SHA-256
+`5c7930f734fb29ede24ef04c3cfec64c7c3fd70bc241a76f8ed93918a63ddb25`.
+`operate` đã qua exact evidence resolution và tạo 32/32 calibration records,
+nhưng không thể freeze judge: threshold frozen là max absolute error `0.25`,
+cả sáu metric đều có max error `1.0`. Mean absolute error / số case vượt `0.25`:
+task completion `0.1797/6`, abstention `0.4625/15`, claim support `0.4125/13`,
+authorization `0.1250/4`, valid plan `0.3500/12`, useful continuation `0.3219/12`.
+Không có calibration freeze, blind held-out judging, final score, paired metrics
+hay publication. Không tự nới threshold sau khi thấy kết quả calibration.
 
-Ledger snapshot DB clone hiện tại ghi known `$13.59111461`, unknown `$0.18567534`,
-reserved `$0`, còn `$86.22321005` trên cap `$100`. Known judge attempts là
+Ledger clone được đối soát lại ngày 2026-10-02 02:07 UTC: known `$19.60072061`,
+unknown `$0.32514984`, reserved/active/pending `$0`, còn `$80.07412955` dưới cap
+`$100`. P7 v10 cost `$0.05652510` khớp 34 DB attempts; P8 v16 SUT cost
+`$1.47381435`; judge usage đã biết `$0.08778375`. Unknown gồm carry-forward
+`$0.18567534`, P8 v15 `$0.13102500` và một P8 v16 judge timeout `$0.00844950`.
+Diagnostic A `$0.05446350` đã được nhận diện là aggregate của clone lịch sử
+`p8_failed_diag_20260923_a`; attempt IDs/SQL rows gốc không còn nên vẫn là
+unknown carry-forward. Không còn reservation treo. Audit mới:
+`output/evaluation-v3/current-machine-ledger/ledger-reconciliation-20261002.json`;
+snapshot cũ ngày 2026-10-01 vẫn được giữ riêng.
+
+Ledger audit snapshot cũ tại 2026-10-01 10:35 UTC ghi known `$13.59111461`, unknown `$0.18567534`,
+reserved `$0`, còn `$86.22321005`; không dùng snapshot đó làm số dư hiện tại.
+Known judge attempts tại snapshot cũ là
 `$0.02340150` (8 response attempts của retry v11) và `$0.00588450` (2 attempts
 của chẩn đoán schema); unknown gồm 8 sandbox-blocked v11 judge attempts
 `$0.06824250`, 8 P7 v9 connection-failed attempts `$0.03670500`, carry-forward
 `$0.07100559` (trong đó diagnostic A `$0.05446350` thuộc clone
 `p8_failed_diag_20260923_a`, thiếu SQL rows gốc) và P8 v10 `$0.00972225`.
-Không có active/pending reservation. Audit local-only nằm tại
+Audit local-only lịch sử nằm tại
 `output/evaluation-v3/current-machine-ledger/ledger-reconciliation-20261001.json`.
 
 Focused suites pass: judge schema `8`, benchmark CLI/P8 bindings `21`, citation

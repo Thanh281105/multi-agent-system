@@ -7,22 +7,38 @@ completed and froze its repeat decision. P8 v6-v9 produced terminal partial
 checkpoints; v11 later completed all 720 SUT cells but its `operate` calibration
 failed under an outdated judge schema. No score or publication is claimed.
 
-Current continuation status (2026-10-01): the validated current protocol is
-`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. P7 v9 ran
-36 cells on schedule
-`6817e844d65633eea19d3e57119c8a6cec1dd10464ee3b2da7fa95b86828b75b`; 13 completed,
-23 failed/missing (four `model_connection_failed`, 19 `model_circuit_open`). Eight
-provider attempts remain unknown at `$0.03670500`; repeat decision is not frozen.
-P7 v5 (`28621f…`) and v8 (`a249d0…`) remain historical. Responses API payloads
-are approved; automatic review blocked resume pending separate authorization for
-RAG query text sent to OpenAI Embeddings API (`text-embedding-3-small`). The
-current isolated PostgreSQL ledger records `$13.59111461` known and `$0.18567534`
-unknown (`$13.77678995` encumbered), with `$86.22321005` remaining under the
-`$100` cap and no reserved/active/pending amounts. Diagnostic A's `$0.05446350`
-remains unverified against its original
-SQL ledger and is carried as unknown. Historical attempt rows were not
-reconstructed. Audit/credentials are in
-`output/evaluation-v3/current-machine-ledger/`; `.env` still points to SQLite.
+Current continuation status (2026-10-02): P7 successor `run_p7_successor_v10`
+completed 36/36 cells without failures on protocol
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. Repeat
+decision `9b4a7552919e687bdfe57a67f144571d26daf1c0ffbbcd432dc721411386c3df`
+froze 3 repeats; projected held-out SUT cost is `$5.97439800`. P7 v5
+(`28621f…`), v8 (`a249d0…`) and partial v9 are historical. The user has approved
+both Responses and Embeddings API requests for P7/P8.
+
+P8 v14 completed 720/720 SUT cells, but `operate` stopped when it could not
+resolve exact `trust` citations; it produced no judged score. P8 v15 is retained
+as a partial after sandbox outbound networking was blocked: 213 completed, 82
+failed, and 425 not started. Official successor `run_p8_successor_v16` completed
+720/720 cells with zero failed, missing, ambiguous, pending or orphan work under
+schedule SHA
+`5c7930f734fb29ede24ef04c3cfec64c7c3fd70bc241a76f8ed93918a63ddb25`.
+`operate` passed exact evidence resolution and generated 32/32 development
+calibration records, but the frozen max-absolute-error threshold `0.25` failed
+for all six semantic metrics (maximum error `1.0` each). Calibration did not
+freeze; blind judging, final score, paired metrics and report were not produced.
+Outputs remain in `output/evaluation-v3/heldout-successor-v16/`.
+
+The PostgreSQL ledger is isolated from the checkout `.env` (which still points
+to SQLite). Diagnostic A's `$0.05446350` was identified in its manifest as
+belonging to clone `p8_failed_diag_20260923_a`, but its original SQL settlement
+rows are unavailable; the amount remains in account-level unknown usage.
+The 2026-10-02 02:07 UTC snapshot records `$19.60072061` known, `$0.32514984`
+unknown, `$0` reserved/active/pending and `$80.07412955` remaining under the
+`$100` cap. Unknown includes carry-forward `$0.18567534`, P8 v15 `$0.13102500`
+and a P8 v16 judge timeout `$0.00844950`. P7 v10 cost `$0.05652510` matches its
+34 database attempts; P8 v16 SUT cost `$1.47381435` matches 768 known attempts.
+The ledger reconciliation is
+`output/evaluation-v3/current-machine-ledger/ledger-reconciliation-20261002.json`.
 GitHub Actions run `36844660998` failed at Type-check on pushed SHA
 `470d1817ccb8c2294dec7aace9319a69e2c93d78`. Commit `802369b` fixes the eight
 mypy errors; full CI run
@@ -79,11 +95,10 @@ the supervisor/grounding source files:
 - Repeat decision: 3 repeats; pilot effective cost `0.05551620 USD`, projected
   held-out SUT cost `5.91510600 USD`.
 
-The P8 protocol guards now bind to current source protocol
-`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. P8 v11's
-720/720 SUT run used the previous judge schema and is not reusable as current
-evidence; v12 has not been created. The v5 protocol/repeat decision is not
-reused.
+The P8 protocol guards bind to current P7 protocol
+`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. P8 v11
+used the previous judge schema; v12-v15 are historical or partial. Current
+official run is v16. The v5 protocol/repeat decision is not reused.
 
 Fresh Windows checkouts previously changed immutable source hashes. Git attributes
 now preserve LF text, except `sources.json` and `mappings.json`, whose already
@@ -120,28 +135,31 @@ runtime payloads and dispatch behavior are unchanged.
    admitted nine metric names while the semantic validator accepted six. The
    schema-only fix is committed as `d030f9a`; a known-cost retry batch was
    `$0.02340150`, and the diagnostic scope was `$0.00588450`. Eight earlier
-   sandbox-blocked attempts remain unknown at `$0.06824250`; P7 v9 adds eight
-   connection-failed attempts at `$0.03670500`. The current P7 checkpoint is
-   partial, and repeat freeze awaits authorization to resume its RAG query path.
-   P8 v12 must follow the frozen repeat decision before exact evidence,
-   calibration, blind judging and report publication.
+   sandbox-blocked attempts remain historical unknown at `$0.06824250`; P7 v9's
+   eight connection-failed attempts remain historical unknown at `$0.03670500`.
+   P7 v10 has since completed and frozen the repeat decision. P8 v16 now has
+   full SUT coverage and exact evidence resolution, but calibration failed its
+   frozen threshold; blind judging and report publication did not run.
 
 The exact evidence boundary is now receipt-bound and fail-closed.
 `ImmutableBenchmarkEvidenceResolverV3` reopens knowledge, canonical
 merchant-inventory and shopper cart/checkout preview reads reconstructed from
-the hashed reset fixture, and `catalog_product_N`/`review_sample_N` records
-reconstructed from hash-pinned public assets. Ranked catalog records, oversized
-review samples, and mutated sandbox state still stop scoring with a typed error.
+the hashed reset fixture, plus `catalog_product_N`, `review_sample_N` and
+`trust_sample_N` records reconstructed from hash-pinned public assets. Trust
+samples are accepted only when their full review set fits the runtime limit.
+Ranked catalog records, oversized review samples, and mutated sandbox state
+still stop scoring with a typed error.
 Do not fabricate source text from the answer, title or gold, relabel sandbox
-citations as catalog citations, or soften a provenance failure. This does not
-make `operate` ready to complete: P7 v9 must first resume, finish and freeze its
-repeat decision, then P8 v12 must reach complete SUT coverage before evidence,
-calibration, judging and publication can run.
+citations as catalog citations, or soften a provenance failure. P7 v10 is frozen;
+P8 v16 has complete SUT coverage and exact evidence resolution. The calibration
+gate remains open because its frozen error threshold failed, so no blind judging
+or publication can run under the current frozen configuration.
 
 On any failure, classify the error and inspect its checkpoint before changing
 code. Fix only the demonstrated cause; preserve completed cells and bind any
-source change to a distinct compatible run. Final P7/P8 quality and final package
-closure remain pending live evidence and the successor lifecycle gates.
+source change to a distinct compatible run. P7 is frozen and P8 SUT coverage is
+complete, but final P8 quality, blind scoring, paired metrics and package closure
+remain pending resolution of the failed calibration gate.
 
 ## Local verification
 
@@ -166,6 +184,6 @@ database-dependent cases against a loopback disposable PostgreSQL URL passed 17
 tests with 1 existing Starlette/httpx warning. An additional PostgreSQL v2
 action/history/lease/persistence/runtime/tools/sandbox suite passed 103 tests.
 Together these local results close the broader API v2/action/replay PostgreSQL
-verification. P7 v5 remains historical and frozen; current P7 v9 has only local
-preflight. P8 v11 SUT is complete but `operate` remains blocked by the old judge
-schema; a new protocol requires successor P8 v12.
+verification. P7 v5/v9 remain historical; current P7 v10 is frozen. P8 v11/v14
+have complete SUT checkpoints but no final result; v16 is the current full SUT
+run and has no final result because calibration did not freeze.
