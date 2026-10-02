@@ -73,7 +73,7 @@ from app.v2.contracts import DialogueOutcome, TurnResult, TurnStatus
 from app.v2.execution import DurableTurnOutcome
 
 PACKAGE7_FROZEN_PROTOCOL_SHA256_V3 = (
-    "b4b74f1ff3e890c445a55e38c93db9d1d00de4f097a88b82783487dd10e380fc"
+    "cca68fd9e48d6e2360b055078e866ded5f0044fc0c84f0cab7a868d5f7b9a19d"
 )
 PACKAGE8_CALIBRATION_POLICY_ID_V3 = "package8_pilot_gold_derived_v1"
 PACKAGE8_CALIBRATION_POLICY_SCHEMA_VERSION_V3 = "8.0"
