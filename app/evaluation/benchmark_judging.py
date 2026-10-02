@@ -907,7 +907,6 @@ def _serialize_model_judge_input(request: ModelJudgeRequestV3) -> str:
         mode="json",
         exclude={
             "judge_prompt",
-            "output_schema_sha256",
             "configuration_sha256",
             "calibration_sha256",
         },

@@ -171,7 +171,13 @@ async def test_runner_is_blind_budgeted_and_replays_completed_jobs_without_egres
     request = runtime.requests[0]
     assert request["phase"] == "held_out_scoring"
     assert request["answer"] == answer.model_dump(mode="json")
-    assert set(request) == {"schema_version", "phase", "answer"}
+    assert set(request) == {
+        "schema_version",
+        "phase",
+        "output_schema_sha256",
+        "answer",
+    }
+    assert request["output_schema_sha256"] == configuration.bindings.judge_schema_sha256
     assert runtime.instructions == [configuration.judge_prompt]
     serialized = json.dumps(request, sort_keys=True)
     for forbidden in (
@@ -320,7 +326,16 @@ async def test_development_runner_records_calibration_provenance_and_budget_scop
     assert calibration_record.reference_sha256 == reference.reference_sha256
     assert calibration_record.thresholds_sha256 == thresholds.thresholds_sha256
     assert runtime.requests[0]["phase"] == "development_calibration"
-    assert set(runtime.requests[0]) == {"schema_version", "phase", "answer"}
+    assert set(runtime.requests[0]) == {
+        "schema_version",
+        "phase",
+        "output_schema_sha256",
+        "answer",
+    }
+    assert (
+        runtime.requests[0]["output_schema_sha256"]
+        == configuration.bindings.judge_schema_sha256
+    )
     assert runtime.instructions == [configuration.judge_prompt]
 
 
