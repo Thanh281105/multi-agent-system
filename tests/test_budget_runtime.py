@@ -22,11 +22,11 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.db.base import Base
 from app.models.budget import ProviderAttempt, ProviderBudgetScope
 from app.shared.budget import (
+    GENERATION_INPUT_TOKEN_LIMIT,
     BudgetCancelledError,
     BudgetDeadlineError,
     BudgetDuplicateAttemptError,
     BudgetLimitExceededError,
-    GENERATION_INPUT_TOKEN_LIMIT,
     PricingManifest,
     PricingManifestError,
     ProviderBudgetContext,
