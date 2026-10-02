@@ -385,8 +385,7 @@ def _catalog_trust_sample_text(reviews: tuple[NormalizedReview, ...]) -> str:
     entries = (
         f"sampled_review_count: {len(sample)} review",
         f"complaint_count: {int(complaints['complaint_count'])} complaint",
-        "flagged_review_count: "
-        f"{int(signals['flagged_text_quality_count'])} review",
+        f"flagged_review_count: {int(signals['flagged_text_quality_count'])} review",
         f"trust_limitation: {signals['limitation']}",
     )
     return "\n".join(entries)
