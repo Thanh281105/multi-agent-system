@@ -298,14 +298,11 @@ class EvaluationExperimentConfigV3(FrozenContractV3):
         bindings = {variant.generation_binding for variant in self.variants}
         if len(bindings) != 1:
             raise ValueError("all Package 7 variants must share one model snapshot")
-        if (
-            self.judgment_policy.model_binding is not None
-            and (
-                self.judgment_policy.model_binding.provider
-                != self.variants[0].generation_binding.provider
-                or self.judgment_policy.model_binding.model
-                != self.variants[0].generation_binding.model
-            )
+        if self.judgment_policy.model_binding is not None and (
+            self.judgment_policy.model_binding.provider
+            != self.variants[0].generation_binding.provider
+            or self.judgment_policy.model_binding.model
+            != self.variants[0].generation_binding.model
         ):
             raise ValueError("model judge must use the frozen model snapshot")
         adaptive = self.variants[2].model_dump(
