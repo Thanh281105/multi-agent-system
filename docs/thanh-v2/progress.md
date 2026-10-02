@@ -10,29 +10,33 @@ Implementation contract: [approved plan](implementation-contract.md). Work packa
 | 4 — supervisor, continuation, deduplication, grounding | Committed `93c7cf7` | 588 tests pass; real PostgreSQL, live grounded read/replay, usage ledger and exact v1 OpenAPI verified. |
 | 5 — history, memory, sandbox actions | Gate passed | 703 tests pass; real PostgreSQL recovery/concurrency, clock skew and exact v1 OpenAPI verified. |
 | 6 — API and frontend | Gate passed | JSON/SSE/UI consistency; v1 regression; PostgreSQL-backed v2 boundary |
-| 7 — evaluation v3, gold, pilot, freeze | P7 v10 frozen | Protocol `36ac8f…`; 36/36 complete, zero failures; 3 repeats frozen |
-| 8 — benchmark, error analysis, final checks/docs | P8 v16 SUT complete; calibration gate failed | 720/720 cells and exact evidence resolution passed; 32/32 calibration records produced, but frozen threshold failed, so no blind score or paired metrics |
+| 7 — evaluation v3, gold, pilot, freeze | P7 v18 frozen | Protocol `2d5f2a…`; 36/36 complete, zero failures; 3 repeats frozen under decision `40ea5e…` |
+| 8 — benchmark, error analysis, final checks/docs | P8 v23 lifecycle complete | 720/720 SUT cells; exact evidence, calibration freeze, 720 blind judgments, report and paired metrics complete |
 
 ## Execution rules
 
 Current continuation: [P02 and successor handoff](p02-successor-handoff.md).
 P02 now supports grounded multi-offer reads plus an independently server-bound
-proposal. The P7 v5 protocol
-`28621f0e6b7c1e8377b5b97bd9ebd7287054b58367979d00f558473d788f040c` is
-historical. Current protocol is
-`36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`;
-`run_p7_successor_v10` completed 36/36 cells with zero failures and froze three
-repeats under decision SHA
-`9b4a7552919e687bdfe57a67f144571d26daf1c0ffbbcd432dc721411386c3df`. P7 v9 is
-historical. P8 v14 completed 720/720 SUT cells but `operate` stopped at exact
-trust evidence resolution; v15 stopped partial after sandbox network failures.
-Official P8 v16 completed 720/720 cells with zero failures or missing work under
-schedule SHA
-`5c7930f734fb29ede24ef04c3cfec64c7c3fd70bc241a76f8ed93918a63ddb25`. Exact
-evidence resolution passed and 32/32 development calibration records were
-created, but the frozen `0.25` max-absolute-error threshold failed for all six
-semantic metrics (maximum error `1.0` each). Calibration did not freeze, so blind
-judging and paired metrics were not produced; the final gate remains open.
+proposal. Current P7 successor `run_p7_successor_v18` completed 36/36 cells
+without failures and froze three repeats. Protocol SHA-256 is
+`2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23`; repeat
+decision SHA-256 is
+`40ea5ec8a1890c34195b8e3f4fd29935203834985625605af92fa24bbbd8c5cd`.
+Current P8 successor `run_p8_successor_v23` completed 720/720 SUT cells; exact
+evidence resolution, calibration freeze, 720 blind judgments, result joining,
+report and paired metrics completed. Schedule SHA-256 is
+`f46949cdae870718dd8d2411a343522842eb34c466554e5350ae960ea7e8892e`; report
+SHA-256 is
+`cf772ac876e0a2f69aef78f68ffa729925eb991359b76bc94da4f26fc6787f5d`.
+Effective report cost is `$4.91358675`; known provider usage is `$4.90357425`.
+
+Final ledger snapshot: known `$41.57320211`, unknown `$0.47555784`, reserved and
+active `$0`, `$57.95124005` remaining under the `$100` cap. Diagnostic A's
+`$0.05446350` is within the account-level carry-forward `$0.07100559` and belongs
+to historical clone `p8_failed_diag_20260923_a`; original SQL rows are absent,
+so the amount remains unknown and is not counted a second time. P7/P8 made no
+Embeddings API attempts. The local-only ledger audit is
+`output/evaluation-v3/current-machine-ledger/ledger-reconciliation-20261002-v23-final.json`.
 Targeted PostgreSQL executor
 (5 tests) and v2 action/sandbox seed (46 tests) gates pass; later local
 verification also closes the broader API v2/action/replay PostgreSQL matrix.
@@ -558,7 +562,7 @@ The published v2 runtime remains PostgreSQL-backed and pins corpus
 `text-embedding-3-small` at 1,536 dimensions. Benchmark Q/A and calibration
 artifacts remain outside that corpus.
 
-## Package 8 current state
+## Package 8 historical checkpoints and current completion
 
 Package 8 is additive. `python -m app.evaluation.benchmark_cli` provides local
 `validate`, `dry-run`, `prepare`; guarded SUT `run`/`resume`; and guarded
@@ -610,19 +614,14 @@ paired metric or publication and cannot qualify as current protocol evidence.
 or validates an immutable partial record. It does not dispatch a provider,
 score receipts, reopen citation authority, calibrate the judge, or publish a
 benchmark result. The append-only checkpoints cannot redispatch settled cells,
-so none of these runs can become complete through `resume`. The P8 v16 SUT
-checkpoint has no failed or missing cells and exact evidence
-resolution passed. Its calibration records failed the frozen error threshold,
-so calibration did not freeze and blind judging/publication remain blocked. P8 v16
-follows P7 v10's frozen repeat decision; failures are not converted to
-deterministic or hybrid fallback results.
+so none of these historical runs can become complete through `resume`. P8 v16
+and earlier remain immutable history. Current P8 v23 follows P7 v18's frozen
+repeat decision and completed the benchmark lifecycle with no failed or
+ambiguous judge jobs; its final report and paired metrics are in the local
+publication directory.
 
-Package 8 remains open until all of the following are complete and independently
-validated: calibrated automated judge and frozen bindings; exact immutable
-evidence resolver over source/version/chunk/span; all
-`60 × 4 × frozen_repeats` receipt cells (`480` or `720`) with valid ledger
-attribution and no missing/ambiguous work; blind-answer/judgment
-join; analysis/report artifacts; frontend checks when affected; package gates;
-and final documentation review. The broader local PostgreSQL
-transactional/replay gate is complete as recorded above; it does not alter the
-P8 calibration failure or authorize blind scoring/publication.
+Package 8's benchmark gates are complete for P8 v23: frozen judge bindings,
+exact immutable evidence resolution, all `720/720` held-out cells, successful
+calibration freeze, blind-answer/judgment join, report and paired metrics. The
+repository closeout keeps documentation in its own commit, pushes `thanh-v3`,
+and verifies GitHub Actions for the pushed commit.
