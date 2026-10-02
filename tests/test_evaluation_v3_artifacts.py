@@ -12,6 +12,8 @@ from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_artifacts import (
     AnswerEvidenceInputV3,
     CitationForReviewV3,
+    ClaimEvidenceV3,
+    RuntimeRubricEvidenceV3,
     build_blinded_answer_packet_v3,
     build_evaluation_report_v3,
     build_judgment_record_v3,
@@ -38,6 +40,7 @@ from app.evaluation.v3_protocol import (
     evaluation_protocol_sha256_v3,
     load_evaluation_experiment_v3,
 )
+from app.v2.contracts import DialogueOutcome
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -391,6 +394,21 @@ def _answer_inputs(
                     label="Nguồn 1",
                     evidence="Đoạn bằng chứng liên quan đến câu trả lời.",
                 ),
+            ),
+            claims=(
+                ClaimEvidenceV3(
+                    text="Một khẳng định có dẫn nguồn.",
+                    citation_labels=("Nguồn 1",),
+                ),
+            ),
+            runtime_evidence=RuntimeRubricEvidenceV3(
+                outcome=DialogueOutcome.ANSWERED,
+                planned_capabilities=(),
+                successful_capabilities=(),
+                successful_step_ids=(),
+                plan_revision_count=1,
+                final_revision_added_read_step_ids=(),
+                final_revision_reused_step_ids=(),
             ),
         )
         for item in observations

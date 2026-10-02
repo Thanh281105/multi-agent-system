@@ -24,8 +24,10 @@ from app.evaluation.v3_artifacts import (
     BlindedAnswerPacketV3,
     BlindedAnswerV3,
     CitationForReviewV3,
+    ClaimEvidenceV3,
     RubricContextV3,
     RubricFactV3,
+    RuntimeRubricEvidenceV3,
 )
 from app.evaluation.v3_comparison import ArtifactBindingsV3
 from app.evaluation.v3_gold import (
@@ -57,6 +59,7 @@ from app.evaluation.v3_models import (
     GenerationBindingV3,
 )
 from app.shared.budget import current_provider_budget
+from app.v2.contracts import DialogueOutcome
 
 PROMPT = "Score the blinded answer against the supplied frozen rubric only."
 MODEL = GenerationBindingV3(model="gpt-5.4-mini-2026-03-17")
@@ -540,6 +543,20 @@ def _answer(opaque_answer_id: str) -> BlindedAnswerV3:
         prompt=("A blinded prompt.",),
         answer="A blinded cited answer.",
         citations=(CitationForReviewV3(label="source-1", evidence=evidence),),
+        claims=(
+            ClaimEvidenceV3(
+                text="A required fact is stated.", citation_labels=("source-1",)
+            ),
+        ),
+        runtime_evidence=RuntimeRubricEvidenceV3(
+            outcome=DialogueOutcome.ANSWERED,
+            planned_capabilities=(),
+            successful_capabilities=(),
+            successful_step_ids=(),
+            plan_revision_count=1,
+            final_revision_added_read_step_ids=(),
+            final_revision_reused_step_ids=(),
+        ),
         rubric_context=RubricContextV3(
             answerability=AnswerabilityV3.ANSWERABLE,
             required_response_mode=RequiredResponseModeV3.DIRECT_ANSWER,
@@ -552,6 +569,10 @@ def _answer(opaque_answer_id: str) -> BlindedAnswerV3:
             ),
             forbidden_claims=(),
             expected_action_outcome="complete",
+            expected_dialogue_outcome=DialogueOutcome.ANSWERED,
+            allowed_capabilities=(),
+            required_capabilities=(),
+            forbidden_capabilities=(),
         ),
     )
 

@@ -222,6 +222,12 @@ def test_receipt_conversion_uses_only_actual_citation_evidence() -> None:
     )
     assert provisional.answer_evidence.citations[0].label == "[C1]"
     assert provisional.answer_evidence.citations[0].evidence == "Exact source span."
+    assert provisional.answer_evidence.claims[0].text == "Synthetic sourced claim."
+    assert provisional.answer_evidence.claims[0].citation_labels == ("[C1]",)
+    assert (
+        provisional.answer_evidence.runtime_evidence.outcome is DialogueOutcome.ANSWERED
+    )
+    assert provisional.answer_evidence.runtime_evidence.plan_revision_count == 0
     assert provisional.operational.input_tokens == 13
     assert provisional.operational.output_tokens == 5
     assert provisional.operational.generation_call_count == 1
@@ -794,12 +800,18 @@ def _blind_context(provisional):
         prompt=("Synthetic blind prompt",),
         answer=provisional.answer_evidence.answer,
         citations=provisional.answer_evidence.citations,
+        claims=provisional.answer_evidence.claims,
+        runtime_evidence=provisional.answer_evidence.runtime_evidence,
         rubric_context=RubricContextV3(
             answerability=AnswerabilityV3.ANSWERABLE,
             required_response_mode=RequiredResponseModeV3.DIRECT_ANSWER,
             required_facts=(),
             forbidden_claims=(),
             expected_action_outcome="complete",
+            expected_dialogue_outcome=DialogueOutcome.ANSWERED,
+            allowed_capabilities=(),
+            required_capabilities=(),
+            forbidden_capabilities=(),
         ),
     )
     packet_payload = {

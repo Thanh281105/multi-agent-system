@@ -14,8 +14,10 @@ from app.evaluation.v3_artifacts import (
     BlindedAnswerPacketV3,
     BlindedAnswerV3,
     CitationForReviewV3,
+    ClaimEvidenceV3,
     RubricContextV3,
     RubricFactV3,
+    RuntimeRubricEvidenceV3,
     _judgment_collection,
 )
 from app.evaluation.v3_calibration import (
@@ -51,6 +53,7 @@ from app.evaluation.v3_judge import (
     validate_model_judge_output_v3,
 )
 from app.evaluation.v3_models import EvaluationMetricV3, GenerationBindingV3
+from app.v2.contracts import DialogueOutcome
 
 PROMPT = "Score only the blinded answer against the supplied frozen rubric."
 MODEL = GenerationBindingV3(model="gpt-5.4-mini-2026-03-17")
@@ -63,6 +66,16 @@ def test_model_judge_output_schema_only_allows_semantic_metrics() -> None:
     assert set(verdict_schema["properties"]["metric"]["enum"]) == {
         metric.value for metric in SEMANTIC_JUDGE_METRICS_V3
     }
+    assert verdict_schema["properties"]["score"]["enum"] == [0.0, 1.0]
+
+
+def test_model_judge_rejects_fractional_semantic_score() -> None:
+    answer = _answer("answer_000000000000000000000001")
+    payload = _output(answer)
+    cast(list[dict[str, object]], payload["verdicts"])[0]["score"] = 0.5
+
+    with pytest.raises(ValidationError):
+        validate_model_judge_output_v3(payload, answer)
 
 
 def test_calibrated_model_judge_is_blinded_attributed_and_complete() -> None:
@@ -541,6 +554,21 @@ def _answer(opaque_answer_id: str) -> BlindedAnswerV3:
         prompt=("Câu hỏi đã được che danh tính.",),
         answer="Câu trả lời có dẫn nguồn đóng băng.",
         citations=(CitationForReviewV3(label="Nguồn 1", evidence=evidence),),
+        claims=(
+            ClaimEvidenceV3(
+                text="Sự kiện bắt buộc đã được nêu.",
+                citation_labels=("Nguồn 1",),
+            ),
+        ),
+        runtime_evidence=RuntimeRubricEvidenceV3(
+            outcome=DialogueOutcome.ANSWERED,
+            planned_capabilities=(),
+            successful_capabilities=(),
+            successful_step_ids=(),
+            plan_revision_count=1,
+            final_revision_added_read_step_ids=(),
+            final_revision_reused_step_ids=(),
+        ),
         rubric_context=RubricContextV3(
             answerability=AnswerabilityV3.ANSWERABLE,
             required_response_mode=RequiredResponseModeV3.DIRECT_ANSWER,
@@ -553,6 +581,10 @@ def _answer(opaque_answer_id: str) -> BlindedAnswerV3:
             ),
             forbidden_claims=(),
             expected_action_outcome="complete",
+            expected_dialogue_outcome=DialogueOutcome.ANSWERED,
+            allowed_capabilities=(),
+            required_capabilities=(),
+            forbidden_capabilities=(),
         ),
     )
 

@@ -63,7 +63,7 @@ class SemanticMetricVerdictV3(FrozenJudgeContractV3):
         EvaluationMetricV3.VALID_PLAN,
         EvaluationMetricV3.USEFUL_CONTINUATION,
     ]
-    score: float = Field(ge=0, le=1)
+    score: Literal[0.0, 1.0]
     rubric_fact_indices: tuple[int, ...] = ()
     citation_labels: tuple[str, ...] = ()
 

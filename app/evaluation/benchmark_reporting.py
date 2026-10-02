@@ -25,6 +25,8 @@ from app.evaluation.v3_artifacts import (
     JudgmentRecordV3,
     UnblindingKeyV3,
     build_evaluation_report_v3,
+    claim_evidence_v3,
+    runtime_rubric_evidence_v3,
 )
 from app.evaluation.v3_comparison import (
     ArtifactBindingsV3,
@@ -994,6 +996,8 @@ def _provisional_from_receipt(
             repetition=observation.repetition,
             answer=final_result.answer,
             citations=citations,
+            claims=claim_evidence_v3(final_result),
+            runtime_evidence=runtime_rubric_evidence_v3(final_result),
         ),
         final_turn_result=final_result,
         authoritative_evidence=authoritative_evidence,

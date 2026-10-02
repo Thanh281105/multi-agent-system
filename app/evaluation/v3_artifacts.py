@@ -14,6 +14,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.contracts import TaskStatus
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
 from app.evaluation.v3_comparison import (
     ArtifactBindingsV3,
@@ -22,6 +23,7 @@ from app.evaluation.v3_comparison import (
     PairedMetricComparisonV3,
 )
 from app.evaluation.v3_gold import (
+    ActionBoundaryOutcomeV3,
     AnswerabilityV3,
     CatalogPointerSupportV3,
     EvaluationGoldV3,
@@ -41,6 +43,7 @@ from app.evaluation.v3_models import (
     canonical_observation_id_v3,
 )
 from app.evaluation.v3_protocol import evaluation_protocol_sha256_v3
+from app.v2.contracts import DialogueOutcome, TurnResult
 
 _SHA256 = r"^[a-f0-9]{64}$"
 _IDENTIFIER = r"^[a-z][a-z0-9_.-]{2,127}$"
@@ -60,8 +63,37 @@ class CitationForReviewV3(FrozenArtifactContractV3):
     evidence: str = Field(min_length=1, max_length=4_000)
 
 
+class ClaimEvidenceV3(FrozenArtifactContractV3):
+    text: str = Field(min_length=1, max_length=1_000)
+    citation_labels: tuple[str, ...]
+
+
+class RuntimeRubricEvidenceV3(FrozenArtifactContractV3):
+    outcome: DialogueOutcome
+    planned_capabilities: tuple[str, ...]
+    successful_capabilities: tuple[str, ...]
+    successful_step_ids: tuple[str, ...]
+    plan_revision_count: int = Field(ge=0)
+    final_revision_added_read_step_ids: tuple[str, ...]
+    final_revision_reused_step_ids: tuple[str, ...]
+
+    @model_validator(mode="after")
+    def validate_unique_trace_values(self) -> RuntimeRubricEvidenceV3:
+        for name in (
+            "planned_capabilities",
+            "successful_capabilities",
+            "successful_step_ids",
+            "final_revision_added_read_step_ids",
+            "final_revision_reused_step_ids",
+        ):
+            values = getattr(self, name)
+            if len(values) != len(set(values)):
+                raise ValueError(f"{name} must contain unique values")
+        return self
+
+
 class AnswerEvidenceInputV3(FrozenArtifactContractV3):
-    """Local runner boundary; execution metadata stays out of the blind packet."""
+    """Runner boundary with only the trace fields needed by the frozen rubric."""
 
     observation_id: str
     variant_id: VariantIdV3
@@ -70,12 +102,15 @@ class AnswerEvidenceInputV3(FrozenArtifactContractV3):
     repetition: int = Field(ge=0)
     answer: str = Field(min_length=1, max_length=100_000)
     citations: tuple[CitationForReviewV3, ...] = ()
+    claims: tuple[ClaimEvidenceV3, ...]
+    runtime_evidence: RuntimeRubricEvidenceV3
 
 
 class RubricFactV3(FrozenArtifactContractV3):
     claim: str
     expected_value: ScalarV3
     evidence: str
+    support_kind: Literal["source_excerpt", "catalog_pointer"] = "source_excerpt"
 
 
 class RubricContextV3(FrozenArtifactContractV3):
@@ -84,6 +119,10 @@ class RubricContextV3(FrozenArtifactContractV3):
     required_facts: tuple[RubricFactV3, ...]
     forbidden_claims: tuple[str, ...]
     expected_action_outcome: str
+    expected_dialogue_outcome: DialogueOutcome
+    allowed_capabilities: tuple[str, ...]
+    required_capabilities: tuple[str, ...]
+    forbidden_capabilities: tuple[str, ...]
 
 
 class BlindedAnswerV3(FrozenArtifactContractV3):
@@ -91,6 +130,8 @@ class BlindedAnswerV3(FrozenArtifactContractV3):
     prompt: tuple[str, ...] = Field(min_length=1)
     answer: str
     citations: tuple[CitationForReviewV3, ...]
+    claims: tuple[ClaimEvidenceV3, ...]
+    runtime_evidence: RuntimeRubricEvidenceV3
     rubric_context: RubricContextV3
 
     @model_validator(mode="after")
@@ -98,6 +139,11 @@ class BlindedAnswerV3(FrozenArtifactContractV3):
         labels = [item.label for item in self.citations]
         if len(labels) != len(set(labels)):
             raise ValueError("blinded answer citation labels must be unique")
+        available_labels = set(labels)
+        if any(
+            not set(claim.citation_labels) <= available_labels for claim in self.claims
+        ):
+            raise ValueError("claim evidence references an unknown citation label")
         return self
 
 
@@ -427,7 +473,9 @@ def build_blinded_answer_packet_v3(
                 prompt=tuple(turn.message for turn in case.user_turns),
                 answer=answer.answer,
                 citations=answer.citations,
-                rubric_context=_rubric_context(case),
+                claims=answer.claims,
+                runtime_evidence=answer.runtime_evidence,
+                rubric_context=build_rubric_context_v3(case),
             )
         )
         key_entries.append(
@@ -688,17 +736,35 @@ def validate_evaluation_artifacts_v3(
     return manifest
 
 
-def _rubric_context(case: GoldConversationV3) -> RubricContextV3:
+def expected_dialogue_outcome_v3(case: GoldConversationV3) -> DialogueOutcome:
+    expected_action = case.action_capability_blueprint.expected_outcome
+    if expected_action is ActionBoundaryOutcomeV3.AWAITING_CONFIRMATION:
+        return DialogueOutcome.AWAITING_CONFIRMATION
+    if expected_action is ActionBoundaryOutcomeV3.DENIED:
+        return DialogueOutcome.ABSTAINED
+    return {
+        AnswerabilityV3.ANSWERABLE: DialogueOutcome.ANSWERED,
+        AnswerabilityV3.PARTIALLY_ANSWERABLE: DialogueOutcome.ANSWERED,
+        AnswerabilityV3.UNANSWERABLE: DialogueOutcome.ABSTAINED,
+        AnswerabilityV3.CONFLICTED_REQUIRES_CLARIFICATION: (
+            DialogueOutcome.NEEDS_CLARIFICATION
+        ),
+    }[case.answerability]
+
+
+def build_rubric_context_v3(case: GoldConversationV3) -> RubricContextV3:
     required_facts = []
     for fact in case.required_fact_blueprints:
         support = fact.support
         if isinstance(support, SourceExcerptSupportV3):
             evidence = support.exact_excerpt
+            support_kind = "source_excerpt"
         elif isinstance(support, CatalogPointerSupportV3):
             evidence = (
                 f"{support.artifact_path}{support.json_pointer}="
                 f"{json.dumps(support.expected_value, ensure_ascii=False)}"
             )
+            support_kind = "catalog_pointer"
         else:  # pragma: no cover - the gold union is closed by Pydantic
             raise TypeError("unsupported rubric evidence type")
         required_facts.append(
@@ -706,6 +772,7 @@ def _rubric_context(case: GoldConversationV3) -> RubricContextV3:
                 claim=fact.claim_blueprint,
                 expected_value=fact.expected_value,
                 evidence=evidence,
+                support_kind=support_kind,
             )
         )
     return RubricContextV3(
@@ -717,6 +784,65 @@ def _rubric_context(case: GoldConversationV3) -> RubricContextV3:
         ),
         expected_action_outcome=(
             case.action_capability_blueprint.expected_outcome.value
+        ),
+        expected_dialogue_outcome=expected_dialogue_outcome_v3(case),
+        allowed_capabilities=tuple(
+            sorted(
+                item.capability_id for item in case.action_capability_blueprint.allowed
+            )
+        ),
+        required_capabilities=tuple(sorted(case.action_capability_blueprint.required)),
+        forbidden_capabilities=tuple(
+            sorted(case.action_capability_blueprint.forbidden)
+        ),
+    )
+
+
+def claim_evidence_v3(result: TurnResult) -> tuple[ClaimEvidenceV3, ...]:
+    citation_labels = {
+        item.citation_id: item.display_label for item in result.citations
+    }
+    return tuple(
+        ClaimEvidenceV3(
+            text=claim.text,
+            citation_labels=tuple(
+                citation_labels[citation_id] for citation_id in claim.citation_ids
+            ),
+        )
+        for claim in result.claims
+    )
+
+
+def runtime_rubric_evidence_v3(result: TurnResult) -> RuntimeRubricEvidenceV3:
+    plan = result.plan
+    revisions = plan.revisions if plan is not None else ()
+    successful_executions = tuple(
+        item for item in result.executions if item.status is TaskStatus.SUCCESS
+    )
+    final_revision = revisions[-1] if revisions else None
+    return RuntimeRubricEvidenceV3(
+        outcome=result.outcome,
+        planned_capabilities=tuple(
+            sorted(
+                {step.capability for revision in revisions for step in revision.steps}
+            )
+        ),
+        successful_capabilities=tuple(
+            sorted({item.capability for item in successful_executions})
+        ),
+        successful_step_ids=tuple(
+            sorted({item.step_id for item in successful_executions})
+        ),
+        plan_revision_count=len(revisions),
+        final_revision_added_read_step_ids=(
+            tuple(sorted(final_revision.added_read_step_ids))
+            if final_revision is not None
+            else ()
+        ),
+        final_revision_reused_step_ids=(
+            tuple(sorted(final_revision.reused_step_ids))
+            if final_revision is not None
+            else ()
         ),
     )
 
