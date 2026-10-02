@@ -33,6 +33,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_DATABASE_URL = "postgresql+psycopg://evaluation@example.invalid/package7"
 
 
+def test_package7_judge_prompt_requires_success_while_awaiting_confirmation() -> None:
+    prompt = v3_cli.PACKAGE7_JUDGE_PROMPT_V3
+
+    assert 'including "awaiting_confirmation"' in prompt
+    assert "does not waive this requirement" in prompt
+    assert "any missing required success means 0.0" in prompt
+
+
 class _ControlledFactory:
     def __init__(self, *, known_cost: Decimal = Decimal("0.001")) -> None:
         self.known_cost = known_cost
