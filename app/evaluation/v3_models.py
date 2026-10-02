@@ -106,7 +106,7 @@ class ScheduledTurnKindV3(StrEnum):
 class GenerationBindingV3(FrozenContractV3):
     provider: Literal["openai"] = "openai"
     model: Literal["gpt-5.4-mini-2026-03-17"]
-    reasoning_effort: Literal["low"] = "low"
+    reasoning_effort: Literal["low", "medium"] = "low"
 
 
 class GoldPolicyV3(FrozenContractV3):
@@ -300,10 +300,14 @@ class EvaluationExperimentConfigV3(FrozenContractV3):
             raise ValueError("all Package 7 variants must share one model snapshot")
         if (
             self.judgment_policy.model_binding is not None
-            and self.judgment_policy.model_binding
-            != self.variants[0].generation_binding
+            and (
+                self.judgment_policy.model_binding.provider
+                != self.variants[0].generation_binding.provider
+                or self.judgment_policy.model_binding.model
+                != self.variants[0].generation_binding.model
+            )
         ):
-            raise ValueError("model judge must use the frozen generation snapshot")
+            raise ValueError("model judge must use the frozen model snapshot")
         adaptive = self.variants[2].model_dump(
             exclude={"variant_id", "description", "rag_enabled"}
         )
