@@ -33,12 +33,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_DATABASE_URL = "postgresql+psycopg://evaluation@example.invalid/package7"
 
 
-def test_package7_judge_prompt_requires_success_while_awaiting_confirmation() -> None:
-    prompt = v3_cli.PACKAGE7_JUDGE_PROMPT_V3
+def test_judge_prompt_computes_missing_required_capabilities() -> None:
+    prompt = " ".join(v3_cli.PACKAGE7_JUDGE_PROMPT_V3.split())
 
-    assert 'including "awaiting_confirmation"' in prompt
-    assert "does not waive this requirement" in prompt
-    assert "any missing required success means 0.0" in prompt
+    assert '"complete"' in prompt
+    assert '"awaiting_confirmation"' in prompt
+    assert "missing_required" in prompt
+    assert "Planned capabilities do not count as successful." in prompt
+    assert "required capabilities are [a, b, c]" in prompt
 
 
 class _ControlledFactory:
