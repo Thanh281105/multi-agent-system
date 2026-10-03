@@ -334,6 +334,98 @@ async def test_negation_mismatch_is_rejected_before_semantic_acceptance() -> Non
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("claim_text", "entailed"),
+    [
+        ("Book Alpha do tác giả Alice viết.", True),
+        ("Book Alpha do tác giả Bob viết.", False),
+    ],
+)
+async def test_edition_caveat_does_not_reject_an_affirmative_work_claim(
+    claim_text: str, entailed: bool
+) -> None:
+    reference, excerpt, resolved = _knowledge_item(
+        "c",
+        title="Book Alpha",
+        text=(
+            "Book Alpha is a novel by Alice. "
+            "This source does not establish the catalog item's Vietnamese edition."
+        ),
+        subject_ids=("product_1",),
+    )
+    runtime = FakeRuntime([_verdict(("claim_author", entailed))])
+    verifier = GroundingVerifier(runtime, model="model_snapshot")
+    draft = AnswerDraft(
+        claims=(
+            DraftClaim(
+                claim_id="claim_author",
+                text=claim_text,
+                evidence_ids=(reference.evidence_id,),
+            ),
+        )
+    )
+
+    with provider_budget_scope(_budget("grounding_edition_caveat_scope")):
+        result = await verifier.verify(
+            draft,
+            ToolEvidence(excerpts=(excerpt,), references=(reference,)),
+            allowed_subject_ids=frozenset({"product_1"}),
+            resolve_knowledge=_resolver(resolved),
+        )
+
+    assert result.grounded is entailed
+    assert [call["stage"] for call in runtime.calls] == ["answer.grounding"]
+    if not entailed:
+        assert result.rejections[0].code == "unsupported_claim"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("claim_text", "rejection"),
+    [
+        ("Book 42 is a novel by Alice.", None),
+        ("Book 42 has 42 pages.", "structured_fact_required"),
+        ("Book 99 is a novel by Alice.", "number_not_in_evidence"),
+    ],
+)
+async def test_number_in_cited_title_is_not_a_structured_quantity(
+    claim_text: str, rejection: str | None
+) -> None:
+    reference, excerpt, resolved = _knowledge_item(
+        "d",
+        title="Book 42 — work metadata note",
+        text="Book 42 is a novel written by Alice.",
+        subject_ids=("product_1",),
+    )
+    runtime = FakeRuntime([_verdict(("claim_title", True))])
+    verifier = GroundingVerifier(runtime, model="model_snapshot")
+    draft = AnswerDraft(
+        claims=(
+            DraftClaim(
+                claim_id="claim_title",
+                text=claim_text,
+                evidence_ids=(reference.evidence_id,),
+            ),
+        )
+    )
+
+    with provider_budget_scope(_budget("grounding_numbered_title_scope")):
+        result = await verifier.verify(
+            draft,
+            ToolEvidence(excerpts=(excerpt,), references=(reference,)),
+            allowed_subject_ids=frozenset({"product_1"}),
+            resolve_knowledge=_resolver(resolved),
+        )
+
+    if rejection is None:
+        assert result.grounded
+        assert [call["stage"] for call in runtime.calls] == ["answer.grounding"]
+    else:
+        assert result.rejections[0].code == rejection
+        assert runtime.calls == []
+
+
+@pytest.mark.asyncio
 async def test_plausible_generalization_needs_a_negative_semantic_verdict() -> None:
     reference, excerpt, resolved = _knowledge_item(
         "7",

@@ -517,11 +517,30 @@ def _text_guard(
     if not claim_numbers <= source_numbers:
         return "number_not_in_evidence"
     if claim_numbers:
-        return "structured_fact_required"
+        quantity_text = claim.text
+        for evidence_id in claim.evidence_ids:
+            title = re.split(
+                r"\s+(?:[|—–]|-)\s+|\s+\(",
+                prepared.references[evidence_id].title,
+                maxsplit=1,
+            )[0].strip()
+            if _number_keys(title) and any(character.isalpha() for character in title):
+                quantity_text = re.sub(
+                    rf"(?<!\w){re.escape(title)}(?!\w)",
+                    "",
+                    quantity_text,
+                    flags=re.IGNORECASE,
+                )
+        if _number_keys(quantity_text):
+            return "structured_fact_required"
     if _has_entity_conflict(claim.text, claim.evidence_ids, prepared):
         return "entity_evidence_mismatch"
     claim_negated = _has_negation(claim.text)
-    source_polarities = {_has_negation(text) for text in source_texts}
+    source_polarities = {
+        _has_negation(sentence)
+        for text in source_texts
+        for sentence in _sentence_segments(text)
+    }
     if len(source_polarities) == 1 and claim_negated not in source_polarities:
         return "negation_mismatch"
     return None
