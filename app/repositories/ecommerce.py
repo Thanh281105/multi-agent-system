@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, aliased, joinedload
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.models.dataset_source import DatasetSource
@@ -206,6 +206,43 @@ class EcommerceRepository:
         )
         by_id = {product.id: product for product in self.session.scalars(statement)}
         return [by_id[product_id] for product_id in product_ids if product_id in by_id]
+
+    def get_reviews_by_product_ids(
+        self, product_ids: Sequence[int], *, limit: int = 20
+    ) -> dict[int, list[Review]]:
+        """Read each product's newest bounded sample in one query."""
+
+        by_product: dict[int, list[Review]] = {
+            product_id: [] for product_id in product_ids
+        }
+        if not product_ids:
+            return by_product
+        ranked = (
+            select(
+                Review,
+                func.row_number()
+                .over(
+                    partition_by=Review.product_id,
+                    order_by=(Review.created_at.desc().nullslast(), Review.id.desc()),
+                )
+                .label("sample_rank"),
+            )
+            .where(Review.product_id.in_(product_ids))
+            .subquery()
+        )
+        review_row = aliased(Review, ranked)
+        statement = (
+            select(review_row)
+            .where(ranked.c.sample_rank <= limit)
+            .order_by(
+                review_row.product_id,
+                review_row.created_at.desc().nullslast(),
+                review_row.id.desc(),
+            )
+        )
+        for review in self.session.scalars(statement):
+            by_product[review.product_id].append(review)
+        return by_product
 
     def get_product_statistics(
         self,

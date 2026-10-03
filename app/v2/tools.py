@@ -653,13 +653,14 @@ class V2ReadTools:
         self, repository: EcommerceRepository, ids: tuple[int, ...], *, trust: bool
     ) -> tuple[V2Contract, ToolEvidence]:
         products = self._products(repository, ids)
+        reviews_by_product = repository.get_reviews_by_product_ids(
+            ids, limit=REVIEW_SAMPLE_LIMIT
+        )
         builder = _EvidenceBuilder(self.catalog_snapshot)
         review_findings: list[ReviewFinding] = []
         trust_findings: list[TrustFinding] = []
         for product in products:
-            _, reviews = repository.get_product_reviews(
-                product_id=product.id, limit=REVIEW_SAMPLE_LIMIT
-            )
+            reviews = reviews_by_product[product.id]
             sample = [
                 {"id": row.id, "rating": row.rating, "content": row.content}
                 for row in reviews
