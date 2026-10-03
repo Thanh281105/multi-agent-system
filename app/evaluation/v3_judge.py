@@ -302,6 +302,7 @@ class CalibrationReferenceLabelsV3(FrozenJudgeContractV3):
     ]
     reviewer_ids: tuple[str, ...] = ()
     adjudicator: ReferenceAdjudicatorV3 | None = None
+    claim_coverage: ClaimCitationCoverageV3 | None = None
     scores: dict[EvaluationMetricV3, float]
     reference_sha256: str = Field(pattern=_SHA256)
 
@@ -310,8 +311,9 @@ class CalibrationReferenceLabelsV3(FrozenJudgeContractV3):
         self, handler: SerializerFunctionWrapHandler
     ) -> dict[str, Any]:
         payload = handler(self)
-        if self.adjudicator is None:
-            payload.pop("adjudicator", None)
+        for name in ("adjudicator", "claim_coverage"):
+            if payload.get(name) is None:
+                payload.pop(name, None)
         return payload
 
     @model_validator(mode="after")
@@ -339,6 +341,10 @@ class CalibrationReferenceLabelsV3(FrozenJudgeContractV3):
             raise ValueError(
                 "reference label classification differs from adjudicator provenance"
             )
+        if self.claim_coverage is not None and (
+            self.claim_coverage.answer_sha256 != self.answer_sha256
+        ):
+            raise ValueError("reference claim labels use a different blinded answer")
         expected_hash = canonical_sha256(
             self.model_dump(mode="json", exclude={"reference_sha256"})
         )
@@ -361,6 +367,7 @@ def build_calibration_reference_labels_v3(
     scores: Mapping[EvaluationMetricV3, float],
     reviewer_ids: Sequence[str] = (),
     adjudicator: ReferenceAdjudicatorV3 | None = None,
+    claim_coverage: ClaimCitationCoverageV3 | None = None,
 ) -> CalibrationReferenceLabelsV3:
     case = DevelopmentCalibrationCaseV3.model_validate(case.model_dump(mode="json"))
     payload = {
@@ -376,6 +383,9 @@ def build_calibration_reference_labels_v3(
     }
     if adjudicator is not None:
         payload["adjudicator"] = adjudicator.model_dump(mode="json")
+    if claim_coverage is not None:
+        validate_claim_citation_coverage_v3(case.answer, claim_coverage)
+        payload["claim_coverage"] = claim_coverage.model_dump(mode="json")
     return CalibrationReferenceLabelsV3(
         calibration_id=case.calibration_id,
         development_observation_id=development_observation_id,
@@ -384,6 +394,7 @@ def build_calibration_reference_labels_v3(
         source_classification=source_classification,
         reviewer_ids=tuple(reviewer_ids),
         adjudicator=adjudicator,
+        claim_coverage=claim_coverage,
         scores=dict(scores),
         reference_sha256=canonical_sha256(payload),
     )
@@ -461,7 +472,26 @@ class CalibrationRecordV3(FrozenJudgeContractV3):
     reference_scores: dict[EvaluationMetricV3, float]
     observed_scores: dict[EvaluationMetricV3, float]
     absolute_errors: dict[EvaluationMetricV3, float]
+    reference_claim_coverage: ClaimCitationCoverageV3 | None = None
+    observed_claim_coverage: ClaimCitationCoverageV3 | None = None
+    claim_disagreement_count: int | None = Field(default=None, ge=0)
+    validated_judge_output: dict[str, Any] | None = None
     record_sha256: str = Field(pattern=_SHA256)
+
+    @model_serializer(mode="wrap")
+    def preserve_legacy_record(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        payload = handler(self)
+        for name in (
+            "reference_claim_coverage",
+            "observed_claim_coverage",
+            "claim_disagreement_count",
+            "validated_judge_output",
+        ):
+            if payload.get(name) is None:
+                payload.pop(name, None)
+        return payload
 
     @model_validator(mode="after")
     def validate_record(self) -> CalibrationRecordV3:
@@ -487,6 +517,44 @@ class CalibrationRecordV3(FrozenJudgeContractV3):
             )
             if self.absolute_errors[metric] != expected_error:
                 raise ValueError("calibration absolute error mismatch")
+        extensions = (
+            self.reference_claim_coverage,
+            self.observed_claim_coverage,
+            self.claim_disagreement_count,
+            self.validated_judge_output,
+        )
+        if any(value is not None for value in extensions):
+            if any(value is None for value in extensions):
+                raise ValueError("per-claim calibration evidence is incomplete")
+            reference, observed = (
+                self.reference_claim_coverage,
+                self.observed_claim_coverage,
+            )
+            assert reference is not None and observed is not None
+            if (reference.answer_sha256, reference.claim_count) != (
+                observed.answer_sha256,
+                observed.claim_count,
+            ):
+                raise ValueError("per-claim calibration answers or denominators differ")
+            disagreements = sum(
+                expected.supported != actual.supported
+                for expected, actual in zip(
+                    reference.verdicts, observed.verdicts, strict=True
+                )
+            )
+            if self.claim_disagreement_count != disagreements:
+                raise ValueError("per-claim calibration disagreement count differs")
+            output = ClaimCoverageModelJudgeOutputV3.model_validate(
+                self.validated_judge_output
+            )
+            if canonical_sha256(output) != self.model_output_sha256 or (
+                output.claim_verdicts != observed.verdicts
+                or self.observed_scores
+                != {item.metric: item.score for item in output.verdicts}
+            ):
+                raise ValueError(
+                    "per-claim calibration differs from validated model output"
+                )
         expected_hash = canonical_sha256(
             self.model_dump(mode="json", exclude={"record_sha256"})
         )
@@ -542,7 +610,26 @@ class CalibrationFreezeV3(FrozenJudgeContractV3):
     expected_calibration_ids: tuple[str, ...] = Field(min_length=1)
     development_record_sha256s: tuple[str, ...] = Field(min_length=1)
     maximum_observed_errors: dict[EvaluationMetricV3, float]
+    claim_calibration_claim_count: int | None = Field(default=None, ge=1)
+    claim_calibration_disagreement_count: int | None = Field(default=None, ge=0)
+    claim_calibration_error: float | None = Field(default=None, ge=0, le=1)
+    claim_calibration_error_threshold: float | None = Field(default=None, ge=0, le=1)
     calibration_sha256: str = Field(pattern=_SHA256)
+
+    @model_serializer(mode="wrap")
+    def preserve_legacy_freeze(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        payload = handler(self)
+        for name in (
+            "claim_calibration_claim_count",
+            "claim_calibration_disagreement_count",
+            "claim_calibration_error",
+            "claim_calibration_error_threshold",
+        ):
+            if payload.get(name) is None:
+                payload.pop(name, None)
+        return payload
 
     @model_validator(mode="after")
     def validate_freeze(self) -> CalibrationFreezeV3:
@@ -558,6 +645,28 @@ class CalibrationFreezeV3(FrozenJudgeContractV3):
             raise ValueError("calibration freeze record set is incomplete")
         if set(self.maximum_observed_errors) != set(SEMANTIC_JUDGE_METRICS_V3):
             raise ValueError("calibration freeze metric set is incomplete")
+        extensions = (
+            self.claim_calibration_claim_count,
+            self.claim_calibration_disagreement_count,
+            self.claim_calibration_error,
+            self.claim_calibration_error_threshold,
+        )
+        if any(value is not None for value in extensions):
+            if any(value is None for value in extensions):
+                raise ValueError("per-claim calibration freeze is incomplete")
+            assert self.claim_calibration_claim_count is not None
+            assert self.claim_calibration_disagreement_count is not None
+            assert self.claim_calibration_error is not None
+            assert self.claim_calibration_error_threshold is not None
+            if (
+                self.claim_calibration_error
+                != (
+                    self.claim_calibration_disagreement_count
+                    / self.claim_calibration_claim_count
+                )
+                or self.claim_calibration_error > self.claim_calibration_error_threshold
+            ):
+                raise ValueError("per-claim calibration error exceeds frozen threshold")
         expected_hash = canonical_sha256(
             self.model_dump(mode="json", exclude={"calibration_sha256"})
         )
@@ -593,7 +702,7 @@ def run_development_calibration_case_v3(
         raise ValueError("reference labels use a different development case")
     if reference.answer_sha256 != blinded_answer_sha256_v3(case.answer):
         raise ValueError("reference labels use a different blinded answer")
-    references = dict(reference.scores)
+    validate_calibration_reference_v3(configuration, case, reference)
     output = _invoke_and_validate(
         configuration,
         case.answer,
@@ -601,6 +710,32 @@ def run_development_calibration_case_v3(
         calibration_sha256=None,
         judge=judge,
     )
+    return build_calibration_record_v3(
+        configuration=configuration,
+        case=case,
+        reference=reference,
+        thresholds=thresholds,
+        output=output,
+    )
+
+
+def build_calibration_record_v3(
+    *,
+    configuration: ModelJudgeConfigurationV3,
+    case: DevelopmentCalibrationCaseV3,
+    reference: CalibrationReferenceLabelsV3,
+    thresholds: CalibrationThresholdsV3,
+    output: ModelJudgeOutputV3,
+) -> CalibrationRecordV3:
+    validate_calibration_reference_v3(configuration, case, reference)
+    output = validate_model_judge_output_v3(output, case.answer)
+    if (
+        reference.calibration_id,
+        reference.development_case_sha256,
+        reference.answer_sha256,
+    ) != (case.calibration_id, case.case_sha256, canonical_sha256(case.answer)):
+        raise ValueError("reference labels use a different development answer")
+    references = dict(reference.scores)
     observed: dict[EvaluationMetricV3, float] = {
         item.metric: item.score for item in output.verdicts
     }
@@ -608,7 +743,7 @@ def run_development_calibration_case_v3(
         metric: abs(references[metric] - observed[metric])
         for metric in SEMANTIC_JUDGE_METRICS_V3
     }
-    payload = {
+    payload: dict[str, Any] = {
         "schema_version": "3.0",
         "split": EvaluationSplitV3.DEVELOPMENT,
         "calibration_id": case.calibration_id,
@@ -622,19 +757,82 @@ def run_development_calibration_case_v3(
         "observed_scores": observed,
         "absolute_errors": errors,
     }
+    if isinstance(output, ClaimCoverageModelJudgeOutputV3):
+        assert reference.claim_coverage is not None
+        observed_coverage = claim_citation_coverage_from_output_v3(case.answer, output)
+        assert observed_coverage is not None
+        payload.update(
+            {
+                "reference_claim_coverage": reference.claim_coverage.model_dump(
+                    mode="json"
+                ),
+                "observed_claim_coverage": observed_coverage.model_dump(mode="json"),
+                "claim_disagreement_count": sum(
+                    expected.supported != actual.supported
+                    for expected, actual in zip(
+                        reference.claim_coverage.verdicts,
+                        observed_coverage.verdicts,
+                        strict=True,
+                    )
+                ),
+                "validated_judge_output": output.model_dump(mode="json"),
+            }
+        )
     return CalibrationRecordV3(
-        calibration_id=case.calibration_id,
-        development_case_sha256=case.case_sha256,
-        protocol_sha256=configuration.bindings.protocol_sha256,
-        configuration_sha256=configuration.configuration_sha256,
-        thresholds_sha256=thresholds.thresholds_sha256,
-        reference_sha256=reference.reference_sha256,
-        model_output_sha256=canonical_sha256(output),
-        reference_scores=references,
-        observed_scores=observed,
-        absolute_errors=errors,
+        **payload,
         record_sha256=canonical_sha256(payload),
     )
+
+
+def validate_reference_claim_coverage_v3(
+    case: DevelopmentCalibrationCaseV3, reference: CalibrationReferenceLabelsV3
+) -> None:
+    if reference.claim_coverage is None or reference.adjudicator is None:
+        raise ValueError("successor calibration requires independent per-claim labels")
+    if reference.source_classification == "automated_gold_derived":
+        raise ValueError("per-claim calibration cannot use gold-derived labels")
+    validate_claim_citation_coverage_v3(case.answer, reference.claim_coverage)
+    support = reference.scores[EvaluationMetricV3.CLAIM_SUPPORT]
+    expected_scores = {**score_runtime_metrics_v3(case.answer)}
+    expected_scores[EvaluationMetricV3.CLAIM_SUPPORT] = support
+    expected_scores[EvaluationMetricV3.TASK_COMPLETION] = float(
+        all(score == 1.0 for score in expected_scores.values())
+    )
+    if support not in (0.0, 1.0) or reference.scores != expected_scores:
+        raise ValueError("independent reference differs from runtime or binary labels")
+    if support == 1.0 and (
+        any(not verdict.supported for verdict in reference.claim_coverage.verdicts)
+        or {
+            index
+            for verdict in reference.claim_coverage.verdicts
+            for index in verdict.rubric_fact_indices
+        }
+        != set(range(len(case.answer.rubric_context.required_facts)))
+    ):
+        raise ValueError("positive reference support differs from per-claim labels")
+
+
+def validate_calibration_reference_v3(
+    configuration: ModelJudgeConfigurationV3,
+    case: DevelopmentCalibrationCaseV3,
+    reference: CalibrationReferenceLabelsV3,
+) -> None:
+    if (
+        reference.calibration_id,
+        reference.development_case_sha256,
+        reference.answer_sha256,
+    ) != (case.calibration_id, case.case_sha256, canonical_sha256(case.answer)):
+        raise ValueError("reference labels use a different development answer")
+    successor = configuration.bindings.judge_schema_sha256 == (
+        model_judge_output_schema_sha256_v3(successor=True)
+    )
+    if successor != (case.answer.rubric_context.evaluator_contract is not None):
+        raise ValueError("development answer differs from configured judge schema")
+    if successor:
+        validate_reference_claim_coverage_v3(case, reference)
+        assert reference.adjudicator is not None
+        if reference.adjudicator.model_snapshot == configuration.model_binding.model:
+            raise ValueError("reference adjudicator must differ from the scored judge")
 
 
 def freeze_calibration_thresholds_v3(
@@ -682,6 +880,8 @@ def freeze_calibration_thresholds_v3(
         or item.thresholds_sha256 != thresholds.thresholds_sha256
         or item.reference_sha256
         != reference_by_id[item.calibration_id].reference_sha256
+        or item.development_case_sha256
+        != reference_by_id[item.calibration_id].development_case_sha256
         for item in records
     ):
         raise ValueError("calibration record provenance drift detected")
@@ -697,7 +897,7 @@ def freeze_calibration_thresholds_v3(
     if failed:
         raise ValueError(f"development calibration exceeds frozen thresholds: {failed}")
     record_hashes = tuple(sorted(item.record_sha256 for item in records))
-    payload = {
+    payload: dict[str, Any] = {
         "schema_version": "3.0",
         "protocol_sha256": configuration.bindings.protocol_sha256,
         "configuration_sha256": configuration.configuration_sha256,
@@ -707,16 +907,66 @@ def freeze_calibration_thresholds_v3(
         "development_record_sha256s": record_hashes,
         "maximum_observed_errors": maxima,
     }
+    if (
+        configuration.bindings.judge_schema_sha256
+        == model_judge_output_schema_sha256_v3(successor=True)
+    ):
+        for record in records:
+            reference = reference_by_id[record.calibration_id]
+            if (
+                reference.claim_coverage is None
+                or reference.adjudicator is None
+                or reference.source_classification == "automated_gold_derived"
+                or reference.adjudicator.model_snapshot
+                == configuration.model_binding.model
+                or record.reference_claim_coverage != reference.claim_coverage
+                or record.observed_claim_coverage is None
+                or record.claim_disagreement_count is None
+                or record.validated_judge_output is None
+                or record.reference_scores != reference.scores
+            ):
+                raise ValueError(
+                    "successor freeze lacks independent per-claim calibration evidence"
+                )
+        claim_count = sum(
+            item.reference_claim_coverage.claim_count
+            for item in records
+            if item.reference_claim_coverage is not None
+        )
+        if not claim_count:
+            raise ValueError("successor calibration has no actual development claims")
+        disagreement_count = sum(item.claim_disagreement_count or 0 for item in records)
+        error = disagreement_count / claim_count
+        threshold = thresholds.maximum_absolute_error[EvaluationMetricV3.CLAIM_SUPPORT]
+        if error > threshold:
+            raise ValueError(
+                "per-claim calibration exceeds frozen claim-support threshold"
+            )
+        payload.update(
+            {
+                "claim_calibration_claim_count": claim_count,
+                "claim_calibration_disagreement_count": disagreement_count,
+                "claim_calibration_error": error,
+                "claim_calibration_error_threshold": threshold,
+            }
+        )
     return CalibrationFreezeV3(
-        protocol_sha256=configuration.bindings.protocol_sha256,
-        configuration_sha256=configuration.configuration_sha256,
-        thresholds_sha256=thresholds.thresholds_sha256,
-        reference_bundle_sha256=reference_bundle.reference_bundle_sha256,
-        expected_calibration_ids=expected_ids,
-        development_record_sha256s=record_hashes,
-        maximum_observed_errors=maxima,
+        **payload,
         calibration_sha256=canonical_sha256(payload),
     )
+
+
+def validate_claim_calibration_freeze_v3(
+    configuration: ModelJudgeConfigurationV3, calibration: CalibrationFreezeV3
+) -> None:
+    calibration = CalibrationFreezeV3.model_validate(
+        calibration.model_dump(mode="json")
+    )
+    successor = configuration.bindings.judge_schema_sha256 == (
+        model_judge_output_schema_sha256_v3(successor=True)
+    )
+    if successor != (calibration.claim_calibration_claim_count is not None):
+        raise ValueError("judge schema requires its bound per-claim calibration freeze")
 
 
 def judge_blinded_packet_v3(
@@ -743,6 +993,7 @@ def judge_blinded_packet_v3(
         raise ValueError("calibration freeze uses a different benchmark protocol")
     if calibration.configuration_sha256 != configuration.configuration_sha256:
         raise ValueError("calibration freeze uses a different judge configuration")
+    validate_claim_calibration_freeze_v3(configuration, calibration)
 
     judgments: list[JudgmentRecordV3] = []
     for answer in packet.answers:
@@ -889,13 +1140,19 @@ def claim_citation_coverage_from_output_v3(
         return None
     if not isinstance(output, ClaimCoverageModelJudgeOutputV3):
         raise ValueError("successor judge output requires per-claim semantic verdicts")
+    return build_claim_citation_coverage_v3(answer, output.claim_verdicts)
+
+
+def build_claim_citation_coverage_v3(
+    answer: BlindedAnswerV3, verdicts: Sequence[ClaimCitationVerdictV3]
+) -> ClaimCitationCoverageV3:
     count = len(answer.claims)
-    supported = sum(item.supported for item in output.claim_verdicts)
+    supported = sum(item.supported for item in verdicts)
     coverage = ClaimCitationCoverageV3(
         answer_sha256=canonical_sha256(answer),
         claim_count=count,
         supported_claim_count=supported,
-        verdicts=output.claim_verdicts,
+        verdicts=tuple(verdicts),
         coverage=supported / count if count else None,
     )
     validate_claim_citation_coverage_v3(answer, coverage)

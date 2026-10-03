@@ -13,6 +13,7 @@ from app.evaluation.benchmark_calibration import (
     BenchmarkCalibrationValidationErrorV3,
     _exact_citations,
     build_calibration_label_policy_v3,
+    build_independent_reference_labels_v3,
     build_package8_pilot_calibration_inputs_v3,
     build_pilot_reference_cases_v3,
 )
@@ -23,10 +24,8 @@ from app.evaluation.benchmark_reporting import (
 from app.evaluation.v3_judge import (
     SEMANTIC_JUDGE_METRICS_V3,
     ReferenceAdjudicatorV3,
-    build_calibration_reference_labels_v3,
 )
 from app.evaluation.v3_models import (
-    EvaluationMetricV3,
     PilotTurnCostV3,
     ScheduledTurnKindV3,
 )
@@ -426,21 +425,12 @@ def test_successor_calibration_requires_independent_hash_bound_labels(
             == case.calibration_id
         )
         assert receipt.observation_id in by_receipt
-        gold = next(
-            gold
-            for gold in package7_inputs.loaded_gold.gold.conversations
-            if gold.conversation_id == receipt.identity.case_id
-        )
-        result = benchmark_calibration._final_turn_result(receipt)
-        scores = benchmark_calibration._gold_derived_scores(gold, result, ())
-        scores[EvaluationMetricV3.CLAIM_SUPPORT] = 0.0
-        scores[EvaluationMetricV3.TASK_COMPLETION] = 0.0
         references.append(
-            build_calibration_reference_labels_v3(
+            build_independent_reference_labels_v3(
                 case,
                 development_observation_id=receipt.observation_id or "",
-                source_classification="automated_independent_semantic",
-                scores=scores,
+                claim_supported=False,
+                claim_verdicts=(),
                 adjudicator=ReferenceAdjudicatorV3(
                     adjudicator_id="independent_test",
                     method="automated_model",
@@ -459,6 +449,7 @@ def test_successor_calibration_requires_independent_hash_bound_labels(
     } == {"automated_independent_semantic"}
     wrong = references[0].model_copy(update={"answer_sha256": "f" * 64})
     wrong_payload = wrong.model_dump(mode="json", exclude={"reference_sha256"})
+    wrong_payload["claim_coverage"]["answer_sha256"] = "f" * 64
     from app.evaluation.protocol import canonical_sha256
     from app.evaluation.v3_judge import CalibrationReferenceLabelsV3
 

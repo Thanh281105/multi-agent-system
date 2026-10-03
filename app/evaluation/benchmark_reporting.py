@@ -50,6 +50,7 @@ from app.evaluation.v3_judge import (
     ModelJudgeConfigurationV3,
     model_judge_output_schema_sha256_v3,
     score_deterministic_metrics_v3,
+    validate_claim_calibration_freeze_v3,
     validate_judgment_claim_coverage_v3,
 )
 from app.evaluation.v3_models import (
@@ -724,6 +725,12 @@ def join_model_judgments_to_observations_v3(
         raise BenchmarkReportingValidationErrorV3(
             "calibration configuration binding differs from the model judge"
         )
+    try:
+        validate_claim_calibration_freeze_v3(configuration, frozen_calibration)
+    except ValueError as exc:
+        raise BenchmarkReportingValidationErrorV3(
+            "calibration lacks configured per-claim calibration evidence"
+        ) from exc
 
     normalized = tuple(_materialize_provisional(item) for item in provisionals)
     by_observation = {item.observation.observation_id: item for item in normalized}

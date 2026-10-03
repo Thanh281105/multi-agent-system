@@ -571,7 +571,9 @@ def test_successor_replay_revalidates_fresh_output_and_coverage_provenance(
         }
     )
     packet = _packet(bindings, (answer,))
-    freeze = _freeze_with_configuration(configuration.configuration_sha256)
+    freeze = _freeze_with_configuration(
+        configuration.configuration_sha256, successor=True
+    )
     raw = _output(answer)
     raw.update(
         {
@@ -768,7 +770,9 @@ def _output(
     }
 
 
-def _freeze_with_configuration(configuration_sha256: str) -> CalibrationFreezeV3:
+def _freeze_with_configuration(
+    configuration_sha256: str, *, successor: bool = False
+) -> CalibrationFreezeV3:
     payload = {
         "schema_version": "3.0",
         "protocol_sha256": EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3,
@@ -779,13 +783,16 @@ def _freeze_with_configuration(configuration_sha256: str) -> CalibrationFreezeV3
         "development_record_sha256s": ("3" * 64,),
         "maximum_observed_errors": _scores(0.0),
     }
+    if successor:
+        payload.update(
+            {
+                "claim_calibration_claim_count": 1,
+                "claim_calibration_disagreement_count": 0,
+                "claim_calibration_error": 0.0,
+                "claim_calibration_error_threshold": 0.25,
+            }
+        )
     return CalibrationFreezeV3(
-        protocol_sha256=EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3,
-        configuration_sha256=configuration_sha256,
-        thresholds_sha256="1" * 64,
-        reference_bundle_sha256="2" * 64,
-        expected_calibration_ids=("calibration_case_one",),
-        development_record_sha256s=("3" * 64,),
-        maximum_observed_errors=_scores(0.0),
+        **payload,
         calibration_sha256=canonical_sha256(payload),
     )

@@ -31,7 +31,6 @@ from app.evaluation.v3_artifacts import (
 )
 from app.evaluation.v3_gold import EvaluationSplitV3
 from app.evaluation.v3_judge import (
-    SEMANTIC_JUDGE_METRICS_V3,
     CalibrationFreezeV3,
     CalibrationRecordV3,
     CalibrationReferenceBundleV3,
@@ -42,9 +41,12 @@ from app.evaluation.v3_judge import (
     ModelJudgeOutputV3,
     ModelJudgeRequestV3,
     blinded_answer_sha256_v3,
+    build_calibration_record_v3,
     claim_citation_coverage_from_output_v3,
     model_judge_output_type_v3,
     score_deterministic_metrics_v3,
+    validate_calibration_reference_v3,
+    validate_claim_calibration_freeze_v3,
     validate_judgment_claim_coverage_v3,
     validate_model_judge_output_v3,
 )
@@ -569,6 +571,15 @@ class DurableModelJudgeRunnerV3:
             normalized_cases
         ):
             raise FrozenJudgeRunError("calibration_case_ids_not_unique")
+        for case in normalized_cases:
+            _validate_calibration_provenance(
+                configuration=configuration,
+                case=case,
+                reference=reference_by_id[case.calibration_id],
+            )
+            validate_calibration_reference_v3(
+                configuration, case, reference_by_id[case.calibration_id]
+            )
 
         with JudgeJournalV3(self._journal_path, run_key=key) as journal:
             journal.seal_orphans(attempt_snapshots=self._attempt_snapshots_or_empty)
@@ -948,6 +959,10 @@ def _validate_heldout_inputs(
         raise FrozenJudgeRunError("calibration_protocol_mismatch")
     if calibration.configuration_sha256 != configuration.configuration_sha256:
         raise FrozenJudgeRunError("calibration_configuration_mismatch")
+    try:
+        validate_claim_calibration_freeze_v3(configuration, calibration)
+    except ValueError as exc:
+        raise FrozenJudgeRunError("calibration_claim_coverage_missing") from exc
     return packet, configuration, calibration
 
 
@@ -977,40 +992,12 @@ def _build_calibration_record(
     thresholds: CalibrationThresholdsV3,
     output: ModelJudgeOutputV3,
 ) -> CalibrationRecordV3:
-    observed: dict[EvaluationMetricV3, float] = {
-        item.metric: item.score for item in output.verdicts
-    }
-    references = dict(reference.scores)
-    errors = {
-        metric: abs(references[metric] - observed[metric])
-        for metric in SEMANTIC_JUDGE_METRICS_V3
-    }
-    payload = {
-        "schema_version": "3.0",
-        "split": EvaluationSplitV3.DEVELOPMENT,
-        "calibration_id": case.calibration_id,
-        "development_case_sha256": case.case_sha256,
-        "protocol_sha256": configuration.bindings.protocol_sha256,
-        "configuration_sha256": configuration.configuration_sha256,
-        "thresholds_sha256": thresholds.thresholds_sha256,
-        "reference_sha256": reference.reference_sha256,
-        "model_output_sha256": canonical_sha256(output),
-        "reference_scores": references,
-        "observed_scores": observed,
-        "absolute_errors": errors,
-    }
-    return CalibrationRecordV3(
-        calibration_id=case.calibration_id,
-        development_case_sha256=case.case_sha256,
-        protocol_sha256=configuration.bindings.protocol_sha256,
-        configuration_sha256=configuration.configuration_sha256,
-        thresholds_sha256=thresholds.thresholds_sha256,
-        reference_sha256=reference.reference_sha256,
-        model_output_sha256=canonical_sha256(output),
-        reference_scores=references,
-        observed_scores=observed,
-        absolute_errors=errors,
-        record_sha256=canonical_sha256(payload),
+    return build_calibration_record_v3(
+        configuration=configuration,
+        case=case,
+        reference=reference,
+        thresholds=thresholds,
+        output=output,
     )
 
 
@@ -1092,6 +1079,10 @@ def _terminal_result(
         if expected_phase == "held_out_scoring":
             if packet is None or calibration is None or answer is None:
                 raise FrozenJudgeRunError("heldout_replay_context_missing")
+            try:
+                validate_claim_calibration_freeze_v3(configuration, calibration)
+            except ValueError as exc:
+                raise FrozenJudgeRunError("calibration_claim_coverage_missing") from exc
             replayed = JudgmentRecordV3.model_validate(artifact)
             if (
                 replayed.bindings != packet.bindings
@@ -1131,6 +1122,23 @@ def _terminal_result(
                 raise FrozenJudgeRunError(
                     "calibration_journal_artifact_provenance_mismatch"
                 )
+            if case.answer.rubric_context.evaluator_contract is not None:
+                try:
+                    rebuilt = build_calibration_record_v3(
+                        configuration=configuration,
+                        case=case,
+                        reference=reference,
+                        thresholds=thresholds,
+                        output=validate_model_judge_output_v3(
+                            replayed_calibration.validated_judge_output, case.answer
+                        ),
+                    )
+                    if rebuilt != replayed_calibration:
+                        raise ValueError("replayed per-claim calibration differs")
+                except ValueError as exc:
+                    raise FrozenJudgeRunError(
+                        "calibration_journal_claim_coverage_mismatch"
+                    ) from exc
             record = replayed_calibration
     error_code = terminal.get("error_code")
     if error_code is not None and not isinstance(error_code, str):

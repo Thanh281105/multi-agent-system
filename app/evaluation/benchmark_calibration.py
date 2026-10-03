@@ -26,6 +26,7 @@ from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_artifacts import (
     BlindedAnswerV3,
     CitationForReviewV3,
+    ClaimCitationVerdictV3,
     build_rubric_context_v3,
     claim_evidence_v3,
     expected_dialogue_outcome_v3,
@@ -50,8 +51,10 @@ from app.evaluation.v3_judge import (
     build_calibration_reference_bundle_v3,
     build_calibration_reference_labels_v3,
     build_calibration_thresholds_v3,
+    build_claim_citation_coverage_v3,
     build_development_calibration_case_v3,
     score_runtime_metrics_v3,
+    validate_reference_claim_coverage_v3,
 )
 from app.evaluation.v3_matching import citation_supports_fact_v3, exact_value_in_text_v3
 from app.evaluation.v3_models import (
@@ -746,6 +749,10 @@ def _validate_independent_reference(
         raise BenchmarkCalibrationValidationErrorV3(
             "independent reference differs from the actual blinded answer"
         )
+    try:
+        validate_reference_claim_coverage_v3(case, reference)
+    except ValueError as exc:
+        raise BenchmarkCalibrationValidationErrorV3(str(exc)) from exc
     expected = score_runtime_metrics_v3(case.answer)
     claim_support = reference.scores[EvaluationMetricV3.CLAIM_SUPPORT]
     if claim_support not in (0.0, 1.0):
@@ -796,6 +803,7 @@ def build_independent_reference_labels_v3(
     *,
     development_observation_id: str,
     claim_supported: bool,
+    claim_verdicts: Sequence[ClaimCitationVerdictV3],
     adjudicator: ReferenceAdjudicatorV3,
     reviewer_ids: Sequence[str] = (),
 ) -> CalibrationReferenceLabelsV3:
@@ -816,6 +824,7 @@ def build_independent_reference_labels_v3(
         scores=scores,
         reviewer_ids=reviewer_ids,
         adjudicator=adjudicator,
+        claim_coverage=build_claim_citation_coverage_v3(case.answer, claim_verdicts),
     )
     _validate_independent_reference(case, reference, case.answer.citations)
     return reference

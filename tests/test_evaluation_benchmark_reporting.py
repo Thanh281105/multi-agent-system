@@ -503,6 +503,29 @@ def test_successor_join_rejects_hash_valid_foreign_coverage_provenance(
         )
 
 
+def test_successor_join_rejects_legacy_freeze_missing_claim_calibration() -> None:
+    provisional = _provisional()
+    packet, key, configuration, calibration = _blind_context(
+        provisional, successor=True
+    )
+    legacy = _calibration(
+        protocol_sha256=calibration.protocol_sha256,
+        configuration_sha256=configuration.configuration_sha256,
+        marker="d",
+    )
+    with pytest.raises(
+        BenchmarkReportingValidationErrorV3, match="per-claim calibration"
+    ):
+        join_model_judgments_to_observations_v3(
+            (provisional,),
+            blinded_packet=packet,
+            unblinding_key=key,
+            judgments=(_successor_judgment(packet, configuration, legacy),),
+            judge_configuration=configuration,
+            calibration=legacy,
+        )
+
+
 def test_judgment_join_rejects_mismatched_calibration_model_and_scores() -> None:
     provisional = _provisional()
     packet, key, configuration, calibration = _blind_context(provisional)
@@ -990,6 +1013,7 @@ def _blind_context(provisional, *, successor: bool = False):
         protocol_sha256=bindings.protocol_sha256,
         configuration_sha256=configuration.configuration_sha256,
         marker="d",
+        successor=successor,
     )
     return packet, key, configuration, calibration
 
@@ -1022,7 +1046,13 @@ def _bindings(*, protocol_sha256: str, successor: bool = False) -> ArtifactBindi
     )
 
 
-def _calibration(*, protocol_sha256: str, configuration_sha256: str, marker: str):
+def _calibration(
+    *,
+    protocol_sha256: str,
+    configuration_sha256: str,
+    marker: str,
+    successor: bool = False,
+):
     payload = {
         "schema_version": "3.0",
         "protocol_sha256": protocol_sha256,
@@ -1035,6 +1065,15 @@ def _calibration(*, protocol_sha256: str, configuration_sha256: str, marker: str
             metric: 0.0 for metric in SEMANTIC_JUDGE_METRICS_V3
         },
     }
+    if successor:
+        payload.update(
+            {
+                "claim_calibration_claim_count": 1,
+                "claim_calibration_disagreement_count": 0,
+                "claim_calibration_error": 0.0,
+                "claim_calibration_error_threshold": 0.25,
+            }
+        )
     return CalibrationFreezeV3(
         **payload,
         calibration_sha256=canonical_sha256(payload),
