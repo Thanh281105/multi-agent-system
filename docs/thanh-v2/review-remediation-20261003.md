@@ -50,8 +50,8 @@ substring không là semantic truth.
 - [x] Known-work knowledge query có final exact citation và unsupported query.
 - [x] Cancel trước event đầu, sau admission, reconcile/reload giữ identity.
 - [x] Browser console/focus/keyboard/citation và mobile/CSS zoom-equivalent cơ bản.
-- [ ] Offline backup có index/query embedder tương thích; generation off không
-  tự tắt embeddings. Ghi rõ backup là live offline hay recorded.
+- [x] Backup **RECORDED** mở offline, không HTTP/external assets. Generation off
+  không tự tắt embeddings; chưa có live offline embedder tương thích được rehearsal.
 
 Strict gate cuối lưu tại `output/review-remediation/demo-rehearsal.json`:
 6 public results, `strict_gate_passed=true`. `live-source-reopening.json`
@@ -60,6 +60,25 @@ hash excerpt trên PostgreSQL thật. Browser rehearsal kiểm desktop/mobile,
 focus citation, Escape và cancel; CSS viewport tương đương zoom 200% không
 phải kiểm chứng native browser zoom. Demo local dùng shared state memory;
 Helm mới chỉ render/validate, chưa deploy Kubernetes, Redis chaos hay TLS.
+
+Backup/restore PostgreSQL riêng đã đạt: 27 public tables khớp full-row hashes,
+counts và normalized schema; migration head, 200 products/1.773 reviews,
+20 documents/chunks/vectors cùng catalog/corpus/index pins giữ nguyên.
+Dump 13.665.663 bytes, SHA256
+`2dfe46e8e1c1387cef499057fa2be171f47cbade22f5d1c92408df9f4a35324c`.
+Manifest giữ cả raw schema hashes, failure ban đầu và khác biệt cast tương
+đương do PostgreSQL deparser; không bỏ CHECK constraints khi so sánh.
+Target `review_backup_20261003` là database riêng; source không reset.
+Artifacts ở `output/review-remediation/postgres-backup-restore-verification.json`,
+`review-backup-20261003.dump`, `recorded-demo.html` và
+`recorded-demo-verification.json`. Bản RECORDED có 6 public results đã đạt
+strict gate, desktop/mobile không overflow, console/page/network errors bằng 0.
+
+P7/P8 successor **chưa chạy**: automatic approval review chặn lệnh P7 trước
+dispatch vì cần chấp thuận cụ thể cho evaluation payload tới provider.
+`provider-consent-manifest.v1.json` ghi HTTPS OpenAI endpoint, các lớp dữ liệu
+public/synthetic và cost caps. Không dùng source/test/demo gate làm quality
+report; cần hoàn thành lifecycle successor ở trên sau khi được phép dispatch.
 
 Challenge mới có 20 câu/6 strata và 5 evaluator probes tại
 `evaluation/v3/review-challenge-v1/`. Canonical packet hash
