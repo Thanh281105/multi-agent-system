@@ -1,0 +1,38 @@
+{
+  "schema_version": "review_challenge_lock_v1",
+  "packet_id": "review-challenge-v1",
+  "packet_canonical_sha256": "f1e13fb4643c3f16f406f49e3fa7955c5943ef878d7e8da644195990b5d4ba71",
+  "case_count": 20,
+  "evaluator_probe_count": 5,
+  "operator_lock_status": "pending",
+  "human_audit_status": "pending",
+  "sut_execution_status": "not_started",
+  "source_authorities": [
+    {
+      "path": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+      "raw_sha256": "830c684733e47a2dddc4591ffba7d62d5db01600f0c00910b02730b1e8da148e",
+      "authority_kind": "catalog_snapshot"
+    },
+    {
+      "path": "data/snapshots/tiki-books-v4-eval/reviews.jsonl",
+      "raw_sha256": "1eb3b76031d8186968d9b5d062edb6f6fb5e8d504d78be1bf0b1f71fd8c0bafe",
+      "authority_kind": "review_snapshot_metadata"
+    },
+    {
+      "path": "data/knowledge/books-v1/sources.json",
+      "raw_sha256": "5ab134f6f1d93eb33621f27498087671903331aa4c824bc20d1f55ca819a2934",
+      "authority_kind": "curated_work_level_notes"
+    },
+    {
+      "path": "data/knowledge/books-v1/mappings.json",
+      "raw_sha256": "bc4b84839b4ad26018e81ee1b1b1afc832b4262b0854918f0270fc8bdb984ac1",
+      "authority_kind": "published_work_mapping_scope"
+    }
+  ],
+  "artifact_raw_sha256s": {
+    "packet.json": "787cdb4e3c02fcab5ae1fbf2da5acccb88373aa1e15d37df7de2f81a1041a77e",
+    "README.md": "e18490263c631624715305dd023039669116181f183850401deab25db1d0d79a",
+    "verify_packet.py": "bd559e83f0f831e75d5d560ce8588fb47b6bd4d8bce0732b4e6cd6e8d0bb604e"
+  },
+  "lock_canonical_sha256": "108e33e2472fbba82035d928305099b04e1e449be09991fbacde7e9170453b0e"
+}
