@@ -97,27 +97,36 @@ async def test_numeric_constraints_reach_actual_catalog(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "message",
+    ("message", "titles"),
     [
-        'So sánh "Sapiens" và "Steve Jobs"',
-        "So sánh Sapiens và Steve Jobs",
+        ('So sánh "Sapiens" và "Steve Jobs"', ("Sapiens", "Steve Jobs")),
+        ("So sánh Sapiens và Steve Jobs", ("Sapiens", "Steve Jobs")),
+        (
+            "So sánh Quân Vương và Bàn Về Khế Ước Xã Hội giúp mình. "
+            "Mình muốn biết giá và số trang của cả hai bản đang có trong danh mục.",
+            ("Quân Vương", "Bàn Về Khế Ước Xã Hội"),
+        ),
     ],
 )
 async def test_fresh_two_title_comparison_resolves_each_catalog_entity(
     actual_catalog_sessions: sessionmaker[Session],
     message: str,
+    titles: tuple[str, str],
 ) -> None:
     tools = read_tools(actual_catalog_sessions)
     planner = BoundedV2Planner()
     context = planning_context(tools)
     planned = await planner.plan(message, context)
     assert planned.clarification_code is None
-    assert planned.entity_queries == ("Sapiens", "Steve Jobs")
+    assert planned.entity_queries == titles
     initial = await tools.execute(planned.initial_operations[0], tool_access())
     assert initial.status == TaskStatus.SUCCESS
     candidates = ProductResult.model_validate(initial.output).products
     assert len(candidates) == 2
-    assert "Sapiens" in candidates[0].title and "Steve Jobs" in candidates[1].title
+    assert all(
+        title in candidate.title
+        for title, candidate in zip(titles, candidates, strict=True)
+    )
     operations = planner.bind_initial_candidates(
         planned,
         tuple(row.product_id for row in candidates),
@@ -182,6 +191,18 @@ async def test_rating_and_page_upper_bounds_reach_actual_catalog(
         ("Khách hàng đánh giá sách Nhật Ký Tarot thế nào?", "Nhật Ký Tarot"),
         ("Người mua nhận xét sách Nhật Ký Tarot ra sao?", "Nhật Ký Tarot"),
         ('Khách hàng đánh giá sách "Nhật Ký Tarot" như thế nào?', "Nhật Ký Tarot"),
+        (
+            "Giúp mình xem review của Bạch Dạ Hành. Hãy phân tích dựa trên mẫu "
+            "review đã lưu, nói rõ dùng bao nhiêu mẫu, và đừng coi mẫu này là "
+            "toàn bộ người mua.",
+            "Bạch Dạ Hành",
+        ),
+        (
+            "Mình đang cân nhắc Tiểu Sử Steve Jobs. Review của cuốn này ra sao? "
+            "Cho nhận xét dựa trên dữ liệu mẫu hiện có và tách số mẫu ra khỏi "
+            "tổng lượt đánh giá trên nguồn.",
+            "Tiểu Sử Steve Jobs",
+        ),
     ],
 )
 async def test_natural_review_resolves_title_and_reads_its_sample(
@@ -211,6 +232,200 @@ async def test_natural_review_resolves_title_and_reads_its_sample(
     findings = ReviewResult.model_validate(result.output).findings
     assert findings[0].product_id == candidates[0].product_id
     assert 0 < findings[0].review_count <= 20
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("message", "title", "rating"),
+    [
+        (
+            "Có Quân Vương giá dưới 75k, rating ít nhất 4.7 và không quá 220 "
+            "trang không? Cho mình các thông số của bản phù hợp.",
+            "Quân Vương",
+            4.7,
+        ),
+        (
+            "Tìm Einstein Cuộc Đời Và Vũ Trụ cho mình: ngân sách từ 200.000 "
+            "đến 250.000 đồng, điểm từ 4,8 trở lên, số trang tối thiểu 700.",
+            "Einstein Cuộc Đời Và Vũ Trụ",
+            4.8,
+        ),
+        (
+            "Mình cần Tớ Học Lập Trình - Làm Quen Với Python dưới 70 nghìn, "
+            "được 5 sao, tối đa 100 trang. Cho mình giá và các thông số của "
+            "bản đáp ứng nhé.",
+            "Tớ Học Lập Trình - Làm Quen Với Python",
+            5.0,
+        ),
+        (
+            "Sapiens trong danh mục có bản không quá 200k, rating từ 4,9 "
+            "và ít nhất 600 trang không? Nêu riêng giá, điểm và độ dày giúp mình.",
+            "Sapiens",
+            4.9,
+        ),
+    ],
+)
+async def test_conversational_catalog_constraints_reach_matching_book(
+    actual_catalog_sessions: sessionmaker[Session],
+    message: str,
+    title: str,
+    rating: float,
+) -> None:
+    tools = read_tools(actual_catalog_sessions)
+    planned = await BoundedV2Planner().plan(message, planning_context(tools))
+    assert planned.clarification_code is None
+    assert planned.catalog_query == title and planned.min_rating == rating
+    result = await tools.execute(planned.initial_operations[0], tool_access())
+    assert result.status == TaskStatus.SUCCESS
+    candidates = ProductResult.model_validate(result.output).products
+    assert len(candidates) == 1 and title in candidates[0].title
+
+
+@pytest.mark.asyncio
+async def test_verbal_candidate_limit_returns_only_matching_books(
+    actual_catalog_sessions: sessionmaker[Session],
+) -> None:
+    tools = read_tools(actual_catalog_sessions)
+    planned = await BoundedV2Planner().plan(
+        "Gợi ý tối đa ba cuốn sách giá từ 350 nghìn đến 400 nghìn đồng, "
+        "rating từ 4,8. Chỉ lấy sách, kể cả nếu danh mục lẫn sản phẩm khác.",
+        planning_context(tools),
+    )
+    assert planned.clarification_code is None and planned.catalog_query is None
+    assert planned.candidate_limit == 3
+    result = await tools.execute(planned.initial_operations[0], tool_access())
+    assert result.status == TaskStatus.SUCCESS
+    candidates = ProductResult.model_validate(result.output).products
+    assert len(candidates) == 3
+    with actual_catalog_sessions() as session:
+        for candidate in candidates:
+            product = session.get(Product, candidate.product_id)
+            assert product is not None and is_book_product(product)
+            assert 350_000 <= product.price <= 400_000
+            assert product.rating is not None and product.rating >= 4.8
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("count", ["một", "hai", "ba", "bốn", "năm", "sáu", "mười"])
+async def test_verbal_candidate_count_keeps_five_book_bound(count: str) -> None:
+    context = PlanningContext(
+        access=tool_access(),
+        versions=RuntimeDataVersions(
+            catalog_version_id="catalog_test",
+            corpus_version_id="corpus_test",
+            index_manifest_id="index_test",
+        ),
+    )
+    planned = await BoundedV2Planner().plan(f"Gợi ý {count} cuốn sách", context)
+    if count in {"sáu", "mười"}:
+        assert planned.clarification_code == "candidate_limit_exceeds_five"
+        assert not planned.initial_operations
+    else:
+        assert planned.clarification_code is None
+        assert (
+            planned.candidate_limit
+            == ["một", "hai", "ba", "bốn", "năm"].index(count) + 1
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Bột Nước Muối Men của ai? Nguồn đang có nói sách hướng dẫn làm "
+        "những loại món gì cho người làm bánh tại nhà?",
+        "Những người phụ nữ bé nhỏ do ai viết?",
+        "Ai viết tác phẩm Không Đến Một?",
+    ],
+)
+async def test_work_authorship_question_requests_knowledge(message: str) -> None:
+    context = PlanningContext(
+        access=tool_access(),
+        versions=RuntimeDataVersions(
+            catalog_version_id="catalog_test",
+            corpus_version_id="corpus_test",
+            index_manifest_id="index_test",
+        ),
+    )
+    planned = await BoundedV2Planner().plan(message, context)
+    assert planned.intent == "knowledge"
+    assert [operation.capability for operation in planned.initial_operations] == [
+        "knowledge.retrieve"
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("message", "capabilities"),
+    [
+        (
+            'So sánh "Einstein Cuộc Đời Và Vũ Trụ" với "Tiểu Sử Steve Jobs" '
+            "về giá, số trang và điểm đánh giá.",
+            {"product.catalog.search", "product.compare"},
+        ),
+        (
+            "Mình đang cân nhắc Tiểu Sử Steve Jobs. Review của cuốn này ra sao? "
+            "Tách số mẫu ra khỏi tổng lượt đánh giá trên nguồn.",
+            {"product.catalog.search", "review.compare"},
+        ),
+        (
+            "Theo nguồn kiến thức đang có, Bạch Dạ Hành có được trao giải "
+            "Nobel năm 2024 không? Nếu chưa có chứng cứ thì đừng suy từ review.",
+            {"knowledge.retrieve"},
+        ),
+        (
+            "Phân tích review của Sapiens. Không dùng review để suy giải thưởng.",
+            {"product.catalog.search", "review.compare"},
+        ),
+        (
+            'Tìm "Sapiens" giá dưới 300k, phân tích review và nội dung sách.',
+            {"product.catalog.search", "review.compare", "knowledge.retrieve"},
+        ),
+        (
+            "Nội dung của Tiểu Sử Steve Jobs là gì?",
+            {"knowledge.retrieve"},
+        ),
+    ],
+)
+async def test_intent_cues_exclude_titles_rating_and_negated_reviews(
+    message: str, capabilities: set[str]
+) -> None:
+    context = PlanningContext(
+        access=tool_access(),
+        versions=RuntimeDataVersions(
+            catalog_version_id="catalog_test",
+            corpus_version_id="corpus_test",
+            index_manifest_id="index_test",
+        ),
+    )
+    planned = await BoundedV2Planner().plan(message, context)
+    assert set(planned.desired_capabilities) == capabilities
+    assert planned.clarification_code is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("message", "title"),
+    [
+        ('Tìm "Ba Cuốn Sách" dưới 100k', "Ba Cuốn Sách"),
+        ('Tìm "Của Ai Đây" dưới 100k', "Của Ai Đây"),
+        ("Tìm Dr. Jekyll và Mr. Hyde dưới 100k", "Dr. Jekyll và Mr. Hyde"),
+    ],
+)
+async def test_title_words_keep_catalog_intent_and_candidate_bound(
+    message: str, title: str
+) -> None:
+    context = PlanningContext(
+        access=tool_access(),
+        versions=RuntimeDataVersions(
+            catalog_version_id="catalog_test",
+            corpus_version_id="corpus_test",
+            index_manifest_id="index_test",
+        ),
+    )
+    planned = await BoundedV2Planner().plan(message, context)
+    assert planned.catalog_query == title and planned.candidate_limit == 5
+    assert planned.desired_capabilities == ("product.catalog.search",)
 
 
 @pytest.mark.asyncio

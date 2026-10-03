@@ -131,8 +131,21 @@ _STOCK_SIGNED_PATTERN = re.compile(
     r"\s+(?:by\s+)?(?P<amount>[+-][0-9]+)[.!?]*$",
     re.IGNORECASE,
 )
+_VERBAL_COUNTS = {
+    "một": 1,
+    "hai": 2,
+    "ba": 3,
+    "bốn": 4,
+    "năm": 5,
+    "sáu": 6,
+    "bảy": 7,
+    "tám": 8,
+    "chín": 9,
+    "mười": 10,
+}
+_COUNT_VALUE_PATTERN = r"[0-9]{1,3}|" + "|".join(_VERBAL_COUNTS)
 _COUNT_PATTERN = re.compile(
-    r"\b(?P<count>[0-9]{1,3})\s*(?:cuốn|quyển|sách|books?)\b",
+    rf"\b(?P<count>{_COUNT_VALUE_PATTERN})\s*(?:cuốn|quyển|sách|books?)\b",
     re.IGNORECASE,
 )
 _MAX_PRICE_PATTERN = re.compile(
@@ -150,10 +163,10 @@ _BOUND_OPERATOR = (
     r"không vượt quá|không quá|tối đa|dưới|<=|≤|under|maximum|max"
 )
 _FIELD_BOUND_PATTERN = re.compile(
-    rf"(?:(?P<field>rating|điểm đánh giá|đánh giá|số trang|page count)\s*"
+    rf"(?:(?P<field>rating|điểm(?:\s+đánh giá)?|đánh giá|số trang|page count)\s*"
     rf"(?P<operator>{_BOUND_OPERATOR})\s*(?P<amount>[0-9]+(?:[.,][0-9]+)?)"
     rf"(?:\s*(?:sao|trang|pages?))?(?:\s+trở (?:lên|xuống))?|"
-    rf"(?P<suffix_operator>{_BOUND_OPERATOR})\s*"
+    rf"(?P<suffix_operator>{_BOUND_OPERATOR}|được)\s*"
     rf"(?P<suffix_amount>[0-9]+(?:[.,][0-9]+)?)\s*(?P<suffix_field>sao|trang|pages?)"
     rf"(?:\s+trở (?:lên|xuống))?)\b",
     re.IGNORECASE,
@@ -201,12 +214,15 @@ _P4_IMPLEMENTED_READ_CAPABILITIES = frozenset(
 )
 _QUOTED_QUERY_PATTERN = re.compile(r"[\"“”'](?P<query>[^\"“”']{2,160})[\"“”']")
 _QUERY_PREFIX_PATTERN = re.compile(
-    r"^(?:(?:hãy|vui lòng|giúp|cho tôi|mình muốn)\s+)*"
+    r"^(?:(?:hãy|vui lòng|giúp(?:\s+(?:mình|tôi))?|cho tôi|cho mình|"
+    r"mình muốn|tôi muốn)\s+)*"
     r"(?:tìm|kiếm|gợi ý|đề xuất|recommend|find|search|so sánh|compare|"
     r"(?:khách hàng|người mua)\s+(?:review|đánh giá|nhận xét)|"
-    r"phân tích\s+(?:review|đánh giá|nhận xét)|review|đánh giá|nhận xét)\s+"
+    r"phân tích\s+(?:review|đánh giá|nhận xét)|"
+    r"(?:xem\s+)?(?:review|đánh giá|nhận xét))\s+"
     r"(?:(?:cho tôi|giúp tôi)\s+)?"
-    r"(?:[0-9]{1,3}\s*(?:cuốn|quyển|sách|books?)\s+)?"
+    rf"(?:(?:tối đa\s+)?(?:{_COUNT_VALUE_PATTERN})\s*"
+    r"(?:cuốn|quyển|sách|books?)\s+)?"
     r"(?:(?:cuốn|quyển)\s+)?(?:sách|books?)?\s*(?:của\s+)?",
     re.IGNORECASE,
 )
@@ -1145,6 +1161,19 @@ def _deterministic_request(
         historical_query = historical.get("catalog_query")
         if isinstance(historical_query, str) and historical_query:
             catalog_query = historical_query[:300]
+    intent_text = _QUOTED_QUERY_PATTERN.sub(" ", lowered)
+    if (
+        parsed_context.catalog_query is not None
+        and parsed_context.catalog_query.casefold()
+        != cleaned.strip(" ,.;:?!-").casefold()
+    ):
+        intent_text = intent_text.replace(parsed_context.catalog_query.casefold(), " ")
+    review_text = re.sub(
+        r"\bđiểm\s+đánh giá\b|\b(?:đừng|không)\s+(?:suy|dựa|dùng)"
+        r"[^.!?;]*?\b(?:review|đánh giá|nhận xét)\b",
+        " ",
+        _FIELD_BOUND_PATTERN.sub(" ", intent_text),
+    )
     write_requested = any(word in lowered for word in _WRITE_WORDS)
     has_compare = _contains(lowered, "so sánh", "compare", "khác nhau")
     has_recommendation = _contains(
@@ -1154,24 +1183,25 @@ def _deterministic_request(
         "recommend",
         "nên đọc",
     )
-    has_review = _contains(
-        _FIELD_BOUND_PATTERN.sub(" ", lowered), "review", "đánh giá", "nhận xét"
-    )
+    has_review = _contains(review_text, "review", "đánh giá", "nhận xét")
     has_trust = _contains(lowered, "complaint", "phàn nàn", "khiếu nại")
     has_knowledge = _contains(
-        lowered,
+        intent_text,
         "chủ đề",
         "nội dung",
         "nói về",
         "kiến thức",
         "tiểu sử",
         "knowledge",
+        "do ai",
+        "của ai",
+        "ai viết",
     )
     has_market = _contains(lowered, "thị trường", "market", "thống kê")
     has_inventory = _contains(lowered, "tồn kho", "inventory", "còn hàng")
     has_price = (
         _contains(
-            lowered,
+            re.sub(r"\bđánh giá\b", " ", intent_text),
             "giá",
             "price",
             "ngân sách",
@@ -1915,10 +1945,11 @@ def _capability_needed(
 
 
 def _candidate_limit(message: str) -> tuple[int, bool, str | None]:
-    match = _COUNT_PATTERN.search(message)
+    match = _COUNT_PATTERN.search(_QUOTED_QUERY_PATTERN.sub(" ", message))
     if match is None:
         return MAX_CANDIDATES, False, None
-    value = int(match.group("count"))
+    raw = match.group("count").casefold()
+    value = _VERBAL_COUNTS[raw] if raw in _VERBAL_COUNTS else int(raw)
     if not 1 <= value <= MAX_CANDIDATES:
         return MAX_CANDIDATES, True, "candidate_limit_exceeds_five"
     return value, True, None
@@ -1991,6 +2022,27 @@ def _extract_catalog_query(message: str) -> str | None:
 
     candidate = _QUERY_PREFIX_PATTERN.sub("", message.strip(), count=1)
     candidate = re.sub(
+        r"^(?:(?:mình|tôi)\s+(?:cần|đang cân nhắc)|có)\s+",
+        "",
+        candidate,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    candidate = re.split(
+        r"[.!?]\s+(?=(?:mình|tôi|bạn|hãy|cho|review|đánh giá|nhận xét|chỉ|nêu)\b)",
+        candidate,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    candidate = re.sub(
+        r"\s+(?:trong danh mục(?:\s+có\s+bản)?|"
+        r"(?:cho|giúp)\s+(?:mình|tôi))\b.*$",
+        "",
+        candidate,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    candidate = re.sub(
         r"^(?:chủ đề|nội dung)\s+(?:của\s+)?",
         "",
         candidate,
@@ -2018,6 +2070,13 @@ def _extract_catalog_query(message: str) -> str | None:
         count=1,
         flags=re.IGNORECASE,
     )
+    candidate = re.sub(
+        r"\b(?:giá|price|ngân sách|rating|bán tốt|đáng mua|phù hợp)\b.*$",
+        "",
+        candidate,
+        count=1,
+        flags=re.IGNORECASE,
+    )
     candidate = _FIELD_BOUND_PATTERN.sub("", candidate)
     candidate = _PRICE_RANGE_PATTERN.sub(
         lambda match: (
@@ -2039,13 +2098,6 @@ def _extract_catalog_query(message: str) -> str | None:
         count=1,
         flags=re.IGNORECASE,
     )
-    candidate = re.sub(
-        r"\b(?:giá|price|ngân sách|rating|bán tốt|đáng mua|phù hợp)\b.*$",
-        "",
-        candidate,
-        count=1,
-        flags=re.IGNORECASE,
-    )
     cleaned = candidate.strip(" ,.;:?!-")
     if cleaned.casefold() in _GENERIC_QUERY_TERMS:
         return None
@@ -2062,11 +2114,11 @@ def _extract_entity_queries(message: str) -> tuple[str, ...]:
     if is_comparison and len(quoted) >= 2:
         return quoted
     if not is_comparison:
-        if re.match(
-            r"^(?:(?:phân tích|khách hàng|người mua)\s+)?"
-            r"(?:review|đánh giá|nhận xét)\b",
-            message,
-            flags=re.IGNORECASE,
+        if _contains(
+            _FIELD_BOUND_PATTERN.sub(" ", message.casefold()),
+            "review",
+            "đánh giá",
+            "nhận xét",
         ):
             query = _extract_catalog_query(message)
             return (query,) if query is not None else ()
