@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 
+from app.knowledge import retrieval as retrieval_module
 from app.knowledge.retrieval import (
     DeterministicKnowledgeQueryPlanner,
     HybridKnowledgeRetriever,
@@ -300,6 +301,53 @@ async def test_acl_reads_precede_planning_and_store_reads_leave_event_loop() -> 
     assert store.thread_ids and all(value != loop_thread for value in store.thread_ids)
     assert embedder.thread_ids and embedder.thread_ids[0] != loop_thread
     assert bundle.answerable
+
+
+@pytest.mark.asyncio
+async def test_ranking_keeps_event_loop_responsive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    embedder = StaticEmbedder()
+    snapshot = _snapshot(embedder=embedder)
+    source = _source(1, planning_text="orbital astronomy")
+    chunk = _chunk(
+        snapshot,
+        source,
+        content="Orbital astronomy explains the observed motion.",
+        vector=_vector(0),
+    )
+    retriever = HybridKnowledgeRetriever(
+        FakeStore(snapshot, (source,), (chunk,)), embedder
+    )
+    started, release = threading.Event(), threading.Event()
+    rank_threads: list[int] = []
+    original_rank = retrieval_module._rank_chunks
+
+    def gated_rank(*args: Any) -> Any:
+        rank_threads.append(threading.get_ident())
+        started.set()
+        release.wait(2)
+        return original_rank(*args)
+
+    monkeypatch.setattr(retrieval_module, "_rank_chunks", gated_rank)
+    task = asyncio.create_task(
+        retriever.retrieve(
+            "orbital astronomy",
+            _access(),
+            corpus_version_id=snapshot.corpus_version_id,
+            limit=1,
+        )
+    )
+    try:
+        assert await asyncio.to_thread(started.wait, 1)
+        await asyncio.sleep(0.01)
+        assert not task.done()
+        assert len(rank_threads) == 1
+        assert rank_threads[0] != threading.get_ident()
+    finally:
+        release.set()
+        await asyncio.gather(task, return_exceptions=True)
+    assert task.result().answerable
 
 
 @pytest.mark.asyncio
