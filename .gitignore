@@ -21,4 +21,7 @@ data/snapshots/tiki-books-v4-full/
 output/playwright/
 output/evaluation-v2/
 output/evaluation-v3/
+output/tests/
+output/tmp/
+output/review-remediation/
 .local-pg-p6/
