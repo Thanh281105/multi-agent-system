@@ -152,12 +152,14 @@ class _ReceiptExactEvidenceResolver:
             _ReceiptEvidenceAuthority | tuple[_ReceiptEvidenceAuthority, ...],
         ],
         catalog_review_source: ImmutableCatalogReviewSourceV3 | None = None,
+        shared_corpus_reads: bool = False,
     ) -> None:
         self._knowledge_service = knowledge_service
         self._corpus_version_id = corpus_version_id
         self._index_manifest_id = index_manifest_id
         self._authorities = dict(authorities)
         self._catalog_review_source = catalog_review_source
+        self._shared_corpus_reads = shared_corpus_reads
 
     def resolve(self, binding: EvidenceBindingKeyV3) -> ResolvedExactEvidenceV3:
         authorities = self._authorities.get(binding)
@@ -226,9 +228,21 @@ class _ReceiptExactEvidenceResolver:
                     "sandbox citation has no receipt-bound fixture authority",
                 )
             sandbox_source = {binding: authority.sandbox_evidence}
+        source_authorization = authority.authorization
+        if (
+            self._shared_corpus_reads
+            and authority.reference.kind is EvidenceKind.KNOWLEDGE
+        ):
+            source_authorization = source_authorization.model_copy(
+                update={
+                    "binding": source_authorization.binding.model_copy(
+                        update={"tenant_id": "default"}
+                    )
+                }
+            )
         resolver = ImmutableBenchmarkEvidenceResolverV3(
             self._knowledge_service,  # type: ignore[arg-type]
-            authorization=authority.authorization,
+            authorization=source_authorization,
             corpus_version_id=self._corpus_version_id,
             index_manifest_id=self._index_manifest_id,
             reference_source={binding: authority.reference},
@@ -472,6 +486,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         corpus_version_id=resources.corpus_version_id,
         index_manifest_id=resources.index_manifest_id,
         authorities=authorities,
+        shared_corpus_reads=frozen.successor_binding is not None,
         catalog_review_source=ImmutableCatalogReviewSourceV3(
             project_root=frozen.project_root,
             bindings=frozen.loaded_gold.gold.source_assets,

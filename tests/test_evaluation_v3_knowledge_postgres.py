@@ -1,8 +1,16 @@
 """Actual SQL ACL proof for shared-corpus reads from isolated benchmark state."""
 
+import asyncio
+
 import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.evaluation.benchmark_cli import (
+    BenchmarkCLIError,
+    _ReceiptEvidenceAuthority,
+    _ReceiptExactEvidenceResolver,
+)
+from app.evaluation.benchmark_evidence import EvidenceBindingKeyV3
 from app.evaluation.v3_knowledge import ObservationKnowledgeStoreV3
 from app.knowledge.postgres import PostgresKnowledgeStore
 from app.knowledge.retrieval import HybridKnowledgeRetriever
@@ -73,6 +81,29 @@ async def test_isolated_observation_retrieves_and_reopens_without_public_acl_cha
             for excerpt in result.result.excerpts
             if excerpt.evidence_id == reference.evidence_id
         )
+        binding = EvidenceBindingKeyV3(
+            evidence_id=reference.evidence_id,
+            source_id=reference.source_id,
+            source_version_id=reference.source_version_id,
+            chunk_id=reference.chunk_id,
+            span_id=reference.span_id,
+        )
+        resolver_arguments = {
+            "knowledge_service": KnowledgeService(
+                HybridKnowledgeRetriever(store, embedder)
+            ),
+            "corpus_version_id": snapshot.corpus_version_id,
+            "index_manifest_id": snapshot.index_manifest_id,
+            "authorities": {binding: _ReceiptEvidenceAuthority(reference, access)},
+        }
+        legacy = _ReceiptExactEvidenceResolver(**resolver_arguments)
+        with pytest.raises(BenchmarkCLIError, match="could not be reopened"):
+            await asyncio.to_thread(legacy.resolve, binding)
+        successor = _ReceiptExactEvidenceResolver(
+            **resolver_arguments, shared_corpus_reads=True
+        )
+        exact = await asyncio.to_thread(successor.resolve, binding)
+        assert exact.exact_text == reopened.excerpt
     assert store.list_authorized_sources(snapshot, access) == ()
     with pytest.raises(AuthorityOverrideError):
         bound.list_authorized_sources(snapshot, _access(tenant_id=f"tenant_{'b' * 64}"))
