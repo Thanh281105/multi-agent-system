@@ -907,6 +907,7 @@ export function useChatController(
       const identity = durableSnapshotRef.current.identity
       if (!credentialRef.current || !identity || !stateRef.current.online) return null
       if (!identity.allowedModes.includes(mode)) return null
+      if (pendingRecoveryRef.current?.cancelRequested) return null
 
       abortDurableWork()
       const modeChanged = durableScopeRef.current?.mode !== mode
@@ -972,6 +973,7 @@ export function useChatController(
       const identity = durableSnapshotRef.current.identity
       if (!identity) return "not_ready"
       if (!identity.allowedModes.includes(mode)) return "invalid_mode"
+      if (pendingRecoveryRef.current?.cancelRequested) return "busy"
       if (durableStreamRef.current && durableScopeRef.current?.mode === mode) {
         return "busy"
       }
@@ -992,6 +994,7 @@ export function useChatController(
     async (conversationId: string): Promise<DurableOperationOutcome> => {
       if (!credentialRef.current) return "credential_required"
       if (!stateRef.current.online) return "offline"
+      if (pendingRecoveryRef.current?.cancelRequested) return "busy"
       const snapshot = durableSnapshotRef.current
       const conversation = snapshot.conversations.find(
         (item) => item.conversationId === conversationId,
@@ -1024,6 +1027,7 @@ export function useChatController(
     async (conversationId: string): Promise<DurableOperationOutcome> => {
       if (!credentialRef.current) return "credential_required"
       if (!stateRef.current.online) return "offline"
+      if (pendingRecoveryRef.current?.cancelRequested) return "busy"
       const snapshot = durableSnapshotRef.current
       const conversation = snapshot.conversations.find(
         (item) => item.conversationId === conversationId,

@@ -43,6 +43,10 @@ describe("DurableWorkspace", () => {
       onCredentialRequest={vi.fn()} onProvenanceRequest={vi.fn()} onTurnSelect={vi.fn()}
     />)
     expect(screen.getByLabelText("Tin nhắn cho hội thoại hiện tại")).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Tạo hội thoại mới" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Xoá hội thoại hiện tại" })).toBeDisabled()
+    expect(screen.getByLabelText("Mode")).toBeDisabled()
+    expect(screen.getByLabelText("Hội thoại")).toBeDisabled()
     expect(screen.queryByRole("button", { name: "Dừng turn đang chạy" })).not.toBeInTheDocument()
     expect(screen.getByText(/Khôi phục lượt để xác nhận trạng thái hủy/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Thử nối lại" }))

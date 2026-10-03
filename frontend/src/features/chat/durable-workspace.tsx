@@ -107,6 +107,10 @@ export function DurableWorkspace({
     state.durable.activeTurn && !state.durable.activeTurn.serverSettled &&
       state.durable.activeTurn.status !== "cancelled" && !state.durable.failure,
   )
+  const unresolvedCancellation = Boolean(
+    state.durable.activeTurn?.status === "cancelled" &&
+      !state.durable.activeTurn.serverSettled,
+  )
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -193,7 +197,7 @@ export function DurableWorkspace({
       <DurableHeader
         controller={controller}
         busy={busy}
-        activeBusy={activeBusy}
+        activeBusy={activeBusy || unresolvedCancellation}
         onCreate={() => void createConversation()}
         onDelete={() => void deleteConversation()}
       />

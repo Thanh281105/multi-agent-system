@@ -500,7 +500,13 @@ describe("useChatController durable v2", () => {
     const getConversation = vi.fn<V2ApiClient["getConversation"]>(async () => ({
       conversation: v2ConversationSummary, turns: [],
     }))
-    const api = createV2Api({ streamChat, cancelTurn, getConversation })
+    const api = createV2Api({
+      streamChat, cancelTurn, getConversation,
+      listConversations: vi.fn(async () => ({
+        conversations: [v2ConversationSummary, conversation("conversation_other", "shopper")],
+        nextCursor: null,
+      })),
+    })
     const { result } = renderHook(() => useChatController({
       storage, v2Api: api, createClientTurnId: () => "browser:turn-1",
     }))
@@ -520,6 +526,18 @@ describe("useChatController durable v2", () => {
     expect(JSON.parse(storage.getItem(DURABLE_CHAT_METADATA_KEY)!)).toMatchObject({
       pendingRecovery: { clientTurnId: "browser:turn-1", cancelRequested: true },
     })
+    const pendingMetadata = storage.getItem(DURABLE_CHAT_METADATA_KEY)
+    await act(async () => {
+      expect(await result.current.durable.createConversation()).toBeNull()
+      expect(await result.current.durable.switchConversation("conversation_other")).toBe("busy")
+      expect(await result.current.durable.changeMode("shopper")).toBe("busy")
+      expect(await result.current.durable.deleteConversation(v2ConversationSummary.conversationId)).toBe("busy")
+    })
+    expect(api.createConversation).not.toHaveBeenCalled()
+    expect(api.deleteConversation).not.toHaveBeenCalled()
+    expect(getConversation).toHaveBeenCalledTimes(2)
+    expect(storage.getItem(DURABLE_CHAT_METADATA_KEY)).toBe(pendingMetadata)
+    expect(result.current.state.durable.activeConversation?.conversationId).toBe(v2ConversationSummary.conversationId)
     act(() => lateEvent?.(v2ProgressEvents[0]))
     expect(result.current.state.durable.activeTurn?.turnId).toBeNull()
     getConversation.mockResolvedValue({
