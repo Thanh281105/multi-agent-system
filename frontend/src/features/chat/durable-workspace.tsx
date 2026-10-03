@@ -104,7 +104,8 @@ export function DurableWorkspace({
   const [action, setAction] = useState<ActionCardView | null>(null)
   const turns = selectConversationTurnViews(state)
   const activeBusy = Boolean(
-    state.durable.activeTurn && !state.durable.activeTurn.serverSettled,
+    state.durable.activeTurn && !state.durable.activeTurn.serverSettled &&
+      state.durable.activeTurn.status !== "cancelled" && !state.durable.failure,
   )
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -119,7 +120,9 @@ export function DurableWorkspace({
     const outcome = await durable.sendMessage(message)
     setBusy(false)
     if (outcome === "completed") setDraft("")
-    else if (outcome === "busy") toast.info("Một lượt khác đang chạy.")
+    else if (outcome === "busy") toast.info(state.durable.failure
+      ? "Hãy khôi phục lượt trước để xác nhận trạng thái trên máy chủ."
+      : "Một lượt khác đang chạy.")
     else if (outcome === "offline") toast.error("Đang ngoại tuyến.")
     else if (outcome === "not_ready") toast.error("Hội thoại chưa sẵn sàng.")
   }

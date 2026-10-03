@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { useChatController } from "@/features/chat/use-chat-controller"
-import { writeDurableChatMetadata } from "@/features/chat/chat-storage"
+import { DURABLE_CHAT_METADATA_KEY, writeDurableChatMetadata } from "@/features/chat/chat-storage"
 import { V2ApiError, type V2ApiClient } from "@/lib/v2-api"
 import type {
   ActionCard,
@@ -479,49 +479,87 @@ describe("useChatController durable v2", () => {
     )
   })
 
-  it("waits for admission before cancelling a turn without a server id", async () => {
-    let emitAdmission: (() => void) | undefined
+  it("aborts a stalled first event immediately and cancels late admission by client id", async () => {
+    let streamSignal: AbortSignal | undefined
+    let lateEvent: ((event: TurnSseEvent) => void) | undefined
+    const storage = createStorage()
     const streamChat = vi.fn<V2ApiClient["streamChat"]>(
       (options) => new Promise((_resolve, reject) => {
-        emitAdmission = () => options.onEvent?.(v2ProgressEvents[0])
+        streamSignal = options.signal
+        lateEvent = options.onEvent
         options.signal?.addEventListener("abort", () => {
           reject(new DOMException("aborted", "AbortError"))
         })
       }),
     )
-    const cancelTurn = vi.fn<V2ApiClient["cancelTurn"]>(
-      async () => v2CompletedTurnResponse,
-    )
-    const api = createV2Api({ streamChat, cancelTurn })
-    const { result } = renderHook(() =>
-      useChatController({
-        storage: createStorage(),
-        v2Api: api,
-        createClientTurnId: () => "browser:cancel-before-admission",
-      }),
-    )
+    const cancelledResponse = {
+      ...v2RunningTurnResponse,
+      turn: { ...v2RunningTurnResponse.turn, status: "cancelled" as const, completedAt: "2026-09-09T08:02:00Z" },
+    }
+    const cancelTurn = vi.fn<V2ApiClient["cancelTurn"]>(async () => cancelledResponse)
+    const getConversation = vi.fn<V2ApiClient["getConversation"]>(async () => ({
+      conversation: v2ConversationSummary, turns: [],
+    }))
+    const api = createV2Api({ streamChat, cancelTurn, getConversation })
+    const { result } = renderHook(() => useChatController({
+      storage, v2Api: api, createClientTurnId: () => "browser:turn-1",
+    }))
     act(() => result.current.configureCredential("v2-secret-key"))
     await act(async () => void (await result.current.durable.bootstrap()))
-
     let sendPromise!: Promise<string>
-    act(() => {
-      sendPromise = result.current.durable.sendMessage("Huỷ ngay khi gửi")
-    })
+    act(() => { sendPromise = result.current.durable.sendMessage("Huỷ ngay khi gửi") })
     await waitFor(() => expect(streamChat).toHaveBeenCalledTimes(1))
-    let cancelPromise!: Promise<unknown>
-    act(() => {
-      cancelPromise = result.current.durable.cancelRequest()
-    })
-    expect(cancelTurn).not.toHaveBeenCalled()
-
-    act(() => emitAdmission?.())
-    await act(async () => void (await cancelPromise))
-    expect(cancelTurn).toHaveBeenCalledWith({
-      apiKey: "v2-secret-key",
-      signal: expect.any(AbortSignal),
-      turnId: "turn_demo_001",
-    })
+    await act(async () => expect(await result.current.durable.cancelRequest()).toBeNull())
+    expect(streamSignal?.aborted).toBe(true)
     await act(async () => expect(await sendPromise).toBe("cancelled"))
+    expect(cancelTurn).not.toHaveBeenCalled()
+    expect(result.current.workspaceState).toBe("error")
+    expect(result.current.state.durable.activeTurn).toMatchObject({
+      status: "cancelled", cancellationPending: false, serverSettled: false,
+    })
+    expect(JSON.parse(storage.getItem(DURABLE_CHAT_METADATA_KEY)!)).toMatchObject({
+      pendingRecovery: { clientTurnId: "browser:turn-1", cancelRequested: true },
+    })
+    act(() => lateEvent?.(v2ProgressEvents[0]))
+    expect(result.current.state.durable.activeTurn?.turnId).toBeNull()
+    getConversation.mockResolvedValue({
+      conversation: v2ConversationSummary,
+      turns: [{ ...v2HistoryTurn, status: "running", outcome: null, completedAt: null, assistantResult: null }],
+    })
+    await act(async () => expect(await result.current.durable.retryPendingTurn()).toBe("cancelled"))
+    expect(cancelTurn).toHaveBeenCalledWith({
+      apiKey: "v2-secret-key", signal: expect.any(AbortSignal), turnId: "turn_demo_001",
+    })
+    expect(streamChat).toHaveBeenCalledTimes(1)
+    expect(result.current.state.durable.activeTurn?.serverSettled).toBe(true)
+    expect(JSON.parse(storage.getItem(DURABLE_CHAT_METADATA_KEY)!)).toMatchObject({ pendingRecovery: null })
+  })
+
+  it("preserves cancel intent across reload without replaying chat admission", async () => {
+    const storage = createStorage()
+    const initialApi = createV2Api({ streamChat: vi.fn(async () => {
+      throw new V2IncompleteStreamError()
+    }) })
+    const first = renderHook(() => useChatController({
+      storage, v2Api: initialApi, createClientTurnId: () => "browser:turn-1",
+    }))
+    act(() => first.result.current.configureCredential("v2-secret-key"))
+    await act(async () => void (await first.result.current.durable.bootstrap()))
+    await act(async () => void (await first.result.current.durable.sendMessage("Dừng và tải lại")))
+    await act(async () => void (await first.result.current.durable.cancelRequest()))
+    first.unmount()
+    const restoredApi = createV2Api({
+      getConversation: vi.fn<V2ApiClient["getConversation"]>(async () => ({
+        conversation: v2ConversationSummary,
+        turns: [{ ...v2HistoryTurn, status: "running", outcome: null, completedAt: null, assistantResult: null }],
+      })),
+    })
+    const restored = renderHook(() => useChatController({ storage, v2Api: restoredApi }))
+    act(() => restored.result.current.configureCredential("v2-secret-key"))
+    await act(async () => void (await restored.result.current.durable.bootstrap()))
+    expect(restoredApi.streamChat).not.toHaveBeenCalled()
+    expect(restoredApi.cancelTurn).toHaveBeenCalledOnce()
+    expect(JSON.parse(storage.getItem(DURABLE_CHAT_METADATA_KEY)!)).toMatchObject({ pendingRecovery: null })
   })
 
   it("reads back an ambiguous confirm and reuses one idempotency key", async () => {

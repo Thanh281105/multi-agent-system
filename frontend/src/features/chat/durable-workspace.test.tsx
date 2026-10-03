@@ -26,6 +26,29 @@ vi.mock("sonner", () => ({
 }))
 
 describe("DurableWorkspace", () => {
+  it("releases the composer and exposes recovery after a local pre-admission cancel", () => {
+    let state = chatReducer(createInitialChatState({ credentialConfigured: true }), {
+      type: "durable.history.hydrated", generation: 1,
+      conversation: v2ConversationSummary, turns: [],
+    })
+    state = chatReducer(state, {
+      type: "durable.turn.started", generation: 2,
+      conversationId: v2ConversationSummary.conversationId,
+      clientTurnId: "browser:cancel-before-admission", message: "Dừng lượt đang chờ",
+    })
+    state = chatReducer(state, { type: "durable.turn.cancel.stopped", generation: 2 })
+    const retryPendingTurn = vi.fn(async () => "cancelled" as const)
+    render(<DurableWorkspace
+      controller={createDurableController({ retryPendingTurn }, state)}
+      onCredentialRequest={vi.fn()} onProvenanceRequest={vi.fn()} onTurnSelect={vi.fn()}
+    />)
+    expect(screen.getByLabelText("Tin nhắn cho hội thoại hiện tại")).toBeEnabled()
+    expect(screen.queryByRole("button", { name: "Dừng turn đang chạy" })).not.toBeInTheDocument()
+    expect(screen.getByText(/Khôi phục lượt để xác nhận trạng thái hủy/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Thử nối lại" }))
+    expect(retryPendingTurn).toHaveBeenCalledOnce()
+  })
+
   it("renders authoritative history, evidence, artifacts, and an exact action review", async () => {
     const onProvenanceRequest = vi.fn()
     const confirmAction = vi.fn(async () => ({

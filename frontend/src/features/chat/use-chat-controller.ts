@@ -126,8 +126,6 @@ interface ActiveTurnIdentity extends PendingTurnRecovery {
   turnId: string | null
   generation: number
   settled: boolean
-  turnIdReady: Promise<string | null>
-  resolveTurnId(turnId: string | null): void
 }
 
 const emptyDurableSnapshot: DurableControllerSnapshot = {
@@ -453,6 +451,67 @@ export function useChatController(
     [persistDurableMetadata],
   )
 
+  const reconcileCancellation = useCallback(async (
+    recovery: PendingTurnRecovery,
+    knownTurnId: string | null = null,
+  ): Promise<TurnResponse | null> => {
+    durableStreamRef.current?.abort()
+    durableStreamRef.current = null
+    const generation = nextDurableGeneration()
+    const turn: ActiveTurnIdentity = {
+      ...recovery, cancelRequested: true, turnId: knownTurnId, generation, settled: false,
+    }
+    activeTurnIdentityRef.current = turn
+    persistDurableMetadata(recovery.conversationId, turn)
+    if (stateRef.current.durable.activeTurn) {
+      dispatch({ type: "durable.turn.retried", generation })
+    } else {
+      dispatch({ type: "durable.turn.started", generation, ...recovery })
+    }
+    dispatch({ type: "durable.turn.cancel.stopped", generation })
+    if (!credentialRef.current || !stateRef.current.online) return null
+    const controller = registerDurableController()
+    try {
+      if (!turn.turnId) {
+        const detail = await runtime.v2Api.getConversation({
+          apiKey: credentialRef.current,
+          signal: controller.signal,
+          conversationId: recovery.conversationId,
+        })
+        const admitted = detail.turns.find((item) => item.clientTurnId === recovery.clientTurnId)
+        turn.turnId = admitted?.turnId ?? null
+      }
+      if (!turn.turnId || controller.signal.aborted || generation !== durableGenerationRef.current) return null
+      const response = await runtime.v2Api.cancelTurn({
+        apiKey: credentialRef.current, signal: controller.signal, turnId: turn.turnId,
+      })
+      if (controller.signal.aborted || generation !== durableGenerationRef.current) return null
+      const reconciled = reconcileTurn(response, turn, generation, "durable.turn.cancelled")
+      if (!turn.settled) dispatch({ type: "durable.turn.cancel.stopped", generation })
+      return reconciled
+    } catch (error) {
+      if (controller.signal.aborted || generation !== durableGenerationRef.current || isV2AbortError(error)) return null
+      if (turn.turnId) {
+        try {
+          const response = await runtime.v2Api.getTurn({
+            apiKey: credentialRef.current, signal: controller.signal, turnId: turn.turnId,
+          })
+          if (controller.signal.aborted || generation !== durableGenerationRef.current) return null
+          const reconciled = reconcileTurn(response, turn, generation, "durable.turn.cancelled")
+          if (!turn.settled) dispatch({ type: "durable.turn.cancel.stopped", generation })
+          return reconciled
+        } catch (readError) {
+          if (controller.signal.aborted || generation !== durableGenerationRef.current || isV2AbortError(readError)) return null
+        }
+      }
+      const failure = handleV2Failure(error)
+      dispatch({ type: "durable.turn.transport-failed", generation, failure })
+      return null
+    } finally {
+      releaseDurableController(controller)
+    }
+  }, [handleV2Failure, nextDurableGeneration, persistDurableMetadata, reconcileTurn, registerDurableController, releaseDurableController, runtime.v2Api])
+
   const executeDurableTurn = useCallback(
     async (
       recovery: PendingTurnRecovery,
@@ -460,6 +519,10 @@ export function useChatController(
     ): Promise<DurableSendOutcome> => {
       if (!credentialRef.current) return "credential_required"
       if (!stateRef.current.online) return "offline"
+      if (recovery.cancelRequested) {
+        const response = await reconcileCancellation(recovery, options.turnId ?? null)
+        return response ? outcomeFromTurnResponse(response) : "failed"
+      }
       if (durableStreamRef.current) return "busy"
       const selected = durableSnapshotRef.current.conversations.find(
         (conversation) => conversation.conversationId === recovery.conversationId,
@@ -480,20 +543,16 @@ export function useChatController(
           message: recovery.message,
         })
       }
-      const turnIdSignal = createTurnIdSignal(options.turnId ?? null)
       const turn: ActiveTurnIdentity = {
         ...recovery,
         turnId: options.turnId ?? null,
         generation,
         settled: false,
-        turnIdReady: turnIdSignal.promise,
-        resolveTurnId: turnIdSignal.resolve,
       }
       activeTurnIdentityRef.current = turn
       persistDurableMetadata(recovery.conversationId, recovery)
 
-      try {
-        for (let attempt = 0; attempt < 2; attempt += 1) {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
         if (attempt > 0) {
           generation = nextDurableGeneration()
           turn.generation = generation
@@ -517,7 +576,6 @@ export function useChatController(
               if (turn.turnId !== null && event.turnId !== turn.turnId) return
               if (turn.turnId === null) {
                 turn.turnId = event.turnId
-                turn.resolveTurnId(event.turnId)
               }
               dispatch({ type: "durable.turn.event", generation, event })
               if (event.event === "terminal" && event.serverSettled) {
@@ -539,7 +597,6 @@ export function useChatController(
           }
           if (turn.turnId === null) {
             turn.turnId = terminal.turnId
-            turn.resolveTurnId(terminal.turnId)
           }
           dispatch({ type: "durable.turn.event", generation, event: terminal })
           turn.settled = terminal.serverSettled
@@ -561,7 +618,6 @@ export function useChatController(
           if (error instanceof V2IncompleteStreamError) {
             if (turn.turnId === null && error.turnId) {
               turn.turnId = error.turnId
-              turn.resolveTurnId(error.turnId)
             }
           }
           if (!isRecoverableTurnFailure(error)) {
@@ -595,24 +651,21 @@ export function useChatController(
               }
             }
           }
-          } finally {
-            releaseDurableController(controller)
-          }
+        } finally {
+          releaseDurableController(controller)
         }
-
-        const failure: ChatFailure = {
-          source: "client",
-          code: "v2.turn_recovery_pending",
-          message: "Kết nối bị gián đoạn; lượt trả lời có thể được khôi phục.",
-          retryable: true,
-        }
-        dispatch({ type: "durable.turn.transport-failed", generation, failure })
-        return "failed"
-      } finally {
-        turn.resolveTurnId(turn.turnId)
       }
+
+      const failure: ChatFailure = {
+        source: "client",
+        code: "v2.turn_recovery_pending",
+        message: "Kết nối bị gián đoạn; lượt trả lời có thể được khôi phục.",
+        retryable: true,
+      }
+      dispatch({ type: "durable.turn.transport-failed", generation, failure })
+      return "failed"
     },
-    [handleV2Failure, nextDurableGeneration, persistDurableMetadata, reconcileTurn, registerDurableController, releaseDurableController, runtime.v2Api],
+    [handleV2Failure, nextDurableGeneration, persistDurableMetadata, reconcileCancellation, reconcileTurn, registerDurableController, releaseDurableController, runtime.v2Api],
   )
 
   const recoverPendingTurn = useCallback(
@@ -1064,85 +1117,14 @@ export function useChatController(
   const cancelDurableRequest = useCallback(async (): Promise<TurnResponse | null> => {
     const active = activeTurnIdentityRef.current
     const reducerActive = stateRef.current.durable.activeTurn
-    if ((!active && !reducerActive) || active?.settled) return null
-    const fallbackSignal = createTurnIdSignal(reducerActive?.turnId ?? null)
-    const turn: ActiveTurnIdentity = active ?? {
-        conversationId: reducerActive!.conversationId,
-        clientTurnId: reducerActive!.clientTurnId,
-        message: reducerActive!.message,
-        turnId: reducerActive!.turnId,
-        generation: reducerActive!.generation,
-        settled: reducerActive!.serverSettled,
-        turnIdReady: fallbackSignal.promise,
-        resolveTurnId: fallbackSignal.resolve,
+    if ((!active && !reducerActive) || active?.settled || reducerActive?.serverSettled) return null
+    const recovery = active ?? {
+      conversationId: reducerActive!.conversationId,
+      clientTurnId: reducerActive!.clientTurnId,
+      message: reducerActive!.message,
     }
-    if (turn.settled) return null
-
-    dispatch({
-      type: "durable.turn.cancel.requested",
-      generation: turn.generation,
-    })
-    const admittedTurnId = turn.turnId ?? await turn.turnIdReady
-    if (!admittedTurnId || turn.settled) return null
-    const generation = nextDurableGeneration()
-    const cancelledTurn: ActiveTurnIdentity = {
-      ...turn,
-      turnId: admittedTurnId,
-      generation,
-    }
-    activeTurnIdentityRef.current = cancelledTurn
-    dispatch({ type: "durable.turn.retried", generation })
-    dispatch({ type: "durable.turn.cancel.requested", generation })
-    durableStreamRef.current?.abort()
-    durableStreamRef.current = null
-    if (!credentialRef.current) return null
-
-    const controller = registerDurableController()
-    try {
-      const response = await runtime.v2Api.cancelTurn({
-        apiKey: credentialRef.current,
-        signal: controller.signal,
-        turnId: admittedTurnId,
-      })
-      if (controller.signal.aborted || generation !== durableGenerationRef.current) return null
-      return reconcileTurn(
-        response,
-        cancelledTurn,
-        generation,
-        "durable.turn.cancelled",
-      )
-    } catch (error) {
-      if (
-        controller.signal.aborted ||
-        generation !== durableGenerationRef.current ||
-        isV2AbortError(error)
-      ) {
-        return null
-      }
-      try {
-        const response = await runtime.v2Api.getTurn({
-          apiKey: credentialRef.current,
-          signal: controller.signal,
-          turnId: admittedTurnId,
-        })
-        if (generation !== durableGenerationRef.current) return null
-        return reconcileTurn(
-          response,
-          cancelledTurn,
-          generation,
-          "durable.turn.cancelled",
-        )
-      } catch (readError) {
-        if (!isV2AbortError(readError)) {
-          const failure = handleV2Failure(readError)
-          dispatch({ type: "durable.turn.transport-failed", generation, failure })
-        }
-        return null
-      }
-    } finally {
-      releaseDurableController(controller)
-    }
-  }, [handleV2Failure, nextDurableGeneration, reconcileTurn, registerDurableController, releaseDurableController, runtime.v2Api])
+    return reconcileCancellation(recovery, active?.turnId ?? reducerActive?.turnId ?? null)
+  }, [reconcileCancellation])
 
   const getAction = useCallback(
     async (actionId: string): Promise<ActionReadResponse | null> => {
@@ -1588,24 +1570,6 @@ function isTerminalAction(action: ActionCard): boolean {
   return ["rejected", "executed", "expired", "conflicted", "failed"].includes(
     action.status,
   )
-}
-
-function createTurnIdSignal(initialTurnId: string | null): {
-  promise: Promise<string | null>
-  resolve(turnId: string | null): void
-} {
-  let settled = false
-  let settle!: (turnId: string | null) => void
-  const promise = new Promise<string | null>((resolve) => {
-    settle = resolve
-  })
-  const resolve = (turnId: string | null) => {
-    if (settled) return
-    settled = true
-    settle(turnId)
-  }
-  if (initialTurnId !== null) resolve(initialTurnId)
-  return { promise, resolve }
 }
 
 function isCompletedSourceTurn(state: ChatState, turnId: string): boolean {

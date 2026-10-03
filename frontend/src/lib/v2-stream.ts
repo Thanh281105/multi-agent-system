@@ -8,6 +8,8 @@ import {
 } from "@/lib/v2-contracts"
 
 const STREAM_PROTOCOL_MESSAGE = "Phản hồi luồng v2 không đúng hợp đồng."
+export const V2_FIRST_EVENT_TIMEOUT_MS = 15_000
+export const V2_STREAM_IDLE_TIMEOUT_MS = 20_000
 
 export interface RawV2SseFrame {
   event: string
@@ -51,15 +53,16 @@ export class V2StreamError extends Error {
 }
 
 export class V2IncompleteStreamError extends Error {
-  readonly code = "v2.stream.incomplete"
+  readonly code: string
   readonly recoverable = true
   readonly requestId?: string
   readonly traceId?: string
   readonly turnId?: string
 
-  constructor(options: V2StreamErrorOptions = {}) {
+  constructor(options: V2StreamErrorOptions = {}, code = "v2.stream.incomplete") {
     super("Kết nối kết thúc trước sự kiện cuối; có thể tải lại lượt trả lời.")
     this.name = "V2IncompleteStreamError"
+    this.code = code
     this.requestId = options.requestId
     this.traceId = options.traceId
     this.turnId = options.turnId
@@ -189,6 +192,7 @@ export function parseV2SseFrame(frame: RawV2SseFrame): TurnSseEvent {
 export async function readV2TurnStream(
   response: Response,
   callbacks: V2StreamCallbacks = {},
+  signal?: AbortSignal,
 ): Promise<TurnSseTerminalEvent> {
   const contentType = response.headers.get("content-type") ?? ""
   if (!contentType.toLowerCase().startsWith("text/event-stream")) {
@@ -207,6 +211,7 @@ export async function readV2TurnStream(
   let lastSequence = 0
   let eventCount = 0
   let terminal: TurnSseTerminalEvent | undefined
+  let deadline = Date.now() + V2_FIRST_EVENT_TIMEOUT_MS
 
   const consume = (frames: readonly RawV2SseFrame[]) => {
     for (const frame of frames) {
@@ -226,6 +231,7 @@ export async function readV2TurnStream(
         throw streamProtocolError("v2.stream.invalid_sequence")
       }
       lastSequence = event.sequence
+      deadline = Date.now() + V2_STREAM_IDLE_TIMEOUT_MS
       requestId = assertSameCorrelation("request_id", requestId, event.requestId)
       traceId = assertSameCorrelation("trace_id", traceId, event.traceId)
       turnId = assertSameCorrelation("turn_id", turnId, event.turnId)
@@ -242,7 +248,12 @@ export async function readV2TurnStream(
 
   try {
     while (true) {
-      const { value, done } = await reader.read()
+      const { value, done } = await readBeforeDeadline(reader, deadline, signal, () =>
+        new V2IncompleteStreamError(
+          { requestId, traceId, turnId },
+          eventCount === 0 ? "v2.stream.first_event_timeout" : "v2.stream.idle_timeout",
+        ),
+      )
       if (value) consume(frameDecoder.push(textDecoder.decode(value, { stream: true })))
       if (!done) continue
       const finalText = textDecoder.decode()
@@ -252,7 +263,7 @@ export async function readV2TurnStream(
     }
   } finally {
     try {
-      await reader.cancel()
+      void reader.cancel().catch(() => {})
     } catch {
       // A closed or aborted response stream needs no further cleanup.
     }
@@ -263,6 +274,29 @@ export async function readV2TurnStream(
     throw new V2IncompleteStreamError({ requestId, traceId, turnId })
   }
   return terminal
+}
+
+async function readBeforeDeadline(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  deadline: number,
+  signal: AbortSignal | undefined,
+  timeoutError: () => Error,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const aborted = () => rejectRead(new DOMException("Đã dừng kết nối.", "AbortError"))
+  let rejectRead!: (error: Error) => void
+  const bound = new Promise<never>((_resolve, reject) => {
+    rejectRead = reject
+    timer = setTimeout(() => reject(timeoutError()), Math.max(0, deadline - Date.now()))
+    signal?.addEventListener("abort", aborted, { once: true })
+    if (signal?.aborted) aborted()
+  })
+  try {
+    return await Promise.race([reader.read(), bound])
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener("abort", aborted)
+  }
 }
 
 function assertSameCorrelation(
