@@ -476,6 +476,7 @@ class CalibrationRecordV3(FrozenJudgeContractV3):
     observed_claim_coverage: ClaimCitationCoverageV3 | None = None
     claim_disagreement_count: int | None = Field(default=None, ge=0)
     validated_judge_output: dict[str, Any] | None = None
+    development_case: DevelopmentCalibrationCaseV3 | None = None
     record_sha256: str = Field(pattern=_SHA256)
 
     @model_serializer(mode="wrap")
@@ -488,6 +489,7 @@ class CalibrationRecordV3(FrozenJudgeContractV3):
             "observed_claim_coverage",
             "claim_disagreement_count",
             "validated_judge_output",
+            "development_case",
         ):
             if payload.get(name) is None:
                 payload.pop(name, None)
@@ -522,6 +524,7 @@ class CalibrationRecordV3(FrozenJudgeContractV3):
             self.observed_claim_coverage,
             self.claim_disagreement_count,
             self.validated_judge_output,
+            self.development_case,
         )
         if any(value is not None for value in extensions):
             if any(value is None for value in extensions):
@@ -531,6 +534,14 @@ class CalibrationRecordV3(FrozenJudgeContractV3):
                 self.observed_claim_coverage,
             )
             assert reference is not None and observed is not None
+            assert self.development_case is not None
+            if (
+                self.development_case.calibration_id != self.calibration_id
+                or self.development_case.case_sha256 != self.development_case_sha256
+                or canonical_sha256(self.development_case.answer)
+                != reference.answer_sha256
+            ):
+                raise ValueError("calibration native case differs from record binding")
             if (reference.answer_sha256, reference.claim_count) != (
                 observed.answer_sha256,
                 observed.claim_count,
@@ -776,6 +787,7 @@ def build_calibration_record_v3(
                     )
                 ),
                 "validated_judge_output": output.model_dump(mode="json"),
+                "development_case": case.model_dump(mode="json"),
             }
         )
     return CalibrationRecordV3(
@@ -842,6 +854,7 @@ def freeze_calibration_thresholds_v3(
     reference_bundle: CalibrationReferenceBundleV3,
     *,
     expected_calibration_ids: Sequence[str],
+    development_cases: Sequence[DevelopmentCalibrationCaseV3] | None = None,
 ) -> CalibrationFreezeV3:
     configuration = ModelJudgeConfigurationV3.model_validate(
         configuration.model_dump(mode="json")
@@ -911,6 +924,23 @@ def freeze_calibration_thresholds_v3(
         configuration.bindings.judge_schema_sha256
         == model_judge_output_schema_sha256_v3(successor=True)
     ):
+        cases = tuple(
+            DevelopmentCalibrationCaseV3.model_validate(case.model_dump(mode="json"))
+            for case in (
+                development_cases
+                if development_cases is not None
+                else tuple(
+                    item.development_case
+                    for item in records
+                    if item.development_case is not None
+                )
+            )
+        )
+        case_by_id = {case.calibration_id: case for case in cases}
+        if len(case_by_id) != len(cases) or set(case_by_id) != set(expected_ids):
+            raise ValueError(
+                "successor freeze lacks actual development case authorities"
+            )
         for record in records:
             reference = reference_by_id[record.calibration_id]
             if (
@@ -927,6 +957,20 @@ def freeze_calibration_thresholds_v3(
             ):
                 raise ValueError(
                     "successor freeze lacks independent per-claim calibration evidence"
+                )
+            rebuilt = build_calibration_record_v3(
+                configuration=configuration,
+                case=case_by_id[record.calibration_id],
+                reference=reference,
+                thresholds=thresholds,
+                output=validate_model_judge_output_v3(
+                    record.validated_judge_output,
+                    case_by_id[record.calibration_id].answer,
+                ),
+            )
+            if rebuilt != record:
+                raise ValueError(
+                    "calibration record differs from actual development case"
                 )
         claim_count = sum(
             item.reference_claim_coverage.claim_count

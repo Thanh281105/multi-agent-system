@@ -420,6 +420,13 @@ def _validate_components(
             thresholds,
             references,
             expected_calibration_ids=records.expected_calibration_ids,
+            development_cases=tuple(
+                record.development_case
+                for record in records.records
+                if record.development_case is not None
+            )
+            if any(record.development_case is not None for record in records.records)
+            else None,
         )
         if freeze != expected_freeze:
             raise ValueError("calibration freeze differs from validated inputs")

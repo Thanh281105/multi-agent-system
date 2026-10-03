@@ -593,6 +593,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         calibration_inputs.thresholds,
         calibration_inputs.references,
         expected_calibration_ids=calibration_inputs.expected_calibration_ids,
+        development_cases=calibration_inputs.cases,
     )
     _write_or_validate_model_artifact(
         directory / _CALIBRATION_FREEZE_NAME,

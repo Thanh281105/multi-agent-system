@@ -16,6 +16,11 @@ from app.evaluation.benchmark_judging import (
 )
 from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_artifacts import ClaimCitationVerdictV3, ClaimEvidenceV3
+from app.evaluation.v3_calibration import (
+    build_calibration_record_collection_v3,
+    validate_calibration_artifacts_v3,
+    write_calibration_artifacts_v3,
+)
 from app.evaluation.v3_judge import (
     SEMANTIC_JUDGE_METRICS_V3,
     CalibrationFreezeV3,
@@ -142,7 +147,7 @@ def _claim_verdicts(values: tuple[bool, ...]):
     )
 
 
-def _freeze(inputs):
+def _freeze(inputs, *, explicit_cases=False):
     configuration, _, _, thresholds, _ = inputs[0]
     references = build_calibration_reference_bundle_v3(
         protocol_sha256=configuration.bindings.protocol_sha256,
@@ -154,6 +159,7 @@ def _freeze(inputs):
         thresholds,
         references,
         expected_calibration_ids=tuple(row[1].calibration_id for row in inputs),
+        development_cases=tuple(row[1] for row in inputs) if explicit_cases else None,
     )
 
 
@@ -192,8 +198,8 @@ def test_freeze_rejects_hash_valid_record_from_foreign_development_case():
     row = _inputs((False,), (False,))
     payload = row[4].model_dump(mode="json", exclude={"record_sha256"})
     payload["development_case_sha256"] = "f" * 64
-    forged = CalibrationRecordV3(**payload, record_sha256=canonical_sha256(payload))
-    with pytest.raises(ValueError, match="provenance drift"):
+    with pytest.raises(ValueError, match="native case|provenance drift"):
+        forged = CalibrationRecordV3(**payload, record_sha256=canonical_sha256(payload))
         _freeze(((*row[:4], forged),))
 
 
@@ -207,6 +213,7 @@ def test_freeze_rejects_missing_or_foreign_record_claim_labels(tamper):
             "observed_claim_coverage",
             "claim_disagreement_count",
             "validated_judge_output",
+            "development_case",
         ):
             payload.pop(name)
     else:
@@ -217,8 +224,76 @@ def test_freeze_rejects_missing_or_foreign_record_claim_labels(tamper):
         metadata["coverage"] = 1.0
         payload["claim_disagreement_count"] = 1
     forged = CalibrationRecordV3(**payload, record_sha256=canonical_sha256(payload))
-    with pytest.raises(ValueError, match="lacks independent per-claim"):
+    with pytest.raises(
+        ValueError, match="lacks independent per-claim|case authorities"
+    ):
         _freeze(((*row[:4], forged),))
+
+
+@pytest.mark.parametrize("tamper", ["opaque_answer_id", "citation_labels"])
+@pytest.mark.parametrize("explicit_cases", [True, False])
+def test_freeze_revalidates_saved_model_output_against_actual_native_case(
+    tamper,
+    explicit_cases,
+):
+    row = _inputs((False,), (False,))
+    payload = row[4].model_dump(mode="json", exclude={"record_sha256"})
+    if tamper == "opaque_answer_id":
+        payload["validated_judge_output"][tamper] = "answer_000000000000000000000002"
+    else:
+        payload["validated_judge_output"]["claim_verdicts"][0][tamper] = ["Nguồn giả"]
+        payload["observed_claim_coverage"]["verdicts"][0][tamper] = ["Nguồn giả"]
+    payload["model_output_sha256"] = canonical_sha256(payload["validated_judge_output"])
+    forged = CalibrationRecordV3(**payload, record_sha256=canonical_sha256(payload))
+    with pytest.raises(ValueError, match="different blinded answer|unknown citation"):
+        _freeze(((*row[:4], forged),), explicit_cases=explicit_cases)
+
+
+def test_freeze_rejects_foreign_embedded_case_bound_to_original_reference():
+    row = _inputs((False,), (False,))
+    payload = row[4].model_dump(mode="json", exclude={"record_sha256"})
+    foreign = build_development_calibration_case_v3(
+        calibration_id=row[1].calibration_id,
+        answer=row[1].answer.model_copy(update={"prompt": ("Case khác",)}),
+    )
+    payload["development_case"] = foreign.model_dump(mode="json")
+    payload["development_case_sha256"] = foreign.case_sha256
+    for key in ("reference_claim_coverage", "observed_claim_coverage"):
+        payload[key]["answer_sha256"] = canonical_sha256(foreign.answer)
+    forged = CalibrationRecordV3(**payload, record_sha256=canonical_sha256(payload))
+    with pytest.raises(ValueError, match="provenance drift"):
+        _freeze(((*row[:4], forged),))
+
+
+def test_successor_persisted_calibration_revalidates_native_case_authority(tmp_path):
+    row = _inputs((False,), (False,))
+    configuration, case, reference, thresholds, record = row
+    references = build_calibration_reference_bundle_v3(
+        protocol_sha256=configuration.bindings.protocol_sha256,
+        references=(reference,),
+    )
+    records = build_calibration_record_collection_v3(
+        configuration,
+        references,
+        thresholds,
+        (record,),
+        expected_calibration_ids=(case.calibration_id,),
+    )
+    freeze = _freeze((row,), explicit_cases=True)
+    write_calibration_artifacts_v3(
+        tmp_path / "calibration",
+        configuration=configuration,
+        references=references,
+        thresholds=thresholds,
+        records=records,
+        freeze=freeze,
+    )
+    assert (
+        validate_calibration_artifacts_v3(
+            tmp_path / "calibration", require_complete=True
+        ).freeze
+        == freeze
+    )
 
 
 def test_independent_reference_does_not_derive_claim_truth_from_answer_score():
