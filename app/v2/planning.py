@@ -203,6 +203,7 @@ _QUOTED_QUERY_PATTERN = re.compile(r"[\"“”'](?P<query>[^\"“”']{2,160})[\
 _QUERY_PREFIX_PATTERN = re.compile(
     r"^(?:(?:hãy|vui lòng|giúp|cho tôi|mình muốn)\s+)*"
     r"(?:tìm|kiếm|gợi ý|đề xuất|recommend|find|search|so sánh|compare|"
+    r"(?:khách hàng|người mua)\s+(?:review|đánh giá|nhận xét)|"
     r"phân tích\s+(?:review|đánh giá|nhận xét)|review|đánh giá|nhận xét)\s+"
     r"(?:(?:cho tôi|giúp tôi)\s+)?"
     r"(?:[0-9]{1,3}\s*(?:cuốn|quyển|sách|books?)\s+)?"
@@ -2004,6 +2005,19 @@ def _extract_catalog_query(message: str) -> str | None:
         flags=re.IGNORECASE,
     )
     candidate = _QUERY_TRAILING_CLAUSE_PATTERN.sub("", candidate, count=1)
+    candidate = re.sub(
+        r"\s+(?:như thế nào|thế nào|ra sao|là gì)\s*[?.!]*$",
+        "",
+        candidate,
+        flags=re.IGNORECASE,
+    )
+    candidate = re.sub(
+        r"(?:^|\s+)(?:dựa trên|theo)\s+(?:review|đánh giá|độ tin cậy)\b.*$",
+        "",
+        candidate,
+        count=1,
+        flags=re.IGNORECASE,
+    )
     candidate = _FIELD_BOUND_PATTERN.sub("", candidate)
     candidate = _PRICE_RANGE_PATTERN.sub(
         lambda match: (
@@ -2049,7 +2063,8 @@ def _extract_entity_queries(message: str) -> tuple[str, ...]:
         return quoted
     if not is_comparison:
         if re.match(
-            r"^(?:phân tích\s+)?(?:review|đánh giá|nhận xét)\b",
+            r"^(?:(?:phân tích|khách hàng|người mua)\s+)?"
+            r"(?:review|đánh giá|nhận xét)\b",
             message,
             flags=re.IGNORECASE,
         ):

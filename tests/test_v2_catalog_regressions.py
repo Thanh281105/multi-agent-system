@@ -175,18 +175,30 @@ async def test_rating_and_page_upper_bounds_reach_actual_catalog(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("message", "title"),
+    [
+        ("Phân tích review của Sapiens", "Sapiens"),
+        ("Khách hàng đánh giá sách Nhật Ký Tarot thế nào?", "Nhật Ký Tarot"),
+        ("Người mua nhận xét sách Nhật Ký Tarot ra sao?", "Nhật Ký Tarot"),
+        ('Khách hàng đánh giá sách "Nhật Ký Tarot" như thế nào?', "Nhật Ký Tarot"),
+    ],
+)
 async def test_natural_review_resolves_title_and_reads_its_sample(
     actual_catalog_sessions: sessionmaker[Session],
+    message: str,
+    title: str,
 ) -> None:
     tools = read_tools(actual_catalog_sessions)
     planner = BoundedV2Planner()
     context = planning_context(tools)
-    planned = await planner.plan("Phân tích review của Sapiens", context)
-    assert planned.catalog_query == "Sapiens"
+    planned = await planner.plan(message, context)
+    assert planned.catalog_query == title
+    assert planned.entity_queries == (title,)
     initial = await tools.execute(planned.initial_operations[0], tool_access())
     assert initial.status == TaskStatus.SUCCESS
     candidates = ProductResult.model_validate(initial.output).products
-    assert len(candidates) == 1 and "Sapiens" in candidates[0].title
+    assert len(candidates) == 1 and title in candidates[0].title
     operations = planner.bind_initial_candidates(
         planned,
         (candidates[0].product_id,),
@@ -199,6 +211,48 @@ async def test_natural_review_resolves_title_and_reads_its_sample(
     findings = ReviewResult.model_validate(result.output).findings
     assert findings[0].product_id == candidates[0].product_id
     assert 0 < findings[0].review_count <= 20
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Gợi ý sách từ 350k đến 400k dựa trên review và độ tin cậy",
+        "Gợi ý sách từ 350k đến 400k theo đánh giá và độ tin cậy",
+    ],
+)
+async def test_review_based_recommendation_keeps_price_bounds_and_reads(
+    actual_catalog_sessions: sessionmaker[Session],
+    message: str,
+) -> None:
+    tools = read_tools(actual_catalog_sessions)
+    planner = BoundedV2Planner()
+    context = planning_context(tools)
+    planned = await planner.plan(message, context)
+    assert planned.catalog_query is None and not planned.entity_queries
+    assert planned.min_price_vnd == 350_000 and planned.max_price_vnd == 400_000
+    assert planned.initial_operations[0].capability == "product.rank"
+    initial = await tools.execute(planned.initial_operations[0], tool_access())
+    assert initial.status == TaskStatus.SUCCESS
+    candidates = ProductResult.model_validate(initial.output).products
+    assert candidates
+    with actual_catalog_sessions() as session:
+        for candidate in candidates:
+            product = session.get(Product, candidate.product_id)
+            assert product is not None and 350_000 <= product.price <= 400_000
+            assert is_book_product(product)
+    operations = planner.bind_initial_candidates(
+        planned,
+        tuple(candidate.product_id for candidate in candidates),
+        context,
+        planned.initial_operations,
+    )
+    capabilities = {operation.capability for operation in operations}
+    assert capabilities & {"review.retrieve", "review.compare"}
+    assert capabilities & {"trust.analyze", "trust.compare"}
+    for operation in operations:
+        result = await tools.execute(operation, tool_access())
+        assert result.status == TaskStatus.SUCCESS
 
 
 @pytest.mark.asyncio
