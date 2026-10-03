@@ -56,15 +56,24 @@ from tests.v2_postgres_support import disposable_postgres_database
 
 
 class _RequestProbe:
-    def __init__(self, *, disconnect_on: int | None = None, suffix: str = "001"):
+    def __init__(
+        self,
+        *,
+        disconnect_on: int | None = None,
+        disconnect_when: Callable[[], bool] | None = None,
+        suffix: str = "001",
+    ):
         self.state = SimpleNamespace(
             request_id=f"request_sse_{suffix}",
             trace_id=f"trace_sse_{suffix}",
         )
         self.disconnect_on = disconnect_on
+        self.disconnect_when = disconnect_when
         self.disconnect_checks = 0
 
     async def is_disconnected(self) -> bool:
+        if self.disconnect_when is not None:
+            return self.disconnect_when()
         self.disconnect_checks += 1
         return (
             self.disconnect_on is not None
@@ -715,7 +724,7 @@ async def test_cancel_write_failure_keeps_owner_alive_and_retry_attaches_once(
     first = _response(
         service,
         payload,
-        request=_RequestProbe(disconnect_on=2, suffix="owner"),
+        request=_RequestProbe(disconnect_when=handler.entered.is_set, suffix="owner"),
         resolved=resolved,
         provider_budget=budget,
     )
