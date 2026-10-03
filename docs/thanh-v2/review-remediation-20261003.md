@@ -10,7 +10,7 @@ JUnit: `output/review-remediation/offline-tests.xml`. Frontend clean install
 từ lockfile, lint, 101 tests và production build đạt. Helm production/kind
 rendering cùng negative pin validation đạt; strict smoke có thêm 8 tests đạt.
 
-Source gate cuối trên commit `04e61e6`: **620 tests đạt**, 25 integration tests
+Source gate trước followup đọc checkpoint, trên commit `04e61e6`: **620 tests đạt**, 25 integration tests
 deselected, không failure/error/skip (480,09 giây). Đây là 41 modules evaluator
 và runtime bị ảnh hưởng, không phải full-suite rerun 1.084 tests. Ruff đạt,
 286 files đúng format và mypy 171 source files đạt; 289 tracked source/test
@@ -27,9 +27,9 @@ v2 được giữ nguyên, v3/v4 không ghi đè evidence đó.
 | E1 price/rating/pages | Field-aware typed parser + actual catalog regression | Đã sửa; actual catalog/PG regressions đạt |
 | E2 fresh entities/review | Resolve từng title, ambiguity, fresh compare/review | Đã sửa; fresh JSON/browser demo đạt |
 | E3 book domain | Book guard cho candidate, aggregate, direct IDs và sandbox | Đã sửa; giữ 200 raw records, 199 sách đủ điều kiện v2 |
-| E4 semantic/numeric judge | Independent numeric/adversarial/per-claim evaluator tests | Numeric và contract regressions đạt; semantic diagnostics và independent calibration chưa chạy |
-| E5 citations/retrieval metrics | Binding/field matching; coverage theo receipt claims; recall có relevance authority | Đã sửa mẫu số/bindings và cơ chế per-claim calibration; calibration thực và successor rerun chưa chạy; document recall chưa đo |
-| E6 quality evidence | Absolute/category historical results; corrected successor | Historical tables đã đối chiếu; successor pending |
+| E4 semantic/numeric judge | Independent numeric/adversarial/per-claim evaluator tests | Numeric và contract regressions đạt; 5 semantic diagnostics đạt; independent calibration pending |
+| E5 citations/retrieval metrics | Binding/field matching; coverage theo receipt claims; recall có relevance authority | Đã sửa mẫu số/bindings và cơ chế per-claim calibration; calibration thực và full successor pending; document recall chưa đo |
+| E6 quality evidence | Absolute/category historical results; corrected successor | Historical tables đã đối chiếu; P8 source d015ee7 partial 194/720, chưa chấm chất lượng |
 | E7 cancel before admission | Stalled first-event/idle timeout + persisted cancel identity | Đã sửa; timeout/controller tests và browser cancel/reconcile đạt |
 | E8 deployed runtime | Helm pins + strict conversation/JSON/SSE/knowledge smoke | Helm rendering/pin validation và strict local PostgreSQL demo đạt |
 | E9 receipt integrity | Bind/rederive claims và runtime metadata | Đã sửa; additive successor contract và tamper regressions đạt |
@@ -128,11 +128,28 @@ Artifacts ở `output/review-remediation/postgres-backup-restore-verification.js
 `recorded-demo-verification.json`. Bản RECORDED có 6 public results đã đạt
 strict gate, desktop/mobile không overflow, console/page/network errors bằng 0.
 
-P7/P8 successor **chưa chạy**: automatic approval review chặn lệnh P7 trước
-dispatch vì cần chấp thuận cụ thể cho evaluation payload tới provider.
-`provider-consent-manifest.v2.json` ghi HTTPS OpenAI endpoint, các lớp dữ liệu
-public/synthetic và cost caps. Không dùng source/test/demo gate làm quality
-report; cần hoàn thành lifecycle successor ở trên sau khi được phép dispatch.
+Sau khi user chấp nhận chạy, P7 successor trên source `d015ee7` hoàn tất
+36/36 và native repeat decision chọn 3. P8 cùng source ghi nhận 194/720
+completed trước khi tiến trình và Docker không còn chạy; chưa xác định nguyên
+nhân dừng. Một cell đang chạy chưa có durable result được seal ambiguous,
+525 cell còn pending. Checkpoint gốc được giữ riêng; không gọi lại cell
+ambiguous hoặc dùng partial run để chấm chất lượng. Native partial report ở
+`output/evaluation-v3/review-heldout-v3/partial-execution-report.p8.json`.
+
+Native ledger chuyển duy nhất reservation hết hạn 7.416.750 nanoUSD sang
+unknown, không giảm encumbered cost hay tăng cap. Sau đối soát, active và
+reserved đều bằng 0; known là 42.403.715.930, unknown là 482.974.590 nanoUSD.
+Đây là ledger estimate, không phải hóa đơn provider. Năm evaluator diagnostics
+đã hoàn tất riêng, không thay thế calibration hoặc evidence P7/P8.
+
+Hậu kiểm lượt partial phát hiện CLI đọc checkpoint có thể thực thi các cell
+pending bằng forbidden factory rồi ghi failed. Commit `0f49e3a` chuyển ba
+đường đọc partial report, complete P7 và complete P8 sang replay thuần, giữ
+nguyên bytes trước khi kiểm coverage. Regression kiểm pending, orphan, sealed
+ambiguity và receipt sai provenance; full 720-cell test dùng executor fake,
+không phải live P8. Sau source followup này phải freeze/rerun phiên bản mới; P7/P8
+`d015ee7` vẫn là bằng chứng của source cũ. Không dùng source/test/demo gate
+làm quality report; chỉ vào operate khi native coverage đủ 720/720.
 
 Theo phạm vi user xác nhận, hai container PostgreSQL của repo được dừng khi
 không có job dùng chúng; Docker/WSL và các dịch vụ repo khác giữ nguyên.
