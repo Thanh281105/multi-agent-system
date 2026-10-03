@@ -100,6 +100,19 @@ def test_positive_numeric_verdict_cannot_borrow_unrelated_claim_citation() -> No
         validate_model_judge_output_v3(_output(answer), answer)
 
 
+def test_rating_numerator_matches_without_borrowing_scale_denominator() -> None:
+    assert exact_value_in_text_v3(5, "Điểm đánh giá 5/5", numeric=True)
+    assert exact_value_in_text_v3(4.8, "Điểm đánh giá 4,8/5", numeric=True)
+    assert not exact_value_in_text_v3(5, "Điểm đánh giá 4.8/5", numeric=True)
+    assert not exact_value_in_text_v3(5, "Điểm đánh giá 15.0/5", numeric=True)
+    answer = _answer().model_copy(
+        update={
+            "claims": (ClaimEvidenceV3(text="Rating 5/5", citation_labels=("[C1]",)),),
+        }
+    )
+    validate_model_judge_output_v3(_output(answer), answer)
+
+
 def test_semantic_paraphrase_is_not_required_to_contain_english_gold() -> None:
     fact = RubricFactV3(
         claim="work subject",
