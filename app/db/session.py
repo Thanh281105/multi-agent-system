@@ -16,13 +16,19 @@ def create_database_engine(database_url: str) -> Engine:
 
     connect_args: dict[str, Any] = {}
     engine_options: dict[str, Any] = {}
-    backend = make_url(database_url).get_backend_name()
+    parsed_url = make_url(database_url)
+    backend = parsed_url.get_backend_name()
     if backend == "sqlite":
         connect_args["check_same_thread"] = False
     elif backend == "postgresql":
         connect_args.update(
             connect_timeout=5,
-            options="-c statement_timeout=10000 -c lock_timeout=5000",
+            options=" ".join(
+                (
+                    *parsed_url.normalized_query.get("options", ()),
+                    "-c statement_timeout=10000 -c lock_timeout=5000",
+                )
+            ),
         )
         engine_options["pool_timeout"] = 5
 

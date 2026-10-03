@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.db.session import create_database_engine
@@ -363,13 +364,48 @@ async def test_cancel_during_generation_settlement_finishes_usage_and_result(
 
 
 @pytest.mark.integration
-def test_postgres_engine_sets_bounded_timeouts() -> None:
+@pytest.mark.parametrize("timezone", ["UTC", "Asia/Ho_Chi_Minh"])
+def test_postgres_engine_sets_bounded_timeouts(timezone: str) -> None:
     with disposable_postgres_database("thanh_v2_p2_sql_timeout_") as url:
-        engine = create_database_engine(url)
+        configured_url = make_url(url).update_query_dict(
+            {"options": f"-c TimeZone={timezone}"}
+        )
+        engine = create_database_engine(
+            configured_url.render_as_string(hide_password=False)
+        )
         try:
             assert engine.pool.timeout() == 5  # type: ignore[attr-defined]
             with engine.connect() as connection:
                 assert connection.scalar(text("SHOW statement_timeout")) == "10s"
                 assert connection.scalar(text("SHOW lock_timeout")) == "5s"
+                assert connection.scalar(text("SHOW TimeZone")) == timezone
         finally:
             engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "existing_options",
+    [(), ("-c TimeZone=UTC",), ("-c TimeZone=UTC", "-c application_name=test")],
+)
+def test_engine_constructor_appends_timeouts_to_existing_url_options(
+    monkeypatch: pytest.MonkeyPatch,
+    existing_options: tuple[str, ...],
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def create_engine_probe(_url: str, **kwargs: Any) -> Any:
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr("app.db.session.create_engine", create_engine_probe)
+    url = make_url("postgresql+psycopg://fixture@127.0.0.1/test")
+    if existing_options:
+        url = url.update_query_dict({"options": list(existing_options)})
+    create_database_engine(url.render_as_string())
+    assert captured["connect_args"] == {
+        "connect_timeout": 5,
+        "options": " ".join(
+            (*existing_options, "-c statement_timeout=10000 -c lock_timeout=5000")
+        ),
+    }
+    assert captured["pool_timeout"] == 5
