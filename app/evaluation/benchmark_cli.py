@@ -80,8 +80,10 @@ from app.evaluation.v3_models import ScheduledTurnV3
 from app.evaluation.v3_runner import (
     EvaluationCaseV3,
     EvaluationRunResultV3,
+    EvaluationV3ObservationRunner,
     ObservationExecutorFactoryV3,
     ObservationRunReceiptV3,
+    _run_result,
     execution_case_set_sha256_v3,
     execution_case_sha256_v3,
     execution_namespace_v3,
@@ -794,7 +796,7 @@ def _partial_report(arguments: argparse.Namespace) -> int:
         checkpoint_path=paths.checkpoint,
         executor_factory=_ForbiddenFactory(),
     )
-    result = asyncio.run(runner.run())
+    result = _read_checkpoint_result(runner, protocol_sha256=frozen.protocol_sha256)
     if not result.summary.is_partial:
         raise BenchmarkCLIError(
             "partial_report_not_applicable",
@@ -825,6 +827,34 @@ def _partial_report(arguments: argparse.Namespace) -> int:
     return 3
 
 
+def _read_checkpoint_result(
+    runner: HeldoutEvaluationV3ObservationRunner | EvaluationV3ObservationRunner,
+    *,
+    protocol_sha256: str,
+) -> EvaluationRunResultV3:
+    """Validate existing receipts without writing or executing pending cells."""
+
+    state = load_checkpoint_v3(
+        runner.checkpoint_path,
+        run_id=runner.run_id,
+        protocol_sha256=protocol_sha256,
+        execution_case_set_sha256=runner.execution_case_set_sha256,
+        schedule_sha256=runner.schedule_sha256,
+        schedule=runner.schedule,
+    )
+    return _run_result(
+        state,
+        schedule=runner.schedule,
+        run_id=runner.run_id,
+        protocol_sha256=protocol_sha256,
+        execution_case_set_sha256=runner.execution_case_set_sha256,
+        schedule_sha256=runner.schedule_sha256,
+        cases=runner.cases,
+        execution_case_sha256_by_id=runner.execution_case_sha256_by_id,
+        limits=runner.limits,
+    )
+
+
 def _load_complete_heldout_receipts(
     *,
     frozen: FrozenPackage7HeldoutInputsV3,
@@ -839,7 +869,7 @@ def _load_complete_heldout_receipts(
         checkpoint_path=checkpoint,
         executor_factory=_ForbiddenFactory(),
     )
-    result = asyncio.run(runner.run())
+    result = _read_checkpoint_result(runner, protocol_sha256=frozen.protocol_sha256)
     _require_complete_result(
         result,
         expected_count=len(schedule),
@@ -855,10 +885,9 @@ def _load_complete_pilot_receipts(
     pilot_schedule_path: Path,
     runtime_manifest_path: Path | None = None,
 ) -> tuple[tuple[ScheduledTurnV3, ...], tuple[ObservationRunReceiptV3, ...]]:
-    """Read P7 pilot receipts only through its non-dispatch recovery path."""
+    """Validate P7 pilot receipts without dispatching or repairing its checkpoint."""
 
     from app.evaluation import v3_cli
-    from app.evaluation.v3_runner import run_observations_v3
 
     schedule = _read_schedule_file(pilot_schedule_path, label="pilot")
     if not schedule:
@@ -889,15 +918,14 @@ def _load_complete_pilot_receipts(
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != frozen.protocol:
         raise FrozenPackage7DriftError("package7_pilot_protocol_binding_drift")
-    result = asyncio.run(
-        run_observations_v3(
-            protocol=inputs.protocol,
-            schedule=schedule,
-            checkpoint_path=pilot_checkpoint,
-            cases=inputs.cases,
-            executor_factory=_ForbiddenFactory(),
-        )
+    runner = EvaluationV3ObservationRunner(
+        protocol=inputs.protocol,
+        schedule=schedule,
+        checkpoint_path=pilot_checkpoint,
+        cases=inputs.cases,
+        executor_factory=_ForbiddenFactory(),
     )
+    result = _read_checkpoint_result(runner, protocol_sha256=frozen.protocol_sha256)
     _require_complete_result(result, expected_count=len(schedule), label="pilot")
     return schedule, result.receipts
 

@@ -73,23 +73,25 @@ def test_completed_heldout_checkpoint_is_opened_only_with_forbidden_factory(
         def __init__(self, **kwargs: object) -> None:
             observed.update(kwargs)
 
-        async def run(self) -> object:
-            return SimpleNamespace(
-                summary=SimpleNamespace(
-                    total_scheduled=1,
-                    completed_turn_ids=("turn_1",),
-                    failed_turn_ids=(),
-                    ambiguous_turn_ids=(),
-                    orphan_started_turn_ids=(),
-                    missing_turn_ids=(),
-                ),
-                receipts=("receipt",),
-            )
-
     monkeypatch.setattr(benchmark_cli, "HeldoutEvaluationV3ObservationRunner", _Runner)
+    monkeypatch.setattr(
+        benchmark_cli,
+        "_read_checkpoint_result",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            summary=SimpleNamespace(
+                total_scheduled=1,
+                completed_turn_ids=("turn_1",),
+                failed_turn_ids=(),
+                ambiguous_turn_ids=(),
+                orphan_started_turn_ids=(),
+                missing_turn_ids=(),
+            ),
+            receipts=("receipt",),
+        ),
+    )
 
     receipts = benchmark_cli._load_complete_heldout_receipts(
-        frozen=SimpleNamespace(),  # type: ignore[arg-type]
+        frozen=SimpleNamespace(protocol_sha256="a" * 64),  # type: ignore[arg-type]
         schedule=(SimpleNamespace(),),  # type: ignore[arg-type]
         checkpoint=tmp_path / "already-complete.jsonl",
     )
@@ -154,9 +156,6 @@ def test_partial_report_opens_only_the_existing_checkpoint(
                 kwargs["executor_factory"], benchmark_cli._ForbiddenFactory
             )
 
-        async def run(self) -> object:
-            return SimpleNamespace(summary=summary, receipts=())
-
     def _unexpected_live_factory(**_: object) -> object:
         nonlocal live_factory_called
         live_factory_called = True
@@ -178,6 +177,11 @@ def test_partial_report_opens_only_the_existing_checkpoint(
     )
     monkeypatch.setattr(benchmark_cli, "_require_schedule", lambda *_args: None)
     monkeypatch.setattr(benchmark_cli, "HeldoutEvaluationV3ObservationRunner", _Runner)
+    monkeypatch.setattr(
+        benchmark_cli,
+        "_read_checkpoint_result",
+        lambda *_args, **_kwargs: SimpleNamespace(summary=summary, receipts=()),
+    )
     monkeypatch.setattr(
         benchmark_cli, "account_observation_receipts_v3", lambda _: accounting
     )
