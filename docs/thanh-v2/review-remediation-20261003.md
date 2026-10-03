@@ -4,11 +4,21 @@ Audit baseline: `42311032c3ed59147ae19e6f3e5727cee0eff93b`, nhánh `thanh-v3`.
 Các sửa đổi được chia theo issue và phải có regression cùng evidence tương ứng.
 Không sửa snapshot, gold, protocol hay report đã freeze tại chỗ.
 
-Source gate: Ruff/format và mypy đạt; full offline suite trên PostgreSQL fixture
+Source gate trước followup E5: Ruff/format và mypy đạt; full offline suite trên PostgreSQL fixture
 riêng đạt **1.084 tests**, 27 integration tests deselected (858,24 giây).
 JUnit: `output/review-remediation/offline-tests.xml`. Frontend clean install
 từ lockfile, lint, 101 tests và production build đạt. Helm production/kind
 rendering cùng negative pin validation đạt; strict smoke có thêm 8 tests đạt.
+
+Source gate cuối trên commit `04e61e6`: **620 tests đạt**, 25 integration tests
+deselected, không failure/error/skip (480,09 giây). Đây là 41 modules evaluator
+và runtime bị ảnh hưởng, không phải full-suite rerun 1.084 tests. Ruff đạt,
+286 files đúng format và mypy 171 source files đạt; 289 tracked source/test
+hashes giữ nguyên trong suốt lượt chạy. Evidence:
+`output/review-remediation/source-checks.v4.json` và
+`evaluator-runtime-regressions.v4.xml`. Lượt trước có bốn fake repository
+chưa theo API review batch đã được sửa riêng trong `50d9240`; JUnit thất bại
+v2 được giữ nguyên, v3/v4 không ghi đè evidence đó.
 
 ## Scope và gates
 
@@ -17,8 +27,8 @@ rendering cùng negative pin validation đạt; strict smoke có thêm 8 tests �
 | E1 price/rating/pages | Field-aware typed parser + actual catalog regression | Đã sửa; actual catalog/PG regressions đạt |
 | E2 fresh entities/review | Resolve từng title, ambiguity, fresh compare/review | Đã sửa; fresh JSON/browser demo đạt |
 | E3 book domain | Book guard cho candidate, aggregate, direct IDs và sandbox | Đã sửa; giữ 200 raw records, 199 sách đủ điều kiện v2 |
-| E4 semantic/numeric judge | Independent numeric/adversarial/per-claim evaluator tests | Đã sửa; numeric, paraphrase, negation và claim-citation regressions đạt |
-| E5 citations/retrieval metrics | Binding/field matching; không claim document recall thiếu authority | Đã sửa; document recall chưa đo khi thiếu relevance authority |
+| E4 semantic/numeric judge | Independent numeric/adversarial/per-claim evaluator tests | Numeric và contract regressions đạt; semantic diagnostics và independent calibration chưa chạy |
+| E5 citations/retrieval metrics | Binding/field matching; coverage theo receipt claims; recall có relevance authority | Đã sửa mẫu số/bindings và cơ chế per-claim calibration; calibration thực và successor rerun chưa chạy; document recall chưa đo |
 | E6 quality evidence | Absolute/category historical results; corrected successor | Historical tables đã đối chiếu; successor pending |
 | E7 cancel before admission | Stalled first-event/idle timeout + persisted cancel identity | Đã sửa; timeout/controller tests và browser cancel/reconcile đạt |
 | E8 deployed runtime | Helm pins + strict conversation/JSON/SSE/knowledge smoke | Helm rendering/pin validation và strict local PostgreSQL demo đạt |
@@ -39,6 +49,50 @@ no-RAG. Xem [bảng theo category và caveats](../evaluation.md). Chưa có evid
 cho positive MA/RAG quality conclusion. Independent semantic reference labels
 cần ghi rõ automated hay human và bind đúng packet/case; calibration theo
 substring không là semantic truth.
+
+Completion audit `output/review-remediation/review-completion-audit.v1.json`
+phát hiện preflight v1 dùng tỷ lệ required gold facts có citation thay vì
+tỷ lệ receipt claims được chính citation của claim hỗ trợ. Preflight
+`source-freeze.v1.json` bind source `e87dcaf`, chưa có cell nào thực thi;
+không dùng freeze này cho source sau followup E5. Phải tạo protocol/run/freeze
+mới sau source checks. Commit `f125629` đã đổi mẫu số thành toàn bộ receipt
+claim records, bind verdict vào chính citation của mỗi claim và parsed model
+output, rồi rederive khi replay/join. Không có claim thì coverage là `null`,
+không tính thành 100%. Independent audit có 10 assertions Python thuần đạt,
+bao gồm artifact đã rehash nhưng sửa output/scores/coverage và legacy hash.
+Local tests với verdict được inject chỉ kiểm contract
+và aggregation; chúng không chứng minh model judge hiểu paraphrase, phủ định
+hay claim ngoài gold. Những phép đo đó vẫn cần diagnostics và calibration
+với nhãn từng claim được chấm độc lập trước held-out scoring.
+
+Commit `eb0d59a` thêm reference labels cho từng claim, giữ attribution automated
+hay human và case/packet hash. Calibration tính tổng claim verdict bất đồng
+chia tổng actual claims, khóa threshold 0,25 trước dispatch; reference thiếu
+hoặc không có actual claim không tạo được freeze. Successor judge không dùng
+freeze legacy thiếu authority này. Kiểm tra foreign-case đã rehash cũng bị
+từ chối. Đây là cơ chế và regression offline; chưa có 32 nhãn/outputs thực để
+khẳng định semantic calibration đạt.
+
+Hậu kiểm còn tìm và sửa hai boundary defects: commit `555cf83` lưu native
+development case gắn với independent reference, rồi validate/rebuild toàn bộ
+record trước freeze; commit `8f10f83` kiểm contract/schema của mọi answer trong
+packet trước direct invocation, ledger key, scope hay reservation. Independent
+re-audit có 9 assertions cho freeze và 18 cho preflight đạt: artifact đổi
+opaque answer ID, own citation hoặc case bị từ chối sau rehash; mixed packet
+valid-first/mismatch-later cũng bị chặn với số dispatch bằng 0. Các checks
+này dùng Python thuần, không phải semantic outputs của provider thật.
+
+Commit `04e61e6` sửa ledger judge vốn chỉ nhận protocol historical: CLI truyền
+`SuccessorBindingV3` đã validate vào cả development và held-out runners. Runner
+đối chiếu protocol/repeat/gold/split cùng successor schema; journal key bind
+binding SHA. Không có authority này thì hash mới vẫn bị từ chối. Independent
+re-audit có 26 assertions đạt; actual v23 journal headers giữ payload/hash.
+
+Ảnh review performance được đối chiếu riêng trong
+[8 giả thiết và cách xử lý](performance-review-20261003.md). H3/H7 và bốn
+cancellation SQL preflights còn sót của H5 đã sửa; H1/H2/H4 trùng mô tả E11,
+H5 trùng E10. Runtime tiếp tục bounded sequential; chưa đo provider p95 hay
+tải nhiều users để quyết định thay scheduler.
 
 ## Demo rehearsal
 
@@ -76,9 +130,14 @@ strict gate, desktop/mobile không overflow, console/page/network errors bằng 
 
 P7/P8 successor **chưa chạy**: automatic approval review chặn lệnh P7 trước
 dispatch vì cần chấp thuận cụ thể cho evaluation payload tới provider.
-`provider-consent-manifest.v1.json` ghi HTTPS OpenAI endpoint, các lớp dữ liệu
+`provider-consent-manifest.v2.json` ghi HTTPS OpenAI endpoint, các lớp dữ liệu
 public/synthetic và cost caps. Không dùng source/test/demo gate làm quality
 report; cần hoàn thành lifecycle successor ở trên sau khi được phép dispatch.
+
+Theo phạm vi user xác nhận, hai container PostgreSQL của repo được dừng khi
+không có job dùng chúng; Docker/WSL và các dịch vụ repo khác giữ nguyên.
+Các capture demo/backup trên là evidence rehearsal tại thời điểm ghi;
+không khẳng định endpoint hay database đang chạy hiện tại.
 
 Challenge mới có 20 câu/6 strata và 5 evaluator probes tại
 `evaluation/v3/review-challenge-v1/`. Canonical packet hash
