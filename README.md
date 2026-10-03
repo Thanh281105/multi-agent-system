@@ -29,7 +29,7 @@ flowchart LR
     V2 --> PG2[(PostgreSQL: conversations, turns, actions)]
     V2 --> KI[(Published corpus/index in PostgreSQL)]
     G -. optional POST /chat fixture .-> O[Phase 1 legacy runner]
-    O --> MA[Historical domain agents / tools]
+    O --> MA[Single-agent tool loop]
     MA --> PG[(PostgreSQL: cleaned Tiki Books snapshot)]
     O <--> RS[(Redis: optional shared state)]
     O & MA -. structured model modes .-> L[OpenAI Responses API]
@@ -47,11 +47,16 @@ và có thể kiểm thử end-to-end. Bốn domain-agent ID cố định:
 | `trust_agent` | Complaint/text-quality heuristic; không xác minh review giả |
 | `market_agent` | Aggregate cắt ngang trên snapshot; không tạo trend/live-market claim |
 
-Multi-domain recommendation chạy `product.rank`, sau đó
-`review.compare`/`trust.compare` trên cùng tối đa 5 candidates. Python sở hữu
-entity extraction, permission, DAG, facts, score, claim text và citation. Model
-chỉ được chọn intent/capability/fact ID/claim ID trong schema có giới hạn; output
-không grounded bị fallback hoặc fail closed theo runtime mode.
+API v2 là bounded hybrid multi-expert orchestration: supervisor điều phối các
+expert/capability services, không instantiate bốn domain-agent classes của
+orchestrator lịch sử. Các expert không có memory riêng hoặc tự thương lượng.
+Recommendation chạy `product.rank`, rồi `review.compare`/`trust.compare` tuần tự
+trên cùng tối đa 5 candidates. Review/trust bổ sung evidence; v2 không dùng
+weighted reranking 55/15/20/10 của v1. Python sở hữu entity extraction,
+permission, dependencies, facts, score và citation binding. Model chọn plan và
+fact/evidence IDs trong schema có giới hạn; knowledge prose do model viết phải
+qua exact-span và automated semantic verification. Các kiểm tra này có sai số,
+không bảo đảm mọi câu trả lời đúng tuyệt đối.
 
 Historical `KNOWLEDGE_BACKEND=disabled` vẫn là mặc định và Qdrant chỉ là adapter
 tương thích cũ. API v2 dùng `PostgresKnowledgeStore` trên PostgreSQL bền vững và
@@ -77,14 +82,17 @@ Tài liệu chính:
 
 ## Khả năng chính
 
-- Chỉ nhận câu hỏi sách; sản phẩm ngoài sách trả `general.unsupported`.
-- Tìm theo title/free text, author, publisher, category, price, rating và page
-  count; so sánh/ranking có công thức deterministic công khai.
+- Miền công bố là sách; xem [contract từng runtime](docs/architecture.md).
+  Snapshot bảo tồn cả record ngoài miền; guard runtime phải loại chúng khỏi
+  candidates và aggregate, không sửa snapshot lịch sử để che dữ liệu nguồn.
+- Tìm/so sánh/ranking trên metadata snapshot; khả năng parse câu tự nhiên của
+  API v2 được kiểm chứng riêng với khả năng filter của repository/tool.
 - Review/complaint/text-quality heuristics có version và caveat rõ ràng.
 - Market statistics chỉ là cross-sectional aggregates của snapshot.
 - Agent Gateway kiểm soát tool/capability/permission, trả typed provenance và
   audit metadata đã redact.
-- Session owner-bound, TTL, turn lock; Redis bắt buộc ở production.
+- Conversation/turn owner-bound và SQL lease trong v2; session TTL/Redis turn
+  coordination thuộc compatibility runtime lịch sử.
 - Model modes `off`, `shadow`, `hybrid`, `required`; structured output,
   `store=false`, timeout/retry/concurrency/circuit budgets.
 - POST JSON và SSE streaming có correlation IDs, heartbeat, cancellation và

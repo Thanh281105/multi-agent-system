@@ -62,7 +62,8 @@ flowchart TB
     C -->|X-API-Key; /api/v2 JSON/SSE| G --> V2 --> C2
     V2 --> I2
     V2 --> PG
-    G -. optional POST /chat fixture .-> O --> D --> A --> T --> PG
+    G -. optional POST /chat single-agent fixture .-> T
+    O -. historical evaluation only .-> D --> A --> T --> PG
     O <--> R
     O & D -. model mode enabled .-> L -.-> OA
     G & O & A --> M
@@ -94,13 +95,13 @@ và external monitoring là trách nhiệm của deployment.
 | Component | Trách nhiệm | Failure/grounding boundary |
 | --- | --- | --- |
 | HTTP Gateway | Auth, rate limit, correlation, v2 JSON/SSE, timeout | V2 owner-bound resources; gated Phase 1 fixture |
-| Intent Router | Book-only intent/entity extraction | Non-book request → `general.unsupported`; model entity phải extractive |
-| Planner | Biên dịch intent thành authorized DAG | Model chỉ đề xuất capability; Python kiểm tra policy/dependency |
-| Executor | Chạy ready steps đồng thời, bind upstream IDs | Exception thành typed safe error; giữ thứ tự candidate |
-| Domain Agents | Product, Review, Trust, Market | Chỉ gọi tool qua Agent Gateway và trả typed provenance |
+| V2 planner/supervisor | Bounded Python obligations và model plan choice | Python kiểm tra capability, policy, IDs và dependencies |
+| V2 durable executor | Chạy operations tuần tự, bind upstream IDs | SQL claim/fencing, persisted step result và terminal state |
+| V2 expert services | Product, Review, Trust, Market evidence selection | Không có own learned memory, negotiation hoặc arbitrary tool authority |
+| Historical router/orchestrator | Book-only routing và parallel ready steps trong evaluation v1 | Không nằm trên public `/api/v2`; `POST /chat` dùng single-agent runner riêng |
 | Agent Gateway/Registry | Capability, permission, MCP routing, audit | Immutable allowlists; không log raw tool args/prompt |
 | PostgreSQL tools | Search/compare/review/cross-sectional aggregate và v2 durable reads | Durable routes đọc rows/index đã publish và gắn version |
-| Model runtime | Routing/planning/fact selection/claim ordering | Structured schema, budget, circuit breaker, deterministic guard |
+| Model runtime | Bounded plan/fact selection; knowledge prose và entailment | Structured schema, budget, exact binding và automated semantic guard |
 | Shared state | Gated fixture state; durable v2 conversation/turn/action rows | PostgreSQL là authority cho V2 |
 | Knowledge boundary | Published v2 corpus/index resolver | PostgreSQL corpus/index được publish và pin theo turn; Qdrant là adapter lịch sử |
 | Telemetry | Metrics + bounded redacted traces | Không ghi key, prompt, review text hoặc provider raw response |
@@ -143,12 +144,25 @@ Correlation IDs được truyền xuyên suốt. Model modes:
 
 | Mode | Semantics |
 | --- | --- |
-| `off` | Không gọi provider; deterministic pipeline |
+| `off` | Tắt generation; query embedder vẫn phải tương thích published index |
 | `shadow` | Gọi provider để telemetry nhưng giữ quyết định deterministic |
 | `hybrid` | Dùng structured output hợp lệ; fallback deterministic khi được phép |
 | `required` | Fail closed nếu provider hoặc evidence authorization lỗi |
 
-## 5. Domain agents
+## 5. Expert services v2 và domain agents lịch sử
+
+Public v2 composition root `app/v2/runtime.py` tạo supervisor, planner, read tools
+và expert reasoner; không tạo `MultiAgentOrchestrator` hoặc bốn domain-agent
+classes lịch sử. Cách gọi chính xác là **bounded hybrid multi-expert
+orchestration** trong modular monolith. Expert có decision scope chọn fact và
+evidence IDs, không có persistent memory riêng hay direct negotiation. Không
+suy ra autonomy hoặc decentralized collaboration từ tên agent ID.
+
+| Lane | Entity/filter contract | Scheduling và recommendation |
+| --- | --- | --- |
+| Public `/api/v2` | Bounded natural-language parser → typed catalog payload; resolve fresh named titles qua catalog, hỏi lại khi ambiguity | Operations tuần tự; product rank quyết định order, review/trust thêm evidence |
+| Historical v1 evaluation | Router/planner và repository filters; bốn domain-agent classes | Ready branches có thể song song; aggregator có score 55/15/20/10 |
+| Development `POST /chat` | Single-agent tool loop trong `app.agent.runner` | Không gọi historical multi-agent orchestrator |
 
 Bốn ID domain cố định là:
 
@@ -176,7 +190,8 @@ product.rank (tối đa 5 candidates)
    └── trust.compare(all ranked product IDs)
 ```
 
-Hai nhánh sau Product có thể chạy đồng thời. Product failure làm request không
+Trong v2, hai nhánh sau Product chạy tuần tự trong durable executor. Historical
+v1 executor có thể chạy chúng đồng thời. Product failure làm request không
 có grounded candidate; một auxiliary branch lỗi có thể tạo `partial_success`
 với warning và không được thay bằng fact tự sinh.
 
@@ -194,7 +209,8 @@ Schema/tool compatibility vẫn xuất trường `sold_count`, nhưng nguồn th
 `source_popularity` lịch sử của archive. Không được gọi nó là doanh số hiện tại
 hoặc doanh số đã xác minh.
 
-Recommendation score:
+Recommendation score sau đây chỉ thuộc historical v1 aggregator; v2 giữ
+product ranking và bổ sung review/trust evidence, không gọi công thức này:
 
 ```text
 0.55 × product_fit
@@ -213,8 +229,14 @@ ngang thành catalog, giá, inventory hoặc thị trường Tiki hiện tại.
 
 ## 7. Grounded model boundary
 
-Python sở hữu entity extraction, capability policy, DAG, fact text, status,
-score, claim text và citation. Khi model bật:
+Public v2: Python sở hữu entity extraction, capability policy, dependencies,
+catalog fact text, status, score và citation bindings. Model được chọn bounded
+plan và fact/evidence IDs. Knowledge document claims có prose do model viết;
+verifier kiểm exact source/version/chunk/span, semantic entailment và tối đa một
+repair có ngân sách. Đây là automated guard có sai số, không là bảo đảm zero
+hallucination. Thiếu support phải abstain/clarify.
+
+Historical v1 claim-ID synthesis có boundary riêng. Khi model bật trong lane đó:
 
 - router chỉ được chọn intent/entity có trong bounded input;
 - planner chỉ chọn capability đã đăng ký;
@@ -252,7 +274,11 @@ action và memory vào PostgreSQL, không dùng Redis làm authority. Mặc đ�
 legacy là 3.600 giây, tối đa 40 user/assistant entries mỗi session. Router/model nhận message hiện
 tại và structured projection (`active_agent`, `last_product_id`); free-text
 memory **chưa đưa vào routing hay aggregation**. Việc này tránh biến transcript
-chưa lọc thành prompt. Hệ thống **chưa có long-term user memory**.
+chưa lọc thành prompt. Historical lane **chưa có long-term user memory**.
+V2 có durable transcript và explicit owner/mode-scoped preferences (tối đa bốn
+keys); model context được bound ở tám completed turns, 16 constraints và tám
+product refs. Đây không phải semantic/episodic personalization tự học. Hai
+client turn IDs khác nhau chưa được chứng minh có thứ tự hội thoại tuyến tính.
 
 ### Knowledge/RAG
 

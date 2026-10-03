@@ -42,19 +42,21 @@ và trace identity.
 
 ## Verified capabilities
 
-- Routing chỉ nhận miền sách; yêu cầu sản phẩm ngoài sách trả
-  `general.unsupported`.
-- Authorized DAG cho bốn ID cố định: `product_agent`, `review_agent`,
-  `trust_agent`, `market_agent`.
-- Product search/filter theo title, author, publisher, category, price, rating
-  và page count; ranking có công thức deterministic công khai.
+- API v2 điều phối bounded expert services cho `product_agent`, `review_agent`,
+  `trust_agent`, `market_agent`; dependencies và quyền do Python kiểm tra,
+  execution tuần tự. Domain-agent classes cũ thuộc evaluation lịch sử.
+- Product search/filter và ranking trên metadata sách; contract và giới hạn
+  parser của từng runtime được ghi trong [kiến trúc](docs/architecture.md).
 - Review/Trust phân tích sampled historical reviews bằng heuristic có phiên bản;
   không xác nhận review giả, gian lận hoặc tính xác thực sách.
 - Market chỉ tính aggregate cắt ngang trên snapshot; không tạo trend/live-market
   claim.
-- JSON và POST-based SSE API v1, stable errors, cancellation và provenance.
+- JSON và POST-based SSE `/api/v2`, stable errors, durable retry/cancellation và
+  provenance. `/api/v1` đã bị gỡ; development `POST /chat` là single-agent fixture.
 - Test profile 24 sách/115 review; evaluation profile 200 sách/1.773 review.
-- Knowledge/RAG mặc định disabled; repository không bundle hay seed corpus RAG.
+- V2 dùng published PostgreSQL corpus/index pin rõ version. Corpus curated có
+  20 sources và exact-work mappings cho 20/200 catalog records; không đủ cho
+  kiến thức mọi sách. Qdrant/`KNOWLEDGE_BACKEND` là adapter lịch sử.
 
 ## Experience mode
 
@@ -87,7 +89,9 @@ page hoặc dashboard thị trường.
 UI có thể nói repository chứng minh typed orchestration, authorization/fallback
 deterministic, structured model calls, provenance và regression evaluation khi
 các check tương ứng pass. Model prose không tự trở thành grounded chỉ vì nêu tên
-source; fact/claim text và citation phải đến từ server-owned catalogs.
+source. Catalog fact text và citation binding thuộc server; knowledge prose có
+thể do model viết rồi được exact-span và automated entailment checks kiểm tra.
+Không diễn giải guard này thành zero hallucination.
 
 Không được claim current Tiki catalog/price/inventory, marketplace
 representativeness, human-preference superiority, semantic-helpfulness

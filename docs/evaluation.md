@@ -183,7 +183,55 @@ wiring generic lịch sử, không được dùng cho current Tiki Books claim. 
 `experiment.live-pilot.v2.json` chỉ là cấu hình có thể tái chạy, không phải kết
 quả.
 
-## 8. Package 7 historical protocol và successor pilot
+## 8. Review ngày 03/10/2026 và kết quả lịch sử v23
+
+Source remediation sau audit làm P7 v18/P8 v23 thành **historical evidence**.
+Không dùng protocol cũ để chứng minh source đã sửa. Successor phải freeze input
+và evaluator mới, chạy P7 → repeat decision → P8 đủ 720/720 → calibration,
+judgments, join và report validation. Chưa qua đủ gates thì giữ trạng thái
+partial/pending. Xem [remediation và demo gates](thanh-v2/review-remediation-20261003.md).
+
+Đã đối chiếu `judgments.json`, `unblinding_key.json`, `preparation.json` và
+`analysis.json` của v23. **720/720 là receipt coverage, không phải accuracy.**
+Scorer lịch sử có lỗi fact matching và citation representation; các điểm dưới
+đây mô tả artifact cũ, chưa là semantic correctness đã được xác nhận.
+
+| Variant | Task successes / cells | Cell rate | Work-cluster mean |
+| --- | ---: | ---: | ---: |
+| `sa_shared_tools_rag` | 9/180 | 5,00% | 3,0864% |
+| `ma_fixed_rag` | 9/180 | 5,00% | 3,0864% |
+| `ma_adaptive_rag` | 9/180 | 5,00% | 3,0864% |
+| `ma_adaptive_no_rag` | 12/180 | 6,67% | 4,9383% |
+
+| Category | SA RAG | Fixed MA RAG | Adaptive MA RAG | Adaptive MA no-RAG |
+| --- | ---: | ---: | ---: | ---: |
+| Multi-constraint | 0/36 | 0/36 | 0/36 | 0/36 |
+| Knowledge/source | 0/36 | 0/36 | 0/36 | 0/36 |
+| Multi-expert compare/recommendation | 0/36 | 0/36 | 0/36 | 0/36 |
+| Multi-turn memory | 0/24 | 0/24 | 0/24 | 0/24 |
+| Insufficient/conflict/injection | 9/24 | 9/24 | 9/24 | 9/24 |
+| Shopping/merchant | 0/24 | 0/24 | 0/24 | 3/24 |
+
+Cell means và work-cluster means dùng weighting khác nhau. Có 60 conversations,
+27 work groups, ba repeats; 720 cells không là 720 independent samples.
+Adaptive RAG so SA có task delta 0 với 95% CI [0; 0], latency delta
+2.509,97 ms với CI [1.301,33; 3.822,61]. Chưa chứng minh quality gain của MA/RAG;
+CI task delta 0 không chứng minh tương đương về mọi khía cạnh chất lượng.
+
+Judges là automated model judges; human author/judge IDs rỗng. Calibration
+32 measurements từ tám pilot conversations × bốn variants không là 32 tác vụ
+độc lập hay human validity. Held-out đã được dùng trong successor/debug, cần
+công bố engineering reuse và một challenge set mới khóa sau source freeze.
+Human stratified audit và second-judge sensitivity là các evidence gates riêng,
+không được tự gắn nhãn human cho kết quả tự động.
+
+V23 có 345 successful knowledge calls trên 267 observations nhưng knowledge
+chưa đi vào final evidence/citations của các observation đó. Calls/enabled flag
+không chứng minh RAG contribution; phải trace persisted tool results, retrieval
+và final grounding. `document_recall_authority=resolved_turn_result_citations_only`
+trong report cũ chỉ đo citation proxy, chưa là retrieved-document recall.
+
+## 9. Package 7 historical protocol và successor pilot
 
 **Cập nhật sau P02:** xem [handoff hiện hành](thanh-v2/p02-successor-handoff.md).
 Protocol `c8a4…` và v4 artifacts bên dưới là lịch sử trước sửa P02. P7 v5
