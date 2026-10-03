@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import unicodedata
@@ -321,7 +322,7 @@ class GroundingVerifier:
         budget = current_provider_budget()
         if budget is None:
             raise GroundingBudgetScopeError("semantic_verification_requires_budget")
-        if budget.cancelled():
+        if await asyncio.to_thread(budget.cancelled):
             raise BudgetCancelledError("provider_dispatch_cancelled")
 
         cited_ids = tuple(

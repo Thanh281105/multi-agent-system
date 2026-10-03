@@ -184,7 +184,7 @@ class ModelRuntimeExpertReasoner:
         budget = current_provider_budget()
         if budget is None:
             return self._unavailable(result, "expert_budget_unavailable")
-        if budget.cancelled():
+        if await asyncio.to_thread(budget.cancelled):
             raise BudgetCancelledError("provider_dispatch_cancelled")
         try:
             generated = await self.runtime.generate_structured(

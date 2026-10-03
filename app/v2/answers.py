@@ -182,7 +182,7 @@ class GroundedAnswerProducer:
                 warnings=("answer_generation_requires_budget",),
                 requirements=requirements,
             )
-        if budget.cancelled():
+        if await asyncio.to_thread(budget.cancelled):
             raise BudgetCancelledError("provider_dispatch_cancelled")
 
         if self.runtime_mode == "shadow":
@@ -262,7 +262,7 @@ class GroundedAnswerProducer:
                 warnings=("answer_repair_requires_budget",),
                 requirements=requirements,
             )
-        if current.cancelled():
+        if await asyncio.to_thread(current.cancelled):
             raise BudgetCancelledError("provider_dispatch_cancelled")
 
         await self.verifier.validate_context(
