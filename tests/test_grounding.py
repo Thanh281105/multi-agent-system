@@ -303,11 +303,34 @@ async def test_wrong_entity_is_rejected_before_a_false_positive_verdict() -> Non
 
 
 @pytest.mark.asyncio
-async def test_negation_mismatch_is_rejected_before_semantic_acceptance() -> None:
+@pytest.mark.parametrize(
+    ("source_text", "claim_text"),
+    [
+        (
+            "Book Alpha includes a chapter about astronomy.",
+            "Book Alpha does not include a chapter about astronomy.",
+        ),
+        (
+            "# Book Alpha\n\nBook Alpha includes a chapter about astronomy.",
+            "Book Alpha does not include a chapter about astronomy.",
+        ),
+        (
+            "Book Alpha does not include a chapter about astronomy.",
+            "Book Alpha includes a chapter about astronomy.",
+        ),
+        (
+            "# Book Alpha\n\nBook Alpha does not include a chapter about astronomy.",
+            "Book Alpha includes a chapter about astronomy.",
+        ),
+    ],
+)
+async def test_negation_mismatch_is_rejected_before_semantic_acceptance(
+    source_text: str, claim_text: str
+) -> None:
     reference, excerpt, resolved = _knowledge_item(
         "6",
         title="Book Alpha",
-        text="Book Alpha includes a chapter about astronomy.",
+        text=source_text,
         subject_ids=("product_1",),
     )
     runtime = FakeRuntime([_verdict(("claim_negation", True))])
@@ -316,7 +339,7 @@ async def test_negation_mismatch_is_rejected_before_semantic_acceptance() -> Non
         claims=(
             DraftClaim(
                 claim_id="claim_negation",
-                text="Book Alpha does not include a chapter about astronomy.",
+                text=claim_text,
                 evidence_ids=(reference.evidence_id,),
             ),
         )

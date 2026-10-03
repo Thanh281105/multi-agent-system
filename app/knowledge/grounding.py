@@ -540,6 +540,7 @@ def _text_guard(
         _has_negation(sentence)
         for text in source_texts
         for sentence in _sentence_segments(text)
+        if re.match(r"^#{1,6}\s", sentence) is None
     }
     if len(source_polarities) == 1 and claim_negated not in source_polarities:
         return "negation_mismatch"
