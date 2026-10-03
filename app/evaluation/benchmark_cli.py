@@ -22,6 +22,7 @@ from app.evaluation.benchmark_calibration import (
     Package8PilotCalibrationInputsV3,
     build_calibration_label_policy_v3,
     build_package8_pilot_calibration_inputs_v3,
+    build_pilot_reference_cases_v3,
 )
 from app.evaluation.benchmark_evidence import (
     ImmutableBenchmarkEvidenceResolverV3,
@@ -52,6 +53,7 @@ from app.evaluation.benchmark_v3 import (
     FrozenPackage7HeldoutInputsV3,
     HeldoutEvaluationV3ObservationRunner,
     HeldoutExecutionPlanV3,
+    SuccessorBindingV3,
     build_heldout_execution_plan_v3,
     build_heldout_schedule_v3,
     load_frozen_package7_heldout_inputs_v3,
@@ -67,9 +69,12 @@ from app.evaluation.v3_checkpoint import (
 from app.evaluation.v3_judge import (
     SEMANTIC_JUDGE_METRICS_V3,
     CalibrationFreezeV3,
+    CalibrationReferenceBundleV3,
+    CalibrationReferenceLabelsV3,
     ModelJudgeConfigurationV3,
     build_model_judge_configuration_v3,
     freeze_calibration_thresholds_v3,
+    judge_prompt_sha256_v3,
 )
 from app.evaluation.v3_models import ScheduledTurnV3
 from app.evaluation.v3_runner import (
@@ -375,8 +380,12 @@ def _prepare(arguments: argparse.Namespace) -> int:
             maximum_absolute_error={
                 metric: arguments.calibration_max_absolute_error
                 for metric in SEMANTIC_JUDGE_METRICS_V3
-            }
+            },
+            successor_protocol_sha256=frozen.protocol_sha256
+            if frozen.successor_binding
+            else None,
         ),
+        independent_references=_load_independent_references(arguments, frozen),
     )
     preparation = prepare_heldout_judging_v3(
         frozen=frozen,
@@ -456,6 +465,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         database_url=arguments.database_url,
         expected_protocol=frozen.protocol,
         runtime_manifest_path=arguments.p7_runtime_manifest,
+        successor_binding=frozen.successor_binding,
     )
     evidence_resolver = _ReceiptExactEvidenceResolver(
         knowledge_service=resources.knowledge_service,
@@ -468,6 +478,29 @@ def _operate(arguments: argparse.Namespace) -> int:
             snapshot_version_id=resources.catalog_snapshot_version_id,
         ),
     )
+    if arguments.export_reference_cases is not None:
+        if frozen.successor_binding is None:
+            raise BenchmarkCLIError(
+                "successor_binding_required",
+                "reference case export requires an explicit successor binding",
+            )
+        packet = build_pilot_reference_cases_v3(
+            protocol=frozen.protocol,
+            loaded_gold=frozen.loaded_gold,
+            pilot_schedule=pilot_schedule,
+            pilot_receipts=pilot_receipts,
+            evidence_resolver=evidence_resolver,
+        )
+        _exclusive_write(arguments.export_reference_cases, canonical_json_bytes(packet))
+        _emit(
+            {
+                "status": "reference_cases_exported",
+                "case_count": len(packet.cases),
+                "packet_sha256": packet.packet_sha256,
+                "output": str(arguments.export_reference_cases.resolve()),
+            }
+        )
+        return 0
     calibration_inputs = build_package8_pilot_calibration_inputs_v3(
         protocol=frozen.protocol,
         loaded_gold=frozen.loaded_gold,
@@ -478,8 +511,12 @@ def _operate(arguments: argparse.Namespace) -> int:
             maximum_absolute_error={
                 metric: arguments.calibration_max_absolute_error
                 for metric in SEMANTIC_JUDGE_METRICS_V3
-            }
+            },
+            successor_protocol_sha256=frozen.protocol_sha256
+            if frozen.successor_binding
+            else None,
         ),
+        independent_references=_load_independent_references(arguments, frozen),
     )
     preparation = prepare_heldout_judging_v3(
         frozen=frozen,
@@ -685,6 +722,7 @@ def _execute(arguments: argparse.Namespace) -> int:
             database_url=arguments.database_url,
             expected_protocol=frozen.protocol,
             runtime_manifest_path=arguments.p7_runtime_manifest,
+            successor_binding=frozen.successor_binding,
         )
         result = asyncio.run(
             run_heldout_benchmark_v3(
@@ -826,6 +864,9 @@ def _load_complete_pilot_receipts(
     argv = ["validate", "--project-root", str(frozen.project_root)]
     if runtime_manifest_path is not None:
         argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    _append_successor_input_arguments(
+        argv, frozen.project_root, frozen.successor_binding
+    )
     arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != frozen.protocol:
@@ -1124,7 +1165,24 @@ def _load_frozen(arguments: argparse.Namespace) -> FrozenPackage7HeldoutInputsV3
         gold_path=arguments.gold,
         split_path=arguments.split,
         runtime_manifest_path=arguments.p7_runtime_manifest,
+        successor_binding_path=arguments.successor_binding,
     )
+
+
+def _load_independent_references(
+    arguments: argparse.Namespace, frozen: FrozenPackage7HeldoutInputsV3
+) -> tuple[CalibrationReferenceLabelsV3, ...]:
+    if arguments.independent_references is None:
+        return ()
+    bundle = CalibrationReferenceBundleV3.model_validate_json(
+        arguments.independent_references.read_text(encoding="utf-8")
+    )
+    if bundle.protocol_sha256 != frozen.protocol_sha256:
+        raise BenchmarkCLIError(
+            "independent_reference_protocol_drift",
+            "independent references bind a different protocol",
+        )
+    return bundle.references
 
 
 def _require_operator_guard(arguments: argparse.Namespace) -> None:
@@ -1154,6 +1212,9 @@ def _load_pilot_cases(
     argv = ["validate", "--project-root", str(frozen.project_root)]
     if runtime_manifest_path is not None:
         argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    _append_successor_input_arguments(
+        argv, frozen.project_root, frozen.successor_binding
+    )
     arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != frozen.protocol:
@@ -1564,7 +1625,10 @@ def _build_judge_configuration(
 ) -> ModelJudgeConfigurationV3:
     """Reuse P7's frozen judge model and prompt binding without operator overrides."""
 
-    from app.evaluation.v3_cli import PACKAGE7_JUDGE_PROMPT_V3
+    from app.evaluation.v3_cli import (
+        PACKAGE7_JUDGE_PROMPT_V3,
+        PACKAGE7_LEGACY_JUDGE_PROMPT_V3,
+    )
 
     policy = frozen.protocol.experiment.judgment_policy
     if policy.model_binding is None:
@@ -1575,7 +1639,10 @@ def _build_judge_configuration(
     return build_model_judge_configuration_v3(
         bindings=preparation.blinded.packet.bindings,
         model_binding=policy.model_binding,
-        judge_prompt=PACKAGE7_JUDGE_PROMPT_V3,
+        judge_prompt=PACKAGE7_JUDGE_PROMPT_V3
+        if frozen.protocol.assets.judge_prompt_sha256
+        == judge_prompt_sha256_v3(PACKAGE7_JUDGE_PROMPT_V3)
+        else PACKAGE7_LEGACY_JUDGE_PROMPT_V3,
     )
 
 
@@ -1585,6 +1652,7 @@ def _build_live_operator_resources(
     database_url: str,
     expected_protocol: object,
     runtime_manifest_path: Path | None = None,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> _LiveOperatorResources:
     """Reuse P7's guarded graph and shared ledger without exposing its settings."""
 
@@ -1593,6 +1661,7 @@ def _build_live_operator_resources(
         database_url=database_url,
         expected_protocol=expected_protocol,
         runtime_manifest_path=runtime_manifest_path,
+        successor_binding=successor_binding,
     )
     composer = getattr(factory, "composer", None)
     services = getattr(factory, "shared_services", None)
@@ -1641,6 +1710,7 @@ def _build_package7_live_executor_factory(
     database_url: str,
     expected_protocol: object,
     runtime_manifest_path: Path | None = None,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> ObservationExecutorFactoryV3:
     """Delegate live setup to P7's already validated factory without logging it."""
 
@@ -1649,6 +1719,7 @@ def _build_package7_live_executor_factory(
     argv = ["validate", "--project-root", str(project_root)]
     if runtime_manifest_path is not None:
         argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    _append_successor_input_arguments(argv, project_root, successor_binding)
     arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != expected_protocol:
@@ -1659,6 +1730,20 @@ def _build_package7_live_executor_factory(
             database_url=_with_utc_session_timezone(database_url),
         )
     )
+
+
+def _append_successor_input_arguments(
+    argv: list[str], project_root: Path, binding: SuccessorBindingV3 | None
+) -> None:
+    if binding is None:
+        return
+    for option, name in (
+        ("--runtime-manifest", "runtime_manifest_path"),
+        ("--experiment", "experiment_path"),
+        ("--gold", "gold_path"),
+        ("--split", "split_path"),
+    ):
+        argv.extend((option, str(project_root / getattr(binding, name))))
 
 
 def _with_utc_session_timezone(database_url: str) -> str:
@@ -1893,6 +1978,11 @@ def _parser() -> argparse.ArgumentParser:
         if name in {"prepare", "operate"}:
             pilot_output = project_root / "output" / "evaluation-v3" / "pilot"
             command.add_argument(
+                "--independent-references",
+                type=Path,
+                help="independent reference bundle for successor calibration",
+            )
+            command.add_argument(
                 "--pilot-checkpoint",
                 type=Path,
                 default=pilot_output / "pilot-checkpoint.v3.jsonl",
@@ -1909,6 +1999,11 @@ def _parser() -> argparse.ArgumentParser:
                 help="frozen per-metric development judge tolerance in [0, 1]",
             )
         if name == "operate":
+            command.add_argument(
+                "--export-reference-cases",
+                type=Path,
+                help="export exact development cases before judge dispatch",
+            )
             command.add_argument(
                 "--allow-network",
                 action="store_true",
@@ -1967,6 +2062,7 @@ def _add_inputs(parser: argparse.ArgumentParser, project_root: Path) -> None:
         default=p7_output / "repeat-decision.v3.json",
     )
     parser.add_argument("--p7-runtime-manifest", type=Path)
+    parser.add_argument("--successor-binding", type=Path)
     parser.add_argument(
         "--gold",
         type=Path,

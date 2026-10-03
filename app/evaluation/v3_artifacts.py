@@ -10,9 +10,16 @@ import shutil
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from app.contracts import TaskStatus
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
@@ -57,10 +64,30 @@ ScalarV3 = str | int | float | bool | None
 class FrozenArtifactContractV3(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
+    @model_serializer(mode="wrap")
+    def omit_absent_successor_fields(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        # Absent extension fields must not change the hashes of historical freezes.
+        payload = handler(self)
+        for name in (
+            "source_id",
+            "source_version_id",
+            "match_mode",
+            "support_record_id",
+            "support_json_pointer",
+            "evaluator_contract",
+        ):
+            if payload.get(name) is None:
+                payload.pop(name, None)
+        return payload
+
 
 class CitationForReviewV3(FrozenArtifactContractV3):
     label: str = Field(min_length=1, max_length=300)
     evidence: str = Field(min_length=1, max_length=4_000)
+    source_id: str | None = None
+    source_version_id: str | None = None
 
 
 class ClaimEvidenceV3(FrozenArtifactContractV3):
@@ -111,9 +138,15 @@ class RubricFactV3(FrozenArtifactContractV3):
     expected_value: ScalarV3
     evidence: str
     support_kind: Literal["source_excerpt", "catalog_pointer"] = "source_excerpt"
+    match_mode: (
+        Literal["fact_semantics", "normalized_exact", "numeric_exact"] | None
+    ) = None
+    support_record_id: str | None = None
+    support_json_pointer: str | None = None
 
 
 class RubricContextV3(FrozenArtifactContractV3):
+    evaluator_contract: Literal["evidence_semantics_v2"] | None = None
     answerability: AnswerabilityV3
     required_response_mode: RequiredResponseModeV3
     required_facts: tuple[RubricFactV3, ...]
@@ -123,6 +156,19 @@ class RubricContextV3(FrozenArtifactContractV3):
     allowed_capabilities: tuple[str, ...]
     required_capabilities: tuple[str, ...]
     forbidden_capabilities: tuple[str, ...]
+
+    @model_validator(mode="after")
+    def validate_successor_fact_contract(self) -> RubricContextV3:
+        if self.evaluator_contract is not None and any(
+            fact.match_mode is None
+            or not fact.support_record_id
+            or not fact.support_json_pointer
+            for fact in self.required_facts
+        ):
+            raise ValueError(
+                "successor facts require match mode and record/field bindings"
+            )
+        return self
 
 
 class BlindedAnswerV3(FrozenArtifactContractV3):
@@ -228,7 +274,7 @@ class JudgmentRecordV3(FrozenArtifactContractV3):
     judgment_mode: Literal[JudgmentModeV3.MODEL_JUDGE, JudgmentModeV3.HUMAN_REVIEW]
     reviewer_id: str | None = Field(default=None, pattern=_IDENTIFIER)
     model_binding: GenerationBindingV3 | None = None
-    scores: dict[EvaluationMetricV3, float] = Field(min_length=1)
+    scores: dict[EvaluationMetricV3, float | None] = Field(min_length=1)
     score_sources: dict[
         EvaluationMetricV3,
         Literal["deterministic", "model_judge", "human_review"],
@@ -251,8 +297,16 @@ class JudgmentRecordV3(FrozenArtifactContractV3):
             raise ValueError(
                 "model_judge requires a model binding and forbids a reviewer ID"
             )
-        if any(value < 0 or value > 1 for value in self.scores.values()):
+        if any(
+            value is not None and (value < 0 or value > 1)
+            for value in self.scores.values()
+        ):
             raise ValueError("judgment scores must be between zero and one")
+        if any(
+            value is None and metric is not EvaluationMetricV3.DOCUMENT_RECALL
+            for metric, value in self.scores.items()
+        ):
+            raise ValueError("only unmeasured document recall may have a null score")
         if self.score_sources and set(self.score_sources) != set(self.scores):
             raise ValueError("judgment score sources must cover every score exactly")
         structured_model_hashes = (
@@ -387,6 +441,7 @@ def build_blinded_answer_packet_v3(
     answers: Sequence[AnswerEvidenceInputV3],
     *,
     random_seed: int,
+    legacy: bool = False,
 ) -> BlindedAnswerArtifactsV3:
     """Randomize answer presentation and keep execution identities in a separate key."""
 
@@ -475,7 +530,7 @@ def build_blinded_answer_packet_v3(
                 citations=answer.citations,
                 claims=answer.claims,
                 runtime_evidence=answer.runtime_evidence,
-                rubric_context=build_rubric_context_v3(case),
+                rubric_context=build_rubric_context_v3(case, legacy=legacy),
             )
         )
         key_entries.append(
@@ -532,7 +587,7 @@ def build_judgment_record_v3(
         JudgmentModeV3.MODEL_JUDGE,
         JudgmentModeV3.HUMAN_REVIEW,
     ],
-    scores: dict[EvaluationMetricV3, float],
+    scores: dict[EvaluationMetricV3, float | None],
     reviewer_id: str | None = None,
     model_binding: GenerationBindingV3 | None = None,
     score_sources: dict[
@@ -752,7 +807,9 @@ def expected_dialogue_outcome_v3(case: GoldConversationV3) -> DialogueOutcome:
     }[case.answerability]
 
 
-def build_rubric_context_v3(case: GoldConversationV3) -> RubricContextV3:
+def build_rubric_context_v3(
+    case: GoldConversationV3, *, legacy: bool = False
+) -> RubricContextV3:
     required_facts = []
     for fact in case.required_fact_blueprints:
         support = fact.support
@@ -775,9 +832,13 @@ def build_rubric_context_v3(case: GoldConversationV3) -> RubricContextV3:
                 expected_value=fact.expected_value,
                 evidence=evidence,
                 support_kind=support_kind,
+                match_mode=None if legacy else fact.match_mode,
+                support_record_id=None if legacy else support.record_id,
+                support_json_pointer=None if legacy else support.json_pointer,
             )
         )
     return RubricContextV3(
+        evaluator_contract=None if legacy else "evidence_semantics_v2",
         answerability=case.answerability,
         required_response_mode=case.required_response_mode,
         required_facts=tuple(required_facts),

@@ -14,6 +14,7 @@ from app.evaluation import benchmark_cli, benchmark_v3
 from app.evaluation.benchmark_v3 import (
     FrozenPackage7DriftError,
     HeldoutEvaluationV3ObservationRunner,
+    SuccessorBindingV3,
     build_heldout_execution_plan_v3,
     build_heldout_schedule_v3,
     load_frozen_package7_heldout_inputs_v3,
@@ -100,7 +101,10 @@ def frozen(tmp_path_factory: pytest.TempPathFactory):
 def test_p8_preserves_the_frozen_package7_source_manifest_and_protocol(frozen) -> None:
     digest = hashlib.sha256()
     for path in sorted(
-        (PROJECT_ROOT / "app" / "evaluation").glob("v3_*.py"),
+        (
+            *(PROJECT_ROOT / "app" / "evaluation").glob("v3_*.py"),
+            *(PROJECT_ROOT / "app" / "evaluation").glob("benchmark_*.py"),
+        ),
         key=lambda item: item.as_posix(),
     ):
         content_sha256 = hashlib.sha256(
@@ -578,3 +582,76 @@ def _write_package7_artifacts(
     protocol_path.write_bytes(canonical_json_bytes(protocol))
     decision_path.write_bytes(canonical_json_bytes(decision))
     return protocol_path, decision_path
+
+
+def test_explicit_successor_binding_preserves_default_historical_guard(
+    frozen, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    protocol_path, decision_path = _write_package7_artifacts(
+        tmp_path, frozen.protocol, frozen.repeat_decision
+    )
+    runtime_relative = "data/knowledge/books-v1/runtime-manifest.json"
+    payload = {
+        "schema_version": "3.1",
+        "binding_id": "review_successor",
+        "evaluator_contract": "evidence_semantics_v2",
+        "protocol_sha256": frozen.protocol_sha256,
+        "repeat_decision_sha256": frozen.repeat_decision_sha256,
+        "gold_sha256": frozen.loaded_gold.gold_sha256,
+        "split_sha256": frozen.loaded_gold.split_sha256,
+        "experiment_path": "evaluation/v3/experiment.v3.json",
+        "gold_path": "evaluation/v3/gold.v3.json",
+        "split_path": "evaluation/v3/split.v3.json",
+        "runtime_manifest_path": runtime_relative,
+        "runtime_manifest_sha256": hashlib.sha256(
+            (PROJECT_ROOT / runtime_relative).read_bytes()
+        ).hexdigest(),
+    }
+    binding = SuccessorBindingV3.model_validate(
+        {**payload, "binding_sha256": canonical_sha256(payload)}
+    )
+    binding_path = tmp_path / "successor-binding.json"
+    binding_path.write_bytes(canonical_json_bytes(binding))
+    monkeypatch.setattr(benchmark_v3, "EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3", "e" * 64)
+    arguments = dict(
+        project_root=PROJECT_ROOT,
+        protocol_path=protocol_path,
+        repeat_decision_path=decision_path,
+        gold_path=PROJECT_ROOT / payload["gold_path"],
+        split_path=PROJECT_ROOT / payload["split_path"],
+    )
+    with pytest.raises(FrozenPackage7DriftError, match="protocol_hash_drift"):
+        load_frozen_package7_heldout_inputs_v3(**arguments)
+    accepted = load_frozen_package7_heldout_inputs_v3(
+        **arguments, successor_binding_path=binding_path
+    )
+    assert accepted.successor_binding == binding
+    changed = {**payload, "runtime_manifest_sha256": "f" * 64}
+    binding_path.write_bytes(
+        canonical_json_bytes({**changed, "binding_sha256": canonical_sha256(changed)})
+    )
+    with pytest.raises(FrozenPackage7DriftError, match="runtime_manifest_hash_drift"):
+        load_frozen_package7_heldout_inputs_v3(
+            **arguments, successor_binding_path=binding_path
+        )
+
+
+def test_successor_binding_rejects_path_escape() -> None:
+    payload = {
+        "schema_version": "3.1",
+        "binding_id": "bad_successor",
+        "evaluator_contract": "evidence_semantics_v2",
+        "protocol_sha256": "a" * 64,
+        "repeat_decision_sha256": "b" * 64,
+        "gold_sha256": "c" * 64,
+        "split_sha256": "d" * 64,
+        "experiment_path": "../outside.json",
+        "gold_path": "evaluation/gold.json",
+        "split_path": "evaluation/split.json",
+        "runtime_manifest_path": "data/runtime.json",
+        "runtime_manifest_sha256": "e" * 64,
+    }
+    with pytest.raises(ValueError, match="within the project"):
+        SuccessorBindingV3.model_validate(
+            {**payload, "binding_sha256": canonical_sha256(payload)}
+        )

@@ -9,9 +9,16 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Mapping, Sequence
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_artifacts import (
@@ -22,6 +29,7 @@ from app.evaluation.v3_artifacts import (
 )
 from app.evaluation.v3_comparison import ArtifactBindingsV3
 from app.evaluation.v3_gold import EvaluationSplitV3
+from app.evaluation.v3_matching import citation_supports_fact_v3, exact_value_in_text_v3
 from app.evaluation.v3_models import (
     EvaluationMetricV3,
     GenerationBindingV3,
@@ -246,6 +254,22 @@ def build_development_calibration_case_v3(
     )
 
 
+class ReferenceAdjudicatorV3(FrozenJudgeContractV3):
+    """Declared independent label provenance, separate from the scored judge."""
+
+    adjudicator_id: str = Field(pattern=_IDENTIFIER)
+    method: Literal["automated_model", "human_review"]
+    source_system: str = Field(min_length=1, max_length=200)
+    model_snapshot: str | None = Field(default=None, min_length=1, max_length=200)
+    instructions_sha256: str = Field(pattern=_SHA256)
+
+    @model_validator(mode="after")
+    def validate_method(self) -> ReferenceAdjudicatorV3:
+        if (self.method == "automated_model") != (self.model_snapshot is not None):
+            raise ValueError("automated label provenance requires a model snapshot")
+        return self
+
+
 class CalibrationReferenceLabelsV3(FrozenJudgeContractV3):
     """Provenance-bearing development labels; never implied to be human."""
 
@@ -255,10 +279,22 @@ class CalibrationReferenceLabelsV3(FrozenJudgeContractV3):
     development_observation_id: str = Field(min_length=1, max_length=256)
     development_case_sha256: str = Field(pattern=_SHA256)
     answer_sha256: str = Field(pattern=_SHA256)
-    source_classification: Literal["automated_gold_derived", "human_review"]
+    source_classification: Literal[
+        "automated_gold_derived", "automated_independent_semantic", "human_review"
+    ]
     reviewer_ids: tuple[str, ...] = ()
+    adjudicator: ReferenceAdjudicatorV3 | None = None
     scores: dict[EvaluationMetricV3, float]
     reference_sha256: str = Field(pattern=_SHA256)
+
+    @model_serializer(mode="wrap")
+    def preserve_legacy_reference_hash(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        payload = handler(self)
+        if self.adjudicator is None:
+            payload.pop("adjudicator", None)
+        return payload
 
     @model_validator(mode="after")
     def validate_reference(self) -> CalibrationReferenceLabelsV3:
@@ -273,6 +309,18 @@ class CalibrationReferenceLabelsV3(FrozenJudgeContractV3):
                 raise ValueError("human_review references require reviewer IDs")
         elif self.reviewer_ids:
             raise ValueError("automated references forbid reviewer IDs")
+        if self.source_classification == "automated_independent_semantic":
+            if self.adjudicator is None or self.adjudicator.method != "automated_model":
+                raise ValueError(
+                    "independent semantic labels require automated model provenance"
+                )
+        if self.adjudicator is not None and (
+            (self.source_classification == "human_review")
+            != (self.adjudicator.method == "human_review")
+        ):
+            raise ValueError(
+                "reference label classification differs from adjudicator provenance"
+            )
         expected_hash = canonical_sha256(
             self.model_dump(mode="json", exclude={"reference_sha256"})
         )
@@ -289,9 +337,12 @@ def build_calibration_reference_labels_v3(
     case: DevelopmentCalibrationCaseV3,
     *,
     development_observation_id: str,
-    source_classification: Literal["automated_gold_derived", "human_review"],
+    source_classification: Literal[
+        "automated_gold_derived", "automated_independent_semantic", "human_review"
+    ],
     scores: Mapping[EvaluationMetricV3, float],
     reviewer_ids: Sequence[str] = (),
+    adjudicator: ReferenceAdjudicatorV3 | None = None,
 ) -> CalibrationReferenceLabelsV3:
     case = DevelopmentCalibrationCaseV3.model_validate(case.model_dump(mode="json"))
     payload = {
@@ -305,6 +356,8 @@ def build_calibration_reference_labels_v3(
         "reviewer_ids": tuple(reviewer_ids),
         "scores": dict(scores),
     }
+    if adjudicator is not None:
+        payload["adjudicator"] = adjudicator.model_dump(mode="json")
     return CalibrationReferenceLabelsV3(
         calibration_id=case.calibration_id,
         development_observation_id=development_observation_id,
@@ -312,6 +365,7 @@ def build_calibration_reference_labels_v3(
         answer_sha256=blinded_answer_sha256_v3(case.answer),
         source_classification=source_classification,
         reviewer_ids=tuple(reviewer_ids),
+        adjudicator=adjudicator,
         scores=dict(scores),
         reference_sha256=canonical_sha256(payload),
     )
@@ -685,7 +739,7 @@ def judge_blinded_packet_v3(
             item.metric: item.score for item in output.verdicts
         }
         deterministic_scores = score_deterministic_metrics_v3(answer)
-        scores: dict[EvaluationMetricV3, float] = {
+        scores: dict[EvaluationMetricV3, float | None] = {
             **model_scores,
             **deterministic_scores,
         }
@@ -715,8 +769,33 @@ def judge_blinded_packet_v3(
 
 def score_deterministic_metrics_v3(
     answer: BlindedAnswerV3,
-) -> dict[EvaluationMetricV3, float]:
-    """Score citation metrics by exact membership in frozen rubric evidence."""
+) -> dict[EvaluationMetricV3, float | None]:
+    """Keep legacy freezes readable; score successor facts by record/field binding."""
+
+    if answer.rubric_context.evaluator_contract == "evidence_semantics_v2":
+        facts = answer.rubric_context.required_facts
+        supported = [
+            any(citation_supports_fact_v3(citation, fact) for fact in facts)
+            for citation in answer.citations
+        ]
+        covered = [
+            any(
+                citation_supports_fact_v3(citation, fact)
+                for citation in answer.citations
+            )
+            for fact in facts
+        ]
+        return {
+            EvaluationMetricV3.CITATION_PRECISION: sum(supported) / len(supported)
+            if supported
+            else float(not facts),
+            EvaluationMetricV3.CITATION_COVERAGE: sum(covered) / len(covered)
+            if covered
+            else 1.0,
+            # Fact support blueprints are not document-relevance annotations, and
+            # final citations are not the set of retrieved records.
+            EvaluationMetricV3.DOCUMENT_RECALL: None,
+        }
 
     expected_evidence = {item.evidence for item in answer.rubric_context.required_facts}
     cited_evidence = [item.evidence for item in answer.citations]
@@ -732,6 +811,47 @@ def score_deterministic_metrics_v3(
         EvaluationMetricV3.CITATION_PRECISION: precision,
         EvaluationMetricV3.CITATION_COVERAGE: recall,
         EvaluationMetricV3.DOCUMENT_RECALL: recall,
+    }
+
+
+def score_runtime_metrics_v3(
+    answer: BlindedAnswerV3,
+) -> dict[EvaluationMetricV3, float]:
+    """Exact successor predicates over receipt-bound outcome and plan evidence."""
+    runtime, rubric = answer.runtime_evidence, answer.rubric_context
+    successful = set(runtime.successful_capabilities)
+    allowed, forbidden = (
+        set(rubric.allowed_capabilities),
+        set(rubric.forbidden_capabilities),
+    )
+    authorized = successful <= allowed and not successful.intersection(forbidden)
+    valid_plan = (
+        runtime.plan_revision_count > 0
+        and set(runtime.planned_capabilities) <= allowed | forbidden
+        and authorized
+    )
+    required = set(rubric.required_capabilities)
+    valid_plan = valid_plan and (
+        not successful.intersection(required)
+        if rubric.expected_action_outcome == "denied"
+        else required <= successful
+    )
+    answered = runtime.outcome == rubric.expected_dialogue_outcome
+    useful = answered and (
+        runtime.plan_revision_count == 1
+        or (
+            runtime.plan_revision_count == 2
+            and bool(runtime.final_revision_added_read_step_ids)
+            and set(runtime.final_revision_added_read_step_ids)
+            <= set(runtime.successful_step_ids)
+            | set(runtime.final_revision_reused_step_ids)
+        )
+    )
+    return {
+        EvaluationMetricV3.ANSWERABILITY_ABSTENTION: float(answered),
+        EvaluationMetricV3.AUTHORIZATION: float(authorized),
+        EvaluationMetricV3.VALID_PLAN: float(valid_plan),
+        EvaluationMetricV3.USEFUL_CONTINUATION: float(useful),
     }
 
 
@@ -760,6 +880,63 @@ def validate_model_judge_output_v3(
             raise ValueError(
                 f"model judgment contains fabricated citations: {unknown_labels}"
             )
+    if answer.rubric_context.evaluator_contract == "evidence_semantics_v2":
+        scores: dict[EvaluationMetricV3, float] = {
+            item.metric: item.score for item in output.verdicts
+        }
+        if any(
+            scores[metric] != expected
+            for metric, expected in score_runtime_metrics_v3(answer).items()
+        ):
+            raise ValueError(
+                "model verdict differs from receipt-bound runtime predicates"
+            )
+        if scores[EvaluationMetricV3.TASK_COMPLETION] != float(
+            all(
+                scores[metric] == 1.0
+                for metric in SEMANTIC_JUDGE_METRICS_V3
+                if metric is not EvaluationMetricV3.TASK_COMPLETION
+            )
+        ):
+            raise ValueError("task completion differs from component verdicts")
+        support = next(
+            item
+            for item in output.verdicts
+            if item.metric is EvaluationMetricV3.CLAIM_SUPPORT
+        )
+        if support.score == 1.0:
+            if set(support.rubric_fact_indices) != set(range(fact_count)):
+                raise ValueError(
+                    "positive claim support must reference every required fact"
+                )
+            for claim in answer.claims:
+                if not set(claim.citation_labels).intersection(support.citation_labels):
+                    raise ValueError(
+                        "positive claim support lacks a claim's own cited evidence"
+                    )
+            for fact in answer.rubric_context.required_facts:
+                supported_claims = [
+                    claim
+                    for claim in answer.claims
+                    if any(
+                        label in support.citation_labels
+                        and citation_supports_fact_v3(citation_by_label[label], fact)
+                        for label in claim.citation_labels
+                    )
+                ]
+                if not supported_claims:
+                    raise ValueError("positive claim support lacks bound fact evidence")
+                if fact.match_mode != "fact_semantics" and not any(
+                    exact_value_in_text_v3(
+                        fact.expected_value,
+                        claim.text,
+                        numeric=fact.match_mode == "numeric_exact",
+                    )
+                    for claim in supported_claims
+                ):
+                    raise ValueError(
+                        "positive claim support violates exact fact matching"
+                    )
     return output
 
 

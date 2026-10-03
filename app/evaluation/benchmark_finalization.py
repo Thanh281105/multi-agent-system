@@ -257,6 +257,7 @@ def prepare_heldout_judging_v3(
             completed,
             admission=admission,
             evidence_resolver=evidence_resolver,
+            legacy=frozen.successor_binding is None,
         )
     except BenchmarkReportingValidationErrorV3 as exc:
         raise Package8FinalizationErrorV3("receipt_to_blind_evidence_rejected") from exc
@@ -278,6 +279,7 @@ def prepare_heldout_judging_v3(
             pre_judgment,
             tuple(item.answer_evidence for item in provisionals),
             random_seed=frozen.protocol.random_seed ^ _PREPARATION_SEED_MASK,
+            legacy=frozen.successor_binding is None,
         )
     except ValueError as exc:
         raise Package8FinalizationErrorV3("blind_packet_build_rejected") from exc

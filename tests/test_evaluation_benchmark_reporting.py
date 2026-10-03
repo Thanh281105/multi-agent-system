@@ -15,6 +15,7 @@ from app.evaluation.benchmark_reporting import (
     HeldOutReceiptAdmissionV3,
     JudgedObservationSetV3,
     Package8PartialExecutionReportV3,
+    ProvisionalObservationV3,
     ReceiptAccountingV3,
     ReceiptFailureTaxonomyEntryV3,
     ResolvedExactEvidenceV3,
@@ -29,6 +30,7 @@ from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_artifacts import (
     BlindedAnswerPacketV3,
     BlindedAnswerV3,
+    ClaimEvidenceV3,
     JudgmentRecordV3,
     RubricContextV3,
     UnblindingEntryV3,
@@ -457,6 +459,76 @@ def test_judgment_join_rejects_mismatched_calibration_model_and_scores() -> None
             calibration=calibration,
         )
 
+
+@pytest.mark.parametrize("field", ["claims", "runtime_evidence"])
+def test_join_rejects_hash_valid_packet_with_foreign_scored_metadata(
+    field: str,
+) -> None:
+    provisional = _provisional()
+    packet, key, configuration, calibration = _blind_context(provisional)
+    answer = packet.answers[0]
+    if field == "claims":
+        changed = answer.model_copy(
+            update={
+                "claims": (
+                    ClaimEvidenceV3(
+                        text="Fabricated unrelated assertion", citation_labels=("[C1]",)
+                    ),
+                )
+            }
+        )
+    else:
+        changed = answer.model_copy(
+            update={
+                "runtime_evidence": answer.runtime_evidence.model_copy(
+                    update={"plan_revision_count": 1}
+                )
+            }
+        )
+    packet_payload = packet.model_dump(mode="json", exclude={"packet_sha256"})
+    packet_payload["answers"] = [changed.model_dump(mode="json")]
+    packet = BlindedAnswerPacketV3.model_validate(
+        {**packet_payload, "packet_sha256": canonical_sha256(packet_payload)}
+    )
+    key_payload = key.model_dump(mode="json", exclude={"key_sha256"})
+    key_payload["blinded_packet_sha256"] = packet.packet_sha256
+    key = UnblindingKeyV3.model_validate(
+        {**key_payload, "key_sha256": canonical_sha256(key_payload)}
+    )
+    with pytest.raises(BenchmarkReportingValidationErrorV3, match="receipt-derived"):
+        join_model_judgments_to_observations_v3(
+            (provisional,),
+            blinded_packet=packet,
+            unblinding_key=key,
+            judgments=(_judgment(packet, configuration, calibration),),
+            judge_configuration=configuration,
+            calibration=calibration,
+        )
+
+
+@pytest.mark.parametrize("field", ["claims", "runtime_evidence"])
+def test_provisional_rederives_scored_metadata_from_final_result(field: str) -> None:
+    provisional = _provisional()
+    answer = provisional.answer_evidence
+    if field == "claims":
+        changed = answer.model_copy(update={"claims": ()})
+    else:
+        changed = answer.model_copy(
+            update={
+                "runtime_evidence": answer.runtime_evidence.model_copy(
+                    update={"plan_revision_count": 1}
+                )
+            }
+        )
+    payload = provisional.model_dump(mode="json")
+    payload["answer_evidence"] = changed.model_dump(mode="json")
+    with pytest.raises(ValueError, match="final TurnResult"):
+        ProvisionalObservationV3.model_validate(payload)
+
+
+def test_judgment_join_rejects_incomplete_scores_and_model() -> None:
+    provisional = _provisional()
+    packet, key, configuration, calibration = _blind_context(provisional)
     incomplete = build_judgment_record_v3(
         bindings=packet.bindings,
         blinded_packet_sha256=packet.packet_sha256,

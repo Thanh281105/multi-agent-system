@@ -14,13 +14,22 @@ from app.evaluation.benchmark_calibration import (
     _exact_citations,
     build_calibration_label_policy_v3,
     build_package8_pilot_calibration_inputs_v3,
+    build_pilot_reference_cases_v3,
 )
 from app.evaluation.benchmark_reporting import (
     EvidenceBindingKeyV3,
     ResolvedExactEvidenceV3,
 )
-from app.evaluation.v3_judge import SEMANTIC_JUDGE_METRICS_V3
-from app.evaluation.v3_models import PilotTurnCostV3, ScheduledTurnKindV3
+from app.evaluation.v3_judge import (
+    SEMANTIC_JUDGE_METRICS_V3,
+    ReferenceAdjudicatorV3,
+    build_calibration_reference_labels_v3,
+)
+from app.evaluation.v3_models import (
+    EvaluationMetricV3,
+    PilotTurnCostV3,
+    ScheduledTurnKindV3,
+)
 from app.evaluation.v3_protocol import evaluation_protocol_sha256_v3
 from app.evaluation.v3_runner import (
     EmbeddingCallEvidenceV3,
@@ -369,3 +378,96 @@ def test_policy_is_hash_stable_and_preserves_all_caller_thresholds() -> None:
     assert first == second
     assert len(first.maximum_absolute_error) == 6
     assert set(first.maximum_absolute_error.values()) == {0.25}
+
+
+def test_successor_calibration_requires_independent_hash_bound_labels(
+    package7_inputs,
+) -> None:
+    schedule, receipts = _synthetic_receipts(package7_inputs)
+    policy = build_calibration_label_policy_v3(
+        maximum_absolute_error={metric: 0.25 for metric in SEMANTIC_JUDGE_METRICS_V3},
+        successor_protocol_sha256=evaluation_protocol_sha256_v3(
+            package7_inputs.protocol
+        ),
+    )
+    arguments = dict(
+        protocol=package7_inputs.protocol,
+        loaded_gold=package7_inputs.loaded_gold,
+        pilot_schedule=schedule,
+        pilot_receipts=receipts,
+        evidence_resolver=_Resolver(),
+        policy=policy,
+    )
+    with pytest.raises(
+        BenchmarkCalibrationValidationErrorV3, match="one independent reference"
+    ):
+        build_package8_pilot_calibration_inputs_v3(**arguments)
+    packet = build_pilot_reference_cases_v3(
+        protocol=package7_inputs.protocol,
+        loaded_gold=package7_inputs.loaded_gold,
+        pilot_schedule=schedule,
+        pilot_receipts=receipts,
+        evidence_resolver=_Resolver(),
+    )
+    assert len(packet.cases) == 32
+    assert all(
+        case.answer.rubric_context.evaluator_contract == "evidence_semantics_v2"
+        for case in packet.cases
+    )
+    by_receipt = {receipt.observation_id: receipt for receipt in receipts}
+    references = []
+    for case in packet.cases:
+        # Synthetic receipts contain no factual answer or evidence; independent
+        # labels declare unsupported content without using substring gold scoring.
+        receipt = next(
+            receipt
+            for receipt in receipts
+            if benchmark_calibration._calibration_id(receipt.observation_id or "")
+            == case.calibration_id
+        )
+        assert receipt.observation_id in by_receipt
+        gold = next(
+            gold
+            for gold in package7_inputs.loaded_gold.gold.conversations
+            if gold.conversation_id == receipt.identity.case_id
+        )
+        result = benchmark_calibration._final_turn_result(receipt)
+        scores = benchmark_calibration._gold_derived_scores(gold, result, ())
+        scores[EvaluationMetricV3.CLAIM_SUPPORT] = 0.0
+        scores[EvaluationMetricV3.TASK_COMPLETION] = 0.0
+        references.append(
+            build_calibration_reference_labels_v3(
+                case,
+                development_observation_id=receipt.observation_id or "",
+                source_classification="automated_independent_semantic",
+                scores=scores,
+                adjudicator=ReferenceAdjudicatorV3(
+                    adjudicator_id="independent_test",
+                    method="automated_model",
+                    source_system="independent counterexample labels",
+                    model_snapshot="different_model_snapshot",
+                    instructions_sha256="a" * 64,
+                ),
+            )
+        )
+    built = build_package8_pilot_calibration_inputs_v3(
+        **arguments, independent_references=references
+    )
+    assert built.policy.policy_id == "package8_independent_semantic_v2"
+    assert {
+        reference.source_classification for reference in built.references.references
+    } == {"automated_independent_semantic"}
+    wrong = references[0].model_copy(update={"answer_sha256": "f" * 64})
+    wrong_payload = wrong.model_dump(mode="json", exclude={"reference_sha256"})
+    from app.evaluation.protocol import canonical_sha256
+    from app.evaluation.v3_judge import CalibrationReferenceLabelsV3
+
+    wrong = CalibrationReferenceLabelsV3.model_validate(
+        {**wrong_payload, "reference_sha256": canonical_sha256(wrong_payload)}
+    )
+    with pytest.raises(
+        BenchmarkCalibrationValidationErrorV3, match="actual blinded answer"
+    ):
+        build_package8_pilot_calibration_inputs_v3(
+            **arguments, independent_references=(wrong, *references[1:])
+        )

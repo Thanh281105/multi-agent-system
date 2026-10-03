@@ -45,12 +45,15 @@ from app.evaluation.v3_judge import (
     CalibrationReferenceLabelsV3,
     CalibrationThresholdsV3,
     DevelopmentCalibrationCaseV3,
+    ReferenceAdjudicatorV3,
     blinded_answer_sha256_v3,
     build_calibration_reference_bundle_v3,
     build_calibration_reference_labels_v3,
     build_calibration_thresholds_v3,
     build_development_calibration_case_v3,
+    score_runtime_metrics_v3,
 )
+from app.evaluation.v3_matching import citation_supports_fact_v3, exact_value_in_text_v3
 from app.evaluation.v3_models import (
     EvaluationMetricV3,
     EvaluationProtocolV3,
@@ -98,9 +101,9 @@ class CalibrationLabelPolicyV3(_FrozenCalibrationModelV3):
     """
 
     schema_version: Literal["8.0"] = "8.0"
-    policy_id: Literal["package8_pilot_gold_derived_v1"] = (
-        "package8_pilot_gold_derived_v1"
-    )
+    policy_id: Literal[
+        "package8_pilot_gold_derived_v1", "package8_independent_semantic_v2"
+    ] = "package8_pilot_gold_derived_v1"
     protocol_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     minimum_development_cases: Literal[32] = 32
     maximum_absolute_error: Mapping[EvaluationMetricV3, float]
@@ -108,7 +111,10 @@ class CalibrationLabelPolicyV3(_FrozenCalibrationModelV3):
 
     @model_validator(mode="after")
     def validate_policy(self) -> "CalibrationLabelPolicyV3":
-        if self.protocol_sha256 != PACKAGE7_FROZEN_PROTOCOL_SHA256_V3:
+        if (
+            self.policy_id == "package8_pilot_gold_derived_v1"
+            and self.protocol_sha256 != PACKAGE7_FROZEN_PROTOCOL_SHA256_V3
+        ):
             raise ValueError(
                 "calibration policy must bind the frozen Package 7 protocol"
             )
@@ -136,21 +142,29 @@ class CalibrationLabelPolicyV3(_FrozenCalibrationModelV3):
 def build_calibration_label_policy_v3(
     *,
     maximum_absolute_error: Mapping[EvaluationMetricV3, float],
+    successor_protocol_sha256: str | None = None,
 ) -> CalibrationLabelPolicyV3:
     """Freeze a caller-selected complete threshold map with the label policy."""
 
     thresholds = dict(maximum_absolute_error)
     policy_payload = {
         "schema_version": PACKAGE8_CALIBRATION_POLICY_SCHEMA_VERSION_V3,
-        "policy_id": PACKAGE8_CALIBRATION_POLICY_ID_V3,
-        "protocol_sha256": PACKAGE7_FROZEN_PROTOCOL_SHA256_V3,
+        "policy_id": (
+            "package8_independent_semantic_v2"
+            if successor_protocol_sha256
+            else PACKAGE8_CALIBRATION_POLICY_ID_V3
+        ),
+        "protocol_sha256": successor_protocol_sha256
+        or PACKAGE7_FROZEN_PROTOCOL_SHA256_V3,
         "minimum_development_cases": PACKAGE8_EXPECTED_DEVELOPMENT_CALIBRATION_CASES_V3,
         "maximum_absolute_error": thresholds,
     }
     return CalibrationLabelPolicyV3(
         schema_version="8.0",
-        policy_id="package8_pilot_gold_derived_v1",
-        protocol_sha256=PACKAGE7_FROZEN_PROTOCOL_SHA256_V3,
+        policy_id="package8_independent_semantic_v2"
+        if successor_protocol_sha256
+        else "package8_pilot_gold_derived_v1",
+        protocol_sha256=successor_protocol_sha256 or PACKAGE7_FROZEN_PROTOCOL_SHA256_V3,
         minimum_development_cases=32,
         maximum_absolute_error=thresholds,
         policy_sha256=canonical_sha256(policy_payload),
@@ -236,6 +250,88 @@ class Package8PilotCalibrationInputsV3(_FrozenCalibrationModelV3):
         return self
 
 
+class PilotReferenceCasesV3(_FrozenCalibrationModelV3):
+    """Exact development packet exported for independent adjudication."""
+
+    schema_version: Literal["3.1"] = "3.1"
+    protocol_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    pilot_schedule_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    receipt_sha256s: tuple[str, ...]
+    development_observation_ids: tuple[str, ...]
+    cases: tuple[DevelopmentCalibrationCaseV3, ...] = Field(
+        min_length=32, max_length=32
+    )
+    packet_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+    @model_validator(mode="after")
+    def validate_packet(self) -> PilotReferenceCasesV3:
+        if (
+            len(self.receipt_sha256s) != len(self.cases)
+            or len(self.development_observation_ids) != len(self.cases)
+            or len(set(self.development_observation_ids)) != len(self.cases)
+            or len({case.calibration_id for case in self.cases}) != len(self.cases)
+        ):
+            raise ValueError(
+                "reference packet requires unique cases and matching receipt hashes"
+            )
+        if self.packet_sha256 != canonical_sha256(
+            self.model_dump(mode="json", exclude={"packet_sha256"})
+        ):
+            raise ValueError("reference packet canonical hash mismatch")
+        return self
+
+
+def build_pilot_reference_cases_v3(
+    *,
+    protocol: EvaluationProtocolV3,
+    loaded_gold: LoadedEvaluationGoldV3,
+    pilot_schedule: Sequence[ScheduledTurnV3],
+    pilot_receipts: Sequence[ObservationRunReceiptV3],
+    evidence_resolver: ImmutableEvidenceResolverV3,
+) -> PilotReferenceCasesV3:
+    """Export receipt-bound successor cases without inventing semantic labels."""
+    schedule, receipts = tuple(pilot_schedule), tuple(pilot_receipts)
+    protocol_sha256, schedule_sha256 = _validate_frozen_inputs(
+        protocol,
+        loaded_gold,
+        schedule,
+        receipts,
+        expected_protocol_sha256=evaluation_protocol_sha256_v3(protocol),
+    )
+    by_turn = {receipt.canonical_turn_id: receipt for receipt in receipts}
+    by_case = {case.conversation_id: case for case in loaded_gold.gold.conversations}
+    entries = []
+    for turn in schedule:
+        if turn.identity.turn_kind is not ScheduledTurnKindV3.MEASURED:
+            continue
+        receipt = by_turn[turn.turn_id]
+        gold = by_case[turn.identity.case_id]
+        if gold.split is not EvaluationSplitV3.DEVELOPMENT:
+            raise BenchmarkCalibrationValidationErrorV3(
+                "reference packets require development cases"
+            )
+        result = _final_turn_result(receipt)
+        citations = _exact_citations(result, evidence_resolver, legacy=False)
+        answer = _blinded_answer(gold, receipt, result, citations, legacy=False)
+        assert receipt.observation_id is not None
+        case = build_development_calibration_case_v3(
+            calibration_id=_calibration_id(receipt.observation_id), answer=answer
+        )
+        entries.append((case, canonical_sha256(receipt), receipt.observation_id))
+    entries.sort(key=lambda item: item[0].calibration_id)
+    payload = {
+        "schema_version": "3.1",
+        "protocol_sha256": protocol_sha256,
+        "pilot_schedule_sha256": schedule_sha256,
+        "receipt_sha256s": tuple(item[1] for item in entries),
+        "development_observation_ids": tuple(item[2] for item in entries),
+        "cases": [item[0].model_dump(mode="json") for item in entries],
+    }
+    return PilotReferenceCasesV3.model_validate(
+        {**payload, "packet_sha256": canonical_sha256(payload)}
+    )
+
+
 def _inputs_hash_payload(inputs: Package8PilotCalibrationInputsV3) -> dict[str, object]:
     payload = inputs.model_dump(mode="json")
     payload.pop("inputs_sha256", None)
@@ -272,6 +368,8 @@ def _evidence_binding(citation: object, evidence: object) -> EvidenceBindingKeyV
 def _exact_citations(
     result: TurnResult,
     resolver: ImmutableEvidenceResolverV3,
+    *,
+    legacy: bool = True,
 ) -> tuple[CitationForReviewV3, ...]:
     evidence_by_id = {item.evidence_id: item for item in result.evidence}
     review_citations: list[CitationForReviewV3] = []
@@ -303,6 +401,8 @@ def _exact_citations(
             CitationForReviewV3(
                 label=citation.display_label,
                 evidence=resolved.exact_text,
+                source_id=None if legacy else binding.source_id,
+                source_version_id=None if legacy else binding.source_version_id,
             )
         )
     return tuple(review_citations)
@@ -496,6 +596,8 @@ def _blinded_answer(
     receipt: ObservationRunReceiptV3,
     result: TurnResult,
     citations: tuple[CitationForReviewV3, ...],
+    *,
+    legacy: bool = True,
 ) -> BlindedAnswerV3:
     if receipt.observation_id is None:
         raise BenchmarkCalibrationValidationErrorV3(
@@ -509,7 +611,9 @@ def _blinded_answer(
         citations=citations,
         claims=claim_evidence_v3(result),
         runtime_evidence=runtime_rubric_evidence_v3(result),
-        rubric_context=build_rubric_context_v3(gold),
+        # This immutable label policy is historical. Corrected semantic labels
+        # require a successor policy and independent model/human adjudication.
+        rubric_context=build_rubric_context_v3(gold, legacy=legacy),
     )
 
 
@@ -518,6 +622,8 @@ def _validate_frozen_inputs(
     loaded_gold: LoadedEvaluationGoldV3,
     schedule: tuple[ScheduledTurnV3, ...],
     receipts: tuple[ObservationRunReceiptV3, ...],
+    *,
+    expected_protocol_sha256: str = PACKAGE7_FROZEN_PROTOCOL_SHA256_V3,
 ) -> tuple[str, str]:
     try:
         validate_evaluation_protocol_v3(protocol)
@@ -526,7 +632,7 @@ def _validate_frozen_inputs(
             "Package 7 protocol is invalid"
         ) from exc
     protocol_sha256 = evaluation_protocol_sha256_v3(protocol)
-    if protocol_sha256 != PACKAGE7_FROZEN_PROTOCOL_SHA256_V3:
+    if protocol_sha256 != expected_protocol_sha256:
         raise BenchmarkCalibrationValidationErrorV3(
             "Package 7 protocol hash is not frozen"
         )
@@ -623,6 +729,98 @@ def _validate_frozen_inputs(
     return protocol_sha256, schedule_sha256
 
 
+def _validate_independent_reference(
+    case: DevelopmentCalibrationCaseV3,
+    reference: CalibrationReferenceLabelsV3,
+    citations: Sequence[CitationForReviewV3],
+) -> None:
+    if reference.source_classification == "automated_gold_derived":
+        raise BenchmarkCalibrationValidationErrorV3(
+            "successor semantic labels cannot use legacy substring predicates"
+        )
+    if (
+        reference.calibration_id,
+        reference.development_case_sha256,
+        reference.answer_sha256,
+    ) != (case.calibration_id, case.case_sha256, blinded_answer_sha256_v3(case.answer)):
+        raise BenchmarkCalibrationValidationErrorV3(
+            "independent reference differs from the actual blinded answer"
+        )
+    expected = score_runtime_metrics_v3(case.answer)
+    claim_support = reference.scores[EvaluationMetricV3.CLAIM_SUPPORT]
+    if claim_support not in (0.0, 1.0):
+        raise BenchmarkCalibrationValidationErrorV3(
+            "independent claim support must be binary"
+        )
+    if claim_support == 1.0:
+        by_label = {item.label: item for item in citations}
+        if any(not claim.citation_labels for claim in case.answer.claims):
+            raise BenchmarkCalibrationValidationErrorV3(
+                "positive label lacks a claim's own cited evidence"
+            )
+        for fact in case.answer.rubric_context.required_facts:
+            if not any(
+                (
+                    fact.match_mode == "fact_semantics"
+                    or exact_value_in_text_v3(
+                        fact.expected_value,
+                        claim.text,
+                        numeric=fact.match_mode == "numeric_exact",
+                    )
+                )
+                and any(
+                    citation_supports_fact_v3(by_label[label], fact)
+                    for label in claim.citation_labels
+                )
+                for claim in case.answer.claims
+            ):
+                raise BenchmarkCalibrationValidationErrorV3(
+                    "positive label violates exact fact or own-citation matching"
+                )
+    expected[EvaluationMetricV3.CLAIM_SUPPORT] = claim_support
+    expected[EvaluationMetricV3.TASK_COMPLETION] = float(
+        all(
+            expected[metric] == 1.0
+            for metric in SEMANTIC_JUDGE_METRICS_V3
+            if metric is not EvaluationMetricV3.TASK_COMPLETION
+        )
+    )
+    if reference.scores != expected:
+        raise BenchmarkCalibrationValidationErrorV3(
+            "independent reference differs from deterministic runtime metrics"
+        )
+
+
+def build_independent_reference_labels_v3(
+    case: DevelopmentCalibrationCaseV3,
+    *,
+    development_observation_id: str,
+    claim_supported: bool,
+    adjudicator: ReferenceAdjudicatorV3,
+    reviewer_ids: Sequence[str] = (),
+) -> CalibrationReferenceLabelsV3:
+    """Bind an independent semantic decision to exact runtime-derived scores."""
+    if not isinstance(claim_supported, bool):
+        raise ValueError("independent support label must be boolean")
+    scores = score_runtime_metrics_v3(case.answer)
+    scores[EvaluationMetricV3.CLAIM_SUPPORT] = float(claim_supported)
+    scores[EvaluationMetricV3.TASK_COMPLETION] = float(
+        all(value == 1.0 for value in scores.values())
+    )
+    reference = build_calibration_reference_labels_v3(
+        case,
+        development_observation_id=development_observation_id,
+        source_classification="human_review"
+        if adjudicator.method == "human_review"
+        else "automated_independent_semantic",
+        scores=scores,
+        reviewer_ids=reviewer_ids,
+        adjudicator=adjudicator,
+    )
+    _validate_independent_reference(case, reference, case.answer.citations)
+    return reference
+
+
 def build_package8_pilot_calibration_inputs_v3(
     *,
     protocol: EvaluationProtocolV3,
@@ -631,6 +829,7 @@ def build_package8_pilot_calibration_inputs_v3(
     pilot_receipts: Sequence[ObservationRunReceiptV3],
     evidence_resolver: ImmutableEvidenceResolverV3,
     policy: CalibrationLabelPolicyV3,
+    independent_references: Sequence[CalibrationReferenceLabelsV3] = (),
 ) -> Package8PilotCalibrationInputsV3:
     """Build hash-bound calibration inputs from exactly 32 P7 development receipts.
 
@@ -643,7 +842,11 @@ def build_package8_pilot_calibration_inputs_v3(
     schedule = tuple(pilot_schedule)
     receipts = tuple(pilot_receipts)
     protocol_sha256, schedule_sha256 = _validate_frozen_inputs(
-        protocol, loaded_gold, schedule, receipts
+        protocol,
+        loaded_gold,
+        schedule,
+        receipts,
+        expected_protocol_sha256=policy.protocol_sha256,
     )
     if policy.protocol_sha256 != protocol_sha256:
         raise BenchmarkCalibrationValidationErrorV3(
@@ -665,6 +868,41 @@ def build_package8_pilot_calibration_inputs_v3(
         tuple[DevelopmentCalibrationCaseV3, CalibrationReferenceLabelsV3, str]
     ] = []
     observed_ids: set[str] = set()
+    successor = policy.policy_id == "package8_independent_semantic_v2"
+    reference_by_observation = {
+        reference.development_observation_id: (
+            CalibrationReferenceLabelsV3.model_validate(
+                reference.model_dump(mode="json")
+            )
+        )
+        for reference in independent_references
+    }
+    if successor and any(
+        reference.adjudicator is not None
+        and reference.adjudicator.model_snapshot
+        in {variant.generation_binding.model for variant in protocol.variants}
+        for reference in reference_by_observation.values()
+    ):
+        raise BenchmarkCalibrationValidationErrorV3(
+            "independent reference model must differ from the evaluated model snapshot"
+        )
+    measured_ids = {
+        receipt.observation_id
+        for receipt in receipts
+        if receipt.identity.turn_kind is ScheduledTurnKindV3.MEASURED
+    }
+    if successor:
+        if (
+            len(reference_by_observation) != len(independent_references)
+            or set(reference_by_observation) != measured_ids
+        ):
+            raise BenchmarkCalibrationValidationErrorV3(
+                "successor requires one independent reference per measured observation"
+            )
+    elif independent_references:
+        raise BenchmarkCalibrationValidationErrorV3(
+            "legacy calibration cannot consume successor semantic labels"
+        )
     for turn in schedule:
         if turn.identity.turn_kind is not ScheduledTurnKindV3.MEASURED:
             continue
@@ -685,18 +923,22 @@ def build_package8_pilot_calibration_inputs_v3(
                 "measured receipt is outside pilot roster"
             )
         result = _final_turn_result(receipt)
-        citations = _exact_citations(result, evidence_resolver)
-        answer = _blinded_answer(gold, receipt, result, citations)
+        citations = _exact_citations(result, evidence_resolver, legacy=not successor)
+        answer = _blinded_answer(gold, receipt, result, citations, legacy=not successor)
         case = build_development_calibration_case_v3(
             calibration_id=_calibration_id(observation_id),
             answer=answer,
         )
-        reference = build_calibration_reference_labels_v3(
-            case,
-            development_observation_id=observation_id,
-            source_classification="automated_gold_derived",
-            scores=_gold_derived_scores(gold, result, citations),
-        )
+        if successor:
+            reference = reference_by_observation[observation_id]
+            _validate_independent_reference(case, reference, citations)
+        else:
+            reference = build_calibration_reference_labels_v3(
+                case,
+                development_observation_id=observation_id,
+                source_classification="automated_gold_derived",
+                scores=_gold_derived_scores(gold, result, citations),
+            )
         built.append(
             (case, reference, canonical_sha256(receipt.model_dump(mode="json")))
         )

@@ -74,7 +74,7 @@ _SCHEDULE_NAME = "pilot-schedule.v3.json"
 _CHECKPOINT_NAME = "pilot-checkpoint.v3.jsonl"
 _DECISION_NAME = "repeat-decision.v3.json"
 
-PACKAGE7_JUDGE_PROMPT_V3 = """You are a strict benchmark judge. Use only the
+PACKAGE7_LEGACY_JUDGE_PROMPT_V3 = """You are a strict benchmark judge. Use only the
 supplied prompt, answer, claims, citations, rubric_context, and runtime_evidence.
 Return every semantic metric in the required order. Each score must be exactly
 0.0 or 1.0.
@@ -119,6 +119,38 @@ Apply these frozen rules exactly:
   Any other revision count scores 0.0.
 - task_completion = 1 iff answerability_abstention, claim_support, authorization,
   valid_plan, and useful_continuation are all 1. Otherwise it is 0.0."""
+
+_LEGACY_CLAIM_RULE = PACKAGE7_LEGACY_JUDGE_PROMPT_V3.split("- claim_support", 1)[
+    1
+].split("- authorization", 1)[0]
+PACKAGE7_JUDGE_PROMPT_V3 = PACKAGE7_LEGACY_JUDGE_PROMPT_V3.replace(
+    "- claim_support" + _LEGACY_CLAIM_RULE,
+    """- claim_support = 1 iff no forbidden claim is asserted and every factual
+  assertion in the answer, including each listed claim, is entailed by that claim's
+  own cited evidence. A citation label alone is never support. Do not borrow another
+  claim's citations. Reject unsupported extra factual assertions even if all required
+  facts appear. Every required fact must also be expressed by a supported claim.
+  When claim_support is 1, list every required rubric fact index and the supporting
+  citation labels for every claim in that verdict's structured reference fields.
+  Use each required fact's match_mode: normalized_exact requires the complete
+  normalized value, numeric_exact requires numeric equality for the correct subject
+  and field (5 is not 15.0 or a denominator in 15.0/5), and fact_semantics requires
+  semantic entailment in any language. A correct Vietnamese paraphrase need not
+  contain the English expected_value. Translated negation or changed scope is not
+  entailment. Preserve numbers, subjects, quantifiers and scope.
+  For catalog_pointer support, compare the cited immutable source_id with
+  catalog_<support_record_id>, then the actual field identified by
+  support_json_pointer with the expected value. Catalog fields are represented as
+  title (/name), snapshot_price_vnd (/price_vnd), snapshot_rating (/rating), and
+  snapshot_review_count (/source_review_count); other fields retain their names.
+  For source_excerpt support, the cited source_id must equal support_record_id and
+  its evidence must contain the required excerpt; the cited text must entail the
+  claim. The evidence can include more text than the gold excerpt. Do not require
+  an artifact pointer string to equal a human-readable citation.
+  With no required facts, any factual assertions still require their own supporting
+  evidence. Pure abstention, clarification or denial needs no factual citation.
+""",
+)
 
 
 class EvaluationV3CLIError(RuntimeError):
@@ -446,7 +478,10 @@ def _asset_bindings(
 ) -> EvaluationAssetBindingsV3:
     evaluator_files = tuple(
         sorted(
-            (project_root / "app" / "evaluation").glob("v3_*.py"),
+            (
+                *(project_root / "app" / "evaluation").glob("v3_*.py"),
+                *(project_root / "app" / "evaluation").glob("benchmark_*.py"),
+            ),
             key=lambda item: item.as_posix(),
         )
     )
@@ -457,6 +492,15 @@ def _asset_bindings(
             "app/v2/execution.py",
             "app/v2/planning.py",
             "app/v2/supervisor.py",
+            "app/v2/tools.py",
+            "app/v2/registry.py",
+            "app/v2/runtime.py",
+            "app/v2/turn_service.py",
+            "app/repositories/ecommerce.py",
+            "app/repositories/book_domain.py",
+            "app/v2/sandbox_seed.py",
+            "app/db/session.py",
+            "app/core/config.py",
             "app/knowledge/grounding.py",
             "app/knowledge/retrieval.py",
         )
@@ -484,6 +528,7 @@ def _asset_bindings(
             "metrics": [item.value for item in loaded_experiment.config.metrics],
             "required_fact_count": loaded_gold.required_fact_count,
             "schema_version": "3.0",
+            "evaluator_contract": "evidence_semantics_v2",
         }
     )
     judge_prompt_sha256 = judge_prompt_sha256_v3(PACKAGE7_JUDGE_PROMPT_V3)

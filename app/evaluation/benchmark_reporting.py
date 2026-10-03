@@ -12,9 +12,17 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 from decimal import Decimal
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    ValidationError,
+    model_serializer,
+    model_validator,
+)
 
 from app.contracts import TaskStatus
 from app.evaluation.v3_artifacts import (
@@ -40,6 +48,7 @@ from app.evaluation.v3_judge import (
     SEMANTIC_JUDGE_METRICS_V3,
     CalibrationFreezeV3,
     ModelJudgeConfigurationV3,
+    score_deterministic_metrics_v3,
 )
 from app.evaluation.v3_models import (
     EvaluationMetricV3,
@@ -195,6 +204,14 @@ class ProvisionalObservationV3(FrozenBenchmarkReportingContractV3):
             raise ValueError("operational evidence does not match its observation")
         if len(self.authoritative_evidence) != len(set(self.authoritative_evidence)):
             raise ValueError("authoritative evidence bindings must be unique")
+        if (answer.answer, answer.claims, answer.runtime_evidence) != (
+            self.final_turn_result.answer,
+            claim_evidence_v3(self.final_turn_result),
+            runtime_rubric_evidence_v3(self.final_turn_result),
+        ):
+            raise ValueError(
+                "answer claims or runtime evidence differ from final TurnResult"
+            )
         return self
 
 
@@ -445,7 +462,17 @@ class Package8ResultsSummaryV3(FrozenBenchmarkReportingContractV3):
     total_retry_count: int = Field(ge=0)
     document_recall_authority: str = "resolved_turn_result_citations_only"
     document_recall_authority_count: int = Field(ge=0)
+    document_recall_unmeasured_count: int | None = Field(default=None, ge=0)
     citationless_observation_count: int = Field(ge=0)
+
+    @model_serializer(mode="wrap")
+    def preserve_legacy_summary(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        payload = handler(self)
+        if self.document_recall_unmeasured_count is None:
+            payload.pop("document_recall_unmeasured_count", None)
+        return payload
 
     @model_validator(mode="after")
     def validate_summary(self) -> Package8ResultsSummaryV3:
@@ -488,7 +515,12 @@ class Package8ResultsSummaryV3(FrozenBenchmarkReportingContractV3):
         if self.total_retry_count != self.retry_count + judge.retry_count:
             raise ValueError("Package 8 total retries do not reconcile")
         if (
-            self.document_recall_authority_count + self.citationless_observation_count
+            self.document_recall_authority_count
+            + (
+                self.citationless_observation_count
+                if self.document_recall_unmeasured_count is None
+                else self.document_recall_unmeasured_count
+            )
             != self.accepted_observation_count
         ):
             raise ValueError(
@@ -507,6 +539,7 @@ def convert_completed_receipts_to_provisionals_v3(
     *,
     admission: HeldOutReceiptAdmissionV3,
     evidence_resolver: ImmutableEvidenceResolverV3,
+    legacy: bool = False,
 ) -> tuple[ProvisionalObservationV3, ...]:
     """Convert an admitted, completed held-out receipt batch without scoring it.
 
@@ -554,6 +587,7 @@ def convert_completed_receipts_to_provisionals_v3(
             receipt,
             final_result=final_result,
             evidence_resolver=evidence_resolver,
+            legacy=legacy,
         )
         for receipt, final_result in sorted(
             checked,
@@ -707,6 +741,8 @@ def join_model_judgments_to_observations_v3(
             entry.repetition,
             answer.answer,
             answer.citations,
+            answer.claims,
+            answer.runtime_evidence,
         ) != (
             provisional.observation.variant_id,
             provisional.observation.case_id,
@@ -714,6 +750,8 @@ def join_model_judgments_to_observations_v3(
             provisional.observation.repetition,
             provisional.answer_evidence.answer,
             provisional.answer_evidence.citations,
+            provisional.answer_evidence.claims,
+            provisional.answer_evidence.runtime_evidence,
         ):
             raise BenchmarkReportingValidationErrorV3(
                 "blind packet or unblinding entry differs from receipt-derived evidence"
@@ -741,6 +779,14 @@ def join_model_judgments_to_observations_v3(
     authoritative_observation_ids: list[str] = []
     for opaque_id, entry in key_by_opaque.items():
         provisional = by_observation[entry.observation_id]
+        answer = packet_by_opaque[opaque_id]
+        if answer.rubric_context.evaluator_contract is not None and {
+            metric: by_judgment[opaque_id].scores[metric]
+            for metric in DETERMINISTIC_JUDGE_METRICS_V3
+        } != score_deterministic_metrics_v3(answer):
+            raise BenchmarkReportingValidationErrorV3(
+                "deterministic judgment scores differ from receipt-derived evidence"
+            )
         if provisional.authoritative_evidence:
             authoritative_observation_ids.append(entry.observation_id)
         joined.append(_apply_judgment(provisional, by_judgment[opaque_id]))
@@ -827,6 +873,9 @@ def build_package8_results_summary_v3(
         raise BenchmarkReportingValidationErrorV3(
             "judged observations are not uniquely accountable"
         )
+    unmeasured_document_count = sum(
+        item.document_recall is None for item in normalized_judged.observations
+    )
     return Package8ResultsSummaryV3(
         run_id=normalized_analysis.run_id,
         completion_status=normalized_analysis.completion_status,
@@ -880,9 +929,19 @@ def build_package8_results_summary_v3(
         total_retry_count=(
             normalized_accounting.retry_count + normalized_judge.retry_count
         ),
-        document_recall_authority_count=len(
-            normalized_judged.authoritative_observation_ids
+        document_recall_authority=(
+            "not_measured_no_document_relevance_gold_or_retrieval_records"
+            if all(
+                item.document_recall is None for item in normalized_judged.observations
+            )
+            else "resolved_turn_result_citations_only"
         ),
+        document_recall_authority_count=(
+            len(normalized_judged.observations) - unmeasured_document_count
+            if unmeasured_document_count
+            else len(normalized_judged.authoritative_observation_ids)
+        ),
+        document_recall_unmeasured_count=(unmeasured_document_count or None),
         citationless_observation_count=(
             len(normalized_judged.observations)
             - len(normalized_judged.authoritative_observation_ids)
@@ -947,6 +1006,7 @@ def _provisional_from_receipt(
     *,
     final_result: TurnResult,
     evidence_resolver: ImmutableEvidenceResolverV3,
+    legacy: bool = False,
 ) -> ProvisionalObservationV3:
     assert receipt.observation_id is not None
     assert receipt.execution_order is not None
@@ -954,6 +1014,7 @@ def _provisional_from_receipt(
     citations, authoritative_evidence = _extract_citations(
         final_result,
         evidence_resolver=evidence_resolver,
+        legacy=legacy,
     )
     abstained = final_result.outcome is DialogueOutcome.ABSTAINED
     observation = EvaluationObservationV3(
@@ -1056,6 +1117,7 @@ def _extract_citations(
     result: TurnResult,
     *,
     evidence_resolver: ImmutableEvidenceResolverV3,
+    legacy: bool = False,
 ) -> tuple[tuple[CitationForReviewV3, ...], tuple[EvidenceBindingKeyV3, ...]]:
     evidence_by_id = {item.evidence_id: item for item in result.evidence}
     citations: list[CitationForReviewV3] = []
@@ -1112,6 +1174,8 @@ def _extract_citations(
             CitationForReviewV3(
                 label=citation.display_label,
                 evidence=resolved.exact_text,
+                source_id=None if legacy else binding.source_id,
+                source_version_id=None if legacy else binding.source_version_id,
             )
         )
         bindings.append(binding)
@@ -1206,7 +1270,7 @@ def _apply_judgment(
     return EvaluationObservationV3.model_validate(payload)
 
 
-def _as_bool(score: float) -> bool:
+def _as_bool(score: float | None) -> bool:
     if score not in {0.0, 1.0}:
         raise BenchmarkReportingValidationErrorV3(
             "a boolean metric score must be exactly zero or one"

@@ -1021,7 +1021,7 @@ def _build_heldout_record(
         item.metric: item.score for item in output.verdicts
     }
     deterministic_scores = score_deterministic_metrics_v3(answer)
-    scores: dict[EvaluationMetricV3, float] = {
+    scores: dict[EvaluationMetricV3, float | None] = {
         **model_scores,
         **deterministic_scores,
     }
