@@ -24,6 +24,7 @@ PostgreSQL corpus/index đã pin. Repository không seed Qdrant knowledge corpus
 | `APP_ENV` | `production` | Compose đặt cố định |
 | `DATABASE_URL` | Authenticated PostgreSQL | SQLite chỉ development/test |
 | `PUBLIC_SNAPSHOT_DIR` | `data/snapshots/tiki-books-v4-eval` | Trong image là `/app/data/...` |
+| `V2_CATALOG_VERSION_ID` | Expected catalog ID | Optional; nếu đặt, factory từ chối snapshot khác pin |
 | `V2_CORPUS_VERSION_ID` | Published v2 corpus ID | Bắt buộc khi resolve API v2 |
 | `V2_INDEX_MANIFEST_ID` | Published v2 index ID | Optional chỉ khi corpus có một complete index; production nên pin rõ |
 | `GATEWAY_API_KEYS` | Bắt buộc, không demo | `principal:secret[,principal:secret]` |
@@ -235,6 +236,9 @@ readiness/liveness, V2 identity/history (history có thể fail closed nếu ch�
 publish corpus/index), V1 route trả 404, operations auth và metrics smoke pass.
 Xóa cluster disposable bằng `kind delete cluster --name ecommerce-ma`.
 
+Đây là infrastructure smoke. Trước demo phải publish corpus/index và chạy
+strict functional gate bên dưới; history trả 503 không đạt gate demo.
+
 ## 6. Health và smoke
 
 ```powershell
@@ -281,6 +285,36 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v2/chat `
 Bind `V2_CORPUS_VERSION_ID` và tùy chọn `V2_INDEX_MANIFEST_ID` trong môi trường
 Compose để app resolve đúng snapshot PostgreSQL đã publish. Response phải giữ
 provenance cho các claim dựa trên evidence.
+
+Strict functional gate dùng ba identity đã xác minh từ deployment. Đặt
+`CI_GATEWAY_KEY` bằng user credential qua secret environment; không in key.
+Helm nhận cùng pins qua `config.v2CatalogVersionId`,
+`config.v2CorpusVersionId`, `config.v2IndexManifestId` và
+`config.v2BudgetAccountId`. Corpus/index phải cùng complete published snapshot.
+Chuẩn bị offer bằng insert-only seeder cho đúng tenant demo trước khi chạy
+shopper catalog; không reset database lịch sử. URL lấy từ secret environment:
+
+```powershell
+python -m scripts.seed_v2_sandbox --database-url $env:DATABASE_URL --tenant-id '<demo tenant>'
+$env:CI_BASE_URL = 'http://127.0.0.1:8000'
+$env:CI_EXPECTED_CATALOG_VERSION_ID = '<verified catalog ID>'
+$env:CI_EXPECTED_CORPUS_VERSION_ID = '<verified corpus ID>'
+$env:CI_EXPECTED_INDEX_MANIFEST_ID = '<verified index ID>'
+python -m scripts.strict_v2_demo_smoke
+```
+
+Gate yêu cầu tìm kiếm, fresh two-title comparison, natural review,
+recommendation, unsupported refusal, JSON/SSE, final knowledge citation và
+durable readback/cancel. Mọi 503, empty result thay câu trả lời cần có, hoặc
+pin khác expected đều fail. Source/version/chunk/span còn phải mở lại được
+bằng knowledge authority; đúng citation ID riêng lẻ chưa chứng minh entailment.
+
+Backup không provider cần query embedder tương thích chính xác model/dimension
+của index. `MODEL_RUNTIME_MODE=off` chỉ tắt generation, không tạo embeddings
+offline tương thích. Nếu chưa có runtime offline đã rehearsal, dùng recorded
+demo có timestamp, source pins và kết quả gate; gắn nhãn recorded, không gọi
+là live offline inference. Bundle rehearsal của remediation nằm trong
+`output/review-remediation/`, tách khỏi evidence benchmark chính thức.
 
 ## 7. Metrics và diagnosis
 
@@ -412,6 +446,11 @@ tạo P8 successors; không được resume historical P8 để redispatch termi
 `82617ce0e4004fcda0b542a1769de9653be044643f5189a5b3e88fa0aebd2163` cho 36
 cells (4 warmup, 32 measurements), chọn 3 repeats. Package 8 vẫn là additive
 held-out work. Các lệnh local không gọi provider:
+
+Các ví dụ v18/v23 dưới đây mô tả lifecycle lịch sử. Sau review remediation,
+source đã đổi nên không dùng chúng để freeze hay resume current source. Run mới
+dùng `evaluation/v3/review-successor-v1/` và explicit successor binding sau P7;
+giữ nguyên artifacts lịch sử.
 
 ```powershell
 $p7Output = 'output/evaluation-v3/pilot-successor-v18'

@@ -4,21 +4,27 @@ Audit baseline: `42311032c3ed59147ae19e6f3e5727cee0eff93b`, nhánh `thanh-v3`.
 Các sửa đổi được chia theo issue và phải có regression cùng evidence tương ứng.
 Không sửa snapshot, gold, protocol hay report đã freeze tại chỗ.
 
+Source gate: Ruff/format và mypy đạt; full offline suite trên PostgreSQL fixture
+riêng đạt **1.084 tests**, 27 integration tests deselected (858,24 giây).
+JUnit: `output/review-remediation/offline-tests.xml`. Frontend clean install
+từ lockfile, lint, 101 tests và production build đạt. Helm production/kind
+rendering cùng negative pin validation đạt; strict smoke có thêm 8 tests đạt.
+
 ## Scope và gates
 
 | Issue | Required gate | Trạng thái |
 | --- | --- | --- |
-| E1 price/rating/pages | Field-aware typed parser + actual catalog regression | Đang triển khai |
-| E2 fresh entities/review | Resolve từng title, ambiguity, fresh compare/review | Đang triển khai |
-| E3 book domain | Book guard cho candidate, aggregate, direct IDs và sandbox | Đang triển khai |
-| E4 semantic/numeric judge | Independent numeric/adversarial/per-claim evaluator tests | Đang triển khai |
-| E5 citations/retrieval metrics | Binding/field matching; không claim document recall thiếu authority | Đang triển khai |
+| E1 price/rating/pages | Field-aware typed parser + actual catalog regression | Đã sửa; actual catalog/PG regressions đạt |
+| E2 fresh entities/review | Resolve từng title, ambiguity, fresh compare/review | Đã sửa; fresh JSON/browser demo đạt |
+| E3 book domain | Book guard cho candidate, aggregate, direct IDs và sandbox | Đã sửa; giữ 200 raw records, 199 sách đủ điều kiện v2 |
+| E4 semantic/numeric judge | Independent numeric/adversarial/per-claim evaluator tests | Đã sửa; numeric, paraphrase, negation và claim-citation regressions đạt |
+| E5 citations/retrieval metrics | Binding/field matching; không claim document recall thiếu authority | Đã sửa; document recall chưa đo khi thiếu relevance authority |
 | E6 quality evidence | Absolute/category historical results; corrected successor | Historical tables đã đối chiếu; successor pending |
-| E7 cancel before admission | Stalled first-event/idle timeout + persisted cancel identity | Đang triển khai |
-| E8 deployed runtime | Helm pins + strict conversation/JSON/SSE/knowledge smoke | Đang triển khai |
-| E9 receipt integrity | Bind/rederive claims và runtime metadata | Đang triển khai |
-| E10 sync lifecycle SQL | Worker-scoped sessions, bounded DB waits, heartbeat/cancel regression | Pending |
-| E11 docs | Tách public v2, historical v1 và single-agent fixture | Đã sửa, chờ documentation gate |
+| E7 cancel before admission | Stalled first-event/idle timeout + persisted cancel identity | Đã sửa; timeout/controller tests và browser cancel/reconcile đạt |
+| E8 deployed runtime | Helm pins + strict conversation/JSON/SSE/knowledge smoke | Helm rendering/pin validation và strict local PostgreSQL demo đạt |
+| E9 receipt integrity | Bind/rederive claims và runtime metadata | Đã sửa; additive successor contract và tamper regressions đạt |
+| E10 sync lifecycle SQL | Worker-scoped sessions, bounded DB waits, heartbeat/cancel regression | Đã sửa; worker ownership, slow DB, cancellation/settlement và PG recovery đạt |
+| E11 docs | Tách public v2, historical v1 và single-agent fixture | Đã sửa; documentation integrity đạt |
 
 ## Successor evidence
 
@@ -36,16 +42,32 @@ substring không là semantic truth.
 
 ## Demo rehearsal
 
-- [ ] PostgreSQL head `20260910_0008`, catalog 200 records/1.773 reviews và hashes.
-- [ ] Published corpus/index pins, compatible embeddings và source reopening.
-- [ ] Owner-bound conversation + JSON chat thành công, không nhận 503 là pass.
-- [ ] POST SSE có progress, grounded result/citation và đúng một terminal.
-- [ ] Fresh tìm sách, so sánh hai title, natural review, recommendation sách.
-- [ ] Known-work knowledge query có final exact citation và unsupported query.
-- [ ] Cancel trước event đầu, sau admission, reconnect/retry giữ identity.
-- [ ] Browser console/focus/keyboard/citation và mobile/zoom cơ bản.
+- [x] PostgreSQL head `20260910_0008`, catalog 200 records/1.773 reviews và hashes.
+- [x] Published corpus/index pins, compatible embeddings và exact live source reopening.
+- [x] Owner-bound conversation + JSON chat thành công, không nhận 503 là pass.
+- [x] POST SSE có progress, grounded result/citation và đúng một terminal.
+- [x] Fresh tìm sách, so sánh hai title, natural review, recommendation sách.
+- [x] Known-work knowledge query có final exact citation và unsupported query.
+- [x] Cancel trước event đầu, sau admission, reconcile/reload giữ identity.
+- [x] Browser console/focus/keyboard/citation và mobile/CSS zoom-equivalent cơ bản.
 - [ ] Offline backup có index/query embedder tương thích; generation off không
   tự tắt embeddings. Ghi rõ backup là live offline hay recorded.
+
+Strict gate cuối lưu tại `output/review-remediation/demo-rehearsal.json`:
+6 public results, `strict_gate_passed=true`. `live-source-reopening.json`
+xác nhận citation knowledge được mở lại đúng source/version/chunk/span và
+hash excerpt trên PostgreSQL thật. Browser rehearsal kiểm desktop/mobile,
+focus citation, Escape và cancel; CSS viewport tương đương zoom 200% không
+phải kiểm chứng native browser zoom. Demo local dùng shared state memory;
+Helm mới chỉ render/validate, chưa deploy Kubernetes, Redis chaos hay TLS.
+
+Challenge mới có 20 câu/6 strata và 5 evaluator probes tại
+`evaluation/v3/review-challenge-v1/`. Canonical packet hash
+`f1e13fb4643c3f16f406f49e3fa7955c5943ef878d7e8da644195990b5d4ba71`;
+operator phải lock trước request đầu và không sửa source/oracle theo output.
+Codex soạn từ source records mà không đọc gold conversation hay SUT answers;
+đây là engineering challenge có biết review, chưa phải externally untouched
+test set. Human audit 12 mẫu/6 strata và 5 probes vẫn pending.
 
 Tải 10/100/500 users, multi-replica, TLS/public deployment, human adjudication
 và manuscript/slides chưa được xác minh trong remediation này. Không suy ra các

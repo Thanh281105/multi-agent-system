@@ -7,7 +7,7 @@ dùng PostgreSQL cho hội thoại, hành động và knowledge retrieval. Các 
 trong môi trường development.
 
 > **Ranh giới dữ liệu:** runtime mặc định dùng snapshot lịch sử Tiki Books,
-> profile `eval` gồm 200 sách và 1.773 review, lấy mẫu deterministic từ Kaggle
+> profile `eval` gồm 200 bản ghi sản phẩm và 1.773 review, lấy mẫu deterministic từ Kaggle
 > Tiki Books v4 đã truy xuất ngày 2026-08-24. Đây không phải API/feed Tiki
 > trực tiếp và không phản ánh catalog,
 > giá, tồn kho, người bán, review, xu hướng, nhu cầu hay thị phần hiện tại.
@@ -127,7 +127,7 @@ Profiles:
 | Profile | Mục đích | Snapshot |
 | --- | --- | ---: |
 | `test` | Fast regression | 24 sách / 115 review |
-| `eval` | Runtime/evaluation mặc định | 200 sách / 1.773 review |
+| `eval` | Runtime/evaluation mặc định | 200 bản ghi / 1.773 review; 199 sách hợp lệ trong v2 |
 | `full` | Toàn bộ cleaned records, local only | Bị ignore, không commit |
 
 Mỗi profile có `products.jsonl`, `reviews.jsonl`, `manifest.json` và
