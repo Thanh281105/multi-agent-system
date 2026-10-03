@@ -24,6 +24,8 @@ from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_artifacts import (
     BlindedAnswerPacketV3,
     BlindedAnswerV3,
+    ClaimCitationCoverageV3,
+    ClaimCitationVerdictV3,
     JudgmentRecordV3,
     build_judgment_record_v3,
 )
@@ -108,14 +110,23 @@ class ModelJudgeOutputV3(FrozenJudgeContractV3):
             raise ValueError(
                 "model output must contain every semantic metric exactly once"
             )
-        expected_schema_hash = model_judge_output_schema_sha256_v3()
+        expected_schema_hash = model_judge_output_schema_sha256_v3(
+            successor=isinstance(self, ClaimCoverageModelJudgeOutputV3)
+        )
         if self.output_schema_sha256 != expected_schema_hash:
             raise ValueError("model output schema hash mismatch")
         return self
 
 
-def model_judge_output_schema_sha256_v3() -> str:
-    schema = ModelJudgeOutputV3.model_json_schema()
+class ClaimCoverageModelJudgeOutputV3(ModelJudgeOutputV3):
+    claim_coverage_contract: Literal["receipt_claim_citation_coverage_v1"]
+    claim_verdicts: tuple[ClaimCitationVerdictV3, ...]
+
+
+def model_judge_output_schema_sha256_v3(*, successor: bool = False) -> str:
+    schema = (
+        ClaimCoverageModelJudgeOutputV3 if successor else ModelJudgeOutputV3
+    ).model_json_schema()
     # The field itself is a binding to this schema, not part of a recursive hash.
     properties = schema.get("properties")
     if isinstance(properties, dict):
@@ -129,6 +140,14 @@ def model_judge_output_schema_sha256_v3() -> str:
             "required": [item for item in required if item != "output_schema_sha256"],
         }
     return canonical_sha256(schema)
+
+
+def model_judge_output_type_v3(schema_sha256: str) -> type[ModelJudgeOutputV3]:
+    if schema_sha256 == model_judge_output_schema_sha256_v3(successor=True):
+        return ClaimCoverageModelJudgeOutputV3
+    if schema_sha256 == model_judge_output_schema_sha256_v3():
+        return ModelJudgeOutputV3
+    raise ValueError("judge output schema hash mismatch")
 
 
 def judge_prompt_sha256_v3(prompt: str) -> str:
@@ -176,9 +195,8 @@ class ModelJudgeConfigurationV3(FrozenJudgeContractV3):
         prompt_hash = judge_prompt_sha256_v3(self.judge_prompt)
         if prompt_hash != self.bindings.judge_prompt_sha256:
             raise ValueError("judge prompt hash mismatch")
-        schema_hash = model_judge_output_schema_sha256_v3()
-        if schema_hash != self.bindings.judge_schema_sha256:
-            raise ValueError("judge output schema hash mismatch")
+        model_judge_output_type_v3(self.bindings.judge_schema_sha256)
+        schema_hash = self.bindings.judge_schema_sha256
         evaluator_hash = evaluator_configuration_sha256_v3(
             model_binding=self.model_binding,
             judge_prompt_sha256=prompt_hash,
@@ -738,7 +756,10 @@ def judge_blinded_packet_v3(
         model_scores: dict[EvaluationMetricV3, float] = {
             item.metric: item.score for item in output.verdicts
         }
-        deterministic_scores = score_deterministic_metrics_v3(answer)
+        claim_coverage = claim_citation_coverage_from_output_v3(answer, output)
+        deterministic_scores = score_deterministic_metrics_v3(
+            answer, claim_coverage=claim_coverage
+        )
         scores: dict[EvaluationMetricV3, float | None] = {
             **model_scores,
             **deterministic_scores,
@@ -750,6 +771,8 @@ def judge_blinded_packet_v3(
             **{metric: "model_judge" for metric in model_scores},
             **{metric: "deterministic" for metric in deterministic_scores},
         }
+        if claim_coverage is not None:
+            score_sources[EvaluationMetricV3.CITATION_COVERAGE] = "model_judge"
         judgments.append(
             build_judgment_record_v3(
                 bindings=packet.bindings,
@@ -762,6 +785,12 @@ def judge_blinded_packet_v3(
                 judge_configuration_sha256=configuration.configuration_sha256,
                 calibration_sha256=calibration.calibration_sha256,
                 judge_output_sha256=canonical_sha256(output),
+                claim_coverage=claim_coverage,
+                validated_judge_output=(
+                    output.model_dump(mode="json")
+                    if claim_coverage is not None
+                    else None
+                ),
             )
         )
     return tuple(judgments)
@@ -769,6 +798,8 @@ def judge_blinded_packet_v3(
 
 def score_deterministic_metrics_v3(
     answer: BlindedAnswerV3,
+    *,
+    claim_coverage: ClaimCitationCoverageV3 | None = None,
 ) -> dict[EvaluationMetricV3, float | None]:
     """Keep legacy freezes readable; score successor facts by record/field binding."""
 
@@ -778,20 +809,16 @@ def score_deterministic_metrics_v3(
             any(citation_supports_fact_v3(citation, fact) for fact in facts)
             for citation in answer.citations
         ]
-        covered = [
-            any(
-                citation_supports_fact_v3(citation, fact)
-                for citation in answer.citations
-            )
-            for fact in facts
-        ]
+        if claim_coverage is None:
+            raise ValueError("successor citation coverage requires per-claim verdicts")
+        validate_claim_citation_coverage_v3(answer, claim_coverage)
         return {
             EvaluationMetricV3.CITATION_PRECISION: sum(supported) / len(supported)
             if supported
             else float(not facts),
-            EvaluationMetricV3.CITATION_COVERAGE: sum(covered) / len(covered)
-            if covered
-            else 1.0,
+            # Semantic per-claim decisions are model-judge authority; only their
+            # aggregation is deterministic. Required-fact recall is not coverage.
+            EvaluationMetricV3.CITATION_COVERAGE: claim_coverage.coverage,
             # Fact support blueprints are not document-relevance annotations, and
             # final citations are not the set of retrieved records.
             EvaluationMetricV3.DOCUMENT_RECALL: None,
@@ -812,6 +839,116 @@ def score_deterministic_metrics_v3(
         EvaluationMetricV3.CITATION_COVERAGE: recall,
         EvaluationMetricV3.DOCUMENT_RECALL: recall,
     }
+
+
+def validate_claim_citation_coverage_v3(
+    answer: BlindedAnswerV3, coverage: ClaimCitationCoverageV3
+) -> None:
+    coverage = ClaimCitationCoverageV3.model_validate(coverage.model_dump(mode="json"))
+    if coverage.answer_sha256 != canonical_sha256(answer):
+        raise ValueError("claim coverage references a different receipt-bound answer")
+    if coverage.claim_count != len(answer.claims):
+        raise ValueError("claim coverage denominator differs from receipt claims")
+    citations = {item.label: item for item in answer.citations}
+    facts = answer.rubric_context.required_facts
+    for verdict, claim in zip(coverage.verdicts, answer.claims, strict=True):
+        if not set(verdict.citation_labels) <= set(citations):
+            raise ValueError("claim verdict references an unknown citation")
+        if not set(verdict.citation_labels) <= set(claim.citation_labels):
+            raise ValueError("claim verdict borrows another claim's cited evidence")
+        if verdict.supported and not verdict.citation_labels:
+            raise ValueError("supported claim lacks its own cited evidence")
+        if verdict.supported and any(
+            not citations[label].source_id or not citations[label].source_version_id
+            for label in verdict.citation_labels
+        ):
+            raise ValueError("supported claim lacks immutable citation authority")
+        if any(index >= len(facts) for index in verdict.rubric_fact_indices):
+            raise ValueError("claim verdict references an unknown rubric fact")
+        if not verdict.supported:
+            continue
+        for index in verdict.rubric_fact_indices:
+            fact = facts[index]
+            if not any(
+                citation_supports_fact_v3(citations[label], fact)
+                for label in verdict.citation_labels
+            ):
+                raise ValueError("supported claim lacks bound fact evidence")
+            if fact.match_mode != "fact_semantics" and not exact_value_in_text_v3(
+                fact.expected_value,
+                claim.text,
+                numeric=fact.match_mode == "numeric_exact",
+            ):
+                raise ValueError("supported claim violates exact fact matching")
+
+
+def claim_citation_coverage_from_output_v3(
+    answer: BlindedAnswerV3, output: ModelJudgeOutputV3
+) -> ClaimCitationCoverageV3 | None:
+    if answer.rubric_context.evaluator_contract is None:
+        return None
+    if not isinstance(output, ClaimCoverageModelJudgeOutputV3):
+        raise ValueError("successor judge output requires per-claim semantic verdicts")
+    count = len(answer.claims)
+    supported = sum(item.supported for item in output.claim_verdicts)
+    coverage = ClaimCitationCoverageV3(
+        answer_sha256=canonical_sha256(answer),
+        claim_count=count,
+        supported_claim_count=supported,
+        verdicts=output.claim_verdicts,
+        coverage=supported / count if count else None,
+    )
+    validate_claim_citation_coverage_v3(answer, coverage)
+    return coverage
+
+
+def validate_judgment_claim_coverage_v3(
+    judgment: JudgmentRecordV3, answer: BlindedAnswerV3
+) -> None:
+    successor = answer.rubric_context.evaluator_contract is not None
+    if successor != (judgment.claim_coverage is not None):
+        raise ValueError("judgment claim coverage contract differs from blind answer")
+    if successor != (
+        judgment.bindings.judge_schema_sha256
+        == model_judge_output_schema_sha256_v3(successor=True)
+    ):
+        raise ValueError("judgment claim coverage schema binding differs from answer")
+    if judgment.claim_coverage is None:
+        return
+    validate_claim_citation_coverage_v3(answer, judgment.claim_coverage)
+    source = (
+        "human_review"
+        if judgment.judgment_mode.value == "human_review"
+        else "model_judge"
+    )
+    if judgment.score_sources.get(EvaluationMetricV3.CITATION_COVERAGE) != source:
+        raise ValueError("claim coverage score source differs from semantic authority")
+    if (
+        judgment.scores.get(EvaluationMetricV3.CITATION_COVERAGE)
+        != judgment.claim_coverage.coverage
+    ):
+        raise ValueError("judgment citation coverage differs from bound claim verdicts")
+    if judgment.scores.get(EvaluationMetricV3.CLAIM_SUPPORT) == 1.0 and any(
+        not item.supported for item in judgment.claim_coverage.verdicts
+    ):
+        raise ValueError("positive claim support conflicts with per-claim verdicts")
+    if judgment.judgment_mode.value == "model_judge":
+        if judgment.validated_judge_output is None:
+            raise ValueError(
+                "successor judgment lacks validated per-claim judge output"
+            )
+        output = validate_model_judge_output_v3(judgment.validated_judge_output, answer)
+        if canonical_sha256(output) != judgment.judge_output_sha256:
+            raise ValueError("claim verdicts differ from bound judge output hash")
+        observed_coverage = claim_citation_coverage_from_output_v3(answer, output)
+        if observed_coverage != judgment.claim_coverage:
+            raise ValueError("claim coverage differs from validated judge output")
+        expected_scores: dict[EvaluationMetricV3, float | None] = {
+            **{item.metric: item.score for item in output.verdicts},
+            **score_deterministic_metrics_v3(answer, claim_coverage=observed_coverage),
+        }
+        if judgment.scores != expected_scores:
+            raise ValueError("judgment scores differ from validated judge output")
 
 
 def score_runtime_metrics_v3(
@@ -859,12 +996,17 @@ def validate_model_judge_output_v3(
     raw_output: object,
     answer: BlindedAnswerV3,
 ) -> ModelJudgeOutputV3:
+    output_type = (
+        ClaimCoverageModelJudgeOutputV3
+        if answer.rubric_context.evaluator_contract is not None
+        else ModelJudgeOutputV3
+    )
     if isinstance(raw_output, (str, bytes, bytearray)):
-        output = ModelJudgeOutputV3.model_validate_json(raw_output)
+        output = output_type.model_validate_json(raw_output)
     elif isinstance(raw_output, ModelJudgeOutputV3):
-        output = ModelJudgeOutputV3.model_validate(raw_output.model_dump(mode="json"))
+        output = output_type.model_validate(raw_output.model_dump(mode="json"))
     else:
-        output = ModelJudgeOutputV3.model_validate(raw_output)
+        output = output_type.model_validate(raw_output)
     if output.opaque_answer_id != answer.opaque_answer_id:
         raise ValueError("model judgment references a different blinded answer")
 
@@ -881,6 +1023,8 @@ def validate_model_judge_output_v3(
                 f"model judgment contains fabricated citations: {unknown_labels}"
             )
     if answer.rubric_context.evaluator_contract == "evidence_semantics_v2":
+        coverage = claim_citation_coverage_from_output_v3(answer, output)
+        assert coverage is not None
         scores: dict[EvaluationMetricV3, float] = {
             item.metric: item.score for item in output.verdicts
         }
@@ -905,6 +1049,18 @@ def validate_model_judge_output_v3(
             if item.metric is EvaluationMetricV3.CLAIM_SUPPORT
         )
         if support.score == 1.0:
+            if any(not verdict.supported for verdict in coverage.verdicts):
+                raise ValueError(
+                    "positive claim support conflicts with per-claim verdicts"
+                )
+            if {
+                index
+                for verdict in coverage.verdicts
+                for index in verdict.rubric_fact_indices
+            } != set(range(fact_count)):
+                raise ValueError(
+                    "positive claim support lacks per-claim required facts"
+                )
             if set(support.rubric_fact_indices) != set(range(fact_count)):
                 raise ValueError(
                     "positive claim support must reference every required fact"

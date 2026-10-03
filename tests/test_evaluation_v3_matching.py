@@ -11,6 +11,8 @@ from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_artifacts import (
     BlindedAnswerV3,
     CitationForReviewV3,
+    ClaimCitationCoverageV3,
+    ClaimCitationVerdictV3,
     ClaimEvidenceV3,
     RubricContextV3,
     RubricFactV3,
@@ -20,6 +22,7 @@ from app.evaluation.v3_artifacts import (
 from app.evaluation.v3_gold import GoldConversationV3
 from app.evaluation.v3_judge import (
     SEMANTIC_JUDGE_METRICS_V3,
+    claim_citation_coverage_from_output_v3,
     model_judge_output_schema_sha256_v3,
     score_deterministic_metrics_v3,
     validate_model_judge_output_v3,
@@ -70,16 +73,151 @@ def test_rubric_preserves_match_modes_and_legacy_serialization() -> None:
     )
 
 
-def test_document_recall_is_unmeasured_and_citation_coverage_counts_facts() -> None:
+def test_document_recall_is_unmeasured_and_coverage_counts_claims() -> None:
     answer = _answer()
-    scores = score_deterministic_metrics_v3(answer)
+    scores = score_deterministic_metrics_v3(answer, claim_coverage=_coverage(answer))
     assert scores[EvaluationMetricV3.CITATION_PRECISION] == 1.0
     assert scores[EvaluationMetricV3.CITATION_COVERAGE] == 1.0
     assert scores[EvaluationMetricV3.DOCUMENT_RECALL] is None
-    missing = answer.model_copy(update={"citations": ()})
+    missing = answer.model_copy(
+        update={
+            "citations": (),
+            "claims": (ClaimEvidenceV3(text="Rating 5", citation_labels=()),),
+        }
+    )
     assert (
-        score_deterministic_metrics_v3(missing)[EvaluationMetricV3.CITATION_COVERAGE]
+        score_deterministic_metrics_v3(
+            missing, claim_coverage=_coverage(missing, supported=(False,))
+        )[EvaluationMetricV3.CITATION_COVERAGE]
         == 0.0
+    )
+    with pytest.raises(ValueError, match="per-claim verdicts"):
+        score_deterministic_metrics_v3(answer)
+
+
+def test_claim_coverage_is_not_missing_required_fact_recall() -> None:
+    answer = _answer()
+    answer = answer.model_copy(
+        update={
+            "rubric_context": answer.rubric_context.model_copy(
+                update={
+                    "required_facts": (
+                        _fact(),
+                        _fact().model_copy(
+                            update={
+                                "claim": "title",
+                                "expected_value": "Sapiens",
+                                "match_mode": "normalized_exact",
+                                "support_json_pointer": "/name",
+                            }
+                        ),
+                    )
+                }
+            )
+        }
+    )
+    # This answer misses one required fact, but its only claim is supported.
+    scores = score_deterministic_metrics_v3(answer, claim_coverage=_coverage(answer))
+    assert scores[EvaluationMetricV3.CITATION_COVERAGE] == 1.0
+
+
+def test_extra_unsupported_award_decreases_claim_coverage() -> None:
+    answer = _answer().model_copy(
+        update={
+            "claims": (
+                ClaimEvidenceV3(text="Rating 5", citation_labels=("[C1]",)),
+                ClaimEvidenceV3(text="Giành Nobel năm 2024", citation_labels=("[C1]",)),
+            )
+        }
+    )
+    coverage = _coverage(answer, supported=(True, False))
+    assert coverage.claim_count == 2
+    assert coverage.supported_claim_count == 1
+    assert (
+        score_deterministic_metrics_v3(answer, claim_coverage=coverage)[
+            EvaluationMetricV3.CITATION_COVERAGE
+        ]
+        == 0.5
+    )
+    with pytest.raises(ValueError, match="conflicts with per-claim"):
+        validate_model_judge_output_v3(_output(answer, supported=(True, False)), answer)
+
+
+def test_own_citation_borrowing_cannot_inflate_coverage() -> None:
+    answer = _answer().model_copy(
+        update={
+            "claims": (
+                ClaimEvidenceV3(text="Rating 5", citation_labels=()),
+                ClaimEvidenceV3(text="Rating 5", citation_labels=("[C1]",)),
+            )
+        }
+    )
+    raw = _output(answer)
+    raw["claim_verdicts"] = [
+        {
+            "claim_index": index,
+            "supported": True,
+            "citation_labels": ["[C1]"],
+            "rubric_fact_indices": [0],
+        }
+        for index in range(2)
+    ]
+    with pytest.raises(ValueError, match="borrows another claim"):
+        validate_model_judge_output_v3(raw, answer)
+
+
+@pytest.mark.parametrize("indices", [(0,), (1, 0), (0, 0), (0, 2)])
+def test_claim_coverage_requires_every_ordered_receipt_claim(indices: tuple[int, ...]):
+    with pytest.raises(ValueError, match="every claim in order"):
+        ClaimCitationCoverageV3(
+            answer_sha256="a" * 64,
+            claim_count=2,
+            supported_claim_count=0,
+            verdicts=tuple(
+                ClaimCitationVerdictV3(claim_index=index, supported=False)
+                for index in indices
+            ),
+            coverage=0.0,
+        )
+
+
+def test_zero_claim_coverage_is_unmeasured_and_uncited_claim_is_zero() -> None:
+    answer = _answer().model_copy(update={"claims": ()})
+    coverage = _coverage(answer)
+    assert coverage.claim_count == 0
+    assert coverage.coverage is None
+    assert (
+        score_deterministic_metrics_v3(answer, claim_coverage=coverage)[
+            EvaluationMetricV3.CITATION_COVERAGE
+        ]
+        is None
+    )
+    answer = _answer().model_copy(
+        update={"claims": (ClaimEvidenceV3(text="Rating 5", citation_labels=()),)}
+    )
+    assert _coverage(answer, supported=(False,)).coverage == 0.0
+    with pytest.raises(ValueError, match="own cited evidence"):
+        _coverage(answer)
+
+
+def test_claim_coverage_rejects_forged_hash_ratio_and_denominator() -> None:
+    answer = _answer()
+    coverage = _coverage(answer)
+    for tampered, error in [
+        (coverage.model_copy(update={"answer_sha256": "f" * 64}), "receipt-bound"),
+        (coverage.model_copy(update={"coverage": 0.5}), "per-claim verdicts"),
+        (coverage.model_copy(update={"claim_count": 2}), "every claim in order"),
+    ]:
+        with pytest.raises(ValueError, match=error):
+            score_deterministic_metrics_v3(answer, claim_coverage=tampered)
+
+
+def test_legacy_model_output_schema_hash_is_unchanged() -> None:
+    assert model_judge_output_schema_sha256_v3() == (
+        "da22dbd1a8ade71f6f19b5f3288530e09d9d8baadf2013c210449b859049cd2a"
+    )
+    assert model_judge_output_schema_sha256_v3(successor=True) != (
+        model_judge_output_schema_sha256_v3()
     )
 
 
@@ -146,6 +284,18 @@ def test_semantic_paraphrase_is_not_required_to_contain_english_gold() -> None:
     # The supplied semantic verdict is authoritative for entailment. Exact guards
     # must not override it with an English substring requirement.
     validate_model_judge_output_v3(_output(answer), answer)
+    assert _coverage(answer).coverage == 1.0
+    negated = answer.model_copy(
+        update={
+            "claims": (
+                ClaimEvidenceV3(
+                    text="Tiểu thuyết không nói về đời sống gia đình.",
+                    citation_labels=("[C1]",),
+                ),
+            )
+        }
+    )
+    assert _coverage(negated, supported=(False,)).coverage == 0.0
 
 
 def _fact() -> RubricFactV3:
@@ -200,18 +350,53 @@ def _answer() -> BlindedAnswerV3:
     )
 
 
-def _output(answer: BlindedAnswerV3) -> dict[str, object]:
+def _output(
+    answer: BlindedAnswerV3,
+    *,
+    supported: tuple[bool, ...] | None = None,
+    support_score: float = 1.0,
+) -> dict[str, object]:
+    supported = supported if supported is not None else (True,) * len(answer.claims)
     return {
         "schema_version": "3.0",
-        "output_schema_sha256": model_judge_output_schema_sha256_v3(),
+        "claim_coverage_contract": "receipt_claim_citation_coverage_v1",
+        "output_schema_sha256": model_judge_output_schema_sha256_v3(successor=True),
         "opaque_answer_id": answer.opaque_answer_id,
         "verdicts": [
             {
                 "metric": metric,
-                "score": 1.0,
+                "score": support_score
+                if metric
+                in {
+                    EvaluationMetricV3.CLAIM_SUPPORT,
+                    EvaluationMetricV3.TASK_COMPLETION,
+                }
+                else 1.0,
                 "rubric_fact_indices": [0],
-                "citation_labels": ["[C1]"],
+                "citation_labels": [item.label for item in answer.citations],
             }
             for metric in SEMANTIC_JUDGE_METRICS_V3
         ],
+        "claim_verdicts": [
+            {
+                "claim_index": index,
+                "supported": verdict,
+                "citation_labels": list(answer.claims[index].citation_labels)
+                if verdict
+                else [],
+                "rubric_fact_indices": [0] if verdict else [],
+            }
+            for index, verdict in enumerate(supported)
+        ],
     }
+
+
+def _coverage(
+    answer: BlindedAnswerV3, *, supported: tuple[bool, ...] | None = None
+) -> ClaimCitationCoverageV3:
+    output = validate_model_judge_output_v3(
+        _output(answer, supported=supported, support_score=0.0), answer
+    )
+    result = claim_citation_coverage_from_output_v3(answer, output)
+    assert result is not None
+    return result

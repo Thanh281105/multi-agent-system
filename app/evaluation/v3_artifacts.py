@@ -77,6 +77,8 @@ class FrozenArtifactContractV3(BaseModel):
             "support_record_id",
             "support_json_pointer",
             "evaluator_contract",
+            "claim_coverage",
+            "validated_judge_output",
         ):
             if payload.get(name) is None:
                 payload.pop(name, None)
@@ -266,6 +268,46 @@ class BlindedAnswerArtifactsV3(FrozenArtifactContractV3):
         return self
 
 
+class ClaimCitationVerdictV3(FrozenArtifactContractV3):
+    claim_index: int = Field(ge=0)
+    supported: bool = Field(strict=True)
+    citation_labels: tuple[str, ...] = ()
+    rubric_fact_indices: tuple[int, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_references(self) -> ClaimCitationVerdictV3:
+        if len(self.citation_labels) != len(set(self.citation_labels)) or (
+            len(self.rubric_fact_indices) != len(set(self.rubric_fact_indices))
+        ):
+            raise ValueError("claim verdict references must be unique")
+        if any(index < 0 for index in self.rubric_fact_indices):
+            raise ValueError("claim verdict fact indices must be non-negative")
+        return self
+
+
+class ClaimCitationCoverageV3(FrozenArtifactContractV3):
+    contract: Literal["receipt_claim_citation_coverage_v1"] = (
+        "receipt_claim_citation_coverage_v1"
+    )
+    answer_sha256: str = Field(pattern=_SHA256)
+    claim_count: int = Field(ge=0)
+    supported_claim_count: int = Field(ge=0)
+    verdicts: tuple[ClaimCitationVerdictV3, ...]
+    coverage: float | None = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_aggregation(self) -> ClaimCitationCoverageV3:
+        if tuple(item.claim_index for item in self.verdicts) != tuple(
+            range(self.claim_count)
+        ):
+            raise ValueError("claim verdicts must cover every claim in order")
+        supported = sum(item.supported for item in self.verdicts)
+        expected = supported / self.claim_count if self.claim_count else None
+        if self.supported_claim_count != supported or self.coverage != expected:
+            raise ValueError("claim coverage differs from per-claim verdicts")
+        return self
+
+
 class JudgmentRecordV3(FrozenArtifactContractV3):
     schema_version: Literal["3.0"] = "3.0"
     bindings: ArtifactBindingsV3
@@ -283,6 +325,8 @@ class JudgmentRecordV3(FrozenArtifactContractV3):
     calibration_sha256: str | None = Field(default=None, pattern=_SHA256)
     judge_output_sha256: str | None = Field(default=None, pattern=_SHA256)
     notes: str | None = Field(default=None, max_length=4_000)
+    claim_coverage: ClaimCitationCoverageV3 | None = None
+    validated_judge_output: dict[str, Any] | None = None
     judgment_sha256: str = Field(pattern=_SHA256)
 
     @model_validator(mode="after")
@@ -303,10 +347,30 @@ class JudgmentRecordV3(FrozenArtifactContractV3):
         ):
             raise ValueError("judgment scores must be between zero and one")
         if any(
-            value is None and metric is not EvaluationMetricV3.DOCUMENT_RECALL
+            value is None
+            and metric is not EvaluationMetricV3.DOCUMENT_RECALL
+            and not (
+                metric is EvaluationMetricV3.CITATION_COVERAGE
+                and self.claim_coverage is not None
+                and self.claim_coverage.claim_count == 0
+            )
             for metric, value in self.scores.items()
         ):
-            raise ValueError("only unmeasured document recall may have a null score")
+            raise ValueError(
+                "only unmeasured recall or zero-claim coverage may be null"
+            )
+        if (
+            self.claim_coverage is not None
+            and self.scores.get(EvaluationMetricV3.CITATION_COVERAGE)
+            != self.claim_coverage.coverage
+        ):
+            raise ValueError("judgment coverage differs from claim verdict evidence")
+        if (
+            self.claim_coverage is not None
+            and self.scores.get(EvaluationMetricV3.CLAIM_SUPPORT) == 1.0
+            and any(not item.supported for item in self.claim_coverage.verdicts)
+        ):
+            raise ValueError("positive claim support conflicts with per-claim verdicts")
         if self.score_sources and set(self.score_sources) != set(self.scores):
             raise ValueError("judgment score sources must cover every score exactly")
         structured_model_hashes = (
@@ -599,6 +663,8 @@ def build_judgment_record_v3(
     calibration_sha256: str | None = None,
     judge_output_sha256: str | None = None,
     notes: str | None = None,
+    claim_coverage: ClaimCitationCoverageV3 | None = None,
+    validated_judge_output: dict[str, Any] | None = None,
 ) -> JudgmentRecordV3:
     normalized_score_sources = score_sources or {}
     payload = {
@@ -618,6 +684,10 @@ def build_judgment_record_v3(
         "judge_output_sha256": judge_output_sha256,
         "notes": notes,
     }
+    if claim_coverage is not None:
+        payload["claim_coverage"] = claim_coverage.model_dump(mode="json")
+    if validated_judge_output is not None:
+        payload["validated_judge_output"] = validated_judge_output
     return JudgmentRecordV3(
         bindings=bindings,
         blinded_packet_sha256=blinded_packet_sha256,
@@ -631,6 +701,8 @@ def build_judgment_record_v3(
         calibration_sha256=calibration_sha256,
         judge_output_sha256=judge_output_sha256,
         notes=notes,
+        claim_coverage=claim_coverage,
+        validated_judge_output=validated_judge_output,
         judgment_sha256=canonical_sha256(payload),
     )
 

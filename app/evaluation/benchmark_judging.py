@@ -42,7 +42,10 @@ from app.evaluation.v3_judge import (
     ModelJudgeOutputV3,
     ModelJudgeRequestV3,
     blinded_answer_sha256_v3,
+    claim_citation_coverage_from_output_v3,
+    model_judge_output_type_v3,
     score_deterministic_metrics_v3,
+    validate_judgment_claim_coverage_v3,
     validate_model_judge_output_v3,
 )
 from app.evaluation.v3_models import EvaluationMetricV3, JudgmentModeV3
@@ -881,7 +884,9 @@ class DurableModelJudgeRunnerV3:
                 model=configuration.model_binding.model,
                 instructions=configuration.judge_prompt,
                 input_text=_serialize_model_judge_input(request),
-                schema=ModelJudgeOutputV3,
+                schema=model_judge_output_type_v3(
+                    configuration.bindings.judge_schema_sha256
+                ),
                 max_output_tokens=1_200,
                 reasoning_effort=configuration.model_binding.reasoning_effort,
             )
@@ -1020,7 +1025,10 @@ def _build_heldout_record(
     model_scores: dict[EvaluationMetricV3, float] = {
         item.metric: item.score for item in output.verdicts
     }
-    deterministic_scores = score_deterministic_metrics_v3(answer)
+    claim_coverage = claim_citation_coverage_from_output_v3(answer, output)
+    deterministic_scores = score_deterministic_metrics_v3(
+        answer, claim_coverage=claim_coverage
+    )
     scores: dict[EvaluationMetricV3, float | None] = {
         **model_scores,
         **deterministic_scores,
@@ -1032,6 +1040,8 @@ def _build_heldout_record(
         **{metric: "model_judge" for metric in model_scores},
         **{metric: "deterministic" for metric in deterministic_scores},
     }
+    if claim_coverage is not None:
+        score_sources[EvaluationMetricV3.CITATION_COVERAGE] = "model_judge"
     return build_judgment_record_v3(
         bindings=packet.bindings,
         blinded_packet_sha256=packet.packet_sha256,
@@ -1043,6 +1053,10 @@ def _build_heldout_record(
         judge_configuration_sha256=configuration.configuration_sha256,
         calibration_sha256=calibration.calibration_sha256,
         judge_output_sha256=canonical_sha256(output),
+        claim_coverage=claim_coverage,
+        validated_judge_output=(
+            output.model_dump(mode="json") if claim_coverage is not None else None
+        ),
     )
 
 
@@ -1092,6 +1106,12 @@ def _terminal_result(
                 raise FrozenJudgeRunError(
                     "heldout_journal_artifact_provenance_mismatch"
                 )
+            try:
+                validate_judgment_claim_coverage_v3(replayed, answer)
+            except ValueError as exc:
+                raise FrozenJudgeRunError(
+                    "heldout_journal_claim_coverage_mismatch"
+                ) from exc
             record = replayed
         else:
             if case is None or reference is None or thresholds is None:

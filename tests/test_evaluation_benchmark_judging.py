@@ -17,6 +17,8 @@ from app.evaluation.benchmark_judging import (
     JudgeBudgetPolicyV3,
     JudgeJobIdentityV3,
     JudgeJournalV3,
+    _build_heldout_record,
+    _terminal_result,
     build_heldout_judge_run_key_v3,
 )
 from app.evaluation.protocol import canonical_sha256
@@ -25,6 +27,7 @@ from app.evaluation.v3_artifacts import (
     BlindedAnswerV3,
     CitationForReviewV3,
     ClaimEvidenceV3,
+    JudgmentRecordV3,
     RubricContextV3,
     RubricFactV3,
     RuntimeRubricEvidenceV3,
@@ -53,6 +56,7 @@ from app.evaluation.v3_judge import (
     judge_prompt_sha256_v3,
     model_judge_output_schema_sha256_v3,
     run_development_calibration_case_v3,
+    validate_model_judge_output_v3,
 )
 from app.evaluation.v3_models import (
     EvaluationMetricV3,
@@ -523,13 +527,133 @@ class _FakeRuntime:
         )
 
 
+@pytest.mark.parametrize(
+    "tamper", ["fact_indices", "runtime", "stale_output", "source"]
+)
+def test_successor_replay_revalidates_fresh_output_and_coverage_provenance(
+    tamper: str,
+) -> None:
+    bindings = _bindings(successor=True)
+    configuration = build_model_judge_configuration_v3(
+        bindings=bindings, model_binding=MODEL, judge_prompt=PROMPT
+    )
+    answer = _answer("answer_000000000000000000000001")
+    answer = answer.model_copy(
+        update={
+            "answer": "Rating 5",
+            "claims": (
+                ClaimEvidenceV3(text="Rating 5", citation_labels=("source-1",)),
+            ),
+            "citations": (
+                CitationForReviewV3(
+                    label="source-1",
+                    evidence="snapshot_rating: 5.0",
+                    source_id="catalog_product_80",
+                    source_version_id="catalog_version",
+                ),
+            ),
+            "rubric_context": answer.rubric_context.model_copy(
+                update={
+                    "evaluator_contract": "evidence_semantics_v2",
+                    "required_facts": (
+                        RubricFactV3(
+                            claim="rating",
+                            expected_value=5,
+                            evidence="/rating=5",
+                            support_kind="catalog_pointer",
+                            match_mode="numeric_exact",
+                            support_record_id="product_80",
+                            support_json_pointer="/rating",
+                        ),
+                    ),
+                }
+            ),
+        }
+    )
+    packet = _packet(bindings, (answer,))
+    freeze = _freeze_with_configuration(configuration.configuration_sha256)
+    raw = _output(answer)
+    raw.update(
+        {
+            "output_schema_sha256": model_judge_output_schema_sha256_v3(successor=True),
+            "claim_coverage_contract": "receipt_claim_citation_coverage_v1",
+            "claim_verdicts": [
+                {
+                    "claim_index": 0,
+                    "supported": True,
+                    "citation_labels": ["source-1"],
+                    "rubric_fact_indices": [0],
+                }
+            ],
+        }
+    )
+    output = validate_model_judge_output_v3(raw, answer)
+    record = _build_heldout_record(
+        packet=packet,
+        configuration=configuration,
+        calibration=freeze,
+        answer=answer,
+        output=output,
+    )
+    assert record.claim_coverage is not None and record.claim_coverage.coverage == 1.0
+    payload = record.model_dump(mode="json", exclude={"judgment_sha256"})
+    if tamper == "fact_indices":
+        payload["validated_judge_output"]["claim_verdicts"][0][
+            "rubric_fact_indices"
+        ] = []
+        payload["claim_coverage"]["verdicts"][0]["rubric_fact_indices"] = []
+        payload["judge_output_sha256"] = canonical_sha256(
+            payload["validated_judge_output"]
+        )
+    elif tamper == "runtime":
+        for verdict in payload["validated_judge_output"]["verdicts"]:
+            if verdict["metric"] in {"authorization", "task_completion"}:
+                verdict["score"] = 0.0
+        payload["scores"]["authorization"] = payload["scores"]["task_completion"] = 0.0
+        payload["judge_output_sha256"] = canonical_sha256(
+            payload["validated_judge_output"]
+        )
+    elif tamper == "stale_output":
+        payload["claim_coverage"]["verdicts"][0]["supported"] = False
+        payload["claim_coverage"]["supported_claim_count"] = 0
+        payload["claim_coverage"]["coverage"] = payload["scores"][
+            "citation_coverage"
+        ] = 0.0
+        payload["scores"]["claim_support"] = payload["scores"]["task_completion"] = 0.0
+    else:
+        payload["score_sources"]["citation_coverage"] = "deterministic"
+    # A self-consistent canonical artifact is still rejected against actual
+    # receipt-derived answer and saved validated model output.
+    forged = JudgmentRecordV3(**payload, judgment_sha256=canonical_sha256(payload))
+    identity = JudgeJobIdentityV3(
+        phase="held_out_scoring",
+        target_id=answer.opaque_answer_id,
+        source_sha256=canonical_sha256(answer),
+        run_key_sha256="a" * 64,
+    )
+    with pytest.raises(FrozenJudgeRunError, match="claim_coverage_mismatch"):
+        _terminal_result(
+            terminal={
+                "status": "completed",
+                "ledger_attempts": [],
+                "artifact": forged.model_dump(mode="json"),
+            },
+            identity=identity,
+            expected_phase="held_out_scoring",
+            packet=packet,
+            configuration=configuration,
+            calibration=freeze,
+            answer=answer,
+        )
+
+
 def _journal_records(path: Path) -> list[dict[str, object]]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
 
 
-def _bindings() -> ArtifactBindingsV3:
+def _bindings(*, successor: bool = False) -> ArtifactBindingsV3:
     prompt_hash = judge_prompt_sha256_v3(PROMPT)
-    schema_hash = model_judge_output_schema_sha256_v3()
+    schema_hash = model_judge_output_schema_sha256_v3(successor=successor)
     rubric_sha256 = "d" * 64
     evaluator_sha256 = evaluator_configuration_sha256_v3(
         model_binding=MODEL,

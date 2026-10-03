@@ -123,9 +123,10 @@ Apply these frozen rules exactly:
 _LEGACY_CLAIM_RULE = PACKAGE7_LEGACY_JUDGE_PROMPT_V3.split("- claim_support", 1)[
     1
 ].split("- authorization", 1)[0]
-PACKAGE7_JUDGE_PROMPT_V3 = PACKAGE7_LEGACY_JUDGE_PROMPT_V3.replace(
-    "- claim_support" + _LEGACY_CLAIM_RULE,
-    """- claim_support = 1 iff no forbidden claim is asserted and every factual
+PACKAGE7_JUDGE_PROMPT_V3 = (
+    PACKAGE7_LEGACY_JUDGE_PROMPT_V3.replace(
+        "- claim_support" + _LEGACY_CLAIM_RULE,
+        """- claim_support = 1 iff no forbidden claim is asserted and every factual
   assertion in the answer, including each listed claim, is entailed by that claim's
   own cited evidence. A citation label alone is never support. Do not borrow another
   claim's citations. Reject unsupported extra factual assertions even if all required
@@ -150,6 +151,23 @@ PACKAGE7_JUDGE_PROMPT_V3 = PACKAGE7_LEGACY_JUDGE_PROMPT_V3.replace(
   With no required facts, any factual assertions still require their own supporting
   evidence. Pure abstention, clarification or denial needs no factual citation.
 """,
+    )
+    + """
+Return claim_verdicts for every supplied claim, in claim_index order starting at 0.
+For each claim independently, supported is true only if its own cited evidence
+entails every assertion in that claim, with the correct subject, field, number,
+negation and scope. Use only that claim's citation_labels; list supporting labels
+and the rubric_fact_indices actually expressed by that claim. An uncited factual
+claim is unsupported. A translated faithful paraphrase may be supported; negation
+and an added unsupported award are not. False verdicts are still required.
+Do not use presence or absence of other required facts to decide a claim's support.
+Citation coverage is supported cited claim records divided by all supplied claim
+records. It is not gold-required-fact recall. With no claims, return an empty
+claim_verdicts array; coverage is not measured. Whole-answer unsupported factual
+assertions, including assertions absent from the claim records, still make the
+answer-level claim_support metric zero. Claim_support=1 requires all per-claim
+verdicts to be true and every required fact to have a supported claim verdict.
+"""
 )
 
 
@@ -529,10 +547,11 @@ def _asset_bindings(
             "required_fact_count": loaded_gold.required_fact_count,
             "schema_version": "3.0",
             "evaluator_contract": "evidence_semantics_v2",
+            "citation_coverage_contract": "receipt_claim_citation_coverage_v1",
         }
     )
     judge_prompt_sha256 = judge_prompt_sha256_v3(PACKAGE7_JUDGE_PROMPT_V3)
-    judge_schema_sha256 = model_judge_output_schema_sha256_v3()
+    judge_schema_sha256 = model_judge_output_schema_sha256_v3(successor=True)
     model_binding = loaded_experiment.config.judgment_policy.model_binding
     if model_binding is None:
         raise EvaluationV3CLIError(
