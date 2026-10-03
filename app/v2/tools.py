@@ -34,6 +34,7 @@ from app.knowledge.v2_contracts import (
 from app.models.dataset_source import DatasetSource
 from app.models.product import Product
 from app.models.v2 import V2Offer
+from app.repositories.book_domain import book_product_filter, is_book_product
 from app.repositories.ecommerce import EcommerceRepository, product_comparison_fact
 from app.v2.actions import ActionServiceError, V2ActionService
 from app.v2.authorization import (
@@ -277,6 +278,11 @@ class V2ReadTools:
             repository = EcommerceRepository(session)
             if capability in {"product.catalog.search", "product.rank"}:
                 assert isinstance(request, CatalogSearchInput)
+                if request.entity_queries:
+                    return self._catalog(
+                        self._resolve_entities(repository, request),
+                        ranked=capability == "product.rank",
+                    )
                 rows = repository.search_products(
                     query=request.query,
                     author=request.author,
@@ -284,6 +290,12 @@ class V2ReadTools:
                     publisher=request.publisher,
                     min_price=request.min_price_vnd,
                     max_price=request.max_price_vnd,
+                    min_rating=request.min_rating,
+                    max_rating=request.max_rating,
+                    min_page_count=request.min_page_count,
+                    max_page_count=request.max_page_count,
+                    books_only=True,
+                    source_ids=self.catalog_snapshot.source_ids,
                     limit=request.candidate_limit,
                 )
                 product_ids = tuple(int(str(row["id"])) for row in rows)
@@ -296,7 +308,11 @@ class V2ReadTools:
                 assert isinstance(request, MerchantReadInput)
                 ids = request.product_ids
                 if not ids:
-                    rows = repository.search_products(limit=5)
+                    rows = repository.search_products(
+                        limit=5,
+                        books_only=True,
+                        source_ids=self.catalog_snapshot.source_ids,
+                    )
                     ids = tuple(int(str(row["id"])) for row in rows)
                 return self._catalog(self._products(repository, ids))
             if capability in {
@@ -365,6 +381,7 @@ class V2ReadTools:
                 V2Offer.is_active.is_(True),
                 Product.platform == "Tiki",
                 Product.source_id.in_(self.catalog_snapshot.source_ids),
+                book_product_filter(),
             )
         ).all()
         filtered = [
@@ -373,7 +390,27 @@ class V2ReadTools:
             if _matches_sandbox_catalog(product, offer, request)
         ]
         filtered.sort(key=_sandbox_catalog_sort_key)
-        selected = filtered[: request.candidate_limit]
+        if request.entity_queries:
+            selected = []
+            for query in request.entity_queries:
+                matches = [
+                    row
+                    for row in filtered
+                    if query.casefold() in row[0].name.casefold()
+                ]
+                exact = [
+                    row for row in matches if query.casefold() == row[0].name.casefold()
+                ]
+                matches = exact or matches
+                if len(matches) != 1 or matches[0] in selected:
+                    raise ReadToolError(
+                        "catalog_entity_ambiguous"
+                        if matches
+                        else "catalog_entity_not_found"
+                    )
+                selected.extend(matches)
+        else:
+            selected = filtered[: request.candidate_limit]
         return (
             [product for product, _ in selected],
             {product.id: offer.demo_price_vnd for product, offer in selected},
@@ -482,11 +519,47 @@ class V2ReadTools:
         products = repository.get_products_by_ids(ids)
         if len(products) != len(ids) or any(
             product.platform != "Tiki"
+            or not is_book_product(product)
             or product.source_id not in self.catalog_snapshot.source_ids
             for product in products
         ):
             raise ReadToolError("catalog_product_not_found")
         return products
+
+    def _resolve_entities(
+        self, repository: EcommerceRepository, request: CatalogSearchInput
+    ) -> list[Product]:
+        ids: list[int] = []
+        for query in request.entity_queries:
+            rows = repository.search_products(
+                query=query,
+                title_only=True,
+                books_only=True,
+                source_ids=self.catalog_snapshot.source_ids,
+                author=request.author,
+                category=request.category,
+                publisher=request.publisher,
+                min_price=request.min_price_vnd,
+                max_price=request.max_price_vnd,
+                min_rating=request.min_rating,
+                max_rating=request.max_rating,
+                min_page_count=request.min_page_count,
+                max_page_count=request.max_page_count,
+                limit=6,
+            )
+            exact = [
+                row for row in rows if str(row["name"]).casefold() == query.casefold()
+            ]
+            rows = exact or rows
+            if len(rows) != 1:
+                raise ReadToolError(
+                    "catalog_entity_ambiguous" if rows else "catalog_entity_not_found"
+                )
+            product_id = int(str(rows[0]["id"]))
+            if product_id in ids:
+                raise ReadToolError("catalog_entity_ambiguous")
+            ids.append(product_id)
+        return self._products(repository, tuple(ids))
 
     def _catalog(
         self,
@@ -684,7 +757,10 @@ class V2ReadTools:
         self, repository: EcommerceRepository, request: MarketSnapshotInput
     ) -> tuple[MarketResult, ToolEvidence]:
         statistics = repository.get_product_statistics(
-            category=request.category, author=request.author
+            category=request.category,
+            author=request.author,
+            books_only=True,
+            source_ids=self.catalog_snapshot.source_ids,
         )
         distribution = statistics[f"{request.dimension.value}_distribution"]
         product_count = statistics["product_count"]
@@ -892,7 +968,7 @@ def _matches_sandbox_catalog(
     offer: V2Offer,
     request: CatalogSearchInput,
 ) -> bool:
-    if request.query:
+    if request.query and not request.entity_queries:
         query = request.query.strip().casefold()
         values = (
             product.name,
@@ -927,6 +1003,14 @@ def _matches_sandbox_catalog(
         and offer.demo_price_vnd > request.max_price_vnd
     ):
         return False
+    for value, minimum, maximum in (
+        (product.rating, request.min_rating, request.max_rating),
+        (product.page_count, request.min_page_count, request.max_page_count),
+    ):
+        if minimum is not None and (value is None or value < minimum):
+            return False
+        if maximum is not None and (value is None or value > maximum):
+            return False
     return True
 
 

@@ -11,6 +11,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from app.models.dataset_source import DatasetSource
 from app.models.product import Product
 from app.models.review import Review
+from app.repositories.book_domain import book_product_filter
 
 _CATEGORY_PREFIX_PATTERN = re.compile(
     r"^(?:sách|cuốn sách|quyển sách|cuốn|quyển)\s+",
@@ -39,10 +40,14 @@ class EcommerceRepository:
         max_price: int | None = None,
         min_price: int | None = None,
         min_rating: float | None = None,
+        max_rating: float | None = None,
         author: str | None = None,
         publisher: str | None = None,
         min_page_count: int | None = None,
         max_page_count: int | None = None,
+        books_only: bool = False,
+        source_ids: tuple[int, ...] | None = None,
+        title_only: bool = False,
         limit: int = 10,
     ) -> list[dict[str, object]]:
         """Return products matching structured filters and text search."""
@@ -50,13 +55,18 @@ class EcommerceRepository:
         python_metadata_filter = self.session.get_bind().dialect.name == "sqlite" and (
             author is not None or publisher is not None
         )
+        python_title_filter = (
+            self.session.get_bind().dialect.name == "sqlite" and title_only
+        )
 
         def _build_statement(search_text: str | None) -> Any:
             filters = []
-            if search_text:
+            if search_text and not python_title_filter:
                 pattern = f"%{search_text.strip()}%"
                 filters.append(
-                    or_(
+                    Product.name.ilike(pattern)
+                    if title_only
+                    else or_(
                         Product.name.ilike(pattern),
                         self._authors_search_text().ilike(pattern),
                         Product.publisher.ilike(pattern),
@@ -65,6 +75,10 @@ class EcommerceRepository:
                     )
                 )
             filters.append(Product.platform == "Tiki")
+            if books_only:
+                filters.append(book_product_filter())
+            if source_ids is not None:
+                filters.append(Product.source_id.in_(source_ids))
             if category:
                 filters.append(Product.category.ilike(category.strip()))
             if author and not python_metadata_filter:
@@ -77,6 +91,8 @@ class EcommerceRepository:
                 filters.append(Product.price >= min_price)
             if min_rating is not None:
                 filters.append(Product.rating >= min_rating)
+            if max_rating is not None:
+                filters.append(Product.rating <= max_rating)
             if min_page_count is not None:
                 filters.append(Product.page_count >= min_page_count)
             if max_page_count is not None:
@@ -97,11 +113,15 @@ class EcommerceRepository:
                     Product.id.asc(),
                 )
             )
-            return statement if python_metadata_filter else statement.limit(limit)
+            return (
+                statement
+                if python_metadata_filter or python_title_filter
+                else statement.limit(limit)
+            )
 
         def _execute(search_text: str | None) -> list[Product]:
             candidates = list(self.session.scalars(_build_statement(search_text)).all())
-            if not python_metadata_filter:
+            if not python_metadata_filter and not python_title_filter:
                 return candidates
             author_query = author.strip().casefold() if author else None
             publisher_query = publisher.strip().casefold() if publisher else None
@@ -120,6 +140,11 @@ class EcommerceRepository:
                         isinstance(product.publisher, str)
                         and publisher_query in product.publisher.casefold()
                     )
+                )
+                and (
+                    not python_title_filter
+                    or not search_text
+                    or search_text.strip().casefold() in product.name.casefold()
                 )
             ][:limit]
 
@@ -191,10 +216,16 @@ class EcommerceRepository:
         min_price: int | None = None,
         max_price: int | None = None,
         min_rating: float | None = None,
+        books_only: bool = False,
+        source_ids: tuple[int, ...] | None = None,
     ) -> dict[str, object]:
         """Return cross-sectional facts from the historical Tiki Books snapshot."""
 
         filters = [Product.platform == "Tiki"]
+        if books_only:
+            filters.append(book_product_filter())
+        if source_ids is not None:
+            filters.append(Product.source_id.in_(source_ids))
         python_metadata_filter = self.session.get_bind().dialect.name == "sqlite" and (
             author is not None or publisher is not None
         )

@@ -1953,6 +1953,42 @@ async def test_no_candidates_returns_clarification_without_drafting() -> None:
 
 
 @pytest.mark.asyncio
+async def test_ambiguous_title_requests_an_edition_without_drafting() -> None:
+    class AmbiguousCatalogExecutor(_FakeOperationExecutor):
+        def _result(self, operation: RuntimeOperation) -> ExpertResult:
+            result = super()._result(operation)
+            return result.model_copy(
+                update={
+                    "error": SafeExecutionError(
+                        code="catalog_entity_ambiguous",
+                        message="Ambiguous fixture title.",
+                    )
+                }
+            )
+
+    executor = AmbiguousCatalogExecutor(fail_capability="product.catalog.search")
+    producer = _AnswerProducer()
+    supervisor = V2ReadSupervisor(
+        _unused_session_factory,
+        planner=BoundedV2Planner(runtime_mode="off"),
+        operation_executor=executor,  # type: ignore[arg-type]
+        answer_producer=producer,
+    )
+    computation = await supervisor.run_claimed(
+        conversation_id="conversation_ambiguous",
+        turn_id="turn_ambiguous",
+        lease_owner="worker_test",
+        message='So sánh "Sapiens" và "Steve Jobs"',
+        context=_context(),
+        deadline_monotonic=10**12,
+    )
+    assert computation.result.outcome == DialogueOutcome.NEEDS_CLARIFICATION
+    assert "nhiều ấn bản" in computation.result.answer
+    assert "năm tái bản" in computation.result.answer
+    assert producer.calls == 0
+
+
+@pytest.mark.asyncio
 async def test_missing_explicit_evidence_abstains_instead_of_shortening_plan() -> None:
     executor = _FakeOperationExecutor(fail_capability="trust.compare")
     producer = _AnswerProducer()

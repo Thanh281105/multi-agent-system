@@ -365,6 +365,15 @@ class V2ReadSupervisor:
                 if outcome == DialogueOutcome.NEEDS_CLARIFICATION
                 else "Mình chưa có đủ bằng chứng đã xác minh để trả lời yêu cầu này."
             )
+            if any(
+                result.error is not None
+                and result.error.code == "catalog_entity_ambiguous"
+                for result in all_results
+            ):
+                answer = (
+                    "Tên sách khớp nhiều ấn bản; bạn hãy nêu tên đầy đủ, "
+                    "năm tái bản hoặc nhà xuất bản để chọn đúng cuốn."
+                )
             result = TurnResult(
                 outcome=outcome,
                 answer=answer,
@@ -1234,6 +1243,10 @@ def _needs_entity_clarification(
 
 
 def _clarification_answer(code: str) -> str:
+    if code == "book_domain_unsupported":
+        return "Hiện tôi chỉ hỗ trợ tìm và phân tích sách trong catalog lịch sử."
+    if code == "catalog_constraint_invalid":
+        return "Bạn hãy nêu rating từ 0 đến 5 và khoảng số trang hợp lệ."
     if code == "candidate_limit_exceeds_five":
         return "Mỗi lượt hỗ trợ tối đa 5 ứng viên; bạn muốn ưu tiên tiêu chí nào?"
     if code == "price_range_invalid":
