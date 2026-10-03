@@ -564,6 +564,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         ledger=resources.ledger,  # type: ignore[arg-type]
         account_id=resources.account_id,
         journal_path=directory / _DEVELOPMENT_JOURNAL_NAME,
+        successor_binding=frozen.successor_binding,
         additive_source_manifest_sha256=(
             preparation.postprocessing_source_manifest_sha256
         ),
@@ -628,6 +629,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         ledger=resources.ledger,  # type: ignore[arg-type]
         account_id=resources.account_id,
         journal_path=directory / _HELDOUT_JOURNAL_NAME,
+        successor_binding=frozen.successor_binding,
         additive_source_manifest_sha256=(
             preparation.postprocessing_source_manifest_sha256
         ),

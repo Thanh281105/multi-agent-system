@@ -22,6 +22,7 @@ from typing import Any, Literal, Protocol, TypeAlias, cast
 
 from pydantic import BaseModel
 
+from app.evaluation.benchmark_v3 import SuccessorBindingV3
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
 from app.evaluation.v3_artifacts import (
     BlindedAnswerPacketV3,
@@ -43,6 +44,7 @@ from app.evaluation.v3_judge import (
     blinded_answer_sha256_v3,
     build_calibration_record_v3,
     claim_citation_coverage_from_output_v3,
+    model_judge_output_schema_sha256_v3,
     model_judge_output_type_v3,
     score_deterministic_metrics_v3,
     validate_blinded_packet_judge_schema_v3,
@@ -130,6 +132,7 @@ class JudgeRunKeyV3:
     blinded_packet_sha256: str | None
     development_inputs_sha256: str | None
     additive_source_manifest_sha256: str
+    successor_binding: SuccessorBindingV3 | None = None
 
     def __post_init__(self) -> None:
         _require_sha256(self.protocol_sha256, "protocol_sha256")
@@ -143,7 +146,11 @@ class JudgeRunKeyV3:
             self.additive_source_manifest_sha256,
             "additive_source_manifest_sha256",
         )
-        if self.protocol_sha256 != EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3:
+        binding = _normalize_successor_binding(self.successor_binding)
+        expected_protocol = (
+            binding.protocol_sha256 if binding else EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3
+        )
+        if self.protocol_sha256 != expected_protocol:
             raise FrozenJudgeRunError("package7_protocol_hash_drift")
         held_out = self.blinded_packet_sha256 is not None
         development = self.development_inputs_sha256 is not None
@@ -161,7 +168,7 @@ class JudgeRunKeyV3:
         )
 
     def payload(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "protocol_sha256": self.protocol_sha256,
             "configuration_sha256": self.configuration_sha256,
             "calibration_sha256": self.calibration_sha256,
@@ -169,6 +176,9 @@ class JudgeRunKeyV3:
             "development_inputs_sha256": self.development_inputs_sha256,
             "additive_source_manifest_sha256": self.additive_source_manifest_sha256,
         }
+        if self.successor_binding is not None:
+            payload["successor_binding_sha256"] = self.successor_binding.binding_sha256
+        return payload
 
     @property
     def run_key_sha256(self) -> str:
@@ -181,10 +191,13 @@ def build_development_judge_run_key_v3(
     references: CalibrationReferenceBundleV3,
     thresholds: CalibrationThresholdsV3,
     additive_source_manifest_sha256: str,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> JudgeRunKeyV3:
     """Build a key before calibration is frozen, using its frozen inputs."""
 
-    configuration = _normalize_configuration(configuration)
+    configuration = _normalize_configuration(
+        configuration, successor_binding=successor_binding
+    )
     references = CalibrationReferenceBundleV3.model_validate(
         references.model_dump(mode="json")
     )
@@ -206,6 +219,7 @@ def build_development_judge_run_key_v3(
         blinded_packet_sha256=None,
         development_inputs_sha256=development_inputs_sha256,
         additive_source_manifest_sha256=additive_source_manifest_sha256,
+        successor_binding=successor_binding,
     )
 
 
@@ -215,11 +229,15 @@ def build_heldout_judge_run_key_v3(
     configuration: ModelJudgeConfigurationV3,
     calibration: CalibrationFreezeV3,
     additive_source_manifest_sha256: str,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> JudgeRunKeyV3:
     """Validate held-out provenance and build its immutable journal key."""
 
     packet, configuration, calibration = _validate_heldout_inputs(
-        packet, configuration, calibration
+        packet,
+        configuration,
+        calibration,
+        successor_binding=successor_binding,
     )
     return JudgeRunKeyV3(
         protocol_sha256=packet.bindings.protocol_sha256,
@@ -228,6 +246,7 @@ def build_heldout_judge_run_key_v3(
         blinded_packet_sha256=packet.packet_sha256,
         development_inputs_sha256=None,
         additive_source_manifest_sha256=additive_source_manifest_sha256,
+        successor_binding=successor_binding,
     )
 
 
@@ -518,6 +537,7 @@ class DurableModelJudgeRunnerV3:
         additive_source_manifest_sha256: str,
         budget_policy: JudgeBudgetPolicyV3,
         scope_id_factory: Callable[[JudgeJobIdentityV3], str] | None = None,
+        successor_binding: SuccessorBindingV3 | None = None,
     ) -> None:
         _require_identifier(account_id, "account_id")
         _require_sha256(
@@ -535,6 +555,7 @@ class DurableModelJudgeRunnerV3:
         self._source_manifest_sha256 = additive_source_manifest_sha256
         self._budget_policy = budget_policy
         self._scope_id_factory = scope_id_factory or _default_scope_id
+        self._successor_binding = _normalize_successor_binding(successor_binding)
 
     async def run_development_calibration_cases(
         self,
@@ -546,7 +567,9 @@ class DurableModelJudgeRunnerV3:
     ) -> tuple[JudgeJobResultV3, ...]:
         """Run development cases under the frozen calibration inputs."""
 
-        configuration = _normalize_configuration(configuration)
+        configuration = _normalize_configuration(
+            configuration, successor_binding=self._successor_binding
+        )
         references = CalibrationReferenceBundleV3.model_validate(
             references.model_dump(mode="json")
         )
@@ -558,6 +581,7 @@ class DurableModelJudgeRunnerV3:
             references=references,
             thresholds=thresholds,
             additive_source_manifest_sha256=self._source_manifest_sha256,
+            successor_binding=self._successor_binding,
         )
         normalized_cases = tuple(
             DevelopmentCalibrationCaseV3.model_validate(case.model_dump(mode="json"))
@@ -577,6 +601,7 @@ class DurableModelJudgeRunnerV3:
                 configuration=configuration,
                 case=case,
                 reference=reference_by_id[case.calibration_id],
+                successor_binding=self._successor_binding,
             )
             validate_calibration_reference_v3(
                 configuration, case, reference_by_id[case.calibration_id]
@@ -607,13 +632,17 @@ class DurableModelJudgeRunnerV3:
         """Score only the blinded packet; no unblinding key is accepted here."""
 
         packet, configuration, calibration = _validate_heldout_inputs(
-            packet, configuration, calibration
+            packet,
+            configuration,
+            calibration,
+            successor_binding=self._successor_binding,
         )
         key = build_heldout_judge_run_key_v3(
             packet=packet,
             configuration=configuration,
             calibration=calibration,
             additive_source_manifest_sha256=self._source_manifest_sha256,
+            successor_binding=self._successor_binding,
         )
         with JudgeJournalV3(self._journal_path, run_key=key) as journal:
             journal.seal_orphans(attempt_snapshots=self._attempt_snapshots_or_empty)
@@ -642,7 +671,10 @@ class DurableModelJudgeRunnerV3:
         """Score one answer selected only by its opaque blind identifier."""
 
         packet, configuration, calibration = _validate_heldout_inputs(
-            packet, configuration, calibration
+            packet,
+            configuration,
+            calibration,
+            successor_binding=self._successor_binding,
         )
         answer = next(
             (
@@ -659,6 +691,7 @@ class DurableModelJudgeRunnerV3:
             configuration=configuration,
             calibration=calibration,
             additive_source_manifest_sha256=self._source_manifest_sha256,
+            successor_binding=self._successor_binding,
         )
         with JudgeJournalV3(self._journal_path, run_key=key) as journal:
             journal.seal_orphans(attempt_snapshots=self._attempt_snapshots_or_empty)
@@ -685,6 +718,7 @@ class DurableModelJudgeRunnerV3:
             configuration=configuration,
             case=case,
             reference=reference,
+            successor_binding=self._successor_binding,
         )
         identity = JudgeJobIdentityV3(
             phase="development_calibration",
@@ -933,22 +967,58 @@ def _serialize_model_judge_input(request: ModelJudgeRequestV3) -> str:
 
 def _normalize_configuration(
     configuration: ModelJudgeConfigurationV3,
+    *,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> ModelJudgeConfigurationV3:
     normalized = ModelJudgeConfigurationV3.model_validate(
         configuration.model_dump(mode="json")
     )
-    if normalized.bindings.protocol_sha256 != EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3:
-        raise FrozenJudgeRunError("package7_protocol_hash_drift")
+    binding = _normalize_successor_binding(successor_binding)
+    if binding is None:
+        if normalized.bindings.protocol_sha256 != EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3:
+            raise FrozenJudgeRunError("package7_protocol_hash_drift")
+    else:
+        if (
+            normalized.bindings.protocol_sha256,
+            normalized.bindings.repeat_decision_sha256,
+            normalized.bindings.gold_sha256,
+            normalized.bindings.split_sha256,
+        ) != (
+            binding.protocol_sha256,
+            binding.repeat_decision_sha256,
+            binding.gold_sha256,
+            binding.split_sha256,
+        ):
+            raise FrozenJudgeRunError("successor_judge_bindings_mismatch")
+        if (
+            normalized.bindings.judge_schema_sha256
+            != model_judge_output_schema_sha256_v3(successor=True)
+        ):
+            raise FrozenJudgeRunError("successor_judge_schema_mismatch")
     return normalized
+
+
+def _normalize_successor_binding(
+    binding: SuccessorBindingV3 | None,
+) -> SuccessorBindingV3 | None:
+    return (
+        SuccessorBindingV3.model_validate(binding.model_dump(mode="json"))
+        if binding is not None
+        else None
+    )
 
 
 def _validate_heldout_inputs(
     packet: BlindedAnswerPacketV3,
     configuration: ModelJudgeConfigurationV3,
     calibration: CalibrationFreezeV3,
+    *,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> tuple[BlindedAnswerPacketV3, ModelJudgeConfigurationV3, CalibrationFreezeV3]:
     packet = BlindedAnswerPacketV3.model_validate(packet.model_dump(mode="json"))
-    configuration = _normalize_configuration(configuration)
+    configuration = _normalize_configuration(
+        configuration, successor_binding=successor_binding
+    )
     calibration = CalibrationFreezeV3.model_validate(
         calibration.model_dump(mode="json")
     )
@@ -976,6 +1046,7 @@ def _validate_calibration_provenance(
     configuration: ModelJudgeConfigurationV3,
     case: DevelopmentCalibrationCaseV3,
     reference: CalibrationReferenceLabelsV3,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> None:
     if case.split != EvaluationSplitV3.DEVELOPMENT:
         raise FrozenJudgeRunError("development_calibration_split_mismatch")
@@ -985,8 +1056,7 @@ def _validate_calibration_provenance(
         raise FrozenJudgeRunError("calibration_reference_case_mismatch")
     if reference.answer_sha256 != blinded_answer_sha256_v3(case.answer):
         raise FrozenJudgeRunError("calibration_reference_answer_mismatch")
-    if configuration.bindings.protocol_sha256 != EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3:
-        raise FrozenJudgeRunError("package7_protocol_hash_drift")
+    _normalize_configuration(configuration, successor_binding=successor_binding)
 
 
 def _build_calibration_record(
