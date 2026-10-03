@@ -165,7 +165,18 @@ class EvaluationV3ObservationExecutorFactory:
         context: ObservationExecutionContextV3,
         case: EvaluationCaseV3,
     ) -> EvaluationV3ObservationExecutor:
-        runtime = self.composer.compose(context.identity.variant_id)
+        access = ResourceAuthorization(
+            binding=ResourceBinding(
+                tenant_id=context.namespace.tenant_id,
+                principal_id=context.namespace.principal_id,
+                mode=ConversationMode(case.principal_role),
+                store_id=_STORE_ID,
+            ),
+            scopes=frozenset(case.scopes),
+        )
+        runtime = self.composer.compose(
+            context.identity.variant_id, observation_access=access
+        )
         return EvaluationV3ObservationExecutor(
             runtime=runtime,
             context=context,

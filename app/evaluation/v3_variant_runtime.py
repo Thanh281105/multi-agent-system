@@ -10,6 +10,7 @@ from typing import Literal, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.evaluation.v3_knowledge import ObservationKnowledgeStoreV3
 from app.evaluation.v3_models import (
     PACKAGE7_VARIANT_ORDER,
     AgentTopologyV3,
@@ -31,6 +32,7 @@ from app.shared import (
     collect_model_calls,
 )
 from app.v2.answers import GroundedAnswerProducer
+from app.v2.authorization import ResourceAuthorization
 from app.v2.execution import (
     DurableOperationExecutor,
     DurableReadTurnExecutor,
@@ -360,24 +362,33 @@ class EvaluationV3VariantComposer:
     def compose(
         self,
         variant: EvaluationVariantV3 | VariantIdV3,
+        *,
+        observation_access: ResourceAuthorization | None = None,
     ) -> EvaluationV3VariantRuntime:
         policy = package7_variant_policy(variant)
         runtime = EvaluationV3LogicalModelRuntime(self.model_runtime, policy)
         registry = self.shared_services.read_tools.registry
         shared_retriever = self.shared_services.knowledge_service.retriever
+        knowledge_store = self.shared_services.knowledge_store
+        if observation_access is not None:
+            knowledge_store = ObservationKnowledgeStoreV3(
+                knowledge_store,
+                self.shared_services.knowledge_snapshot,
+                observation_access,
+            )
         knowledge_query_planner = ModelRuntimeKnowledgeQueryPlanner(
             runtime,
             model=PINNED_GENERATION_MODEL_V3,
             fallback_on_model_error=False,
         )
         knowledge_retriever = HybridKnowledgeRetriever(
-            self.shared_services.knowledge_store,
+            knowledge_store,
             shared_retriever.embedder,
             planner=knowledge_query_planner,
         )
         knowledge_service = KnowledgeService(
             knowledge_retriever,
-            store=self.shared_services.knowledge_store,
+            store=knowledge_store,
         )
         read_tools = V2ReadTools(
             self.shared_services.session_factory,
