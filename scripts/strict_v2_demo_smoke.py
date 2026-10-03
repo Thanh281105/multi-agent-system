@@ -315,7 +315,18 @@ def run_functional_gate() -> None:
         == {"catalog_product_80", "catalog_product_158"},
         "strict fresh comparison resolves both snapshot titles",
     )
-    _json_case("Phân tích review của Sapiens", {"review.retrieve"}, pins)
+    reviewed = _json_case("Phân tích review của Sapiens", set(), pins)
+    assert reviewed.result is not None
+    smoke._require(
+        reviewed.result.outcome.value == "answered"
+        and bool(reviewed.result.citations)
+        and any(
+            item.capability in {"review.retrieve", "review.compare"}
+            and item.status.value in {"success", "partial_success"}
+            for item in reviewed.result.executions
+        ),
+        "strict review analysis answered with executed review evidence",
+    )
     _json_case(
         "Gợi ý sách từ 350k đến 400k dựa trên review và độ tin cậy",
         {"product.rank", "review.compare", "trust.compare"},
