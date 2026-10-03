@@ -198,6 +198,11 @@ class Settings(BaseSettings):
         le=3_072,
         validation_alias="OPENAI_EMBEDDING_DIMENSIONS",
     )
+    v2_catalog_version_id: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_-]{2,127}$",
+        validation_alias="V2_CATALOG_VERSION_ID",
+    )
     v2_corpus_version_id: str | None = Field(
         default=None,
         pattern=r"^[a-z][a-z0-9_-]{2,127}$",

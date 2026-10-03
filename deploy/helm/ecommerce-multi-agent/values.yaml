@@ -52,6 +52,11 @@ secretKeys:
 
 config:
   snapshotDir: /app/data/snapshots/tiki-books-v4-eval
+  v2CatalogVersionId: ""
+  # Both published PostgreSQL pins are required for functional v2 chat.
+  v2CorpusVersionId: ""
+  v2IndexManifestId: ""
+  v2BudgetAccountId: thanh-v2-provider-global
   knowledgeBackend: disabled
   qdrantUrl: ""
   qdrantCollection: knowledge
