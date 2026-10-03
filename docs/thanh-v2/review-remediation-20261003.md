@@ -24,8 +24,8 @@ v2 được giữ nguyên, v3/v4 không ghi đè evidence đó.
 
 | Issue | Required gate | Trạng thái |
 | --- | --- | --- |
-| E1 price/rating/pages | Field-aware typed parser + actual catalog regression | Đã sửa; actual catalog/PG regressions đạt |
-| E2 fresh entities/review | Resolve từng title, ambiguity, fresh compare/review | Đã sửa; fresh JSON/browser demo đạt |
+| E1 price/rating/pages | Field-aware typed parser + actual catalog regression | Đã sửa thêm cách viết hội thoại, rating không có đơn vị sao và số lượng bằng chữ; provider trên source mới chưa chạy |
+| E2 fresh entities/review | Resolve từng title, ambiguity, fresh compare/review | Challenge tìm thêm lỗi lời dẫn/tên sách và intent thừa; regression catalog mới đạt, fresh provider sau sửa vẫn pending |
 | E3 book domain | Book guard cho candidate, aggregate, direct IDs và sandbox | Đã sửa; giữ 200 raw records, 199 sách đủ điều kiện v2 |
 | E4 semantic/numeric judge | Independent numeric/adversarial/per-claim evaluator tests | Numeric và contract regressions đạt; 5 semantic diagnostics đạt; independent calibration pending |
 | E5 citations/retrieval metrics | Binding/field matching; coverage theo receipt claims; recall có relevance authority | Đã sửa mẫu số/bindings và cơ chế per-claim calibration; calibration thực và full successor pending; document recall chưa đo |
@@ -172,6 +172,52 @@ semantic clauses trước SUT: chi tiết bổ sung trong source inventory khôn
 trở thành yêu cầu trả lời. Không sửa packet theo output. Đây là Codex/gpt-6
 audit trong cùng project/model family, không phải human/external validation.
 Template 12 mẫu + 5 probes để người thật chấm đã chuẩn bị, verdicts đều pending.
+
+20 public challenge đã thực thi trên source `c12a73d`: HTTP 200 và durable
+readback đạt 20/20. Chấm tự động theo rubric khóa trước request cho **4 pass,
+14 fail, 2 unknown** (`c18,c20` cần phân xử mức đủ của abstention chung chung).
+Đây không phải human adjudication hay paired P7/P8 quality evidence. 11 claim
+được đối chiếu bằng native source reopening; hai claim demo price của `c06`
+được đối chiếu riêng với original durable catalog-search tool evidence cùng
+owner, version và content identities. Không dùng giá hiện tại thay nguồn gốc,
+không gọi đó là benchmark sandbox reset proof. Claim có citation hỗ trợ vẫn
+có thể thiếu yêu cầu tác vụ; 15 câu không có claim giữ coverage `null`.
+Evidence ở `challenge-actual-quality-audit.v4.json`, bản bổ sung v5 và
+`challenge-sandbox-durable-source-capture.v2.json` trong `output/review-remediation/`.
+Template human v2 bind đúng packet `f1e13...`, 12 câu đã chọn trước và năm
+diagnostic outputs cũ; toàn bộ human labels vẫn `null`. Template v1 có packet
+binding cũ được giữ lại, không dùng làm human proof.
+
+Challenge tái hiện biến thể còn sót trong E1/E2: lời dẫn hoặc câu theo sau bị
+giữ trong catalog query, “điểm từ 4,8 trở lên” và “ba cuốn” chưa được nhận,
+tên chứa “Tiểu Sử” hoặc cụm “điểm đánh giá” tạo expert obligations thừa.
+Commit `868018f` sửa parser các trường hợp này, phân biệt yêu cầu review thật
+với câu phủ định dùng review, nhận câu hỏi tác giả và giữ bound tối đa năm sách.
+Regression dùng catalog snapshot thật trong SQLite fixture và provider giả;
+không hardcode đáp án hoặc đổi source records/oracle theo output.
+
+Một counterexample grounding riêng cũng được tái hiện: câu giới hạn “does not
+establish ... edition” khiến cả work claim khẳng định bị `negation_mismatch`.
+Commit `c441798` xét polarity theo từng câu, chuyển nguồn có polarity hỗn hợp
+sang semantic verification; claim sai vẫn bị semantic verdict từ chối.
+Số nằm trong đúng literal cited title có chữ được phân biệt với quantity;
+số trang/giá hay số ngoài nguồn vẫn cần typed facts hoặc bị chặn. Không nới
+ACL/provenance và không dịch hoặc viết lại nguồn. Grounding/answer regressions
+đạt 44 tests bằng provider giả; chưa chứng minh actual model outputs sau sửa.
+
+Source followup làm challenge `c12a73d` và các rehearsal cũ thành evidence
+lịch sử. Không ghi đè chúng hoặc gọi challenge đã dùng để sửa là untouched.
+P7 v4 chưa thực thi; phiên mới phải bind source freeze mới sau source checks,
+chạy P7 đủ 36, rồi native repeat gate trước P8. 36 P7 + 720 P8 bổ sung đang
+chờ chấp thuận riêng vì vượt số lượt SUT trong chấp thuận trước; không gọi
+lại cell ambiguous, 20 challenge hoặc năm diagnostics đã hoàn tất.
+
+Ledger sau challenge ghi thêm 85.465.810 nanoUSD: 50 attempts, 49 success và
+một error đã biết usage, một retry. Known tổng là 42.489.181.740, unknown giữ
+482.974.590 nanoUSD, reserved/active bằng 0; còn 57.027.843.670 nanoUSD trong
+cap $100. Đây là pricing estimate từ durable usage, không phải hóa đơn.
+Snapshot đối soát ở `output/review-remediation/challenge-ledger-audit.v1.json`;
+operator phải kiểm lại trước dispatch mới, không tạo account hoặc tăng cap.
 
 Tải 10/100/500 users, multi-replica, TLS/public deployment, human adjudication
 và manuscript/slides chưa được xác minh trong remediation này. Không suy ra các
