@@ -1162,12 +1162,9 @@ def _deterministic_request(
         if isinstance(historical_query, str) and historical_query:
             catalog_query = historical_query[:300]
     intent_text = _QUOTED_QUERY_PATTERN.sub(" ", lowered)
-    if (
-        parsed_context.catalog_query is not None
-        and parsed_context.catalog_query.casefold()
-        != cleaned.strip(" ,.;:?!-").casefold()
-    ):
-        intent_text = intent_text.replace(parsed_context.catalog_query.casefold(), " ")
+    for entity_query in parsed_context.entity_queries:
+        if entity_query.casefold() != cleaned.strip(" ,.;:?!-").casefold():
+            intent_text = intent_text.replace(entity_query.casefold(), " ")
     review_text = re.sub(
         r"\bđiểm\s+đánh giá\b|\b(?:đừng|không)\s+(?:suy|dựa|dùng)"
         r"[^.!?;]*?\b(?:review|đánh giá|nhận xét)\b",
@@ -2121,6 +2118,10 @@ def _extract_entity_queries(message: str) -> tuple[str, ...]:
             "nhận xét",
         ):
             query = _extract_catalog_query(message)
+            if not quoted and re.match(
+                r"^(?:(?:sách|cuốn|quyển)\s+)?(?:này|đó)\b", query or "", re.IGNORECASE
+            ):
+                return ()
             return (query,) if query is not None else ()
         return ()
     candidate = _extract_catalog_query(message)

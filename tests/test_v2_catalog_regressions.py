@@ -404,6 +404,75 @@ async def test_intent_cues_exclude_titles_rating_and_negated_reviews(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("rag_enabled", [True, False])
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Sách này nói về chủ đề gì?",
+        "Cuốn sách này nói về nội dung gì?",
+        "Sách này nói về chủ đề gì? Không dùng review để suy nội dung.",
+    ],
+)
+async def test_generic_knowledge_question_retains_obligation(
+    message: str, rag_enabled: bool
+) -> None:
+    context = PlanningContext(
+        access=tool_access(),
+        versions=RuntimeDataVersions(
+            catalog_version_id="catalog_test",
+            corpus_version_id="corpus_test",
+            index_manifest_id="index_test",
+        ),
+    )
+    planned = await BoundedV2Planner(rag_enabled=rag_enabled).plan(message, context)
+    assert planned.intent == "knowledge"
+    assert [obligation.kind.value for obligation in planned.obligations] == [
+        "knowledge"
+    ]
+    assert [operation.capability for operation in planned.initial_operations] == (
+        ["knowledge.retrieve"] if rag_enabled else []
+    )
+    if rag_enabled:
+        assert planned.initial_operations[0].parameters["query"] == message
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("message", "entities"),
+    [
+        ("Phân tích review của cuốn này.", ()),
+        ('Phân tích review của "Cuốn này".', ("Cuốn này",)),
+    ],
+)
+async def test_deictic_review_keeps_context_but_quoted_title_requires_resolution(
+    message: str, entities: tuple[str, ...]
+) -> None:
+    context = PlanningContext(
+        access=tool_access(),
+        versions=RuntimeDataVersions(
+            catalog_version_id="catalog_test",
+            corpus_version_id="corpus_test",
+            index_manifest_id="index_test",
+        ),
+        resolved_product_ids=(5,),
+    )
+    planned = await BoundedV2Planner().plan(message, context)
+    assert planned.entity_queries == entities
+    reviews = [
+        operation
+        for operation in planned.initial_operations
+        if operation.capability.startswith("review.")
+    ]
+    if entities:
+        assert not reviews
+        assert planned.initial_operations[0].parameters["entity_queries"] == list(
+            entities
+        )
+    else:
+        assert len(reviews) == 1 and reviews[0].parameters["product_ids"] == [5]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("message", "title"),
     [
