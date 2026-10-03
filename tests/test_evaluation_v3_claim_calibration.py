@@ -41,6 +41,7 @@ from app.evaluation.v3_judge import (
 from app.evaluation.v3_models import EvaluationMetricV3
 from tests.test_evaluation_benchmark_judging import (
     _FakeRuntime,
+    _freeze_with_configuration,
     _RecordingLedger,
     _runner,
 )
@@ -463,6 +464,85 @@ async def test_ledger_rejects_uncalibrated_claim_inputs_before_any_scope_or_disp
                 await runner.run_heldout_answer(
                     **kwargs, opaque_answer_id=case.answer.opaque_answer_id
                 )
+    assert runtime.requests == []
+    assert ledger.created_scopes == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("successor", [True, False])
+@pytest.mark.parametrize("mixed", [True, False])
+@pytest.mark.parametrize("entrypoint", ["direct", "key", "packet", "answer"])
+async def test_packet_schema_preflight_rejects_all_contract_mismatches_without_dispatch(
+    successor,
+    mixed,
+    entrypoint,
+    tmp_path,
+):
+    row = _inputs((False,), (False,))
+    if successor:
+        configuration, case = row[:2]
+        valid = case.answer
+        wrong = valid.model_copy(
+            update={
+                "opaque_answer_id": "answer_000000000000000000000002",
+                "rubric_context": valid.rubric_context.model_copy(
+                    update={"evaluator_contract": None}
+                ),
+            }
+        )
+        freeze = _freeze((row,))
+    else:
+        configuration = build_model_judge_configuration_v3(
+            bindings=_bindings().model_copy(
+                update={"protocol_sha256": EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3}
+            ),
+            model_binding=MODEL,
+            judge_prompt=PROMPT,
+        )
+        valid = _answer("answer_000000000000000000000001")
+        wrong = row[1].answer.model_copy(
+            update={"opaque_answer_id": "answer_000000000000000000000002"}
+        )
+        freeze = _freeze_with_configuration(configuration.configuration_sha256)
+    packet = _packet(configuration.bindings, (valid, wrong) if mixed else (wrong,))
+    if entrypoint == "direct":
+        called = []
+        with pytest.raises(ValueError, match="contract differs from judge schema"):
+            judge_blinded_packet_v3(
+                packet,
+                configuration,
+                freeze,
+                judge=lambda request: called.append(request),
+            )
+        assert called == []
+        return
+    if entrypoint == "key":
+        with pytest.raises(
+            FrozenJudgeRunError, match="blind_answer_judge_schema_mismatch"
+        ):
+            build_heldout_judge_run_key_v3(
+                packet=packet,
+                configuration=configuration,
+                calibration=freeze,
+                additive_source_manifest_sha256="a" * 64,
+            )
+        return
+    ledger = _RecordingLedger()
+    runtime = _FakeRuntime(ledger)
+    runner = _runner(runtime, ledger, tmp_path / "mismatched-packet.jsonl")
+    with pytest.raises(FrozenJudgeRunError, match="blind_answer_judge_schema_mismatch"):
+        if entrypoint == "packet":
+            await runner.run_heldout_packet(
+                packet=packet, configuration=configuration, calibration=freeze
+            )
+        else:
+            # Selecting a valid first answer cannot bypass a later mismatched answer.
+            await runner.run_heldout_answer(
+                packet=packet,
+                configuration=configuration,
+                calibration=freeze,
+                opaque_answer_id=packet.answers[0].opaque_answer_id,
+            )
     assert runtime.requests == []
     assert ledger.created_scopes == {}
 

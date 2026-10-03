@@ -1033,6 +1033,7 @@ def judge_blinded_packet_v3(
         raise ValueError("semantic scoring requires a held-out blind packet")
     if packet.bindings != configuration.bindings:
         raise ValueError("blind packet and judge configuration bindings differ")
+    validate_blinded_packet_judge_schema_v3(packet, configuration)
     if calibration.protocol_sha256 != packet.bindings.protocol_sha256:
         raise ValueError("calibration freeze uses a different benchmark protocol")
     if calibration.configuration_sha256 != configuration.configuration_sha256:
@@ -1089,6 +1090,19 @@ def judge_blinded_packet_v3(
             )
         )
     return tuple(judgments)
+
+
+def validate_blinded_packet_judge_schema_v3(
+    packet: BlindedAnswerPacketV3, configuration: ModelJudgeConfigurationV3
+) -> None:
+    successor = configuration.bindings.judge_schema_sha256 == (
+        model_judge_output_schema_sha256_v3(successor=True)
+    )
+    if any(
+        successor != (answer.rubric_context.evaluator_contract is not None)
+        for answer in packet.answers
+    ):
+        raise ValueError("blind answer evaluator contract differs from judge schema")
 
 
 def score_deterministic_metrics_v3(

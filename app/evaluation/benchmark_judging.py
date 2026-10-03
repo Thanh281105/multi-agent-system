@@ -45,6 +45,7 @@ from app.evaluation.v3_judge import (
     claim_citation_coverage_from_output_v3,
     model_judge_output_type_v3,
     score_deterministic_metrics_v3,
+    validate_blinded_packet_judge_schema_v3,
     validate_calibration_reference_v3,
     validate_claim_calibration_freeze_v3,
     validate_judgment_claim_coverage_v3,
@@ -955,6 +956,10 @@ def _validate_heldout_inputs(
         raise FrozenJudgeRunError("heldout_judge_requires_blinded_heldout_packet")
     if packet.bindings != configuration.bindings:
         raise FrozenJudgeRunError("blind_packet_configuration_bindings_mismatch")
+    try:
+        validate_blinded_packet_judge_schema_v3(packet, configuration)
+    except ValueError as exc:
+        raise FrozenJudgeRunError("blind_answer_judge_schema_mismatch") from exc
     if calibration.protocol_sha256 != packet.bindings.protocol_sha256:
         raise FrozenJudgeRunError("calibration_protocol_mismatch")
     if calibration.configuration_sha256 != configuration.configuration_sha256:
