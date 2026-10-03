@@ -266,9 +266,10 @@ def _public_runtime_evidence(kind: EvidenceKind, *, product_id: int = 109):
             assert ids == (product_id,)
             return [product]
 
-        def get_product_reviews(self, *, product_id, limit):
+        def get_reviews_by_product_ids(self, ids, *, limit):
+            assert ids == (product_id,)
             assert limit == 20
-            return product, reviews[:limit]
+            return {product_id: reviews[:limit]}
 
     snapshot = CatalogSnapshot(
         version_id=SANDBOX_SOURCE_VERSION_ID,
