@@ -88,6 +88,15 @@ Codex soạn từ source records mà không đọc gold conversation hay SUT ans
 đây là engineering challenge có biết review, chưa phải externally untouched
 test set. Human audit 12 mẫu/6 strata và 5 probes vẫn pending.
 
+Independent automated oracle audit đã kiểm 20 cases, 5 probes, 78 source facts,
+72 spans và 20 review records, không thấy serious defect; 16 cases accept và
+4 accept-with-uncertainty (`c08,c09,c15,c16`). Artifact cùng
+`grading-policy-lock.v1.json` ghi scope metadata của review và requested
+semantic clauses trước SUT: chi tiết bổ sung trong source inventory không
+trở thành yêu cầu trả lời. Không sửa packet theo output. Đây là Codex/gpt-6
+audit trong cùng project/model family, không phải human/external validation.
+Template 12 mẫu + 5 probes để người thật chấm đã chuẩn bị, verdicts đều pending.
+
 Tải 10/100/500 users, multi-replica, TLS/public deployment, human adjudication
 và manuscript/slides chưa được xác minh trong remediation này. Không suy ra các
 claim đó từ unit tests hoặc single-user rehearsal. Không cần mở rộng kiến trúc
