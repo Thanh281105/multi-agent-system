@@ -207,6 +207,15 @@ ACL/provenance và không dịch hoặc viết lại nguồn. Grounding/answer r
 
 Source followup làm challenge `c12a73d` và các rehearsal cũ thành evidence
 lịch sử. Không ghi đè chúng hoặc gọi challenge đã dùng để sửa là untouched.
+Gate v6 giữ nguyên bằng chứng 294 pass/4 fail: parser đã loại cụm yêu cầu
+knowledge cùng catalog query, ảnh hưởng cả continuation và no-RAG. Commit
+`0c584b5` chỉ loại entity riêng khỏi intent, giữ câu hỏi knowledge chung và
+context của “cuốn này”; 31 regression mục tiêu qua bằng provider giả.
+Review grounding độc lập phát hiện heading Markdown làm nguồn chỉ có câu
+phủ định mất deterministic guard. Commit `69b3fab` bỏ heading khỏi polarity;
+25 grounding regressions và 18 probe độc lập qua, không gọi provider/DB.
+Các gate riêng này không thay joint gate trên source đã commit hoặc chất
+lượng trả lời thật sau sửa; giữ cả capture đỏ và xanh để truy vết.
 P7 v4 chưa thực thi; phiên mới phải bind source freeze mới sau source checks,
 chạy P7 đủ 36, rồi native repeat gate trước P8. 36 P7 + 720 P8 bổ sung đang
 chờ chấp thuận riêng vì vượt số lượt SUT trong chấp thuận trước; không gọi
