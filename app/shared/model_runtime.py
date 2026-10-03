@@ -29,6 +29,7 @@ from openai import (
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from app.shared.budget import (
+    AttemptReservation,
     BudgetCancelledError,
     BudgetDuplicateAttemptError,
     BudgetError,
@@ -456,6 +457,96 @@ class OpenAIModelRuntime:
         request: _BudgetedGenerationRequest,
         schema: type[StructuredT],
     ) -> tuple[Any, StructuredT]:
+        preparation = asyncio.create_task(
+            asyncio.to_thread(
+                self._prepare_generation_attempt,
+                budget=budget,
+                call_id=call_id,
+                attempt_number=attempt_number,
+                request=request,
+            )
+        )
+        try:
+            reservation = await asyncio.shield(preparation)
+        except asyncio.CancelledError:
+            try:
+                reservation = await preparation
+            except Exception:
+                pass
+            else:
+                await asyncio.to_thread(
+                    budget.ledger.settle_unknown_usage,
+                    scope_id=budget.scope_id,
+                    attempt_id=reservation.attempt_id,
+                    result_status="cancelled",
+                    error_code="provider_attempt_cancelled",
+                )
+            raise
+        model = str(request.provider_kwargs["model"])
+        remaining = seconds_until(reservation.deadline_at)
+        timeout_seconds = min(budget.attempt_timeout_seconds, remaining)
+        if timeout_seconds <= 0:
+            await asyncio.to_thread(
+                budget.ledger.settle_unknown_usage,
+                scope_id=budget.scope_id,
+                attempt_id=reservation.attempt_id,
+                result_status="timeout",
+                error_code="model_timeout",
+            )
+            raise TimeoutError
+        try:
+            async with asyncio.timeout(timeout_seconds):
+                budget_client = self._retry_disabled_budget_client()
+                response = await budget_client.responses.create(
+                    **request.provider_kwargs,
+                    timeout=timeout_seconds,
+                )
+        except asyncio.CancelledError:
+            await asyncio.to_thread(
+                budget.ledger.settle_unknown_usage,
+                scope_id=budget.scope_id,
+                attempt_id=reservation.attempt_id,
+                result_status="cancelled",
+                error_code="provider_attempt_cancelled",
+            )
+            raise
+        except BaseException as exc:
+            error_code = self._error_code(exc)
+            await asyncio.to_thread(
+                budget.ledger.settle_unknown_usage,
+                scope_id=budget.scope_id,
+                attempt_id=reservation.attempt_id,
+                result_status=("timeout" if error_code == "model_timeout" else "error"),
+                error_code=error_code,
+            )
+            raise
+        settlement = asyncio.create_task(
+            asyncio.to_thread(
+                self._finish_generation_attempt,
+                budget=budget,
+                model=model,
+                reservation=reservation,
+                response=response,
+                schema=schema,
+            )
+        )
+        try:
+            return await asyncio.shield(settlement)
+        except asyncio.CancelledError:
+            try:
+                await settlement
+            except Exception:
+                pass
+            raise
+
+    def _prepare_generation_attempt(
+        self,
+        *,
+        budget: ProviderBudgetContext,
+        call_id: str,
+        attempt_number: int,
+        request: _BudgetedGenerationRequest,
+    ) -> AttemptReservation:
         if budget.cancelled():
             raise BudgetCancelledError("provider_dispatch_cancelled")
         model = str(request.provider_kwargs["model"])
@@ -485,41 +576,17 @@ class OpenAIModelRuntime:
             attempt_id=reservation.attempt_id,
         ):
             raise BudgetDuplicateAttemptError("provider_attempt_already_dispatched")
-        remaining = seconds_until(reservation.deadline_at)
-        timeout_seconds = min(budget.attempt_timeout_seconds, remaining)
-        if timeout_seconds <= 0:
-            budget.ledger.settle_unknown_usage(
-                scope_id=budget.scope_id,
-                attempt_id=reservation.attempt_id,
-                result_status="timeout",
-                error_code="model_timeout",
-            )
-            raise TimeoutError
-        try:
-            async with asyncio.timeout(timeout_seconds):
-                budget_client = self._retry_disabled_budget_client()
-                response = await budget_client.responses.create(
-                    **request.provider_kwargs,
-                    timeout=timeout_seconds,
-                )
-        except asyncio.CancelledError:
-            budget.ledger.settle_unknown_usage(
-                scope_id=budget.scope_id,
-                attempt_id=reservation.attempt_id,
-                result_status="cancelled",
-                error_code="provider_attempt_cancelled",
-            )
-            raise
-        except BaseException as exc:
-            error_code = self._error_code(exc)
-            budget.ledger.settle_unknown_usage(
-                scope_id=budget.scope_id,
-                attempt_id=reservation.attempt_id,
-                result_status=("timeout" if error_code == "model_timeout" else "error"),
-                error_code=error_code,
-            )
-            raise
+        return reservation
 
+    def _finish_generation_attempt(
+        self,
+        *,
+        budget: ProviderBudgetContext,
+        model: str,
+        reservation: AttemptReservation,
+        response: Any,
+        schema: type[StructuredT],
+    ) -> tuple[Any, StructuredT]:
         response_id = self._optional_response_text(response, "id")
         response_model = self._optional_response_text(response, "model")
         response_tier = self._optional_response_text(response, "service_tier")

@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from typing import Any
 
 from sqlalchemy import Engine, create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
@@ -14,13 +15,22 @@ def create_database_engine(database_url: str) -> Engine:
     """Create an engine without opening a database connection eagerly."""
 
     connect_args: dict[str, Any] = {}
-    if database_url.startswith("sqlite"):
+    engine_options: dict[str, Any] = {}
+    backend = make_url(database_url).get_backend_name()
+    if backend == "sqlite":
         connect_args["check_same_thread"] = False
+    elif backend == "postgresql":
+        connect_args.update(
+            connect_timeout=5,
+            options="-c statement_timeout=10000 -c lock_timeout=5000",
+        )
+        engine_options["pool_timeout"] = 5
 
     return create_engine(
         database_url,
         connect_args=connect_args,
         pool_pre_ping=True,
+        **engine_options,
     )
 
 

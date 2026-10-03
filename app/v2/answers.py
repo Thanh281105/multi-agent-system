@@ -270,7 +270,11 @@ class GroundedAnswerProducer:
             allowed_subject_ids=allowed_subject_ids,
             resolve_knowledge=resolve_knowledge,
         )
-        repair_allowed = allow_repair() if callable(allow_repair) else allow_repair
+        repair_allowed = (
+            await asyncio.to_thread(allow_repair)
+            if callable(allow_repair)
+            else allow_repair
+        )
         if type(repair_allowed) is not bool:
             raise GroundingContractError("answer_repair_authorization_invalid")
         if not repair_allowed:

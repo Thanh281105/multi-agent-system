@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
@@ -206,7 +207,8 @@ class V2ReadSupervisor:
                     context=context,
                     fallback_reasons=fallback_reasons,
                 )
-            return self._create_proposal(
+            return await asyncio.to_thread(
+                self._create_proposal,
                 conversation_id=conversation_id,
                 turn_id=turn_id,
                 lease_owner=lease_owner,
@@ -264,7 +266,9 @@ class V2ReadSupervisor:
             )
         all_results = initial.results
         reused_step_ids = set(initial.reused_step_ids)
-        budget = self._budget_remaining(turn_id, deadline_monotonic)
+        budget = await asyncio.to_thread(
+            self._budget_remaining, turn_id, deadline_monotonic
+        )
         assessment = assess_evidence(
             planned.obligations,
             all_results,
@@ -296,7 +300,9 @@ class V2ReadSupervisor:
             all_operations = (*all_operations, *continuation_operations)
             all_results = (*all_results, *continuation.results)
             reused_step_ids.update(continuation.reused_step_ids)
-            budget = self._budget_remaining(turn_id, deadline_monotonic)
+            budget = await asyncio.to_thread(
+                self._budget_remaining, turn_id, deadline_monotonic
+            )
             assessment = assess_evidence(
                 planned.obligations,
                 all_results,
@@ -568,7 +574,8 @@ class V2ReadSupervisor:
             return TurnComputation(
                 result=read_result, fallback_reasons=fallback_reasons
             )
-        proposal = self._create_proposal(
+        proposal = await asyncio.to_thread(
+            self._create_proposal,
             conversation_id=conversation_id,
             turn_id=turn_id,
             lease_owner=lease_owner,
