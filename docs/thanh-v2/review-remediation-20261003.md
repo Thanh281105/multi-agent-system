@@ -4,6 +4,14 @@ Audit baseline: `42311032c3ed59147ae19e6f3e5727cee0eff93b`, nhánh `thanh-v3`.
 Các sửa đổi được chia theo issue và phải có regression cùng evidence tương ứng.
 Không sửa snapshot, gold, protocol hay report đã freeze tại chỗ.
 
+Cập nhật 04/10/2026: P7 review v5 hoàn tất 36/36 trên source `779d607`.
+P8 review v6 kết thúc với **708/720 completed, 12 failed**, native exit 3;
+chưa đạt gate đầy đủ và chưa chạy calibration, held-out judging hay publication.
+Hai sửa lỗi mới `d8d31bd` và `4cba667` làm các lượt đó thành evidence lịch sử.
+Source mới cần freeze, P7 mới và full P8 mới; không carry 708 kết quả hoặc chỉ
+gọi lại 12 ca lỗi. Regression planner/supervisor/continuation mục tiêu đạt
+128 tests bằng model giả/off, không DB hoặc provider; đây không phải SUT quality.
+
 Source gate trước followup E5: Ruff/format và mypy đạt; full offline suite trên PostgreSQL fixture
 riêng đạt **1.084 tests**, 27 integration tests deselected (858,24 giây).
 JUnit: `output/review-remediation/offline-tests.xml`. Frontend clean install
@@ -24,14 +32,14 @@ v2 được giữ nguyên, v3/v4 không ghi đè evidence đó.
 
 | Issue | Required gate | Trạng thái |
 | --- | --- | --- |
-| E1 price/rating/pages | Field-aware typed parser + actual catalog regression | Đã sửa thêm cách viết hội thoại, rating không có đơn vị sao và số lượng bằng chữ; provider trên source mới chưa chạy |
-| E2 fresh entities/review | Resolve từng title, ambiguity, fresh compare/review | Challenge tìm thêm lỗi lời dẫn/tên sách và intent thừa; regression catalog mới đạt, fresh provider sau sửa vẫn pending |
+| E1 price/rating/pages | Field-aware typed parser + actual catalog regression | Đã sửa parser và alias giá niêm yết, giữ quoted title là literal; provider trên source `4cba667` chưa chạy |
+| E2 fresh entities/review | Resolve từng title, ambiguity, fresh compare/review | Đã sửa entity/intent và guard evidence cho mọi product ID được yêu cầu; fresh provider trên source `4cba667` chưa chạy |
 | E3 book domain | Book guard cho candidate, aggregate, direct IDs và sandbox | Đã sửa; giữ 200 raw records, 199 sách đủ điều kiện v2 |
 | E4 semantic/numeric judge | Independent numeric/adversarial/per-claim evaluator tests | Numeric và contract regressions đạt; 5 semantic diagnostics đạt; independent calibration pending |
 | E5 citations/retrieval metrics | Binding/field matching; coverage theo receipt claims; recall có relevance authority | Đã sửa mẫu số/bindings và cơ chế per-claim calibration; calibration thực và full successor pending; document recall chưa đo |
-| E6 quality evidence | Absolute/category historical results; corrected successor | Historical tables đã đối chiếu; P8 source d015ee7 partial 194/720, chưa chấm chất lượng |
+| E6 quality evidence | Absolute/category historical results; corrected successor | Historical tables đã đối chiếu; P8 v6 source `779d607` terminal 708/720 với 12 failed, chưa chấm chất lượng |
 | E7 cancel before admission | Stalled first-event/idle timeout + persisted cancel identity | Đã sửa; timeout/controller tests và browser cancel/reconcile đạt |
-| E8 deployed runtime | Helm pins + strict conversation/JSON/SSE/knowledge smoke | Helm rendering/pin validation và strict local PostgreSQL demo đạt |
+| E8 deployed runtime | Helm pins + strict conversation/JSON/SSE/knowledge smoke | Helm và local PostgreSQL demo lịch sử đạt; deployed/browser gate trên source mới chưa chạy |
 | E9 receipt integrity | Bind/rederive claims và runtime metadata | Đã sửa; additive successor contract và tamper regressions đạt |
 | E10 sync lifecycle SQL | Worker-scoped sessions, bounded DB waits, heartbeat/cancel regression | Đã sửa; worker ownership, slow DB, cancellation/settlement và PG recovery đạt |
 | E11 docs | Tách public v2, historical v1 và single-agent fixture | Đã sửa; documentation integrity đạt |
@@ -94,7 +102,11 @@ cancellation SQL preflights còn sót của H5 đã sửa; H1/H2/H4 trùng mô t
 H5 trùng E10. Runtime tiếp tục bounded sequential; chưa đo provider p95 hay
 tải nhiều users để quyết định thay scheduler.
 
-## Demo rehearsal
+## Demo rehearsal lịch sử — trước source followup
+
+Các dấu kiểm dưới đây mô tả capture trước các sửa lỗi tiếp theo. Chưa có
+deployed/browser rehearsal trên source `4cba667`; không suy ra pass hiện tại
+từ frontend bytes giữ nguyên hoặc từ health check.
 
 - [x] PostgreSQL head `20260910_0008`, catalog 200 records/1.773 reviews và hashes.
 - [x] Published corpus/index pins, compatible embeddings và exact live source reopening.
@@ -162,7 +174,9 @@ Challenge mới có 20 câu/6 strata và 5 evaluator probes tại
 operator phải lock trước request đầu và không sửa source/oracle theo output.
 Codex soạn từ source records mà không đọc gold conversation hay SUT answers;
 đây là engineering challenge có biết review, chưa phải externally untouched
-test set. Human audit 12 mẫu/6 strata và 5 probes vẫn pending.
+test set. Human audit 12 mẫu/6 strata và 5 probes chưa có nhãn.
+Ngày 04/10 user xác nhận không có human labels, bản thảo hoặc slide để rà soát;
+không dùng automated audit thay cho người thật hay tuyên bố đã kiểm tài liệu đó.
 
 Independent automated oracle audit đã kiểm 20 cases, 5 probes, 78 source facts,
 72 spans và 20 review records, không thấy serious defect; 16 cases accept và
@@ -216,10 +230,40 @@ phủ định mất deterministic guard. Commit `69b3fab` bỏ heading khỏi po
 25 grounding regressions và 18 probe độc lập qua, không gọi provider/DB.
 Các gate riêng này không thay joint gate trên source đã commit hoặc chất
 lượng trả lời thật sau sửa; giữ cả capture đỏ và xanh để truy vết.
-P7 v4 chưa thực thi; phiên mới phải bind source freeze mới sau source checks,
-chạy P7 đủ 36, rồi native repeat gate trước P8. 36 P7 + 720 P8 bổ sung đang
-chờ chấp thuận riêng vì vượt số lượt SUT trong chấp thuận trước; không gọi
-lại cell ambiguous, 20 challenge hoặc năm diagnostics đã hoàn tất.
+P7 v4 không thực thi. User sau đó xác nhận 36 P7 + 720 P8 bổ sung: P7 v5
+hoàn tất 36/36 trên `779d607`, repeat decision chọn 3. P8 v5 dừng ở 550
+completed, một ambiguous và 169 pending khi Windows ghi sự kiện tắt máy;
+không suy diễn ai gây ra hoặc sửa checkpoint. P8 replacement v6 được khởi
+chạy trong phạm vi goal tại thời điểm đó và kết thúc như ghi bên dưới.
+Các lượt này không còn là nguồn evidence của source mới; 32 development
+calibration + 720 held-out judgments chưa sử dụng. Một batch SUT mới phải
+có chấp thuận số lượt bổ sung; không gọi lại cell ambiguous, 20 challenge
+hoặc năm diagnostics đã hoàn tất.
+
+P8 v6 ghi 720 started, 708 completed, 12 failed, không pending/ambiguous;
+12 lỗi đều thuộc `held_shopping_merchant_05` qua bốn variants và ba repeats.
+Durable catalog step có evidence hợp lệ cho product 141 nhưng thiếu 158;
+assessment cũ vẫn báo catalog fulfilled, khiến answer preparation ném
+`required_model_evidence_unavailable` trước `answer.draft`. Không có lỗi
+category trống trên capsule native. Phân tích chỉ dùng request và step
+evidence đã lưu, không gọi provider hoặc chỉnh gold/receipt.
+
+Commit `d8d31bd` nhận “chuyển mức niêm yết … về …” ở ngoài quoted titles;
+shopper được chặn trước model/tool, merchant chỉ tạo proposal với target đã
+resolve và vẫn cần confirmation. Literal đổi giá trong tên sách không biến
+thành action hay lọt thành mức giá proposal. Commit `4cba667` yêu cầu mỗi
+product ID explicit có candidate và fact gắn CATALOG reference; thiếu sách
+thì dừng trước synthesis với `evidence_incomplete`. Native full supervisor
+regressions tái hiện sáu lỗi trên guard cũ và đạt 11/11 trên guard mới;
+không nới GroundingVerifier hay bỏ nghĩa vụ evidence.
+
+Terminal audit `p8-successor-v6-terminal-audit.v1.json` ghi SUT known cost
+$1.33538417, khớp delta ledger; unknown delta bằng 0. Canonical snapshot sau
+terminal: known $45.15622668, unknown $0.48297459, reserved/active bằng 0,
+remaining $54.36079873 trong cap $100, max concurrency 2. Đây là estimate
+từ durable usage, không phải hóa đơn. Không export reference, calibrate,
+judge hoặc gọi `operate` trên P8 v6; native partial report exit 3 được giữ
+nguyên. Các số ledger challenge bên dưới là snapshot trước P7/P8 này.
 
 Ledger sau challenge ghi thêm 85.465.810 nanoUSD: 50 attempts, 49 success và
 một error đã biết usage, một retry. Known tổng là 42.489.181.740, unknown giữ

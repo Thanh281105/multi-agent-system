@@ -23,7 +23,7 @@ Repository có ba lane cần giữ tách biệt:
 | --- | --- | --- |
 | v1 scripted/reference | Compatibility regression trên catalog/review snapshot | Đã có evidence lịch sử |
 | v2 paired | Historical deterministic/model-assisted comparison với `tiki_books_vi_28_v1` | Đã có protocol/capture lịch sử; không dùng làm P7/P8 result |
-| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7 v18 is frozen with 3 repeats. P8 v23 completed 720/720 SUT cells, calibration and blind judging; report and paired metrics are published locally. See §8 and §9. |
+| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | Historical P7 v18 froze 3 repeats; historical P8 v23 completed 720/720, calibration and blind judging on 02/10/2026. Source remediation requires new evidence; see §8 and §9. |
 
 ## 2. Frozen inputs và provenance
 
@@ -239,9 +239,9 @@ Protocol `c8a4…` và v4 artifacts bên dưới là lịch sử trước sửa 
 thấy JSON schema cho phép cả chín evaluation metric trong khi semantic validator
 chỉ nhận sáu. Commit `d030f9a` giới hạn metric enum; protocol
 `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c` gắn với
-P7 v10 và là lịch sử. P7 v18 bên dưới bind protocol hiện hành sau các thay đổi
+P7 v10 và là lịch sử. P7 v18 bên dưới bind protocol tại ngày 02/10/2026 sau các thay đổi
 retry và giới hạn expert ID.
-Current P7 successor `run_p7_successor_v18` completed 36/36 cells with zero
+Historical P7 successor `run_p7_successor_v18` completed 36/36 cells with zero
 failures and froze 3 repeats. Protocol SHA-256 is
 `2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23`; its
 repeat-decision SHA-256 is
@@ -249,7 +249,7 @@ repeat-decision SHA-256 is
 cost is `$0.05163060`. P7 v9/v10 and the old
 `aaa7026…`/`0b218d30…` preflights are historical.
 
-Current P8 successor `run_p8_successor_v23` completed all 720/720 SUT cells,
+Historical P8 successor `run_p8_successor_v23` completed all 720/720 SUT cells,
 exact evidence resolution, 32/32 calibration records, judge freeze, 720 blind
 judgments, result join, report and paired metrics. Schedule SHA-256 is
 `f46949cdae870718dd8d2411a343522842eb34c466554e5350ae960ea7e8892e`; calibration
@@ -308,9 +308,17 @@ P7/P8 phải ghi nhận kết quả thực tế theo gold contract; không suy d
 hay fabricate citation để đạt một trạng thái gold dự kiến.
 
 Semantic scoring được khai báo là automated model judge (`model_judge`) theo
-judge configuration/schema đã hash; không có human semantic judge. Deterministic
-metrics (citation precision/coverage và document recall) vẫn phải lấy từ
-receipt/evidence contracts. Calibration phải được freeze trước held-out scoring.
+judge configuration/schema đã hash; không có human semantic judge. Successor
+citation precision đối chiếu citation với required-fact bindings. Citation
+coverage dùng semantic verdict của từng receipt claim với chính citation của
+claim; chỉ bước tổng hợp là deterministic, không suy ra support từ receipt
+alone. Không có claim thì coverage là `null`.
+
+Successor `document_recall` giữ `null` / `not_measured`: chưa có independent
+exhaustive document-relevance gold và toàn bộ retrieved-document set trong
+receipt. Required gold source IDs và final citations không thay thế hai đầu
+vào này. Calibration phải được freeze trước held-out scoring. V18/v23 giữ
+nguyên metric semantics lịch sử; xem caveat citation proxy ở §8.
 
 ## 9. Package 8 additive held-out driver
 
@@ -455,7 +463,7 @@ run. At the time, the source protocol was
 `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. Responses
 API payloads were approved. Embeddings API authorization was then pending; the
 user approved it on 2026-10-01. That earlier continuation snapshot named P7 v10
-and P8 v16; it is superseded by the current P7 v18/P8 v23 results in §8.
+and P8 v16; it was superseded by P7 v18/P8 v23 on 02/10/2026, now historical in §8.
 
 ### Diagnostic-only replay attempts — 2026-09-23
 
@@ -494,11 +502,11 @@ diagnostic artifacts are local-only and excluded from Git. The successful
 diagnostic receipts do not repair v9's terminal failures or qualify as official
 P8 evidence because the schedule uses pilot aliases. P7 v9 and P8 v12 are
 historical. The v10/v16 status described in the earlier ledger snapshot is also
-historical; P7 v18 and P8 v23 are the current official successors. No benchmark
+historical; P7 v18 and P8 v23 were the official successors on 02/10/2026. No benchmark
 conclusion is drawn from the diagnostic runs.
 
-The checkout `.env` still points to SQLite; successor runs use the isolated
-PostgreSQL ledger. The final `codex-p7-p8-ledger` snapshot is `$41.57320211`
+The checkout `.env` points to SQLite in that snapshot; successor runs use the isolated
+PostgreSQL ledger. The 02/10/2026 `codex-p7-p8-ledger` snapshot was `$41.57320211`
 known, `$0.47555784` unknown, `$0` reserved/active, and `$57.95124005` remaining
 under the `$100` cap. Current SQL scopes account for `$0.40455225` unknown; the
 remaining `$0.07100559` is account-level carry-forward without original scope
@@ -515,10 +523,11 @@ The earlier 2026-10-01 and 2026-10-02 02:07 UTC snapshots remain historical.
 Credentials are local-only and excluded from Git.
 
 P7 v9 is a historical partial at `13/36`; P7 v10 and P8 v14-v16 are superseded
-successors. Current P7 v18 is frozen and P8 v23 completed calibration, blind
+successors. Historical P7 v18 froze repeats and P8 v23 completed calibration, blind
 judging, report publication and paired metrics.
 
-Các benchmark gates Package 8 đã hoàn tất với P8 v23:
+Các benchmark gates Package 8 đã hoàn tất với P8 v23 tại ngày 02/10/2026;
+đây không phải evidence trên source đã sửa sau review:
 
 1. Calibrated automated judge và frozen calibration/configuration bindings.
 2. Exact immutable evidence resolver mở lại đúng source/version/chunk/span từ
