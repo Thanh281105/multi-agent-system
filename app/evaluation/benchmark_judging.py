@@ -925,6 +925,10 @@ class DurableModelJudgeRunnerV3:
             attempt_timeout_seconds=self._budget_policy.attempt_timeout_seconds,
             call_id_factory=lambda operation: _call_id(identity, operation),
         )
+
+        def validate_receipt_output(output: ModelJudgeOutputV3) -> None:
+            validate_model_judge_output_v3(output, answer)
+
         with provider_budget_scope(context):
             result = await self._runtime.generate_structured(
                 stage="evaluation.judge",
@@ -941,6 +945,7 @@ class DurableModelJudgeRunnerV3:
                     else 1_200
                 ),
                 reasoning_effort=configuration.model_binding.reasoning_effort,
+                validate_output=validate_receipt_output,
             )
         return validate_model_judge_output_v3(getattr(result, "value", result), answer)
 

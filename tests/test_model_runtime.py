@@ -218,6 +218,45 @@ def parsed_response(answer: str) -> Any:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("recover", [True, False])
+async def test_semantic_output_validation_uses_the_existing_retry_bound(recover):
+    client = FakeClient(
+        [parsed_response("wrong"), parsed_response("correct" if recover else "wrong")]
+    )
+    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=1)
+    checked = []
+
+    def validate(value):
+        checked.append(value.answer)
+        if value.answer != "correct":
+            raise ValueError("private semantic error detail")
+
+    arguments = dict(
+        stage="evaluation.judge",
+        agent_id="model_judge",
+        model="gpt-5.4-mini",
+        instructions="Return the schema.",
+        input_text="bounded evidence",
+        schema=ParsedAnswer,
+        validate_output=validate,
+    )
+    if recover:
+        result = await runtime.generate_structured(**arguments)
+        assert result.value.answer == "correct" and result.metadata.attempts == 2
+    else:
+        with pytest.raises(ModelRuntimeError) as captured:
+            await runtime.generate_structured(**arguments)
+        assert captured.value.code == "model_response_invalid"
+        assert captured.value.metadata.attempts == 2
+        assert "private semantic error detail" not in str(captured.value)
+    assert checked == ["wrong", "correct" if recover else "wrong"]
+    assert len(client.responses.requests) == 2
+    assert all(
+        "validate_output" not in request for request in client.responses.requests
+    )
+
+
+@pytest.mark.asyncio
 async def test_model_runtime_returns_schema_and_collects_safe_metadata() -> None:
     client = FakeClient([parsed_response("Có căn cứ.")])
     runtime = OpenAIModelRuntime(

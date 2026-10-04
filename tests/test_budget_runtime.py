@@ -361,6 +361,64 @@ async def test_malformed_output_is_charged_before_local_schema_parse(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("recover", [True, False])
+async def test_semantic_validation_settles_every_attempt_before_bounded_retry(
+    budget_store, recover
+):
+    ledger, factory, _ = budget_store
+    context = add_scope(ledger, "semantic-retry", max_retries=1)
+    client = FakeGenerationClient(
+        [
+            generation_response("wrong"),
+            generation_response("correct" if recover else "wrong"),
+        ]
+    )
+    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=1)
+
+    def validate(value):
+        if value.answer != "correct":
+            raise ValueError("private binding detail")
+
+    arguments = dict(
+        stage="synthesis",
+        agent_id="orchestrator",
+        model="gpt-5.4-mini",
+        instructions="Return the schema.",
+        input_text="bounded evidence",
+        schema=Answer,
+        validate_output=validate,
+    )
+    with provider_budget_scope(context):
+        if recover:
+            result = await runtime.generate_structured(**arguments)
+            assert result.value.answer == "correct" and result.metadata.attempts == 2
+        else:
+            with pytest.raises(ModelRuntimeError) as captured:
+                await runtime.generate_structured(**arguments)
+            assert captured.value.code == "model_response_invalid"
+            assert captured.value.metadata.attempts == 2
+            assert "private binding detail" not in str(captured.value)
+    attempts = read_attempts(factory, "semantic-retry")
+    assert [item.attempt_number for item in attempts] == [1, 2]
+    assert attempts[0].call_id == attempts[1].call_id
+    assert all(
+        item.usage_status == "known" and item.actual_cost_nano_usd > 0
+        for item in attempts
+    )
+    assert [item.result_status for item in attempts] == [
+        "error",
+        "success" if recover else "error",
+    ]
+    assert attempts[0].error_code == "model_response_invalid"
+    assert ledger.account_summary("provider-global").reserved_nano_usd == 0
+    assert len(client.responses.create_requests) == 2
+    assert client.responses.create_requests[0] == client.responses.create_requests[1]
+    with factory() as session:
+        scope = session.get(ProviderBudgetScope, "semantic-retry")
+        assert scope is not None and scope.generation_calls == 1
+
+
+@pytest.mark.asyncio
 async def test_missing_usage_and_timeout_retain_unknown_reservations(
     budget_store: tuple[SQLProviderBudgetLedger, sessionmaker[Session], Any],
 ) -> None:

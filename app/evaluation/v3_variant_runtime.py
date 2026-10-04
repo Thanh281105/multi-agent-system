@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from threading import Lock
@@ -208,6 +208,7 @@ class EvaluationV3LogicalModelRuntime:
         schema: type[StructuredT],
         max_output_tokens: int | None = None,
         reasoning_effort: ReasoningEffort = "low",
+        validate_output: Callable[[StructuredT], None] | None = None,
     ) -> StructuredModelResult[StructuredT]:
         if model != PINNED_GENERATION_MODEL_V3:
             raise EvaluationV3RuntimeConfigurationError(
@@ -236,6 +237,7 @@ class EvaluationV3LogicalModelRuntime:
             schema=schema,
             max_output_tokens=max_output_tokens,
             reasoning_effort=reasoning_effort,
+            validate_output=validate_output,
         )
 
 

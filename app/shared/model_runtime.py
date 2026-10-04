@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -153,6 +153,7 @@ class _ModelResponseError(ValueError):
         code: Literal[
             "model_response_incomplete",
             "model_response_contract_violation",
+            "model_response_invalid",
         ],
     ) -> None:
         super().__init__(code)
@@ -181,6 +182,7 @@ class ModelRuntime(Protocol):
         schema: type[StructuredT],
         max_output_tokens: int | None = None,
         reasoning_effort: ReasoningEffort = "low",
+        validate_output: Callable[[StructuredT], None] | None = None,
     ) -> StructuredModelResult[StructuredT]: ...
 
 
@@ -285,6 +287,7 @@ class OpenAIModelRuntime:
         schema: type[StructuredT],
         max_output_tokens: int | None = None,
         reasoning_effort: ReasoningEffort = "low",
+        validate_output: Callable[[StructuredT], None] | None = None,
     ) -> StructuredModelResult[StructuredT]:
         budget = current_provider_budget()
         call_id = (
@@ -350,6 +353,7 @@ class OpenAIModelRuntime:
                             raise _ModelResponseError(
                                 "model_response_contract_violation"
                             )
+                        self._validate_structured_output(value, validate_output)
                     else:
                         assert budget_request is not None
                         response, value = await self._budgeted_generation_attempt(
@@ -358,6 +362,7 @@ class OpenAIModelRuntime:
                             attempt_number=attempts,
                             request=budget_request,
                             schema=schema,
+                            validate_output=validate_output,
                         )
                     metadata = self._metadata(
                         call_id=call_id,
@@ -464,6 +469,7 @@ class OpenAIModelRuntime:
         attempt_number: int,
         request: _BudgetedGenerationRequest,
         schema: type[StructuredT],
+        validate_output: Callable[[StructuredT], None] | None = None,
     ) -> tuple[Any, StructuredT]:
         preparation = asyncio.create_task(
             asyncio.to_thread(
@@ -536,6 +542,7 @@ class OpenAIModelRuntime:
                 reservation=reservation,
                 response=response,
                 schema=schema,
+                validate_output=validate_output,
             )
         )
         try:
@@ -594,6 +601,7 @@ class OpenAIModelRuntime:
         reservation: AttemptReservation,
         response: Any,
         schema: type[StructuredT],
+        validate_output: Callable[[StructuredT], None] | None = None,
     ) -> tuple[Any, StructuredT]:
         response_id = self._optional_response_text(response, "id")
         response_model = self._optional_response_text(response, "model")
@@ -637,6 +645,7 @@ class OpenAIModelRuntime:
 
         try:
             value = self._parse_budgeted_response(response, schema)
+            self._validate_structured_output(value, validate_output)
         except BaseException as exc:
             budget.ledger.record_attempt_result(
                 scope_id=budget.scope_id,
@@ -651,6 +660,16 @@ class OpenAIModelRuntime:
             result_status="success",
         )
         return response, value
+
+    @staticmethod
+    def _validate_structured_output(
+        value: StructuredT, validate_output: Callable[[StructuredT], None] | None
+    ) -> None:
+        if validate_output is not None:
+            try:
+                validate_output(value)
+            except ValueError:
+                raise _ModelResponseError("model_response_invalid") from None
 
     def _retry_disabled_budget_client(self) -> Any:
         if self._budget_client is not None:
