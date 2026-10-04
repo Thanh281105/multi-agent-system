@@ -348,6 +348,8 @@ async def test_postgres_executor_resets_runs_and_replays_without_new_attempts() 
             corpus_version_id="corpus_executor_v3",
             index_manifest_id="index_executor_v3",
         )
+        with sessions() as session:
+            seed_tool_catalog(session)
         with sessions() as session, session.begin():
             session.add(
                 V2KnowledgeCorpusVersion(

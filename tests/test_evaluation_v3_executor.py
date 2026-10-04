@@ -49,6 +49,7 @@ from app.shared.budget import (
     default_pricing_manifest_path,
 )
 from app.v2.planning import BoundedV2Planner, PlanningContext, RuntimeDataVersions
+from tests.test_v2_tools import seed_tool_catalog
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -270,6 +271,8 @@ def test_executor_reset_uses_compact_owned_conversation_and_rejects_collision(
     engine = create_engine(f"sqlite+pysqlite:///{tmp_path / 'executor.db'}")
     Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine, expire_on_commit=False, class_=Session)
+    with sessions() as session:
+        seed_tool_catalog(session)
     context, case = _context_and_case()
     runtime = cast(
         Any,
@@ -415,6 +418,8 @@ def test_executor_passes_case_product_ids_to_the_planning_context(
     engine = create_engine(f"sqlite+pysqlite:///{tmp_path / 'context.db'}")
     Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine, expire_on_commit=False, class_=Session)
+    with sessions() as session:
+        seed_tool_catalog(session)
     ledger = SQLProviderBudgetLedger(
         sessions,
         PricingManifest.load(default_pricing_manifest_path()),

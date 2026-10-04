@@ -76,6 +76,7 @@ from app.v2.contracts import (
 )
 from app.v2.planning import PlanningContext, ResolvedMerchantTarget
 from app.v2.runtime import V2ServiceGraph
+from app.v2.sandbox_seed import seed_demo_offers
 
 _STORE_ID = "demo"
 
@@ -435,6 +436,13 @@ class EvaluationV3ObservationExecutor:
                     store_id=binding.store_id,
                     title=f"evaluation:{self.case.case_id}",
                 )
+            )
+
+        if fixture is None and binding.mode is ConversationMode.SHOPPER:
+            seed_demo_offers(
+                services.session_factory,
+                tenant_id=binding.tenant_id,
+                store_id=binding.store_id,
             )
 
     def _reset_fixture(
