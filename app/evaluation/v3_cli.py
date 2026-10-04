@@ -180,6 +180,11 @@ Any extra unsupported factual assertion still makes claim_support 0, including
 an assertion absent from the claim records. If required facts exist and there
 are no claims, claim_support is 0. receipt_constraints.claim_support_must_be_zero
 is this last case; false does not by itself imply claim_support 1.
+receipt_constraints.claim_support_must_be_one recognizes an exact canonical
+assertion-free refusal or clarification, with no required facts, claims or
+citations. When true, claim_support MUST be 1 by vacuity; still copy the separate
+runtime scores and compute task_completion normally. When false, judge factual
+support from the answer and evidence as above; it does not imply support 0.
 
 For catalog_pointer evidence, source_id must equal catalog_<support_record_id>.
 Check the actual field identified by support_json_pointer: title is /name,

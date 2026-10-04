@@ -1307,6 +1307,24 @@ def score_runtime_metrics_v3(
     }
 
 
+def is_vacuous_canonical_response_v3(answer: BlindedAnswerV3) -> bool:
+    """Recognize fixed, assertion-free replies without deciding free-form support."""
+    return (
+        answer.rubric_context.evaluator_contract == "evidence_semantics_v2"
+        and not answer.rubric_context.required_facts
+        and not answer.claims
+        and not answer.citations
+        and answer.runtime_evidence.outcome in {"needs_clarification", "abstained"}
+        and answer.answer
+        in {
+            "Mình chưa tìm thấy đủ ứng viên đã xác minh; "
+            "bạn hãy nêu rõ hơn tên sách hoặc tác giả.",
+            "Mình chưa có đủ bằng chứng đã xác minh để trả lời yêu cầu này.",
+            "Không có đủ bằng chứng đã kiểm tra để trả lời.",
+        }
+    )
+
+
 def validate_model_judge_output_v3(
     raw_output: object,
     answer: BlindedAnswerV3,
@@ -1363,6 +1381,8 @@ def validate_model_judge_output_v3(
             for item in output.verdicts
             if item.metric is EvaluationMetricV3.CLAIM_SUPPORT
         )
+        if is_vacuous_canonical_response_v3(answer) and support.score != 1.0:
+            raise ValueError("canonical empty response requires vacuous claim support")
         if support.score == 1.0:
             if any(not verdict.supported for verdict in coverage.verdicts):
                 raise ValueError(

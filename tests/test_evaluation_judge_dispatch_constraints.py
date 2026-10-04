@@ -14,10 +14,146 @@ from app.evaluation.v3_artifacts import (
     ClaimEvidenceV3,
     RubricFactV3,
 )
-from app.evaluation.v3_judge import ModelJudgeRequestV3
+from app.evaluation.v3_judge import (
+    ModelJudgeRequestV3,
+    score_runtime_metrics_v3,
+    validate_model_judge_output_v3,
+)
+from app.evaluation.v3_models import EvaluationMetricV3
 from app.v2.contracts import DialogueOutcome
 from tests.test_evaluation_benchmark_judge_successor import _successor_inputs
 from tests.test_evaluation_v3_judge import _answer
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "catalog",
+        "insufficient",
+        "grounding",
+        "required_fact",
+        "assertion",
+        "claim",
+        "citation",
+    ],
+)
+def test_canonical_empty_response_support_is_separate_from_helpfulness(kind):
+    row, _, _, _ = _successor_inputs()
+    configuration, case, _, _, _ = row
+    original = case.answer
+    replies = {
+        "catalog": (
+            "Mình chưa tìm thấy đủ ứng viên đã xác minh; "
+            "bạn hãy nêu rõ hơn tên sách hoặc tác giả."
+        ),
+        "insufficient": (
+            "Mình chưa có đủ bằng chứng đã xác minh để trả lời yêu cầu này."
+        ),
+        "grounding": "Không có đủ bằng chứng đã kiểm tra để trả lời.",
+    }
+    answer = original.model_copy(
+        update={
+            "answer": replies.get(kind, replies["catalog"]),
+            "claims": (),
+            "citations": (),
+            "rubric_context": original.rubric_context.model_copy(
+                update={"required_facts": ()}
+            ),
+            "runtime_evidence": original.runtime_evidence.model_copy(
+                update={"outcome": DialogueOutcome.NEEDS_CLARIFICATION}
+            ),
+        }
+    )
+    if kind == "required_fact":
+        answer = answer.model_copy(
+            update={
+                "rubric_context": answer.rubric_context.model_copy(
+                    update={
+                        "required_facts": _answer(
+                            answer.opaque_answer_id
+                        ).rubric_context.required_facts
+                    }
+                )
+            }
+        )
+    elif kind == "assertion":
+        answer = answer.model_copy(
+            update={"answer": answer.answer + " Sách này giá 99999 VND."}
+        )
+    elif kind == "claim":
+        answer = answer.model_copy(
+            update={
+                "claims": (
+                    ClaimEvidenceV3(
+                        text="Sách này đoạt một giải thưởng.", citation_labels=()
+                    ),
+                )
+            }
+        )
+    elif kind == "citation":
+        answer = answer.model_copy(update={"citations": (original.citations[0],)})
+    before = canonical_sha256(answer)
+    scores = score_runtime_metrics_v3(answer)
+    scores[EvaluationMetricV3.CLAIM_SUPPORT] = 0.0
+    scores[EvaluationMetricV3.TASK_COMPLETION] = 0.0
+    payload = {
+        "schema_version": "3.0",
+        "claim_coverage_contract": "receipt_claim_citation_coverage_v1",
+        "output_schema_sha256": configuration.bindings.judge_schema_sha256,
+        "opaque_answer_id": answer.opaque_answer_id,
+        "verdicts": [
+            {
+                "metric": metric.value,
+                "score": score,
+                "rubric_fact_indices": [],
+                "citation_labels": [],
+            }
+            for metric, score in scores.items()
+        ],
+        "claim_verdicts": [
+            {
+                "claim_index": 0,
+                "supported": False,
+                "citation_labels": [],
+                "rubric_fact_indices": [],
+            }
+        ]
+        if answer.claims
+        else [],
+    }
+    vacuous = kind in replies
+    if vacuous:
+        with pytest.raises(ValueError, match="canonical empty response"):
+            validate_model_judge_output_v3(payload, answer)
+        scores[EvaluationMetricV3.CLAIM_SUPPORT] = 1.0
+        scores[EvaluationMetricV3.TASK_COMPLETION] = float(
+            all(
+                value == 1.0
+                for metric, value in scores.items()
+                if metric is not EvaluationMetricV3.TASK_COMPLETION
+            )
+        )
+        payload["verdicts"] = [
+            {
+                "metric": metric.value,
+                "score": score,
+                "rubric_fact_indices": [],
+                "citation_labels": [],
+            }
+            for metric, score in scores.items()
+        ]
+    validate_model_judge_output_v3(payload, answer)
+    request = ModelJudgeRequestV3(
+        phase="development_calibration",
+        judge_prompt=configuration.judge_prompt,
+        output_schema_sha256=configuration.bindings.judge_schema_sha256,
+        configuration_sha256=configuration.configuration_sha256,
+        answer=answer,
+    )
+    wire = json.loads(_serialize_model_judge_input(request))
+    assert wire["receipt_constraints"]["claim_support_must_be_one"] is vacuous
+    assert canonical_sha256(wire["answer"]) == canonical_sha256(answer) == before
+    assert "reference_scores" not in wire
 
 
 @pytest.mark.parametrize("has_claims", [False, True])
@@ -147,6 +283,10 @@ def test_claim_binding_hints_keep_demo_price_separate_from_catalog_facts(
 @pytest.mark.parametrize(
     ("message", "expected"),
     [
+        (
+            "canonical empty response requires vacuous claim support",
+            "judge_claim_vacuity_mismatch",
+        ),
         (
             "model verdict differs from receipt-bound runtime predicates",
             "judge_runtime_predicate_mismatch",

@@ -45,6 +45,7 @@ from app.evaluation.v3_judge import (
     build_calibration_record_v3,
     citation_supports_fact_v3,
     claim_citation_coverage_from_output_v3,
+    is_vacuous_canonical_response_v3,
     model_judge_output_schema_sha256_v3,
     model_judge_output_type_v3,
     score_deterministic_metrics_v3,
@@ -984,6 +985,9 @@ def _serialize_model_judge_input(request: ModelJudgeRequestV3) -> str:
                 request.answer.rubric_context.required_facts
                 and not request.answer.claims
             ),
+            "claim_support_must_be_one": is_vacuous_canonical_response_v3(
+                request.answer
+            ),
             "claim_fact_bindings": [
                 {
                     "claim_index": claim_index,
@@ -1302,6 +1306,9 @@ def _safe_error_code(exc: BaseException) -> str:
             ),
             "task completion differs from component verdicts": (
                 "judge_task_completion_mismatch"
+            ),
+            "canonical empty response requires vacuous claim support": (
+                "judge_claim_vacuity_mismatch"
             ),
             "positive claim support lacks per-claim required facts": (
                 "judge_required_fact_support_missing"
