@@ -171,6 +171,7 @@ async def test_successor_runner_completes_and_replays_both_phases_without_real_e
             budget = current_provider_budget()
             assert budget is not None and budget.ledger is ledger
             assert kwargs["schema"].__name__ == "ClaimCoverageModelJudgeOutputV3"
+            assert kwargs["max_output_tokens"] == 3_600
             self.requests.append(json.loads(kwargs["input_text"]))
             ledger.reserve(budget.scope_id)
             return SimpleNamespace(value=record.validated_judge_output)

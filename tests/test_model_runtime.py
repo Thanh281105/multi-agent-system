@@ -26,6 +26,57 @@ class ParsedAnswer(BaseModel):
     answer: str
 
 
+@pytest.mark.parametrize(
+    ("purpose", "stage", "agent_id", "output_bound", "allowed"),
+    [
+        ("synthesis", "answer.draft", "synthesis", 1_200, True),
+        ("synthesis", "answer.draft", "synthesis", 1_201, False),
+        ("judge", "evaluation.judge", "model_judge", 3_600, True),
+        ("judge", "evaluation.judge", "model_judge", 3_601, False),
+        ("synthesis", "evaluation.judge", "model_judge", 1_201, False),
+        ("judge", "answer.draft", "model_judge", 1_201, False),
+        ("judge", "evaluation.judge", "synthesis", 1_201, False),
+    ],
+)
+def test_larger_budgeted_output_is_exclusive_to_the_judge_stage(
+    purpose, stage, agent_id, output_bound, allowed
+):
+    from app.shared.budget import BudgetLimitExceededError
+
+    quoted_outputs = []
+    manifest = SimpleNamespace(
+        service_tier="standard",
+        resolve=lambda *args: None,
+        quote=lambda **kwargs: quoted_outputs.append(kwargs["output_token_bound"]),
+    )
+    budget = SimpleNamespace(ledger=SimpleNamespace(manifest=manifest), purpose=purpose)
+    client = FakeClient([])
+    client.max_retries = 0
+    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)
+    arguments = dict(
+        budget=budget,
+        model="gpt-5.4-mini",
+        stage=stage,
+        agent_id=agent_id,
+        instructions="Return the requested schema.",
+        input_text="bounded facts",
+        schema=ParsedAnswer,
+        max_output_tokens=output_bound,
+        reasoning_effort="medium",
+    )
+    if allowed:
+        prepared = runtime._prepare_budgeted_request(**arguments)
+        assert prepared.output_token_bound == output_bound
+        assert prepared.provider_kwargs["max_output_tokens"] == output_bound
+        assert quoted_outputs == [output_bound]
+    else:
+        with pytest.raises(
+            BudgetLimitExceededError, match="generation_output_token_limit_exceeded"
+        ):
+            runtime._prepare_budgeted_request(**arguments)
+        assert not quoted_outputs
+
+
 def test_structured_payload_bound_includes_the_provider_schema_envelope() -> None:
     from openai.lib._parsing._responses import type_to_text_format_param
 
@@ -72,7 +123,9 @@ def test_budgeted_runtime_preflight_uses_the_same_structured_envelope() -> None:
             self.quoted_input_bound = input_token_bound
 
     manifest = ManifestRecorder()
-    budget = SimpleNamespace(ledger=SimpleNamespace(manifest=manifest))
+    budget = SimpleNamespace(
+        ledger=SimpleNamespace(manifest=manifest), purpose="synthesis"
+    )
     client = FakeClient([])
     client.max_retries = 0
     runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)

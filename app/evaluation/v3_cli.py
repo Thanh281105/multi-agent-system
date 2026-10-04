@@ -153,6 +153,13 @@ PACKAGE7_JUDGE_PROMPT_V3 = (
 """,
     )
     + """
+receipt_constraints.runtime_metric_scores contains the four receipt predicates
+computed from the exact rules above. Copy these scores unchanged; they are not
+semantic judgments. If receipt_constraints.claim_support_must_be_zero is true,
+required facts exist but there are no claim records: claim_support must be 0 and
+claim_verdicts must be empty. False does not imply claim_support=1; apply the
+own-citation entailment and required-fact rules. Derive task_completion from all
+five component scores after applying these constraints.
 Return claim_verdicts for every supplied claim, in claim_index order starting at 0.
 For each claim independently, supported is true only if its own cited evidence
 entails every assertion in that claim, with the correct subject, field, number,

@@ -412,7 +412,14 @@ class OpenAIModelRuntime:
         output_bound = (
             self._max_output_tokens if max_output_tokens is None else max_output_tokens
         )
-        if not 1 <= output_bound <= 1_200:
+        output_limit = (
+            3_600
+            if budget.purpose == "judge"
+            and stage == "evaluation.judge"
+            and agent_id == "model_judge"
+            else 1_200
+        )
+        if not 1 <= output_bound <= output_limit:
             raise BudgetLimitExceededError("generation_output_token_limit_exceeded")
         input_bound = structured_generation_payload_token_bound(
             instructions=instructions,

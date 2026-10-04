@@ -47,6 +47,7 @@ from app.evaluation.v3_judge import (
     model_judge_output_schema_sha256_v3,
     model_judge_output_type_v3,
     score_deterministic_metrics_v3,
+    score_runtime_metrics_v3,
     validate_blinded_packet_judge_schema_v3,
     validate_calibration_reference_v3,
     validate_claim_calibration_freeze_v3,
@@ -933,7 +934,11 @@ class DurableModelJudgeRunnerV3:
                 schema=model_judge_output_type_v3(
                     configuration.bindings.judge_schema_sha256
                 ),
-                max_output_tokens=1_200,
+                max_output_tokens=(
+                    3_600
+                    if answer.rubric_context.evaluator_contract is not None
+                    else 1_200
+                ),
                 reasoning_effort=configuration.model_binding.reasoning_effort,
             )
         return validate_model_judge_output_v3(getattr(result, "value", result), answer)
@@ -962,6 +967,17 @@ def _serialize_model_judge_input(request: ModelJudgeRequestV3) -> str:
             "calibration_sha256",
         },
     )
+    if request.answer.rubric_context.evaluator_contract == "evidence_semantics_v2":
+        payload["receipt_constraints"] = {
+            "runtime_metric_scores": {
+                metric.value: score
+                for metric, score in score_runtime_metrics_v3(request.answer).items()
+            },
+            "claim_support_must_be_zero": bool(
+                request.answer.rubric_context.required_facts
+                and not request.answer.claims
+            ),
+        }
     return canonical_json_bytes(payload).decode("utf-8")
 
 
@@ -1253,7 +1269,18 @@ def _safe_error_code(exc: BaseException) -> str:
     if isinstance(code, str) and re.fullmatch(r"[a-z0-9_.-]{1,80}", code):
         return code
     if isinstance(exc, ValueError):
-        return "judge_output_contract_rejected"
+        return {
+            "model verdict differs from receipt-bound runtime predicates": (
+                "judge_runtime_predicate_mismatch"
+            ),
+            "task completion differs from component verdicts": (
+                "judge_task_completion_mismatch"
+            ),
+            "positive claim support lacks per-claim required facts": (
+                "judge_required_fact_support_missing"
+            ),
+            "model output schema hash mismatch": "judge_output_schema_hash_mismatch",
+        }.get(str(exc), "judge_output_contract_rejected")
     if isinstance(exc, FrozenJudgeRunError):
         return "judge_runner_invariant_error"
     return "judge_runtime_error"
