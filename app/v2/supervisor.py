@@ -1068,10 +1068,30 @@ def _obligation_satisfied(
 ) -> bool:
     usable = tuple(result for result in results if result.status != TaskStatus.FAILED)
     if obligation.kind == EvidenceObligationKind.CATALOG:
-        return bool(candidates) and any(
-            result.operation.capability
-            in {"product.catalog.search", "product.rank", "merchant.catalog.read"}
+        catalog_results = tuple(
+            result
             for result in usable
+            if result.operation.capability
+            in {"product.catalog.search", "product.rank", "merchant.catalog.read"}
+        )
+        if not candidates or not catalog_results:
+            return False
+        if not obligation.product_ids:
+            return True
+        catalog_candidates = _candidate_product_ids(catalog_results)
+        catalog_subjects = {
+            fact.subject_id
+            for result in catalog_results
+            for fact in result.evidence.facts
+            if any(
+                reference.kind == EvidenceKind.CATALOG
+                and reference.evidence_id in fact.evidence_ids
+                for reference in result.evidence.references
+            )
+        }
+        return set(obligation.product_ids) <= set(catalog_candidates) and all(
+            f"product_{product_id}" in catalog_subjects
+            for product_id in obligation.product_ids
         )
     if obligation.kind == EvidenceObligationKind.COMPARISON:
         return len(candidates) >= 2 and any(
