@@ -18,7 +18,7 @@ from app.gateway.v2_dependencies import (
 )
 from app.gateway.v2_stream import build_v2_streaming_response
 from app.shared.budget import ProviderBudgetContext
-from app.v2.authorization import DEMO_STORE_ID, allowed_modes
+from app.v2.authorization import DEMO_STORE_ID, ResourceNotFoundError, allowed_modes
 from app.v2.contracts import (
     IDENTIFIER_PATTERN,
     ActionConfirmRequest,
@@ -205,11 +205,23 @@ async def chat(
             payload.conversation_id,
         )
         budget = await asyncio.to_thread(_provider_budget, runtime, payload)
-        outcome = await runtime.services.turn_service.execute(
-            payload,
-            runtime.planning_context,
-            provider_budget=budget,
-        )
+        try:
+            outcome = await runtime.services.turn_service.execute(
+                payload,
+                runtime.planning_context,
+                provider_budget=budget,
+            )
+        except asyncio.CancelledError as interruption:
+            try:
+                outcome = await asyncio.to_thread(
+                    runtime.services.turn_service.query,
+                    canonical_turn_id(payload.conversation_id, payload.client_turn_id),
+                    runtime.access,
+                )
+            except ResourceNotFoundError:
+                raise interruption from None
+            if outcome.status is not TurnStatus.CANCELLED:
+                raise
         result = await asyncio.to_thread(
             _turn_response,
             runtime,
