@@ -46,6 +46,7 @@ DEFAULT_ATTEMPT_TIMEOUT_SECONDS = 18.0
 DEFAULT_SCOPE_DEADLINE_SECONDS = 60.0
 GENERATION_INPUT_TOKEN_LIMIT = 16_000
 GENERATION_OUTPUT_TOKEN_LIMIT = 1_200
+JUDGE_GENERATION_OUTPUT_TOKEN_LIMIT = 3_600
 EMBEDDING_INPUT_TOKEN_LIMIT = 8_192
 EMBEDDING_REQUEST_TOKEN_LIMIT = 300_000
 EMBEDDING_REQUEST_INPUT_LIMIT = 2_048
@@ -254,13 +255,19 @@ class PricingManifest:
         operation: ProviderOperation,
         input_token_bound: int,
         output_token_bound: int,
+        purpose: BudgetPurpose | None = None,
     ) -> PricingQuote:
         if input_token_bound < 0 or output_token_bound < 0:
             raise ValueError("token bounds must be non-negative")
         pricing = self.resolve(model, operation)
+        output_limit = (
+            JUDGE_GENERATION_OUTPUT_TOKEN_LIMIT
+            if purpose == "judge"
+            else GENERATION_OUTPUT_TOKEN_LIMIT
+        )
         if operation == "generation" and (
             input_token_bound > GENERATION_INPUT_TOKEN_LIMIT
-            or output_token_bound > GENERATION_OUTPUT_TOKEN_LIMIT
+            or output_token_bound > output_limit
         ):
             raise BudgetLimitExceededError("generation_payload_limit_exceeded")
         if operation == "embedding":
@@ -763,6 +770,7 @@ class SQLProviderBudgetLedger:
             operation=operation,
             input_token_bound=input_token_bound,
             output_token_bound=output_token_bound,
+            purpose=purpose,
         )
         with self._session_factory() as session, session.begin():
             account_id = session.scalar(

@@ -39,16 +39,24 @@ class ParsedAnswer(BaseModel):
     ],
 )
 def test_larger_budgeted_output_is_exclusive_to_the_judge_stage(
-    purpose, stage, agent_id, output_bound, allowed
+    purpose, stage, agent_id, output_bound, allowed, monkeypatch
 ):
-    from app.shared.budget import BudgetLimitExceededError
+    from app.shared.budget import (
+        BudgetLimitExceededError,
+        PricingManifest,
+        default_pricing_manifest_path,
+    )
 
     quoted_outputs = []
-    manifest = SimpleNamespace(
-        service_tier="standard",
-        resolve=lambda *args: None,
-        quote=lambda **kwargs: quoted_outputs.append(kwargs["output_token_bound"]),
-    )
+    manifest = PricingManifest.load(default_pricing_manifest_path())
+    actual_quote = manifest.quote
+
+    def record_quote(**kwargs):
+        quote = actual_quote(**kwargs)
+        quoted_outputs.append(kwargs["output_token_bound"])
+        return quote
+
+    monkeypatch.setattr(manifest, "quote", record_quote)
     budget = SimpleNamespace(ledger=SimpleNamespace(manifest=manifest), purpose=purpose)
     client = FakeClient([])
     client.max_retries = 0

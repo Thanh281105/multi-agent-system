@@ -24,6 +24,7 @@ from app.models.budget import ProviderAttempt, ProviderBudgetScope
 from app.shared.budget import (
     GENERATION_INPUT_TOKEN_LIMIT,
     BudgetCancelledError,
+    BudgetConflictError,
     BudgetDeadlineError,
     BudgetDuplicateAttemptError,
     BudgetLimitExceededError,
@@ -208,6 +209,79 @@ def read_attempts(
                 .order_by(ProviderAttempt.attempt_sequence)
             )
         )
+
+
+@pytest.mark.asyncio
+async def test_judge_output_bound_is_priced_reserved_and_settled_by_actual_ledger(
+    budget_store: tuple[SQLProviderBudgetLedger, sessionmaker[Session], Any],
+) -> None:
+    ledger, factory, _ = budget_store
+    context = add_scope(ledger, "large-judge", purpose="judge")
+    client = FakeGenerationClient([generation_response("judged")])
+    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)
+
+    with provider_budget_scope(context):
+        result = await runtime.generate_structured(
+            stage="evaluation.judge",
+            agent_id="model_judge",
+            model="gpt-5.4-mini",
+            instructions="Return the schema.",
+            input_text="bounded calibration evidence",
+            schema=Answer,
+            max_output_tokens=3_600,
+        )
+
+    assert result.value.answer == "judged"
+    assert len(client.responses.create_requests) == 1
+    assert client.responses.create_requests[0]["max_output_tokens"] == 3_600
+    attempts = read_attempts(factory, "large-judge")
+    assert len(attempts) == 1
+    attempt = attempts[0]
+    assert attempt.purpose == "judge" and attempt.output_token_bound == 3_600
+    pricing = ledger.manifest.resolve("gpt-5.4-mini", "generation")
+    assert attempt.reserved_nano_usd == (
+        attempt.input_token_bound * pricing.input_nano_usd_per_token
+        + 3_600 * pricing.output_nano_usd_per_token
+    )
+    assert attempt.usage_status == "known" and attempt.result_status == "success"
+    summary = ledger.account_summary("provider-global")
+    assert summary.known_nano_usd > 0 and summary.reserved_nano_usd == 0
+    with factory() as session:
+        scope = session.get(ProviderBudgetScope, "large-judge")
+        assert scope is not None and scope.active_attempts == 0
+
+
+@pytest.mark.asyncio
+async def test_large_judge_output_cannot_bypass_the_persisted_chat_scope(
+    budget_store: tuple[SQLProviderBudgetLedger, sessionmaker[Session], Any],
+) -> None:
+    ledger, factory, _ = budget_store
+    add_scope(ledger, "chat-scope")
+    context = ProviderBudgetContext(
+        ledger=ledger, scope_id="chat-scope", purpose="judge"
+    )
+    client = FakeGenerationClient([])
+    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)
+
+    with (
+        provider_budget_scope(context),
+        pytest.raises(
+            BudgetConflictError, match="provider_attempt_purpose_scope_mismatch"
+        ),
+    ):
+        await runtime.generate_structured(
+            stage="evaluation.judge",
+            agent_id="model_judge",
+            model="gpt-5.4-mini",
+            instructions="Return the schema.",
+            input_text="bounded evidence",
+            schema=Answer,
+            max_output_tokens=3_600,
+        )
+
+    assert not client.responses.create_requests
+    assert not read_attempts(factory, "chat-scope")
+    assert ledger.account_summary("provider-global").reserved_nano_usd == 0
 
 
 @pytest.mark.asyncio

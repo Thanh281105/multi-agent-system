@@ -431,6 +431,7 @@ class OpenAIModelRuntime:
             operation="generation",
             input_token_bound=input_bound,
             output_token_bound=output_bound,
+            purpose=budget.purpose,
         )
         budget_client = self._retry_disabled_budget_client()
         self._assert_standard_endpoint(budget, budget_client)
