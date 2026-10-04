@@ -31,6 +31,108 @@ class _CalibrationInputs(BaseModel):
     inputs_sha256: str
 
 
+def test_operate_preserves_successor_authority_after_calibration(tmp_path, monkeypatch):
+    from tests.test_evaluation_benchmark_finalization import _binding_inputs
+    from tests.test_evaluation_benchmark_judge_successor import _successor_inputs
+
+    inputs, binding = _binding_inputs(monkeypatch)
+    row, _, _, _ = _successor_inputs()
+    configuration, case, _, thresholds, record = row
+    calibration_inputs = SimpleNamespace(
+        cases=(case,),
+        references=inputs["references"],
+        thresholds=thresholds,
+        expected_calibration_ids=(case.calibration_id,),
+    )
+    frozen = SimpleNamespace(
+        successor_binding=binding,
+        project_root=tmp_path,
+        protocol_sha256=binding.protocol_sha256,
+        protocol=object(),
+        heldout_cases=(),
+        loaded_gold=SimpleNamespace(gold=SimpleNamespace(source_assets=object())),
+    )
+    checkpoint = tmp_path / "completed-checkpoint.jsonl"
+    checkpoint.write_bytes(b"synthetic-complete")
+    paths = SimpleNamespace(
+        checkpoint=checkpoint, plan=object(), schedule=object(), output=tmp_path
+    )
+    resources = SimpleNamespace(
+        model_runtime=object(),
+        ledger=object(),
+        account_id="offline-test",
+        knowledge_service=object(),
+        corpus_version_id="test-corpus",
+        index_manifest_id="test-index",
+        catalog_snapshot_version_id="test-catalog",
+    )
+    replacements = {
+        "_require_operator_guard": lambda *_: None,
+        "_load_frozen": lambda *_: frozen,
+        "_paths": lambda *_: paths,
+        "_run_id": lambda *_: "offline-successor",
+        "build_heldout_schedule_v3": lambda *_, **__: (),
+        "build_heldout_execution_plan_v3": lambda *_, **__: object(),
+        "_require_plan": lambda *_: None,
+        "_require_schedule": lambda *_: None,
+        "_load_complete_heldout_receipts": lambda **_: (),
+        "_load_complete_pilot_receipts": lambda **_: ((), ()),
+        "_load_pilot_cases": lambda *_, **__: (),
+        "_receipt_evidence_authorities": lambda **_: {},
+        "_build_live_operator_resources": lambda **_: resources,
+        "_ReceiptExactEvidenceResolver": lambda **_: object(),
+        "ImmutableCatalogReviewSourceV3": lambda **_: object(),
+        "_load_independent_references": lambda *_: inputs["references"],
+        "build_package8_pilot_calibration_inputs_v3": lambda **_: calibration_inputs,
+        "prepare_heldout_judging_v3": lambda **_: inputs["preparation"],
+        "_write_or_validate_preparation_artifacts": lambda *_, **__: None,
+        "_load_preparation_artifacts": lambda *_: (
+            inputs["preparation"],
+            calibration_inputs,
+        ),
+        "_build_judge_configuration": lambda *_: configuration,
+    }
+    for name, replacement in replacements.items():
+        monkeypatch.setattr(benchmark_cli, name, replacement)
+    artifacts = {}
+    monkeypatch.setattr(
+        benchmark_cli,
+        "_write_or_validate_model_artifact",
+        lambda path, value, **_: artifacts.setdefault(path, value),
+    )
+    monkeypatch.setattr(
+        benchmark_cli, "_load_model_artifact", lambda path, *_, **__: artifacts[path]
+    )
+    reached_heldout = []
+
+    class Runner:
+        def __init__(self, **kwargs):
+            assert kwargs["successor_binding"] == binding
+
+        async def run_development_calibration_cases(self, **kwargs):
+            return (SimpleNamespace(status="completed", record=record),)
+
+        async def run_heldout_packet(self, **kwargs):
+            reached_heldout.append(True)
+            # Stop before any scoring. Real calibration freeze and both run-key
+            # guards have run; no model runtime method is reachable in this test.
+            raise RuntimeError("stop_after_successor_bindings")
+
+    monkeypatch.setattr(benchmark_cli, "DurableModelJudgeRunnerV3", Runner)
+    arguments = SimpleNamespace(
+        pilot_checkpoint=checkpoint,
+        pilot_schedule=object(),
+        p7_runtime_manifest=object(),
+        database_url="offline",
+        export_reference_cases=None,
+        calibration_max_absolute_error=0.25,
+        judge_budget_nano_usd=10_000_000_000,
+    )
+    with pytest.raises(RuntimeError, match="stop_after_successor_bindings"):
+        benchmark_cli._operate(arguments)
+    assert reached_heldout == [True]
+
+
 def _artifact_pair(*, marker: str) -> tuple[_Preparation, _CalibrationInputs]:
     return (
         _Preparation(preparation_sha256=marker * 64, schedule_sha256="b" * 64),

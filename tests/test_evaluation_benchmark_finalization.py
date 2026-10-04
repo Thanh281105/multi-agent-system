@@ -5,22 +5,117 @@ from __future__ import annotations
 import json
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from typing import cast
 
 import pytest
 
 from app.evaluation.benchmark_finalization import (
     Package8FinalizationErrorV3,
+    Package8JudgingPreparationV3,
     _account_judge_jobs,
     _write_report_manifest,
+    build_package8_judge_bindings_v3,
     package8_postprocessing_source_sha256_v3,
 )
 from app.evaluation.benchmark_judging import (
+    FrozenJudgeRunError,
     JudgeJobIdentityV3,
     JudgeJobResultV3,
     JudgePhaseV3,
     JudgeRecordV3,
+    build_development_judge_run_key_v3,
+    build_heldout_judge_run_key_v3,
 )
+from app.evaluation.benchmark_v3 import SuccessorBindingV3
+from app.evaluation.protocol import canonical_sha256
+from tests.test_evaluation_benchmark_judge_successor import _successor_inputs
+from tests.test_evaluation_v3_claim_calibration import _freeze, _inputs
+from tests.test_evaluation_v3_judge import _packet
+
+
+def _binding_inputs(monkeypatch: pytest.MonkeyPatch, *, successor: bool = True):
+    if successor:
+        row, references, calibration, binding = _successor_inputs()
+    else:
+        from app.evaluation.v3_judge import build_calibration_reference_bundle_v3
+
+        row = _inputs((False,), (False,))
+        references = build_calibration_reference_bundle_v3(
+            protocol_sha256=row[0].bindings.protocol_sha256, references=(row[2],)
+        )
+        calibration, binding = _freeze((row,)), None
+    configuration, case, _, thresholds, _ = row
+    packet = _packet(configuration.bindings, (case.answer,))
+    # Preparation shape/blinding is tested separately. Keep real configuration,
+    # reference, calibration, packet and run-key guards at this failing boundary.
+    preparation = SimpleNamespace(
+        model_dump=lambda **_: {},
+        preparation_sha256="a" * 64,
+        protocol_sha256=configuration.bindings.protocol_sha256,
+        postprocessing_source_manifest_sha256=package8_postprocessing_source_sha256_v3(),
+        blinded=SimpleNamespace(packet=packet),
+    )
+    monkeypatch.setattr(
+        Package8JudgingPreparationV3, "model_validate", lambda _: preparation
+    )
+    arguments = dict(
+        preparation=preparation,
+        configuration=configuration,
+        references=references,
+        thresholds=thresholds,
+        calibration=calibration,
+    )
+    return arguments, binding
+
+
+def test_successor_finalization_bindings_match_the_durable_runner_keys(monkeypatch):
+    arguments, binding = _binding_inputs(monkeypatch)
+    result = build_package8_judge_bindings_v3(**arguments, successor_binding=binding)
+    common = dict(
+        configuration=arguments["configuration"],
+        additive_source_manifest_sha256=package8_postprocessing_source_sha256_v3(),
+        successor_binding=binding,
+    )
+    development = build_development_judge_run_key_v3(
+        references=arguments["references"], thresholds=arguments["thresholds"], **common
+    )
+    heldout = build_heldout_judge_run_key_v3(
+        packet=arguments["preparation"].blinded.packet,
+        calibration=arguments["calibration"],
+        **common,
+    )
+    assert result.development_judge_run_key_sha256 == development.run_key_sha256
+    assert result.heldout_judge_run_key_sha256 == heldout.run_key_sha256
+
+
+def test_finalization_still_requires_explicit_successor_authority(monkeypatch):
+    arguments, _ = _binding_inputs(monkeypatch)
+    with pytest.raises(FrozenJudgeRunError, match="package7_protocol_hash_drift"):
+        build_package8_judge_bindings_v3(**arguments)
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["protocol_sha256", "repeat_decision_sha256", "gold_sha256", "split_sha256"],
+)
+def test_finalization_rejects_rehashed_foreign_successor_pins(monkeypatch, field):
+    arguments, binding = _binding_inputs(monkeypatch)
+    payload = binding.model_dump(mode="json", exclude={"binding_sha256"})
+    payload[field] = "e" * 64
+    wrong = SuccessorBindingV3(**payload, binding_sha256=canonical_sha256(payload))
+    with pytest.raises(FrozenJudgeRunError, match="successor_judge_bindings_mismatch"):
+        build_package8_judge_bindings_v3(**arguments, successor_binding=wrong)
+
+
+def test_historical_finalization_keeps_default_authority(monkeypatch):
+    arguments, binding = _binding_inputs(monkeypatch, successor=False)
+    assert binding is None
+    result = build_package8_judge_bindings_v3(**arguments)
+    assert (
+        result.judge_configuration_sha256
+        == arguments["configuration"].configuration_sha256
+    )
 
 
 def test_judge_accounting_includes_known_unknown_and_retry_costs() -> None:

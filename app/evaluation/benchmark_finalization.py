@@ -40,6 +40,7 @@ from app.evaluation.benchmark_reporting import (
 )
 from app.evaluation.benchmark_v3 import (
     FrozenPackage7HeldoutInputsV3,
+    SuccessorBindingV3,
     validate_heldout_schedule_v3,
 )
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
@@ -322,6 +323,7 @@ def build_package8_judge_bindings_v3(
     references: CalibrationReferenceBundleV3,
     thresholds: CalibrationThresholdsV3,
     calibration: CalibrationFreezeV3,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> Package8JudgeBindingsV3:
     """Freeze source and run keys before either calibration or held-out scoring."""
 
@@ -359,12 +361,14 @@ def build_package8_judge_bindings_v3(
         references=references,
         thresholds=thresholds,
         additive_source_manifest_sha256=source_manifest,
+        successor_binding=successor_binding,
     )
     heldout_key = build_heldout_judge_run_key_v3(
         packet=preparation.blinded.packet,
         configuration=configuration,
         calibration=calibration,
         additive_source_manifest_sha256=source_manifest,
+        successor_binding=successor_binding,
     )
     payload = {
         "schema_version": _PREPARATION_SCHEMA,

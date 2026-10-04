@@ -624,6 +624,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         references=calibration_inputs.references,
         thresholds=calibration_inputs.thresholds,
         calibration=calibration,
+        successor_binding=frozen.successor_binding,
     )
     _write_or_validate_model_artifact(
         directory / _JUDGE_BINDINGS_NAME,
