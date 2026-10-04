@@ -20,6 +20,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.base import Base
+from app.db.migrate import upgrade_database
 from app.models.budget import ProviderAttempt, ProviderBudgetScope
 from app.shared.budget import (
     GENERATION_INPUT_TOKEN_LIMIT,
@@ -37,6 +38,7 @@ from app.shared.budget import (
 )
 from app.shared.embedding_runtime import EmbeddingRuntimeError, OpenAIEmbeddingRuntime
 from app.shared.model_runtime import ModelRuntimeError, OpenAIModelRuntime
+from tests.v2_postgres_support import disposable_postgres_database
 
 
 class Answer(BaseModel):
@@ -554,32 +556,46 @@ async def test_response_tier_mismatch_retains_unknown_and_surfaces_accounting(
 
 
 @pytest.mark.asyncio
-async def test_budget_context_isolated_across_concurrent_turns(
-    budget_store: tuple[SQLProviderBudgetLedger, sessionmaker[Session], Any],
-) -> None:
-    ledger, factory, _ = budget_store
-    first_context = add_scope(ledger, "context-a")
-    second_context = add_scope(ledger, "context-b")
-    client = EchoGenerationClient()
-    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)
+async def test_postgres_budget_context_isolated_across_concurrent_turns() -> None:
+    # SQLite ignores SELECT FOR UPDATE, so shared-account concurrency needs
+    # the same row-lock semantics as the deployed PostgreSQL ledger.
+    with disposable_postgres_database("thanh_v2_p2_runtime_budget_") as database_url:
+        upgrade_database(database_url)
+        engine = create_engine(database_url)
+        factory = sessionmaker(bind=engine, expire_on_commit=False, class_=Session)
+        ledger = SQLProviderBudgetLedger(
+            factory, PricingManifest.load(default_pricing_manifest_path())
+        )
+        try:
+            ledger.create_account(account_id="provider-global")
+            first_context = add_scope(ledger, "context-a")
+            second_context = add_scope(ledger, "context-b")
+            client = EchoGenerationClient()
+            runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)
 
-    async def run(context: ProviderBudgetContext, text: str) -> str:
-        with provider_budget_scope(context):
-            result = await runtime.generate_structured(
-                stage="synthesis",
-                agent_id="orchestrator",
-                model="gpt-5.4-mini",
-                instructions="Return the schema.",
-                input_text=text,
-                schema=Answer,
-            )
-            return result.value.answer
+            async def run(context: ProviderBudgetContext, text: str) -> str:
+                with provider_budget_scope(context):
+                    result = await runtime.generate_structured(
+                        stage="synthesis",
+                        agent_id="orchestrator",
+                        model="gpt-5.4-mini",
+                        instructions="Return the schema.",
+                        input_text=text,
+                        schema=Answer,
+                    )
+                    return result.value.answer
 
-    assert await asyncio.gather(
-        run(first_context, "first"), run(second_context, "second")
-    ) == ["first", "second"]
-    assert len(read_attempts(factory, "context-a")) == 1
-    assert len(read_attempts(factory, "context-b")) == 1
+            assert await asyncio.gather(
+                run(first_context, "first"), run(second_context, "second")
+            ) == ["first", "second"]
+            for scope_id in ("context-a", "context-b"):
+                attempts = read_attempts(factory, scope_id)
+                assert len(attempts) == 1
+                assert attempts[0].usage_status == "known"
+                assert attempts[0].result_status == "success"
+            assert ledger.account_summary("provider-global").reserved_nano_usd == 0
+        finally:
+            engine.dispose()
 
 
 @pytest.mark.asyncio
