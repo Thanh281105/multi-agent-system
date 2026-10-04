@@ -53,6 +53,7 @@ from app.v2.planning import (
     BoundedV2Planner,
     PlanningContext,
     PlanningError,
+    ResolvedMerchantTarget,
     RuntimeDataVersions,
     context_constraints_from_message,
 )
@@ -507,19 +508,19 @@ async def test_model_cannot_select_an_unimplemented_registry_template() -> None:
 
 
 @pytest.mark.asyncio
-async def test_required_shopper_unauthorized_merchant_plan_clarifies() -> None:
-    message = "Chuyển mức niêm yết Economix về 109.000 đồng."
-    runtime = _ChoiceRuntime(
-        {
-            "template_id": "merchant_proposal",
-            "capabilities": [
-                "merchant.inventory.read",
-                "merchant.offer.propose",
-            ],
-            "selected_product_ids": [141, 158],
-            "candidate_limit": 5,
-        }
+@pytest.mark.parametrize("write", [False, True])
+@pytest.mark.parametrize("marker", ["Chuyển mức niêm yết", "Chuyển niêm yết"])
+async def test_required_shopper_unauthorized_merchant_plan_clarifies(
+    write: bool,
+    marker: str,
+) -> None:
+    message = (
+        "“Economix - Các Nền Kinh Tế Vận Hành (Và Không Vận Hành) Thế Nào Và "
+        "Tại Sao?” và “Tiểu Sử Steve Jobs (Tái Bản 2020)” đang xuất hiện trong "
+        f"danh mục. {marker} của “Economix - Các Nền Kinh Tế Vận Hành "
+        "(Và Không Vận Hành) Thế Nào Và Tại Sao?” về 109.000 đồng."
     )
+    runtime = _ChoiceRuntime(error=AssertionError("model must not run"))
     with provider_budget_scope(_budget_context()):
         planned = await BoundedV2Planner(
             model_runtime=runtime,
@@ -529,11 +530,11 @@ async def test_required_shopper_unauthorized_merchant_plan_clarifies() -> None:
             _context(
                 mode=ConversationMode.SHOPPER,
                 resolved_product_ids=(141, 158),
-                write=True,
+                write=write,
             ),
         )
 
-    assert runtime.calls == 1
+    assert runtime.calls == 0
     assert planned.clarification_code == "action_mode_mismatch"
     assert planned.desired_capabilities == ()
     assert planned.initial_operations == ()
@@ -788,6 +789,85 @@ async def test_embedded_single_product_price_mutation_is_a_proposal() -> None:
         "merchant.inventory.read",
     )
     assert planned.initial_operations[0].parameters == {"product_ids": [7]}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("marker", ["Chuyển mức niêm yết", "Chuyển niêm yết"])
+@pytest.mark.parametrize("quoted_price_title", [False, True])
+async def test_listed_price_alias_proposes_only_for_resolved_merchant_target(
+    marker: str,
+    quoted_price_title: bool,
+) -> None:
+    message = (
+        "“Economix” và “Tiểu Sử Steve Jobs” đang xuất hiện trong danh mục. "
+        f"{marker} của “Economix” về 109.000 đồng."
+    )
+    if quoted_price_title:
+        message = "“Chuyển mức niêm yết về 1 đồng.” " + message
+    context = _context(
+        mode=ConversationMode.MERCHANT,
+        resolved_product_ids=(141, 158),
+        write=True,
+    ).model_copy(
+        update={
+            "merchant_target": ResolvedMerchantTarget(
+                product_id=141,
+                offer_id="offer_product_141",
+                expected_version=1,
+            )
+        }
+    )
+    planned = await BoundedV2Planner(runtime_mode="off").plan(message, context)
+
+    assert planned.clarification_code is None
+    assert planned.proposal is not None
+    assert planned.proposal.kind == "merchant_price"
+    assert planned.proposal.product_id == 141
+    assert planned.proposal.new_price_vnd == 109_000
+    assert planned.proposal.quantity_delta is None
+    assert planned.desired_capabilities == (
+        "merchant.inventory.read",
+        "merchant.offer.propose",
+    )
+    assert tuple(op.capability for op in planned.initial_operations) == (
+        "merchant.inventory.read",
+    )
+    assert planned.initial_operations[0].parameters == {"product_ids": [141, 158]}
+    assert context_constraints_from_message(message) == ()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", [ConversationMode.SHOPPER, ConversationMode.MERCHANT])
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Cho biết giá niêm yết hiện tại của sản phẩm đang ở 109.000 đồng.",
+        "Tìm sách “Niêm yết giá: Nghệ thuật đổi mới”.",
+        "Tìm sách “Chuyển mức niêm yết về 109.000 đồng.”.",
+        "Giá niêm yết của “Chuyển mức niêm yết về 109.000 đồng.” là bao nhiêu?",
+    ],
+)
+async def test_listed_price_inquiry_and_quoted_title_remain_reads(
+    message: str,
+    mode: ConversationMode,
+) -> None:
+    planned = await BoundedV2Planner(runtime_mode="off").plan(
+        message,
+        _context(
+            mode=mode,
+            resolved_product_ids=(141,),
+            write=True,
+        ),
+    )
+
+    assert planned.clarification_code is None
+    assert planned.proposal is None
+    assert planned.initial_operations
+    if "Chuyển mức niêm yết" in message:
+        assert any(
+            constraint.key == "catalog_query"
+            for constraint in context_constraints_from_message(message)
+        )
 
 
 @pytest.mark.asyncio

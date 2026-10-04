@@ -80,13 +80,13 @@ _PRICE_ACTION_MARKER = re.compile(
 _EMBEDDED_PRICE_ACTION_MARKER = re.compile(
     r"\b(?:(?:đổi|cập nhật)\s+(?:mức\s+)?giá(?:\s+bán)?|"
     r"đặt\s+(?:mức\s+)?(?:giá|bán)|"
-    r"chuyển\s+(?:mức\s+)?giá(?:\s+bán)?|"
+    r"chuyển\s+(?:mức\s+)?(?:giá(?:\s+bán)?|niêm\s+yết)|"
     r"(?:set|change|update)\s+(?:the\s+)?price)\b",
     re.IGNORECASE,
 )
 _EMBEDDED_PRICE_ACTION_PATTERN = re.compile(
     _EMBEDDED_PRICE_ACTION_MARKER.pattern
-    + r".{0,300}?\s+(?:thành|sang|lên|xuống|ở|to|at|=)\s*"
+    + r".{0,300}?\s+(?:thành|sang|lên|xuống|ở|về|to|at|=)\s*"
     r"(?P<amount>[0-9][0-9.,]*)\s*"
     r"(?P<unit>k|nghìn|triệu|tr|đ|đồng|vnd)?(?=\s*(?:[.!?]|$))",
     re.IGNORECASE,
@@ -1078,11 +1078,12 @@ def context_constraints_from_message(message: str) -> tuple[ContextConstraint, .
     """Project only deterministically parsed request filters into history context."""
 
     cleaned = message.strip()
+    price_text = _QUOTED_QUERY_PATTERN.sub(" ", cleaned)
     if (
         _is_confirmation_only(cleaned)
         or _CHECKOUT_ACTION_PATTERN.fullmatch(cleaned) is not None
-        or _PRICE_ACTION_MARKER.search(cleaned) is not None
-        or _EMBEDDED_PRICE_ACTION_MARKER.search(cleaned) is not None
+        or _PRICE_ACTION_MARKER.search(price_text) is not None
+        or _EMBEDDED_PRICE_ACTION_MARKER.search(price_text) is not None
         or _STOCK_ACTION_MARKER.search(cleaned) is not None
         or _EMBEDDED_STOCK_ACTION_MARKER.search(cleaned) is not None
         or _IMMEDIATE_OFFER_ACTION_MARKER.search(cleaned) is not None
@@ -1400,9 +1401,10 @@ def _deterministic_action_request(
         )
 
     checkout = _CHECKOUT_ACTION_PATTERN.fullmatch(cleaned) is not None
+    price_text = _QUOTED_QUERY_PATTERN.sub(" ", cleaned)
     price_marker = (
-        _PRICE_ACTION_MARKER.search(cleaned) is not None
-        or _EMBEDDED_PRICE_ACTION_MARKER.search(cleaned) is not None
+        _PRICE_ACTION_MARKER.search(price_text) is not None
+        or _EMBEDDED_PRICE_ACTION_MARKER.search(price_text) is not None
     )
     stock_marker = (
         _STOCK_ACTION_MARKER.search(cleaned) is not None
@@ -1483,14 +1485,14 @@ def _deterministic_action_request(
         else product_ids[0]
     )
     combined_read = len(product_ids) > 1 or (
-        price_marker and _PRICE_ACTION_MARKER.search(cleaned) is None
+        price_marker and _PRICE_ACTION_MARKER.search(price_text) is None
     )
 
     proposal: PlannedProposal
     if price_marker:
-        match = _PRICE_ACTION_PATTERN.fullmatch(cleaned)
+        match = _PRICE_ACTION_PATTERN.fullmatch(price_text)
         if match is None:
-            match = _EMBEDDED_PRICE_ACTION_PATTERN.search(cleaned)
+            match = _EMBEDDED_PRICE_ACTION_PATTERN.search(price_text)
         if match is None:
             return _action_clarification_request(
                 cleaned,
