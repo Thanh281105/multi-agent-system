@@ -445,3 +445,96 @@ def test_exact_resolver_catalog_without_immutable_assets_remains_blocked() -> No
     with pytest.raises(benchmark_cli.BenchmarkCLIError) as caught:
         resolver.resolve(binding)
     assert caught.value.code == "generic_exact_authority_unavailable"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tamper", ("none", "namespace", "state", "missing", "warmup"))
+async def test_seeded_price_requires_native_reset_and_skips_warmups(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, tamper: str
+) -> None:
+    from app.evaluation.benchmark_evidence import ImmutableCatalogReviewSourceV3
+    from app.evaluation.v3_models import ScheduledTurnKindV3
+    from app.evaluation.v3_runner import run_observations_v3
+    from tests.test_evaluation_benchmark_evidence import (
+        SANDBOX_SOURCE_VERSION_ID,
+        _public_asset_bindings,
+        _public_runtime_evidence,
+    )
+    from tests.test_evaluation_v3_runner import (
+        _cases,
+        _protocol,
+        _RecordingFactory,
+        _schedule,
+    )
+
+    protocol = _protocol()
+    kind = (
+        ScheduledTurnKindV3.WARMUP
+        if tamper == "warmup"
+        else ScheduledTurnKindV3.MEASURED
+    )
+    schedule = _schedule(
+        protocol, ((kind, "sa_shared_tools_rag", protocol.pilot_cases[0].case_id, 0),)
+    )
+    cases = _cases(protocol, schedule)
+    run = await run_observations_v3(
+        protocol=protocol,
+        schedule=schedule,
+        cases=cases,
+        checkpoint_path=tmp_path / "checkpoint.jsonl",
+        executor_factory=_RecordingFactory(),
+    )
+    receipt = run.receipts[0]
+    reset = receipt.initial_state_reset_receipt
+    assert reset is not None
+    if tamper in {"namespace", "state"}:
+        reset = reset.model_copy(
+            update={
+                "namespace_id" if tamper == "namespace" else "initial_state_sha256": (
+                    "namespace_" + "0" * 64 if tamper == "namespace" else "0" * 64
+                )
+            }
+        )
+    elif tamper == "missing":
+        reset = None
+    receipt = receipt.model_copy(update={"initial_state_reset_receipt": reset})
+    reference, text = _public_runtime_evidence(EvidenceKind.SANDBOX, product_id=80)
+    seen = []
+
+    def final_result(_):
+        seen.append(True)
+        return SimpleNamespace(
+            citations=(SimpleNamespace(evidence_id=reference.evidence_id),),
+            evidence=(reference,),
+        )
+
+    monkeypatch.setattr(benchmark_cli, "_receipt_final_result", final_result)
+    if tamper in {"namespace", "state", "missing"}:
+        with pytest.raises(benchmark_cli.BenchmarkCLIError) as caught:
+            benchmark_cli._receipt_evidence_authorities(
+                batches=((schedule, (receipt,), cases),)
+            )
+        assert caught.value.code == "sandbox_fixture_authority_invalid"
+        return
+    authorities = benchmark_cli._receipt_evidence_authorities(
+        batches=((schedule, (receipt,), cases),)
+    )
+    if tamper == "warmup":
+        assert authorities == {} and not seen
+        return
+    assert len(authorities) == 1
+    authority = next(iter(authorities.values()))[0]
+    assert authority.catalog_seeded_offer and authority.sandbox_evidence is None
+    root, bindings = _public_asset_bindings()
+    resolver = benchmark_cli._ReceiptExactEvidenceResolver(
+        knowledge_service=object(),
+        corpus_version_id="cor_" + "a" * 60,
+        index_manifest_id="idx_" + "b" * 60,
+        authorities=authorities,
+        catalog_review_source=ImmutableCatalogReviewSourceV3(
+            project_root=root,
+            bindings=bindings,
+            snapshot_version_id=SANDBOX_SOURCE_VERSION_ID,
+        ),
+    )
+    assert resolver.resolve(next(iter(authorities))).exact_text == text

@@ -60,7 +60,7 @@ from app.evaluation.benchmark_v3 import (
     run_heldout_benchmark_v3,
     write_or_validate_execution_plan_v3,
 )
-from app.evaluation.protocol import canonical_json_bytes
+from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
 from app.evaluation.v3_checkpoint import (
     CheckpointErrorV3,
     canonical_run_id_v3,
@@ -76,7 +76,7 @@ from app.evaluation.v3_judge import (
     freeze_calibration_thresholds_v3,
     judge_prompt_sha256_v3,
 )
-from app.evaluation.v3_models import ScheduledTurnV3
+from app.evaluation.v3_models import ScheduledTurnKindV3, ScheduledTurnV3
 from app.evaluation.v3_runner import (
     EvaluationCaseV3,
     EvaluationRunResultV3,
@@ -138,6 +138,7 @@ class _ReceiptEvidenceAuthority:
     reference: EvidenceReference
     authorization: ResourceAuthorization
     sandbox_evidence: SandboxResolvedEvidenceV3 | None = None
+    catalog_seeded_offer: bool = False
 
 
 class _ReceiptExactEvidenceResolver:
@@ -187,7 +188,7 @@ class _ReceiptExactEvidenceResolver:
         authority: _ReceiptEvidenceAuthority,
     ) -> ResolvedExactEvidenceV3:
         catalog_review_source = None
-        if authority.reference.kind in {
+        if authority.catalog_seeded_offer or authority.reference.kind in {
             EvidenceKind.CATALOG,
             EvidenceKind.REVIEW,
             EvidenceKind.TRUST,
@@ -200,11 +201,20 @@ class _ReceiptExactEvidenceResolver:
                     "exact authority",
                 )
             try:
-                catalog_review_source = {
-                    binding: self._catalog_review_source.reopen(
-                        authority.reference, authority.authorization
+                source = self._catalog_review_source.reopen(
+                    authority.reference,
+                    authority.authorization,
+                    **(
+                        {"catalog_seeded_offer": True}
+                        if authority.catalog_seeded_offer
+                        else {}
+                    ),
+                )
+                if authority.catalog_seeded_offer:
+                    return ResolvedExactEvidenceV3(
+                        binding=binding, exact_text=source.exact_text
                     )
-                }
+                catalog_review_source = {binding: source}
             except ValueError as exc:
                 raise BenchmarkCLIError(
                     getattr(exc, "code", "exact_evidence_resolution_failed"),
@@ -1332,6 +1342,9 @@ def _receipt_evidence_authorities(
                 ),
                 scopes=frozenset(case.scopes),
             )
+            # Warm-ups do not enter either the development or held-out packet.
+            if turn.identity.turn_kind is ScheduledTurnKindV3.WARMUP:
+                continue
             result = _receipt_final_result(receipt)
             cited_evidence_ids = {item.evidence_id for item in result.citations}
             for reference in result.evidence:
@@ -1345,18 +1358,43 @@ def _receipt_evidence_authorities(
                     span_id=reference.span_id,
                 )
                 sandbox_evidence = None
+                catalog_seeded_offer = False
                 if reference.kind is EvidenceKind.SANDBOX:
-                    sandbox_evidence = _sandbox_receipt_evidence(
-                        case=case,
-                        receipt=receipt,
-                        authorization=authorization,
-                        binding=binding,
-                        reference=reference,
-                    )
+                    if case.sandbox_fixture is None and re.fullmatch(
+                        r"sandbox_offer_[1-9][0-9]*", reference.source_id
+                    ):
+                        reset = receipt.initial_state_reset_receipt
+                        if (
+                            case.principal_role != ConversationMode.SHOPPER.value
+                            or reset is None
+                            or reset.namespace_id != receipt.namespace.namespace_id
+                            or reset.execution_case_sha256
+                            != receipt.execution_case_sha256
+                            or reset.initial_state_sha256
+                            != canonical_sha256(case.initial_state)
+                            or reset.sandbox_fixture_id is not None
+                        ):
+                            raise BenchmarkCLIError(
+                                "sandbox_fixture_authority_invalid",
+                                "seeded price lacks its original "
+                                "namespace reset authority",
+                            )
+                        # This executor seeds only eligible catalog prices here.
+                        # The immutable source still checks the full exact tool span.
+                        catalog_seeded_offer = True
+                    else:
+                        sandbox_evidence = _sandbox_receipt_evidence(
+                            case=case,
+                            receipt=receipt,
+                            authorization=authorization,
+                            binding=binding,
+                            reference=reference,
+                        )
                 candidate = _ReceiptEvidenceAuthority(
                     reference=reference,
                     authorization=authorization,
                     sandbox_evidence=sandbox_evidence,
+                    catalog_seeded_offer=catalog_seeded_offer,
                 )
                 existing = authorities.get(binding, ())
                 if candidate not in existing:

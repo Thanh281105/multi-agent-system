@@ -220,7 +220,9 @@ def _public_asset_bindings() -> tuple[Path, SourceAssetsV3]:
     return root, SourceAssetsV3.model_validate(document["source_assets"])
 
 
-def _public_runtime_evidence(kind: EvidenceKind, *, product_id: int = 109):
+def _public_runtime_evidence(
+    kind: EvidenceKind, *, product_id: int = 109, sandbox_price: int | None = None
+):
     """Use the production read tool against source-derived ORM rows, without I/O."""
     from app.data.contracts import DatasetManifest, NormalizedProduct, NormalizedReview
     from app.models.dataset_source import DatasetSource
@@ -277,15 +279,68 @@ def _public_runtime_evidence(kind: EvidenceKind, *, product_id: int = 109):
         source_ids=(1,),
     )
     tools = V2ReadTools(forbidden_session, catalog_snapshot=snapshot)
-    if kind is EvidenceKind.CATALOG:
-        _, evidence = tools._catalog([product])
+    if kind in {EvidenceKind.CATALOG, EvidenceKind.SANDBOX}:
+        _, evidence = tools._catalog(
+            [product],
+            sandbox_prices={
+                product_id: product.price if sandbox_price is None else sandbox_price
+            }
+            if kind is EvidenceKind.SANDBOX
+            else None,
+        )
     else:
         _, evidence = tools._reviews(
             Repository(),
             (product_id,),
             trust=kind is EvidenceKind.TRUST,
         )
-    return evidence.references[0], evidence.excerpts[0].exact_text
+    index = -1 if kind is EvidenceKind.SANDBOX else 0
+    return evidence.references[index], evidence.excerpts[index].exact_text
+
+
+@pytest.mark.parametrize("product_id", (80, 109))
+def test_catalog_seeded_price_matches_actual_tool_record(product_id: int) -> None:
+    root, bindings = _public_asset_bindings()
+    source = ImmutableCatalogReviewSourceV3(
+        project_root=root,
+        bindings=bindings,
+        snapshot_version_id=SANDBOX_SOURCE_VERSION_ID,
+    )
+    reference, exact_text = _public_runtime_evidence(
+        EvidenceKind.SANDBOX, product_id=product_id
+    )
+    with pytest.raises(CatalogReviewAuthorityUnavailableErrorV3):
+        source.reopen(reference, _authorization())
+    resolved = source.reopen(reference, _authorization(), catalog_seeded_offer=True)
+    assert resolved.exact_text == exact_text
+    assert resolved.reference == reference
+    assert resolved.authorization == _authorization()
+
+
+@pytest.mark.parametrize("tamper", ("price", "version", "span", "source", "scope"))
+def test_catalog_seeded_price_rejects_foreign_or_mutated_record(tamper: str) -> None:
+    root, bindings = _public_asset_bindings()
+    source = ImmutableCatalogReviewSourceV3(
+        project_root=root,
+        bindings=bindings,
+        snapshot_version_id=SANDBOX_SOURCE_VERSION_ID,
+    )
+    reference, _ = _public_runtime_evidence(
+        EvidenceKind.SANDBOX, sandbox_price=1 if tamper == "price" else None
+    )
+    access = _authorization()
+    if tamper == "version":
+        reference = reference.model_copy(
+            update={"source_version_id": "cat_" + "3" * 64}
+        )
+    elif tamper == "span":
+        reference = reference.model_copy(update={"span_id": "tsp_" + "5" * 64})
+    elif tamper == "source":
+        reference = reference.model_copy(update={"source_id": "sandbox_offer_80"})
+    elif tamper == "scope":
+        access = access.model_copy(update={"scopes": frozenset()})
+    with pytest.raises(EvidenceProvenanceMismatchErrorV3):
+        source.reopen(reference, access, catalog_seeded_offer=True)
 
 
 @pytest.mark.parametrize("kind", (EvidenceKind.CATALOG, EvidenceKind.REVIEW))
