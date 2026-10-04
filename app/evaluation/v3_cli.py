@@ -139,6 +139,14 @@ even when the answer omits another requested fact: omissions do not make an
 otherwise entailed partial claim false. With no claims, claim_verdicts is empty
 and citation coverage is unmeasured, not 100 percent.
 
+receipt_constraints.claim_fact_bindings lists each claim's own citations and
+eligible_required_fact_indices under the frozen source bindings. Eligibility is
+not a truth label and does not mean the claim expresses that fact. For a supported
+claim, list only indices actually expressed and eligible under at least one of
+its supporting citations. An own citation with no eligible required indices may
+still entail additional assertions; in that case use empty rubric_fact_indices.
+Do not mark an entailed claim false just because it maps to no required fact.
+
 Required facts are completeness targets, not an exhaustive list of permissible
 assertions. An additional catalog field, such as author or publisher, can be
 supported by that claim's own catalog citation even when no required fact names

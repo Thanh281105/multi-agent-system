@@ -43,6 +43,7 @@ from app.evaluation.v3_judge import (
     ModelJudgeRequestV3,
     blinded_answer_sha256_v3,
     build_calibration_record_v3,
+    citation_supports_fact_v3,
     claim_citation_coverage_from_output_v3,
     model_judge_output_schema_sha256_v3,
     model_judge_output_type_v3,
@@ -968,6 +969,7 @@ def _serialize_model_judge_input(request: ModelJudgeRequestV3) -> str:
         },
     )
     if request.answer.rubric_context.evaluator_contract == "evidence_semantics_v2":
+        citations = {citation.label: citation for citation in request.answer.citations}
         payload["receipt_constraints"] = {
             "runtime_metric_scores": {
                 metric.value: score
@@ -977,6 +979,26 @@ def _serialize_model_judge_input(request: ModelJudgeRequestV3) -> str:
                 request.answer.rubric_context.required_facts
                 and not request.answer.claims
             ),
+            "claim_fact_bindings": [
+                {
+                    "claim_index": claim_index,
+                    "citations": [
+                        {
+                            "label": label,
+                            "eligible_required_fact_indices": [
+                                fact_index
+                                for fact_index, fact in enumerate(
+                                    request.answer.rubric_context.required_facts
+                                )
+                                if label in citations
+                                and citation_supports_fact_v3(citations[label], fact)
+                            ],
+                        }
+                        for label in claim.citation_labels
+                    ],
+                }
+                for claim_index, claim in enumerate(request.answer.claims)
+            ],
         }
     return canonical_json_bytes(payload).decode("utf-8")
 
@@ -1280,6 +1302,22 @@ def _safe_error_code(exc: BaseException) -> str:
                 "judge_required_fact_support_missing"
             ),
             "model output schema hash mismatch": "judge_output_schema_hash_mismatch",
+            "supported claim lacks bound fact evidence": (
+                "judge_claim_fact_binding_mismatch"
+            ),
+            "supported claim violates exact fact matching": (
+                "judge_claim_exact_fact_mismatch"
+            ),
+            "claim verdict borrows another claim's cited evidence": (
+                "judge_claim_citation_ownership_mismatch"
+            ),
+            "claim verdict references an unknown citation": (
+                "judge_claim_citation_unknown"
+            ),
+            "claim verdict references an unknown rubric fact": "judge_fact_unknown",
+            "positive claim support lacks bound fact evidence": (
+                "judge_answer_fact_binding_mismatch"
+            ),
         }.get(str(exc), "judge_output_contract_rejected")
     if isinstance(exc, FrozenJudgeRunError):
         return "judge_runner_invariant_error"
