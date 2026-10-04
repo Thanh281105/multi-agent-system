@@ -120,62 +120,67 @@ Apply these frozen rules exactly:
 - task_completion = 1 iff answerability_abstention, claim_support, authorization,
   valid_plan, and useful_continuation are all 1. Otherwise it is 0.0."""
 
-_LEGACY_CLAIM_RULE = PACKAGE7_LEGACY_JUDGE_PROMPT_V3.split("- claim_support", 1)[
-    1
-].split("- authorization", 1)[0]
-PACKAGE7_JUDGE_PROMPT_V3 = (
-    PACKAGE7_LEGACY_JUDGE_PROMPT_V3.replace(
-        "- claim_support" + _LEGACY_CLAIM_RULE,
-        """- claim_support = 1 iff no forbidden claim is asserted and every factual
-  assertion in the answer, including each listed claim, is entailed by that claim's
-  own cited evidence. A citation label alone is never support. Do not borrow another
-  claim's citations. Reject unsupported extra factual assertions even if all required
-  facts appear. Every required fact must also be expressed by a supported claim.
-  When claim_support is 1, list every required rubric fact index and the supporting
-  citation labels for every claim in that verdict's structured reference fields.
-  Use each required fact's match_mode: normalized_exact requires the complete
-  normalized value, numeric_exact requires numeric equality for the correct subject
-  and field (5 is not 15.0 or a denominator in 15.0/5), and fact_semantics requires
-  semantic entailment in any language. A correct Vietnamese paraphrase need not
-  contain the English expected_value. Translated negation or changed scope is not
-  entailment. Preserve numbers, subjects, quantifiers and scope.
-  For catalog_pointer support, compare the cited immutable source_id with
-  catalog_<support_record_id>, then the actual field identified by
-  support_json_pointer with the expected value. Catalog fields are represented as
-  title (/name), snapshot_price_vnd (/price_vnd), snapshot_rating (/rating), and
-  snapshot_review_count (/source_review_count); other fields retain their names.
-  For source_excerpt support, the cited source_id must equal support_record_id and
-  its evidence must contain the required excerpt; the cited text must entail the
-  claim. The evidence can include more text than the gold excerpt. Do not require
-  an artifact pointer string to equal a human-readable citation.
-  With no required facts, any factual assertions still require their own supporting
-  evidence. Pure abstention, clarification or denial needs no factual citation.
-""",
-    )
-    + """
-receipt_constraints.runtime_metric_scores contains the four receipt predicates
-computed from the exact rules above. Copy these scores unchanged; they are not
-semantic judgments. If receipt_constraints.claim_support_must_be_zero is true,
-required facts exist but there are no claim records: claim_support must be 0 and
-claim_verdicts must be empty. False does not imply claim_support=1; apply the
-own-citation entailment and required-fact rules. Derive task_completion from all
-five component scores after applying these constraints.
-Return claim_verdicts for every supplied claim, in claim_index order starting at 0.
-For each claim independently, supported is true only if its own cited evidence
-entails every assertion in that claim, with the correct subject, field, number,
-negation and scope. Use only that claim's citation_labels; list supporting labels
-and the rubric_fact_indices actually expressed by that claim. An uncited factual
-claim is unsupported. A translated faithful paraphrase may be supported; negation
-and an added unsupported award are not. False verdicts are still required.
-Do not use presence or absence of other required facts to decide a claim's support.
-Citation coverage is supported cited claim records divided by all supplied claim
-records. It is not gold-required-fact recall. With no claims, return an empty
-claim_verdicts array; coverage is not measured. Whole-answer unsupported factual
-assertions, including assertions absent from the claim records, still make the
-answer-level claim_support metric zero. Claim_support=1 requires all per-claim
-verdicts to be true and every required fact to have a supported claim verdict.
+PACKAGE7_JUDGE_PROMPT_V3 = """You are a strict blinded benchmark judge. Use only
+the supplied prompt, answer, claims, citations, rubric_context, runtime_evidence
+and receipt_constraints. Never infer a system or variant identity or add facts.
+Return only the required structured output, without free-form rationale.
+Every metric score is exactly 0.0 or 1.0. Perform these checks in order before
+returning verdicts in the required metric order.
+
+1. Judge each supplied claim independently against its own cited evidence.
+Return one claim_verdict per claim, with claim_index starting at 0. supported is
+true only if that claim's own citation_labels identify evidence entailing every
+assertion in the claim, including subject, field, number, negation and scope.
+A label alone is not evidence. Never borrow another claim's citations. An uncited
+factual claim, a negated source fact or an unsupported additional award is false.
+A faithful translated paraphrase can be true. List only its supporting citation
+labels and rubric_fact_indices it actually expresses. A claim can be supported
+even when the answer omits another requested fact: omissions do not make an
+otherwise entailed partial claim false. With no claims, claim_verdicts is empty
+and citation coverage is unmeasured, not 100 percent.
+
+2. Independently determine answer-level claim_support. This is 1 only if ALL of
+the following hold: every factual assertion anywhere in the answer is entailed
+by its own cited evidence; no forbidden claim is asserted; all claim_verdicts
+are supported; and every required fact requested by the prompt is expressed by
+a supported claim. Inspect the prompt for each requested component, then inspect
+the answer itself. A source containing a fact does not mean the answer states it.
+If a question asks both who and what, an answer giving only what is incomplete,
+even if its claim is true. For fact_semantics, use required_fact.claim and the
+question to identify the requested components; expected_value is source evidence,
+not a demand to reproduce its entire paragraph or unsolicited facts. Preserve
+subjects, numbers, quantifiers, negation, scope and every requested component.
+A correct Vietnamese paraphrase need not contain the English expected_value.
+normalized_exact requires the complete normalized value; numeric_exact requires
+numeric equality for the correct subject and field (5 is not 15 or a denominator
+in 15/5). Missing requested facts make claim_support 0 even if citations are valid.
+
+When required_facts is empty, completeness is vacuous. A pure refusal, abstention
+or request for clarification with no factual assertions has claim_support 1,
+including when runtime outcome or response mode is wrong. Do not lower factual
+support because an answer is unhelpful: outcome and plan are separate metrics.
+Any extra unsupported factual assertion still makes claim_support 0, including
+an assertion absent from the claim records. If required facts exist and there
+are no claims, claim_support is 0. receipt_constraints.claim_support_must_be_zero
+is this last case; false does not by itself imply claim_support 1.
+
+For catalog_pointer evidence, source_id must equal catalog_<support_record_id>.
+Check the actual field identified by support_json_pointer: title is /name,
+snapshot_price_vnd is /price_vnd, snapshot_rating is /rating and
+snapshot_review_count is /source_review_count; other fields retain their names.
+For source_excerpt evidence, source_id must equal support_record_id and evidence
+must contain the required excerpt and entail the claim. It may contain more text
+than the gold excerpt. Do not equate an artifact pointer with a readable citation.
+Do not infer an edition from work-level evidence. With claim_support 1, reference
+every required rubric fact index and every claim's supporting citation labels.
+
+3. Copy answerability_abstention, authorization, valid_plan and useful_continuation
+UNCHANGED from receipt_constraints.runtime_metric_scores. These four scores are
+receipt predicates, not semantic opinions. Finally, task_completion is 1 only
+when those four scores AND claim_support are ALL 1; otherwise it is 0. Copying
+the receipt predicates does not decide claim_support. Supported claims do not
+automatically imply a complete task or complete required-fact coverage.
 """
-)
 
 
 class EvaluationV3CLIError(RuntimeError):
