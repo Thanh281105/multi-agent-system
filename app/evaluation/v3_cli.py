@@ -139,6 +139,15 @@ even when the answer omits another requested fact: omissions do not make an
 otherwise entailed partial claim false. With no claims, claim_verdicts is empty
 and citation coverage is unmeasured, not 100 percent.
 
+Required facts are completeness targets, not an exhaustive list of permissible
+assertions. An additional catalog field, such as author or publisher, can be
+supported by that claim's own catalog citation even when no required fact names
+that field or a separate work-level fact has a source_excerpt binding. Such an
+assertion needs no unrelated rubric_fact_index. Evaluate each asserted field
+against the readable evidence actually cited; do not require a catalog claim
+to cite a work-content source. Conversely, title, author or category metadata
+cannot support an assertion about the work's plot or themes.
+
 2. Independently determine answer-level claim_support. This is 1 only if ALL of
 the following hold: every factual assertion anywhere in the answer is entailed
 by its own cited evidence; no forbidden claim is asserted; all claim_verdicts
@@ -171,8 +180,12 @@ snapshot_review_count is /source_review_count; other fields retain their names.
 For source_excerpt evidence, source_id must equal support_record_id and evidence
 must contain the required excerpt and entail the claim. It may contain more text
 than the gold excerpt. Do not equate an artifact pointer with a readable citation.
-Do not infer an edition from work-level evidence. With claim_support 1, reference
-every required rubric fact index and every claim's supporting citation labels.
+These required-fact source bindings apply to the facts they bind, not to every
+assertion in a mixed answer. Quoting the exact catalog product title, including
+edition words, is supported by the catalog title field; it does not assert that
+a work-level source verified the edition. Do not infer an edition from work-level
+evidence. With claim_support 1, reference every required rubric fact index and
+every claim's supporting citation labels.
 
 3. Copy answerability_abstention, authorization, valid_plan and useful_continuation
 UNCHANGED from receipt_constraints.runtime_metric_scores. These four scores are
