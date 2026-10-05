@@ -13,9 +13,11 @@ React, Vite, TypeScript, Tailwind CSS và local shadcn/ui primitives, sau đó �
 ## Product summary
 
 Evidence Atlas là trợ lý quyết định sách tiếng Việt dựa trên **snapshot lịch sử
-Tiki Books đã làm sạch**. Một câu hỏi được chuyển thành routing, authorized DAG,
-domain-agent execution và grounded synthesis có provenance. Sản phẩm đồng thời
-là workspace sử dụng được và artifact khóa luận có thể audit.
+Tiki Books đã làm sạch**. Public API v2 dùng bounded planner và expert services,
+biên dịch thao tác đọc có kiểu, thực thi chúng tuần tự rồi trả câu trả lời cùng
+provenance. Các domain-agent classes và DAG executor thuộc lane evaluation lịch
+sử, không phải composition root public v2. Sản phẩm đồng thời là workspace sử
+dụng được và artifact khóa luận có thể audit.
 
 Hệ thống không phải công cụ duyệt catalog Tiki trực tiếp. Nó không biết tồn kho,
 giá hiện tại, người bán hiện tại, xu hướng, nhu cầu hay thị phần.
