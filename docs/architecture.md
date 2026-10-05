@@ -164,6 +164,14 @@ suy ra autonomy hoặc decentralized collaboration từ tên agent ID.
 | Historical v1 evaluation | Router/planner và repository filters; bốn domain-agent classes | Ready branches có thể song song; aggregator có score 55/15/20/10 |
 | Development `POST /chat` | Single-agent tool loop trong `app.agent.runner` | Không gọi historical multi-agent orchestrator |
 
+Phạm vi filter khác nhau theo lane:
+
+| Lane | Input filter được expose | Cách dùng |
+| --- | --- | --- |
+| Public `/api/v2` | Free-text `catalog_query`; min/max snapshot price, rating và page count | Planner tách ràng buộc số thành typed fields; tên sách được resolve riêng. Tác giả, nhà xuất bản và category chỉ đi qua free-text query, không có field riêng trong request v2. |
+| Repository/tool interface | Query, category, author, publisher, min/max price, min/max rating, min/max page count | Typed filters được áp dụng lên snapshot PostgreSQL; đây là khả năng của tool/repository, không mặc nhiên là filter field của mọi API runtime. |
+| Historical v1 evaluation | Router/planner cùng tool contract lịch sử | Giữ làm lane tương thích/evaluation; không suy ra public v2 có cùng parser hoặc scheduler. |
+
 Bốn ID domain cố định là:
 
 | Agent ID | Trách nhiệm hiện tại | Active source |
