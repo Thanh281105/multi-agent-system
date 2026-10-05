@@ -396,33 +396,31 @@ fingerprint. Không dùng nó trên dữ liệu cần giữ.
 
 ## 11. V2 và Package 8 evaluation handoff
 
-Handoff hiện hành sau sửa P02 nằm tại
-[P02 successor handoff](thanh-v2/p02-successor-handoff.md). Current P7 is
-`run_p7_successor_v18`: protocol SHA-256
-`2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23`, 36/36
-cells complete, zero failed, and 3 repeats frozen by decision
-`40ea5ec8a1890c34195b8e3f4fd29935203834985625605af92fa24bbbd8c5cd`.
-Current P8 is `run_p8_successor_v23`, schedule SHA-256
-`f46949cdae870718dd8d2411a343522842eb34c466554e5350ae960ea7e8892e`: 720/720
-SUT cells, exact evidence resolution, 32/32 calibration records and frozen
-judge, 720 blind judgments, result join, report and paired metrics complete.
-Report SHA-256 is
-`cf772ac876e0a2f69aef78f68ffa729925eb991359b76bc94da4f26fc6787f5d`; publication
-is under `output/evaluation-v3/heldout-successor-v23/p8-publication/`. P7 v5/v8,
-P7 v9/v10 and P8 v6-v16 are historical. Embeddings API permission is approved;
-the ledger records no P7/P8 embedding attempts. Recovery r8 used a temporary,
-single-process input-token bound of `17,526` for one exact target (source limit
-`16,000`; reservation quote `$0.01854450` under the `$0.25` scope cap). The
-override is recorded in the local audit; tracked source remains at `16,000`.
-The hashes
-`315eff…`/`c8a4…`/`f37e…` bên dưới là lịch sử trước sửa shopper fixture và
-không dùng làm input mới.
-P8 exact evidence hiện đã có authority bất biến cho merchant inventory,
-shopper cart/checkout preview reads, `catalog_product_N` và
-`review_sample_N`, and `trust_sample_N` with at most 20 reviews, when the
-receipt remains bound to the exact source asset,
-namespace và authorization. Ranked catalog records, review samples vượt giới
-hạn runtime, và mọi source không tái dựng đủ vẫn bị chặn fail-closed.
+Handoff sau sửa P02 nằm tại
+[P02 successor handoff](thanh-v2/p02-successor-handoff.md). Source đã freeze
+cho evaluation hiện hành là `74149c8bc395852772e8b9ef92853e0b914ed816`:
+P7 v15 hoàn tất `36/36`; P8 review successor
+`run_p8_review_successor_v16` hoàn tất `720/720`. Cả 752 lượt chấm tự động (32
+calibration, 720 held-out) hoàn tất, không có job lỗi hoặc mơ hồ. Validation local:
+[`current-publication-validation.v8.json`](../output/review-remediation/current-publication-validation.v8.json),
+report SHA-256 `97cf42490819abdb55f61173d178701760b826f26ace7f74e4a3cc3a9b042df9`.
+
+Kết quả là execution coverage và điểm của automated judge, không phải 720 câu
+được người chấm xác nhận. P8 có 60 conversations, bốn variants, ba repeats và
+27 work groups; document recall chưa đo, các held-out cases đã được dùng trong
+remediation, và human audit/nhãn người chấm chưa có. P8 ledger/report accounting
+ghi `$4.64562124` known cost, `$0.052923` unresolved estimate và `$4.69854424`
+effective cost; đây không phải hóa đơn provider. Source check độc lập ghi 610
+test cases duy nhất trên 32 modules, cùng Ruff/format/mypy pass; nó không chứng
+minh deployed chat đã chạy.
+
+P7 `run_p7_successor_v18` và P8 `run_p8_successor_v23` cùng các run lịch sử khác
+được giữ nguyên, không resume/ghi đè; chúng không phải evidence cho source trên.
+Strict deployed HTTP/JSON/SSE/cancel demo của source này chưa chạy. Plan v12 hiện
+ở trạng thái `prepared_only_not_executed`; phải qua functional gate ở mục 6 trước
+khi coi rehearsal là đạt. Những protocol hash, ledger snapshot, recovery override
+và exact-evidence example gắn với lifecycle lịch sử bên dưới chỉ dùng làm
+provenance, không trộn vào successor hiện hành.
 
 V2 smoke phải chạy trên PostgreSQL đã migrate tới `20260910_0008` và đã publish
 corpus/index. Xác nhận các identity hiện hành trước khi gửi request:
