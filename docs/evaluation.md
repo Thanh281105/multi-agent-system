@@ -23,7 +23,7 @@ Repository có ba lane cần giữ tách biệt:
 | --- | --- | --- |
 | v1 scripted/reference | Compatibility regression trên catalog/review snapshot | Đã có evidence lịch sử |
 | v2 paired | Historical deterministic/model-assisted comparison với `tiki_books_vi_28_v1` | Đã có protocol/capture lịch sử; không dùng làm P7/P8 result |
-| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | Historical P7 v18 froze 3 repeats; historical P8 v23 completed 720/720, calibration and blind judging on 02/10/2026. Source remediation requires new evidence; see §8 and §9. |
+| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | Historical P7 v18/P8 v23 remain archived. On source `74149c8`, P7 v15 completed 36/36 and P8 v16 completed 720/720 with an automated report; human adjudication and strict deployed demo remain unverified. See §8. |
 
 ## 2. Frozen inputs và provenance
 
@@ -183,13 +183,64 @@ wiring generic lịch sử, không được dùng cho current Tiki Books claim. 
 `experiment.live-pilot.v2.json` chỉ là cấu hình có thể tái chạy, không phải kết
 quả.
 
-## 8. Review ngày 03/10/2026 và kết quả lịch sử v23
+## 8. Source-current successor và kết quả review lịch sử
 
-Source remediation sau audit làm P7 v18/P8 v23 thành **historical evidence**.
-Không dùng protocol cũ để chứng minh source đã sửa. Successor phải freeze input
-và evaluator mới, chạy P7 → repeat decision → P8 đủ 720/720 → calibration,
-judgments, join và report validation. Chưa qua đủ gates thì giữ trạng thái
-partial/pending. Xem [remediation và demo gates](thanh-v2/review-remediation-20261003.md).
+### Successor trên source đã remediation — 2026-10-05
+
+Source `74149c8bc395852772e8b9ef92853e0b914ed816` hoàn tất P7 v15 `36/36` và P8
+v16 `720/720`. Validation độc lập đọc lại native publication và xác nhận report
+SHA-256 `97cf42490819abdb55f61173d178701760b826f26ace7f74e4a3cc3a9b042df9`;
+artifact local là
+[`current-publication-validation.v8.json`](../output/review-remediation/current-publication-validation.v8.json).
+P8 gồm 60 conversations, bốn variants × 180 cells, ba repeats và 27 work groups;
+752 lượt chấm tự động (32 calibration, 720 held-out) hoàn tất, 0 lỗi và 0 job mơ hồ.
+720 cells là coverage của execution, không phải 720 mẫu độc lập hay 720 câu đúng.
+
+| Variant | Task completion / 180 | Mean latency / cell | SUT cost / 1.000 cells |
+| --- | ---: | ---: | ---: |
+| SA + RAG | 42 (23,3%) | 3657 ms | `$2,00` |
+| Fixed MA + RAG | 41 (22,8%) | 2346 ms | `$1,21` |
+| Adaptive MA + RAG | 41 (22,8%) | 5053 ms | `$2,89` |
+| Adaptive MA, no RAG | 9 (5,0%) | 1715 ms | `$1,09` |
+
+Task completion theo category, vẫn là kết quả của automated judge:
+
+| Category | SA + RAG | Fixed MA + RAG | Adaptive MA + RAG | Adaptive MA, no RAG |
+| --- | ---: | ---: | ---: | ---: |
+| Multi-constraint | 0/36 | 0/36 | 0/36 | 0/36 |
+| Knowledge/source | 33/36 | 32/36 | 33/36 | 0/36 |
+| Multi-expert compare/recommendation | 0/36 | 0/36 | 0/36 | 0/36 |
+| Multi-turn memory | 0/24 | 0/24 | 0/24 | 0/24 |
+| Insufficient/conflict/injection | 9/24 | 9/24 | 8/24 | 9/24 |
+| Shopping/merchant | 0/24 | 0/24 | 0/24 | 0/24 |
+
+Paired estimates use a 10.000-resample percentile bootstrap over 27 work groups;
+cell-weighted rates and work-group-weighted effects therefore differ:
+
+- Adaptive MA + RAG vs SA + RAG: `−0,31` percentage points, 95% CI
+  `−0,93` to `0,00`. The run shows no task-completion gain for MA; it does not
+  establish equivalence on other quality measures.
+- Adaptive MA + RAG vs adaptive MA without RAG: `+15,43` points, 95% CI
+  `+7,41` to `+24,69`.
+
+P8 accounting records `$4.64562124` known cost plus `$0.052923` unresolved
+reservation estimate, for `$4.69854424` effective report cost. This is ledger
+accounting, not provider invoice verification. Document recall is unmeasured in
+all 720 cells. Human-author and human-judge IDs are empty; there is no human
+adjudication. Held-out cases were reused during engineering, so this is not an
+untouched challenge set. The paired confidence intervals do not remove these
+limitations.
+
+The source gate separately reports 610 unique test cases across 32 modules, with
+Ruff, format and mypy passing. This is source evidence, not live answer-quality
+or deployment evidence. The current strict HTTP/JSON/SSE/cancel demo plan remains
+`prepared_only_not_executed`; do not present it as a passed rehearsal.
+
+### Review 03/10/2026: historical P8 v23 results
+
+P7 v18/P8 v23 below are **historical evidence** and do not validate source
+remediation. Their artifacts and old scores are retained for provenance. The
+current successor above must be used for source-current claims.
 
 Đã đối chiếu `judgments.json`, `unblinding_key.json`, `preparation.json` và
 `analysis.json` của v23. **720/720 là receipt coverage, không phải accuracy.**

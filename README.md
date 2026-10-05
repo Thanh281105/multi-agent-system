@@ -320,35 +320,36 @@ không có checked-in live-LLM result cho historical v2 corpus Tiki Books. Các
 real-model report generic cũ dùng `sample_ecommerce_vi_28_v1`, nằm trong nhóm
 legacy và không hỗ trợ current Tiki claim.
 
-### Trạng thái P7/P8 hiện hành — 2026-10-02
+### Trạng thái P7/P8 trên source đã remediation — 2026-10-05
 
-P7 successor `run_p7_successor_v18` hoàn tất 36/36 cell, không lỗi; protocol SHA-256
-`2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23`, repeat-decision
-SHA-256 `40ea5ec8a1890c34195b8e3f4fd29935203834985625605af92fa24bbbd8c5cd`, freeze
-3 lần lặp. Cost đã biết `$0.05163060`.
+Source `74149c8bc395852772e8b9ef92853e0b914ed816` hoàn tất P7 v15 `36/36` và P8
+v16 `720/720` cells. P8 có 60 conversations, bốn variants × 180 cells, ba repeats
+và 27 work groups. Cả 752 lượt chấm tự động (32 calibration + 720 held-out) đều
+hoàn tất, không có job lỗi hoặc mơ hồ. Report SHA-256:
+`97cf42490819abdb55f61173d178701760b826f26ace7f74e4a3cc3a9b042df9`.
+Validation local nằm tại
+[`current-publication-validation.v8.json`](output/review-remediation/current-publication-validation.v8.json).
 
-P8 successor `run_p8_successor_v23` dùng schedule SHA-256
-`f46949cdae870718dd8d2411a343522842eb34c466554e5350ae960ea7e8892e` và hoàn tất
-720/720 SUT cells, không thiếu/lỗi/mơ hồ. Exact evidence resolution, 32/32
-calibration, freeze judge, 720 blind judgments, ghép kết quả và paired metrics
-đều hoàn tất. Report SHA-256 là
-`cf772ac876e0a2f69aef78f68ffa729925eb991359b76bc94da4f26fc6787f5d`; report
-manifest SHA-256 `550b4a1688334652d57b0ac1a359c5111ba29841c094ee451af1552640f62235`;
-scored-artifacts manifest SHA-256
-`72a0e68103e275e6f2ba08a874df272734faad3ff4a29f6681e07591726487a9`. Paired
-metrics ở `output/evaluation-v3/heldout-successor-v23/p8-publication/p8-report/comparisons.csv`.
-Known provider cost `$4.90357425`; report effective cost `$4.91358675`, gồm
-`$0.01001250` unresolved-reservation estimate trong report accounting. PostgreSQL
-account không còn reservation/active attempt.
+Task completion theo cell: SA+RAG `42/180` (23,3%), fixed MA+RAG `41/180`
+(22,8%), adaptive MA+RAG `41/180` (22,8%), adaptive MA không RAG `9/180`
+(5,0%). Theo paired bootstrap trên 27 work groups, adaptive MA+RAG so với SA+RAG
+chênh `−0,31` điểm phần trăm (95% CI `−0,93` đến `0,00`); chưa thấy lợi ích MA
+theo metric này. Adaptive MA+RAG so với adaptive MA không RAG cao hơn `15,43`
+điểm (95% CI `7,41` đến `24,69`). CI dùng work-group weighting, nên không bằng
+phép trừ trực tiếp hai tỷ lệ cell.
 
-Ledger `codex-p7-p8-ledger` sau operate: known `$41.57320211`, unknown
-`$0.47555784`, reserved `$0`, còn `$57.95124005` dưới cap `$100`. Các scope có
-unknown cộng `$0.40455225`; phần account-level carry-forward `$0.07100559` không
-còn SQL scope rows. Diagnostic A `$0.05446350` thuộc clone lịch sử
-`p8_failed_diag_20260923_a` và nằm bên trong carry-forward này; không cộng lại.
-P7/P8 không gọi Embeddings API; cả ba embedding attempts trong DB thuộc ingestion
-(một thành công `$0.00004318`, hai lỗi không phát sinh cost). Audit local-only:
-`output/evaluation-v3/current-machine-ledger/ledger-reconciliation-20261002-v23-final.json`.
+Đây là kết quả rubric với judge tự động, không phải accuracy đã được người chấm
+xác nhận. 720 cells không độc lập; các held-out cases đã được dùng trong quá
+trình remediation; document recall chưa đo ở cell nào. Human audit không có vì
+chưa có nhãn người chấm. Source gate riêng ghi 610 test cases duy nhất trên 32
+module cùng Ruff, format và mypy pass; gate đó không xác nhận chất lượng answer
+hay demo trực tiếp.
+
+P8 report accounting ghi `$4.64562124` known cost và `$0.052923` unresolved
+reservation estimate, tổng effective `$4.69854424`; đây là ledger estimate, không
+phải đối soát hóa đơn provider. Strict deployed HTTP/JSON/SSE/cancel rehearsal
+trên source này **chưa chạy**; xem [runbook](docs/operations.md) và
+[kết quả evaluation](docs/evaluation.md) trước khi trình diễn.
 
 ### Snapshot lịch sử — 2026-10-01; ledger trước P8 v23 lúc 2026-10-02 02:07 UTC
 
