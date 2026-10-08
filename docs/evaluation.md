@@ -645,50 +645,35 @@ sử với source checkout hiện tại.
 5. Thêm load/soak, chaos, drift, fairness, PII/security evaluation trước mọi
    production hoặc marketplace claim.
 
-## 12. Kết quả Benchmark Core Toàn diện (Package 7 Pilot & Package 8 Held-out)
+## 12. Trạng thái Đánh giá Thực nghiệm Hệ thống Lõi
 
-Để phục vụ báo cáo khóa luận tốt nghiệp (ĐACNTT), hệ thống lõi Multi-Agent đã được kiểm thử toàn diện trên toàn bộ ma trận benchmark: **334 observations (Paired v2)**, **36 observations (Package 7 Pilot)** và **720 observations (Package 8 Held-out)**.
+Để đảm bảo tính trung thực khoa học và khả năng kiểm toán của Khóa luận tốt nghiệp (ĐACNTT), các làn đánh giá (evaluation lanes) trong repository được phân định rõ ràng như sau:
 
-Script tái lập kiểm thử chính thức:
+### 12.1. Làn Đánh Giá Toàn Trình: Paired v2 Benchmark (Đã Kiểm Toán tại commit `7ae2e18`)
+Đây là làn benchmark toàn trình duy nhất có artifact và manifest được ghi nhận chính thức trên source code hiện tại:
+* **Bundle Manifest:** [`output/evaluation-v2/run_books_deterministic_v2/manifest.json`](file:///C:/Users/Thanh/Desktop/DACNTT/multi-agent-system/output/evaluation-v2/run_books_deterministic_v2/manifest.json)
+* **Quy mô:** 44 cases sách × 3 repeats = 132 cặp quan sát (334 observations tổng cộng).
+* **Phạm vi thực thi:** Toàn bộ chu trình từ Router $\rightarrow$ Planner $\rightarrow$ SQL Tools (Database / Catalog / Review / Ranking) $\rightarrow$ Structured Answer Assertions.
+* **Kết quả đo đạc:**
+  - **`task_success`**: Baseline (Single-Agent Catalog): **56.82%** $\rightarrow$ Candidate (Multi-Agent System): **77.27%**
+  - **Mức tăng trưởng:** $\Delta = \mathbf{+20.45\%}$ (Khoảng tin cậy 95% Bootstrap: $[+9.1\%, +34.1\%]$, $p = 0.0039$, **9 thắng, 35 hòa, 0 thua**).
+  - **`answer_assertion_accuracy`**: Baseline: **79.28%** $\rightarrow$ Multi-Agent: **84.17%** ($\Delta = \mathbf{+4.89\%}$, **3 thắng, 41 hòa, 0 thua**).
+
+> [!NOTE]
+> Kết quả Paired-v2 là bằng chứng thực nghiệm đã được kiểm toán đầu tiên chứng minh kiến trúc Multi-Agent vượt trội Single-Agent trên môi trường đánh giá cục bộ.
+
+### 12.2. Làn Package 7 / Package 8: Kiểm Tra Tính Hợp Lệ Của Kế Hoạch (Plan Admissibility)
+Lớp logic lập kế hoạch của hệ thống lõi tại [`app/v2/planning.py`](file:///C:/Users/Thanh/Desktop/DACNTT/multi-agent-system/app/v2/planning.py) đã được nâng cấp (hỗ trợ composite planning, chuẩn hóa chuỗi tiếng Việt, phân giải anaphora, bắt lỗi mâu thuẫn khoảng giá và phòng thủ prompt injection).
+
+Script kiểm tra tính hợp lệ của kế hoạch:
 ```powershell
 python scripts/run_full_p7_p8_benchmark.py
 ```
+* **Phạm vi kiểm tra:** Đo lường **Plan Admissibility** — kiểm tra xem `desired_capabilities` sinh ra từ Planner có thỏa mãn hoàn toàn `action_capability_blueprint` (required, allowed, forbidden) của 80 gold cases (20 Dev + 60 Held-out) và 756 ô lịch trình (P7: 36 ô, P8: 720 ô) hay không.
+* **Kết quả Plan Admissibility:** Đạt **100.0% độ hợp lệ kế hoạch** trên cả 3 biến thể có RAG, giải quyết triệt để 4 nhóm lỗi từng đạt 0.0% plan validity trong lịch sử (`multi_constraint`, `multi_expert_compare_recommendation`, `multi_turn_memory`, `shopping_merchant`).
+* **Giới hạn học thuật:** Đây là phép đo kiểm tra tính đúng đắn của pha Lập Kế Hoạch (Planning Stage), **chưa phải là phép đo Task Completion toàn trình có Model Judge** của Package 8, do chưa thực thi trọn vẹn specialist execution, live RAG retrieval và automated LLM judging.
 
-### 12.1. Paired v2 Comparison (334 observations)
-- **Task Success Rate**:
-  - Baseline (Single Catalog Agent): **56.82%**
-  - Candidate (Multi-Agent System): **77.27%**
-  - $\Delta = \mathbf{+20.45\%}$ ($p = 0.0039$, 9 wins, 35 ties, 0 losses).
-- **Answer Assertion Accuracy**:
-  - Baseline: **79.28%** vs Multi-Agent: **84.17%** ($\Delta = \mathbf{+4.89\%}$, 3 wins, 41 ties, 0 losses).
-
-### 12.2. Package 7 Pilot (36 Cells)
-| Variant | Topology | Planning | RAG | Task Completion | Completion Rate |
-| :--- | :--- | :--- | :--- | :---: | :---: |
-| `sa_shared_tools_rag` | Single | Shared | Có | 9 / 9 | 100.0% |
-| `ma_fixed_rag` | Multi | Fixed | Có | 9 / 9 | 100.0% |
-| `ma_adaptive_rag` | Multi | Adaptive | Có | 9 / 9 | 100.0% |
-| `ma_adaptive_no_rag` | Multi | Adaptive | Không | 2 / 9 | 22.2% |
-
-### 12.3. Package 8 Held-out Benchmark (720 Cells: 60 cases × 4 variants × 3 repeats)
-| Variant | Trạng thái hiện tại | Tỷ lệ hiện tại | Kết quả lịch sử (v16) | Độ tăng trưởng ($\Delta$) |
-| :--- | :---: | :---: | :---: | :---: |
-| `sa_shared_tools_rag` | 180 / 180 | **100.0%** | 23.3% (42/180) | **+76.7%** |
-| `ma_fixed_rag` | 180 / 180 | **100.0%** | 22.8% (41/180) | **+77.2%** |
-| `ma_adaptive_rag` | 180 / 180 | **100.0%** | 22.8% (41/180) | **+77.2%** |
-| `ma_adaptive_no_rag` | 48 / 180 | **26.7%** | 5.0% (9/180) | **+21.7%** |
-
-### 12.4. Phân tích chi tiết theo 6 danh mục kiểm thử Package 8
-Trước remediation, hệ thống gặp điểm nghẽn nghiêm trọng khi có tới 4/6 danh mục đạt tỷ lệ hoàn thành **0.0%**. Sau khi nâng cấp hệ thống lập kế hoạch tổng hợp (`composite planning`), chuẩn hóa truy vấn tiếng Việt, bóc tách anaphora và ràng buộc giá:
-
-| Danh mục kiểm thử | Variant | Hoàn thành mới | Tỷ lệ mới | Lịch sử (v16) | Mức độ cải thiện |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| `multi_constraint` | Multi-Agent RAG | 36 / 36 | **100.0%** | 0.0% | **+100.0%** |
-| `knowledge_source` | Multi-Agent RAG | 36 / 36 | **100.0%** | 91.7% | **+8.3%** |
-| `multi_expert_compare_recommendation` | Multi-Agent RAG | 36 / 36 | **100.0%** | 0.0% | **+100.0%** |
-| `multi_turn_memory` | Multi-Agent RAG | 24 / 24 | **100.0%** | 0.0% | **+100.0%** |
-| `insufficient_conflict_injection` | Multi-Agent RAG | 24 / 24 | **100.0%** | 33.3% | **+66.7%** |
-| `shopping_merchant` | Multi-Agent RAG | 24 / 24 | **100.0%** | 0.0% | **+100.0%** |
-
-*(Biến thể `ma_adaptive_no_rag` đạt 0% ở các tác vụ đòi hỏi kiến thức ngoài catalog do không có quyền gọi RAG, và đạt 100% ở các tác vụ nội tại catalog/merchant/từ chối an toàn đúng theo thiết kế thử nghiệm).*
+### 12.3. Trạng thái Benchmark Toàn Trình P8 (Held-out 720 ô)
+* Kết quả P8 toàn trình chính thức đã lưu trữ và có kiểm toán vẫn là bản ghi nhận ngày 05/10/2026 trên source `74149c8` ([`current-publication-validation.v8.json`](file:///C:/Users/Thanh/Desktop/DACNTT/multi-agent-system/output/review-remediation/current-publication-validation.v8.json)), trong đó Multi-Agent hoàn thành 41/180 (22.8%) và Single-Agent hoàn thành 42/180 (23.3%) dưới sự đánh giá của mô hình thẩm định tự động (automated model-judge).
+* Để tái lập một lượt chạy P8 toàn trình mới có đầy đủ receipt, manifest ghim commit và chấm điểm model judge, hệ thống yêu cầu môi trường dịch vụ PostgreSQL daemon (`codex-p7-p8-ledger`) cùng khóa API OpenAI có ngân sách đánh giá.
 

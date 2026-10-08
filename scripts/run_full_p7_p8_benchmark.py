@@ -1,11 +1,11 @@
-"""Official Reproducible Evaluation Runner for Package 7 (Pilot) and Package 8 (Held-out Benchmark).
+"""Verification Script for Package 7 (Pilot) and Package 8 (Held-out Benchmark) Plan Admissibility.
 
-Evaluates the multi-agent decision core against frozen gold specifications across all
-756 scheduled cells (36 Pilot cells + 720 Held-out cells) for all 4 variants:
-- sa_shared_tools_rag
-- ma_fixed_rag
-- ma_adaptive_rag
-- ma_adaptive_no_rag
+NOTE: This script measures SUT Plan & Capability Admissibility (Kiểm tra tính hợp lệ của
+kế hoạch và khả năng ánh xạ capability đối chiếu với frozen action blueprint).
+It does NOT execute downstream tool IO, live RAG retrieval, answer generation,
+or automated model-judging. For full end-to-end audited evaluation, refer to Paired-v2
+(output/evaluation-v2/run_books_deterministic_v2) or the historical P8 publication
+(output/review-remediation/current-publication-validation.v8.json).
 """
 import json
 import sys
@@ -142,7 +142,8 @@ async def evaluate_schedule(schedule_name, schedule_items):
 
 async def main():
     print("=" * 100)
-    print("      COMPREHENSIVE MULTI-AGENT CORE BENCHMARK EVALUATION (P7 + P8)")
+    print("      PACKAGE 7 & PACKAGE 8 PLAN ADMISSIBILITY EVALUATION (756 CELLS)")
+    print("      (Kiểm tra độ chính xác của bước Lập Kế Hoạch & Ánh Xạ Capability)")
     print("=" * 100)
     
     # Run P7
@@ -151,11 +152,11 @@ async def main():
     p8_res = await evaluate_schedule("Package 8 Held-out Benchmark (720 Observations)", p8_schedule)
 
     print("\n" + "#" * 100)
-    print("SECTION 1: PACKAGE 7 PILOT (36 OBSERVATIONS) EVALUATION")
+    print("SECTION 1: PACKAGE 7 PILOT (36 OBSERVATIONS) - PLAN ADMISSIBILITY")
     print("#" * 100)
     print(f"\nTotal Cells: {p7_res['total_items']}")
-    print(f"{'Variant':<25} | {'Task Completion':<20} | {'Completion Rate':<15}")
-    print("-" * 65)
+    print(f"{'Variant':<25} | {'Valid Plans':<20} | {'Admissibility Rate':<20}")
+    print("-" * 70)
     for v in VARIANTS:
         tot = p7_res["totals"][v]["total"]
         succ = p7_res["totals"][v]["success"]
@@ -163,46 +164,29 @@ async def main():
         print(f"{v:<25} | {succ:>3} / {tot:<16} | {pct:>6.1f}%")
         
     print("\n" + "#" * 100)
-    print("SECTION 2: PACKAGE 8 HELD-OUT (720 OBSERVATIONS) EVALUATION")
+    print("SECTION 2: PACKAGE 8 HELD-OUT (720 OBSERVATIONS) - PLAN ADMISSIBILITY")
     print("#" * 100)
     print(f"\nTotal Cells: {p8_res['total_items']} (60 cases × 4 variants × 3 repeats)")
-    print(f"{'Variant':<25} | {'Post-Fix Completion':<22} | {'Post-Fix Rate':<15} | {'Historical v16 Rate':<20} | {'Delta':<10}")
-    print("-" * 105)
-    
-    old_totals = {}
-    if old_validation:
-        old_totals = {k: v["task_success_rate"] * 100 for k, v in old_validation["absolute_cell_weighted_metrics"].items()}
-        
+    print(f"{'Variant':<25} | {'Valid Plans':<20} | {'Admissibility Rate':<20}")
+    print("-" * 70)
     for v in VARIANTS:
         tot = p8_res["totals"][v]["total"]
         succ = p8_res["totals"][v]["success"]
         pct = (succ / tot * 100) if tot else 0
-        old_pct = old_totals.get(v, 0.0)
-        delta = pct - old_pct
-        delta_str = f"+{delta:.1f}%" if delta >= 0 else f"{delta:.1f}%"
-        print(f"{v:<25} | {succ:>3} / {tot:<18} | {pct:>6.1f}%          | {old_pct:>6.1f}%              | {delta_str:>8}")
+        print(f"{v:<25} | {succ:>3} / {tot:<16} | {pct:>6.1f}%")
 
     print("\n" + "#" * 100)
-    print("SECTION 3: P8 BREAKDOWN BY BENCHMARK CATEGORY (POST-FIX vs HISTORICAL)")
+    print("SECTION 3: P8 PLAN ADMISSIBILITY BY BENCHMARK CATEGORY")
     print("#" * 100)
-    
-    old_cat_map = {}
-    if old_validation:
-        for c in old_validation["category_cell_weighted_metrics"]:
-            old_cat_map[(c["category"], c["variant"])] = c["task_success_rate"] * 100
-
-    print(f"\n{'Category':<38} | {'Variant':<20} | {'New Completed':<15} | {'New Rate':<10} | {'Historical':<12} | {'Improvement':<12}")
-    print("-" * 115)
+    print(f"\n{'Category':<38} | {'Variant':<20} | {'Valid Plans':<15} | {'Admissibility Rate':<20}")
+    print("-" * 100)
     for cat in CATEGORIES:
         for v in VARIANTS:
             c_tot = p8_res["matrix"][v][cat]["total"]
             c_succ = p8_res["matrix"][v][cat]["success"]
             c_pct = (c_succ / c_tot * 100) if c_tot else 0
-            old_c_pct = old_cat_map.get((cat, v), 0.0)
-            diff = c_pct - old_c_pct
-            diff_str = f"+{diff:.1f}%" if diff >= 0 else f"{diff:.1f}%"
-            print(f"{cat:<38} | {v:<20} | {c_succ:>2}/{c_tot:<12} | {c_pct:>5.1f}%    | {old_c_pct:>5.1f}%       | {diff_str:>10}")
-        print("-" * 115)
+            print(f"{cat:<38} | {v:<20} | {c_succ:>2}/{c_tot:<12} | {c_pct:>5.1f}%")
+        print("-" * 100)
 
     print("\n" + "#" * 100)
     print("SECTION 4: ANALYSIS OF NO-RAG ABLATION (CONTROLLED STUDY)")
