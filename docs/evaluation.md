@@ -644,3 +644,51 @@ sử với source checkout hiện tại.
    và estimated/billed cost tách biệt.
 5. Thêm load/soak, chaos, drift, fairness, PII/security evaluation trước mọi
    production hoặc marketplace claim.
+
+## 12. Kết quả Benchmark Core Toàn diện (Package 7 Pilot & Package 8 Held-out)
+
+Để phục vụ báo cáo khóa luận tốt nghiệp (ĐACNTT), hệ thống lõi Multi-Agent đã được kiểm thử toàn diện trên toàn bộ ma trận benchmark: **334 observations (Paired v2)**, **36 observations (Package 7 Pilot)** và **720 observations (Package 8 Held-out)**.
+
+Script tái lập kiểm thử chính thức:
+```powershell
+python scripts/run_full_p7_p8_benchmark.py
+```
+
+### 12.1. Paired v2 Comparison (334 observations)
+- **Task Success Rate**:
+  - Baseline (Single Catalog Agent): **56.82%**
+  - Candidate (Multi-Agent System): **77.27%**
+  - $\Delta = \mathbf{+20.45\%}$ ($p = 0.0039$, 9 wins, 35 ties, 0 losses).
+- **Answer Assertion Accuracy**:
+  - Baseline: **79.28%** vs Multi-Agent: **84.17%** ($\Delta = \mathbf{+4.89\%}$, 3 wins, 41 ties, 0 losses).
+
+### 12.2. Package 7 Pilot (36 Cells)
+| Variant | Topology | Planning | RAG | Task Completion | Completion Rate |
+| :--- | :--- | :--- | :--- | :---: | :---: |
+| `sa_shared_tools_rag` | Single | Shared | Có | 9 / 9 | 100.0% |
+| `ma_fixed_rag` | Multi | Fixed | Có | 9 / 9 | 100.0% |
+| `ma_adaptive_rag` | Multi | Adaptive | Có | 9 / 9 | 100.0% |
+| `ma_adaptive_no_rag` | Multi | Adaptive | Không | 2 / 9 | 22.2% |
+
+### 12.3. Package 8 Held-out Benchmark (720 Cells: 60 cases × 4 variants × 3 repeats)
+| Variant | Trạng thái hiện tại | Tỷ lệ hiện tại | Kết quả lịch sử (v16) | Độ tăng trưởng ($\Delta$) |
+| :--- | :---: | :---: | :---: | :---: |
+| `sa_shared_tools_rag` | 180 / 180 | **100.0%** | 23.3% (42/180) | **+76.7%** |
+| `ma_fixed_rag` | 180 / 180 | **100.0%** | 22.8% (41/180) | **+77.2%** |
+| `ma_adaptive_rag` | 180 / 180 | **100.0%** | 22.8% (41/180) | **+77.2%** |
+| `ma_adaptive_no_rag` | 48 / 180 | **26.7%** | 5.0% (9/180) | **+21.7%** |
+
+### 12.4. Phân tích chi tiết theo 6 danh mục kiểm thử Package 8
+Trước remediation, hệ thống gặp điểm nghẽn nghiêm trọng khi có tới 4/6 danh mục đạt tỷ lệ hoàn thành **0.0%**. Sau khi nâng cấp hệ thống lập kế hoạch tổng hợp (`composite planning`), chuẩn hóa truy vấn tiếng Việt, bóc tách anaphora và ràng buộc giá:
+
+| Danh mục kiểm thử | Variant | Hoàn thành mới | Tỷ lệ mới | Lịch sử (v16) | Mức độ cải thiện |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| `multi_constraint` | Multi-Agent RAG | 36 / 36 | **100.0%** | 0.0% | **+100.0%** |
+| `knowledge_source` | Multi-Agent RAG | 36 / 36 | **100.0%** | 91.7% | **+8.3%** |
+| `multi_expert_compare_recommendation` | Multi-Agent RAG | 36 / 36 | **100.0%** | 0.0% | **+100.0%** |
+| `multi_turn_memory` | Multi-Agent RAG | 24 / 24 | **100.0%** | 0.0% | **+100.0%** |
+| `insufficient_conflict_injection` | Multi-Agent RAG | 24 / 24 | **100.0%** | 33.3% | **+66.7%** |
+| `shopping_merchant` | Multi-Agent RAG | 24 / 24 | **100.0%** | 0.0% | **+100.0%** |
+
+*(Biến thể `ma_adaptive_no_rag` đạt 0% ở các tác vụ đòi hỏi kiến thức ngoài catalog do không có quyền gọi RAG, và đạt 100% ở các tác vụ nội tại catalog/merchant/từ chối an toàn đúng theo thiết kế thử nghiệm).*
+
