@@ -23,5 +23,6 @@ output/evaluation-v2/
 output/evaluation-v3/
 output/tests/
 output/tmp/
+output/pytest_temp/
 output/review-remediation/
 .local-pg-p6/

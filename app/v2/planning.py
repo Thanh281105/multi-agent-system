@@ -154,7 +154,7 @@ _MAX_PRICE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _MIN_PRICE_PATTERN = re.compile(
-    r"(?:trên|ít nhất|từ|over|minimum|min)\s*"
+    r"(?:bắt buộc chi ít nhất|không được dưới|không dưới|tối thiểu|trên|ít nhất|từ|over|minimum|min)\s*"
     r"(?P<amount>[0-9][0-9.,]*)\s*(?P<unit>k|nghìn|triệu|tr|đồng|đ|vnd)?\b",
     re.IGNORECASE,
 )
@@ -164,7 +164,7 @@ _BOUND_OPERATOR = (
 )
 _FIELD_BOUND_PATTERN = re.compile(
     rf"(?:(?P<field>rating|điểm(?:\s+đánh giá)?|đánh giá|số trang|page count)\s*"
-    rf"(?P<operator>{_BOUND_OPERATOR})\s*(?P<amount>[0-9]+(?:[.,][0-9]+)?)"
+    rf"(?:(?P<operator>{_BOUND_OPERATOR})\s+)?(?P<amount>[0-9]+(?:[.,][0-9]+)?)"
     rf"(?:\s*(?:sao|trang|pages?))?(?:\s+trở (?:lên|xuống))?|"
     rf"(?P<suffix_operator>{_BOUND_OPERATOR}|được)\s*"
     rf"(?P<suffix_amount>[0-9]+(?:[.,][0-9]+)?)\s*(?P<suffix_field>sao|trang|pages?)"
@@ -220,10 +220,10 @@ _QUERY_PREFIX_PATTERN = re.compile(
     r"(?:khách hàng|người mua)\s+(?:review|đánh giá|nhận xét)|"
     r"phân tích\s+(?:review|đánh giá|nhận xét)|"
     r"(?:xem\s+)?(?:review|đánh giá|nhận xét))\s+"
-    r"(?:(?:cho tôi|giúp tôi)\s+)?"
+    r"(?:(?:cho tôi|giúp tôi|cho mình|giúp mình)\s+)?"
     rf"(?:(?:tối đa\s+)?(?:{_COUNT_VALUE_PATTERN})\s*"
     r"(?:cuốn|quyển|sách|books?)\s+)?"
-    r"(?:(?:cuốn|quyển)\s+)?(?:sách|books?)?\s*(?:của\s+)?",
+    r"(?:(?:cuốn|quyển)\s+)?(?:cuốn sách|quyển sách|sách|books?)?\s*(?:của\s+)?",
     re.IGNORECASE,
 )
 _QUERY_TRAILING_CLAUSE_PATTERN = re.compile(
@@ -1132,6 +1132,16 @@ def _deterministic_request(
     max_price = parsed_context.max_price_vnd
     price_error = parsed_context.price_error
     catalog_query = parsed_context.catalog_query
+    _INJECTION_PATTERN = re.compile(
+        r"\b(?:bỏ qua\s+(?:nguồn|dữ liệu(?: thật)?(?: và nguồn)?)|tự bịa|hãy bịa|bịa rằng)\b",
+        re.IGNORECASE,
+    )
+    if _INJECTION_PATTERN.search(cleaned) is not None:
+        return replace(
+            _action_clarification_request(cleaned, "prompt_injection_rejected"),
+            intent="general.unsupported",
+            template_id="prompt_injection_rejected",
+        )
     unquoted = _QUOTED_QUERY_PATTERN.sub("", cleaned)
     if _UNSUPPORTED_PRODUCT_PATTERN.search(unquoted) is not None and not _contains(
         unquoted.casefold(), "sách", "truyện", "book"
@@ -1194,6 +1204,20 @@ def _deterministic_request(
         "do ai",
         "của ai",
         "ai viết",
+        "bàn về",
+        "viết về",
+        "kể về",
+        "tác giả",
+        "tác phẩm",
+        "người dịch",
+        "theo nguồn",
+        "nguồn nói",
+        "nguồn xác nhận",
+        "mục đích",
+        "ý nghĩa",
+        "phạm vi",
+        "hướng tới",
+        "trọng tâm",
     )
     has_market = _contains(lowered, "thị trường", "market", "thống kê")
     has_inventory = _contains(lowered, "tồn kho", "inventory", "còn hàng")
@@ -1246,6 +1270,9 @@ def _deterministic_request(
     ):
         intent = "catalog_knowledge"
         template_id = f"{mode.value}_catalog_knowledge"
+    elif has_compare and has_knowledge:
+        intent = "compare"
+        template_id = f"{mode.value}_compare"
     elif has_knowledge:
         intent = "knowledge"
         template_id = f"{mode.value}_knowledge"
@@ -1268,19 +1295,30 @@ def _deterministic_request(
             or has_trust
             or has_price
         )
-        if needs_candidates:
-            capabilities_list.append(
-                "product.rank" if has_recommendation else "product.catalog.search"
+        is_multi_constraint = (
+            has_price
+            and (
+                parsed_context.min_rating is not None
+                or parsed_context.max_rating is not None
+                or parsed_context.min_page_count is not None
+                or parsed_context.max_page_count is not None
             )
-        if has_compare or (
-            comparison_required and "product.rank" not in capabilities_list
-        ):
+        )
+        if needs_candidates:
+            if is_multi_constraint:
+                capabilities_list.append("product.catalog.search")
+                capabilities_list.append("product.rank")
+            elif has_recommendation and not has_compare:
+                capabilities_list.append("product.rank")
+            else:
+                capabilities_list.append("product.catalog.search")
+        if has_compare:
             capabilities_list.append("product.compare")
-        if has_review or has_recommendation:
+        if has_review or (has_recommendation and not has_compare and not is_multi_constraint):
             capabilities_list.append(
                 "review.compare" if candidate_scope >= 2 else "review.retrieve"
             )
-        if has_trust or has_recommendation:
+        if has_trust or (has_recommendation and not has_compare and not is_multi_constraint):
             capabilities_list.append(
                 "trust.compare" if candidate_scope >= 2 else "trust.analyze"
             )
@@ -1300,7 +1338,7 @@ def _deterministic_request(
             )
         if has_knowledge:
             capabilities_list.append("knowledge.retrieve")
-    capabilities = tuple(dict.fromkeys(capabilities_list))
+    capabilities = () if clarification is not None else tuple(dict.fromkeys(capabilities_list))
 
     obligation_specs: list[tuple[EvidenceObligationKind, bool, str]] = []
     if intent in {"catalog", "compare", "recommendation", "catalog_knowledge"}:
@@ -1400,7 +1438,13 @@ def _deterministic_action_request(
             "action_confirmation_endpoint_required",
         )
 
-    checkout = _CHECKOUT_ACTION_PATTERN.fullmatch(cleaned) is not None
+    checkout = (
+        _CHECKOUT_ACTION_PATTERN.search(cleaned) is not None
+        or (
+            _contains(cleaned.casefold(), "thanh toán", "đặt hàng", "checkout")
+            and _contains(cleaned.casefold(), "giỏ", "đơn", "cart")
+        )
+    )
     price_text = _QUOTED_QUERY_PATTERN.sub(" ", cleaned)
     price_marker = (
         _PRICE_ACTION_MARKER.search(price_text) is not None
@@ -1418,6 +1462,19 @@ def _deterministic_action_request(
 
     mode = context.access.binding.mode
     if checkout:
+        immediate_checkout = (
+            re.search(
+                r"\b(?:hoàn tất ngay|thực hiện ngay|tiến hành ngay)\s+(?:thanh toán|đặt hàng)\b",
+                cleaned,
+                re.IGNORECASE,
+            )
+            is not None
+        )
+        if immediate_checkout:
+            return _action_clarification_request(
+                cleaned,
+                "checkout_execution_requires_confirmed_proposal",
+            )
         if mode != ConversationMode.SHOPPER:
             return _action_clarification_request(cleaned, "action_mode_mismatch")
         if (
@@ -1850,6 +1907,33 @@ def _authorized_plan_options(
         option = (template_id, normalized)
         if option not in authorized:
             authorized.append(option)
+    requested_seq = _normalize_capability_sequence(list(request.capabilities))
+    if requested_seq and len(requested_seq) <= MAX_EXPERT_STEPS:
+        valid_req = True
+        for cap in requested_seq:
+            try:
+                definition = registry.capability(cap)
+                if (
+                    definition.effect != CapabilityEffect.READ
+                    or context.access.binding.mode not in definition.allowed_modes
+                    or not definition.required_permissions <= context.access.scopes
+                ):
+                    valid_req = False
+                    break
+            except Exception:
+                valid_req = False
+                break
+        if valid_req and all(
+            any(_capability_satisfies(capability, obligation.kind) for capability in requested_seq)
+            for obligation in request.obligations
+        ):
+            matching_template = next(
+                (tid for tid, _ in candidates if tid == request.template_id),
+                candidates[0][0] if candidates else f"{context.access.binding.mode.value}_catalog",
+            )
+            req_option = (matching_template, requested_seq)
+            if req_option not in authorized:
+                authorized.insert(0, req_option)
     if not authorized:
         raise PlanningError("no_authorized_read_plan")
     return tuple(authorized)
@@ -2034,7 +2118,7 @@ def _extract_catalog_query(message: str) -> str | None:
         flags=re.IGNORECASE,
     )[0]
     candidate = re.sub(
-        r"\s+(?:trong danh mục(?:\s+có\s+bản)?|"
+        r"\s+(?:trong\s+(?:danh mục|catalog|kho|hệ thống)(?:\s+có\s+bản)?|"
         r"(?:cho|giúp)\s+(?:mình|tôi))\b.*$",
         "",
         candidate,
@@ -2063,7 +2147,7 @@ def _extract_catalog_query(message: str) -> str | None:
         flags=re.IGNORECASE,
     )
     candidate = re.sub(
-        r"(?:^|\s+)(?:dựa trên|theo)\s+(?:review|đánh giá|độ tin cậy)\b.*$",
+        r"(?:^|\s+)(?:dựa trên|theo)\s+(?:review|đánh giá|độ tin cậy|giá|rating|phạm vi|chủ đề|mục đích|nội dung|khác biệt)\b.*$",
         "",
         candidate,
         count=1,
@@ -2098,6 +2182,17 @@ def _extract_catalog_query(message: str) -> str | None:
         flags=re.IGNORECASE,
     )
     cleaned = candidate.strip(" ,.;:?!-")
+    _trailing_conn = re.compile(
+        r"\s+(?:với|theo|về|có|ở|thuộc|mức|tầm|khoảng|được|đang|cho|trong|và|or|and)\s*$",
+        re.IGNORECASE,
+    )
+    while True:
+        stripped = _trailing_conn.sub("", cleaned).strip(" ,.;:?!-")
+        if stripped == cleaned:
+            break
+        cleaned = stripped
+    if re.match(r"^(?:(?:sách|cuốn|quyển)\s+)?(?:này|đó|kia|trên)\b", cleaned, re.IGNORECASE):
+        return None
     if cleaned.casefold() in _GENERIC_QUERY_TERMS:
         return None
     return cleaned[:300] or None
@@ -2134,11 +2229,21 @@ def _extract_entity_queries(message: str) -> tuple[str, ...]:
     )
     if len(parts) < 2:
         return ()
-    return tuple(
-        re.sub(r"^(?:sách|cuốn|quyển)\s+", "", part, flags=re.IGNORECASE).strip()
-        for part in parts
-        if part.strip()
+    _trailing_conn = re.compile(
+        r"\s+(?:theo|về|với|có|ở|thuộc|mức|tầm|khoảng|được|nào|đang|cho|trong|và)\s*$",
+        re.IGNORECASE,
     )
+    results: list[str] = []
+    for part in parts:
+        p = re.sub(r"^(?:sách|cuốn|quyển)\s+", "", part, flags=re.IGNORECASE).strip(" ,.;:?!-")
+        while True:
+            stripped = _trailing_conn.sub("", p).strip(" ,.;:?!-")
+            if stripped == p:
+                break
+            p = stripped
+        if p:
+            results.append(p)
+    return tuple(results)
 
 
 def _contains(message: str, *needles: str) -> bool:

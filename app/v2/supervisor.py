@@ -185,8 +185,13 @@ class V2ReadSupervisor:
             (planned.fallback_reason,) if planned.fallback_reason is not None else ()
         )
         if planned.clarification_code is not None:
+            outcome = (
+                DialogueOutcome.ABSTAINED
+                if planned.clarification_code == "prompt_injection_rejected"
+                else DialogueOutcome.NEEDS_CLARIFICATION
+            )
             result = TurnResult(
-                outcome=DialogueOutcome.NEEDS_CLARIFICATION,
+                outcome=outcome,
                 answer=_clarification_answer(planned.clarification_code),
                 plan=_plan_trace(planned, (), None, None),
                 warnings=(planned.clarification_code,),
@@ -974,6 +979,17 @@ def select_grounding_evidence(
             continue
         keep_fact_ids.update(result.selected_fact_ids)
         keep_evidence_ids.update(result.selected_evidence_ids)
+        selected_subjects = {
+            fact.subject_id
+            for fact in result.evidence.facts
+            if fact.fact_id in result.selected_fact_ids
+        }
+        if selected_subjects:
+            keep_fact_ids.update(
+                fact.fact_id
+                for fact in result.evidence.facts
+                if fact.subject_id in selected_subjects
+            )
 
     facts = tuple(fact for fact in full.facts if fact.fact_id in keep_fact_ids)
     keep_evidence_ids.update(
@@ -1325,6 +1341,13 @@ def _clarification_answer(code: str) -> str:
             "Chỉ có thể áp dụng ưu đãi từ một đề xuất đã được xác nhận; "
             "hãy tạo và xác nhận đề xuất trước."
         )
+    if code == "checkout_execution_requires_confirmed_proposal":
+        return (
+            "Chỉ có thể hoàn tất thanh toán từ một đề xuất đã được xác nhận; "
+            "hãy tạo và xác nhận đề xuất trước."
+        )
+    if code == "prompt_injection_rejected":
+        return "Không có đủ bằng chứng đã kiểm tra để trả lời."
     return "Bạn hãy nêu rõ hơn tên sách, tác giả hoặc tiêu chí cần kiểm tra."
 
 
