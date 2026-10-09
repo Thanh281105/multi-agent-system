@@ -1037,7 +1037,10 @@ def _grounding_requirements(
             else None
         )
         subjects: tuple[str | None, ...]
-        if obligation.kind == EvidenceObligationKind.MARKET:
+        if obligation.kind in {
+            EvidenceObligationKind.MARKET,
+            EvidenceObligationKind.KNOWLEDGE,
+        }:
             subjects = (None,)
         else:
             product_ids = obligation.product_ids or candidates

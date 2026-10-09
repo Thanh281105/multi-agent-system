@@ -18,6 +18,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.contracts import AuthorizationContext, TaskStatus
+from app.knowledge.grounding import GroundingError
 from app.db.v2_repository import (
     StepResultConflictError,
     TurnLeaseConflictError,
@@ -1270,7 +1271,7 @@ class DurableReadTurnExecutor:
                 provider_budget=provider_budget,
                 lease_owner=request.lease_owner,
             )
-        except (PlanningError, DurableExecutionError) as exc:
+        except (PlanningError, DurableExecutionError, GroundingError) as exc:
             return await asyncio.to_thread(
                 self._persist_error,
                 snapshot.turn_id,
@@ -1279,7 +1280,7 @@ class DurableReadTurnExecutor:
                 error=SafeExecutionError(
                     code=exc.code,
                     message="The read turn failed a runtime safety check.",
-                    retryable=exc.retryable,
+                    retryable=getattr(exc, "retryable", False),
                 ),
                 provider_budget=provider_budget,
                 lease_owner=request.lease_owner,
