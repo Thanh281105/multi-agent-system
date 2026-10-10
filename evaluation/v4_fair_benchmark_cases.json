@@ -429,8 +429,8 @@
         {
           "fact_id": "fact_t2_c04_review_sentiment",
           "question_aspect": "Nhận xét nội dung",
-          "claim_blueprint": "Nêu nhận xét độc giả: truyện rất hay, hài hước, in đẹp.",
-          "expected_value": "truyện rất hay và hài, in đẹp",
+          "claim_blueprint": "Nêu nhận xét độc giả về phong cách nội dung: truyện rất hay, hài hước (khớp với 'truyện rất hay và hài', 'chuyện khá hay').",
+          "expected_value": "truyện rất hay và hài, hài hước",
           "source_provenance": {
             "source_type": "customer_review",
             "record_id": "101983078:12598895",
@@ -544,8 +544,8 @@
         {
           "fact_id": "fact_t2_c07_review_comment",
           "question_aspect": "Nhận xét người mua",
-          "claim_blueprint": "Nêu nhận xét của người mua: khen sách hay, sách rất đẹp.",
-          "expected_value": "sách hay, sách rất đẹp",
+          "claim_blueprint": "Nêu nhận xét ngắn gọn của người mua từ review: khen sách hay (khớp với 'Sách hay.').",
+          "expected_value": "Sách hay",
           "source_provenance": {
             "source_type": "customer_review",
             "record_id": "101818123:10771683",
