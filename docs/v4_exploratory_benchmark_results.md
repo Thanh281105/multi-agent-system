@@ -1,8 +1,11 @@
-# Báo Cáo Thực Nghiệm v4: Đánh Giá Ghép Cặp Đối Chiếu Multi-Agent vs. Single-Agent
+# Báo Cáo Thực Nghiệm v4: Đánh Giá Thăm Dò Đối Chiếu Multi-Agent vs. Single-Agent
 
-Tài liệu này trình bày toàn bộ kết quả thực nghiệm **144 lượt chạy (24 ca kiểm thử $\times$ 2 hệ thống $\times$ 3 lần lặp lại độc lập)** trên bộ benchmark chuẩn hóa v4 ([`evaluation/v4_fair_benchmark_cases.json`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/evaluation/v4_fair_benchmark_cases.json)) đối chiếu trực tiếp giữa **Multi-Agent System (MAS)** và **Single-Agent Baseline (SA)** trên snapshot Tiki Books.
+> [!IMPORTANT]
+> **ĐỊNH VỊ BÁO CÁO & PHẠM VI ÁP DỤNG:**
+> 1. **Tư liệu thử nghiệm thăm dò (Exploratory Prototype Benchmark):** Báo cáo này ghi lại kết quả thử nghiệm thăm dò trên kịch bản độc lập (`scripts/run_v4_full_benchmark.py`). **Không dùng tài liệu này làm bằng chứng đánh giá chính thức cho runtime production** (`app/v2`), và **không đưa runner v4 vào CI** (CI tiếp tục duy trì runner chuẩn `run_real_multi_agent_benchmark.py` theo `.github/workflows/ci.yml:85`).
+> 2. **Giới hạn của bộ thẩm định (LLM Judge):** Bộ chấm LLM chỉ đối chiếu câu trả lời với danh sách claim rút gọn (`required_facts`), **không đối chiếu trực tiếp với toàn bộ snapshot nguồn** (`products.jsonl`, `reviews.jsonl`, `sources.json`). Do đó, các verdict chỉ mang tính tham khảo đánh giá tương đối giữa hai prompt pipeline.
 
-Toàn bộ lượt chạy được thực hiện với **Bộ Định Tuyến Ý Định Tự Động (Autonomous Intent Routing - không dùng nhãn Oracle)**, **Đo lường Token thực tế từ API (Direct Token Accounting)** và **Thẩm định đối chiếu toàn diện nguồn Snapshot (Snapshot-Grounded Adjudication)**.
+Tài liệu này trình bày toàn bộ kết quả thực nghiệm **144 lượt chạy (24 ca kiểm thử $\times$ 2 hệ thống $\times$ 3 lần lặp lại độc lập)** trên bộ benchmark v4 ([`evaluation/v4_fair_benchmark_cases.json`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/evaluation/v4_fair_benchmark_cases.json)) đối chiếu giữa mô hình **Multi-Agent độc lập** và **Single-Agent Baseline (SA)**.
 
 ---
 
@@ -17,10 +20,10 @@ Toàn bộ lượt chạy được thực hiện với **Bộ Định Tuyến Ý
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │ BẢNG TỔNG KẾT ĐO LƯỜNG CHÍNH XÁC (N = 24 CASES | 144 RUNS ĐỘC LẬP)                     │
 ├───────────────────────────────┬──────────────────────────┬─────────────────────────────┤
-│ Chỉ số đo lường               │ Đợt Đo Ban Đầu           │ Đợt Nâng Cấp OpenClaw MAS   │
+│ Chỉ số đo lường               │ Đợt Đo Ban Đầu (v4 cũ)   │ Đợt Nâng Cấp OpenClaw MAS   │
 ├───────────────────────────────┼──────────────────────────┼─────────────────────────────┤
 │ Điểm Fact trung bình (Macro)  │ SA: 99.31% | MA: 99.31%  │ SA: 98.96% | MA: 100.00%    │
-│ Đếm trực tiếp Verdict (Micro) │ SA: 128/129 | MA: 128/129│ SA: 128/129 | MA: 129/129   │
+│ Đếm trực tiếp Verdict (Micro) │ SA: 126/129 | MA: 126/129│ SA: 126/129 | MA: 129/129   │
 │ Chênh lệch Fact (Delta Δ)     │ Δ = 0.00%                │ Δ = +1.04% (nghiêng về MA)  │
 │ Độ trễ TB Pipeline sinh câu   │ SA: 1.334 s | MA: 5.644 s│ SA: 1.428 s | MA: 6.746 s   │
 │ Tỷ lệ đánh đổi độ trễ         │ SA nhanh hơn 4.23 lần    │ SA nhanh hơn 4.73 lần       │
@@ -29,15 +32,16 @@ Toàn bộ lượt chạy được thực hiện với **Bộ Định Tuyến Ý
 │ Đối đầu ghép cặp (Win-Tie-Loss│ 1 SA Win | 22 Tie | 1 MA │ 0 SA Win | 23 Tie | 1 MA Win│
 │ Khoảng tin cậy 95% (CI)       │ [-2.08%, +2.08%]         │ [-1.11%, +3.20%]            │
 │ Kiểm định t-ghép cặp (t-stat) │ t = 0.000 (p = 1.000)    │ t = 1.000 (p = 0.328)       │
-│ Ca phân định thắng thua       │ SA trượt 06, MA trượt 07 │ MA thắng ca Catalog 01      │
+│ Ca phân định thắng thua       │ Lệch do False Negative   │ MA thắng ca Catalog 01      │
 └───────────────────────────────┴──────────────────────────┴─────────────────────────────┘
 ```
 
 > [!NOTE]
-> *Lưu ý về phạm vi tính toán:*
-> - Chi phí Token và Độ trễ được đo lường riêng cho **pipeline sinh câu trả lời (generation pipeline)**, hoàn toàn không tính gộp các model call của khâu thẩm định (evaluation judge).
-> - Mẫu số micro là **129 facts** trên 24 ca. Điểm số macro là trung bình cộng của 24 điểm theo từng ca.
-> - Khoảng tin cậy 95% tính theo kiểm định t-ghép cặp trên 24 điểm hiệu số trung bình ($t_{\text{crit}} = 2.069$ với bậc tự do $df = 23$).
+> *Lưu ý về số liệu micro:*
+> - Tập benchmark gồm 43 required facts $\times$ 3 lần lặp = **129 verdicts**.
+> - Trong JSON kết quả, SA đạt 42/43 facts ở cả 3 repeats, tổng cộng **126/129 verdicts** (trượt `fact_t1_c01_name` do thiếu hậu tố ấn bản `(Tái Bản 2022)`).
+> - MA đạt 43/43 facts ở cả 3 repeats, tổng cộng **129/129 verdicts**.
+> - Chi phí Token và Độ trễ được đo lường riêng cho **pipeline sinh câu trả lời (generation pipeline)**, không gộp các model call của khâu thẩm định.
 
 ---
 
