@@ -213,6 +213,11 @@ _P4_IMPLEMENTED_READ_CAPABILITIES = frozenset(
     }
 )
 _QUOTED_QUERY_PATTERN = re.compile(r"[\"“”'](?P<query>[^\"“”']{2,160})[\"“”']")
+_MEMORY_ACKNOWLEDGMENT_PATTERN = re.compile(
+    r"(?:(?:hãy|vui lòng)\s+)?(?:nhớ|ghi nhớ)\s+(?:đúng\s+)?"
+    r"(?:cuốn|sách|quyển)\s+vừa\s+(?:nêu|nói|nhắc)[.!?]*",
+    re.IGNORECASE,
+)
 _QUERY_PREFIX_PATTERN = re.compile(
     r"^(?:(?:hãy|vui lòng|giúp(?:\s+(?:mình|tôi))?|cho tôi|cho mình|"
     r"mình muốn|tôi muốn)\s+)*"
@@ -1118,6 +1123,20 @@ def _deterministic_request(
     action_request = _deterministic_action_request(message, context)
     if action_request is not None:
         return action_request
+    if _is_memory_acknowledgment(message):
+        return _DeterministicRequest(
+            intent="conversation.acknowledgment",
+            template_id="memory_acknowledgment",
+            obligations=(),
+            capabilities=(),
+            candidate_limit=MAX_CANDIDATES,
+            candidate_limit_explicit=False,
+            query=message[:500],
+            catalog_query=None,
+            min_price_vnd=None,
+            max_price_vnd=None,
+            clarification_code=None,
+        )
     parsed_context = _parse_request_context(message)
     cleaned = parsed_context.cleaned
     lowered = cleaned.casefold()
@@ -2117,12 +2136,7 @@ def _extract_catalog_query(message: str) -> str | None:
     if quoted is not None:
         return quoted.group("query").strip()[:300]
 
-    if re.fullmatch(
-        r"(?:(?:hãy|vui lòng)\s+)?(?:nhớ|ghi nhớ)\s+(?:đúng\s+)?"
-        r"(?:cuốn|sách|quyển)\s+vừa\s+(?:nêu|nói|nhắc)[.!?]*",
-        message.strip(),
-        flags=re.IGNORECASE,
-    ):
+    if _is_memory_acknowledgment(message):
         return None
 
     candidate = re.sub(
@@ -2234,6 +2248,10 @@ def _extract_catalog_query(message: str) -> str | None:
     if cleaned.casefold() in _GENERIC_QUERY_TERMS:
         return None
     return cleaned[:300] or None
+
+
+def _is_memory_acknowledgment(message: str) -> bool:
+    return _MEMORY_ACKNOWLEDGMENT_PATTERN.fullmatch(message.strip()) is not None
 
 
 def _extract_entity_queries(message: str) -> tuple[str, ...]:

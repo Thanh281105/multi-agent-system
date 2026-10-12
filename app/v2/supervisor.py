@@ -184,6 +184,16 @@ class V2ReadSupervisor:
         fallback_reasons = (
             (planned.fallback_reason,) if planned.fallback_reason is not None else ()
         )
+        if planned.intent == "conversation.acknowledgment":
+            result = TurnResult(
+                outcome=DialogueOutcome.ANSWERED,
+                answer="Được, mình sẽ giữ cuốn sách vừa nêu làm ngữ cảnh cho lượt tiếp theo.",
+                plan=_plan_trace(planned, (), None, None),
+            )
+            return TurnComputation(
+                result=result,
+                fallback_reasons=fallback_reasons,
+            )
         if planned.clarification_code is not None:
             outcome = (
                 DialogueOutcome.ABSTAINED
@@ -1037,11 +1047,15 @@ def _grounding_requirements(
             else None
         )
         subjects: tuple[str | None, ...]
-        if obligation.kind in {
-            EvidenceObligationKind.MARKET,
-            EvidenceObligationKind.KNOWLEDGE,
-        }:
+        if obligation.kind == EvidenceObligationKind.MARKET:
             subjects = (None,)
+        elif obligation.kind == EvidenceObligationKind.KNOWLEDGE:
+            product_ids = obligation.product_ids or candidates
+            subjects = (
+                tuple(f"product_{product_id}" for product_id in product_ids)
+                if product_ids
+                else (None,)
+            )
         else:
             product_ids = obligation.product_ids or candidates
             subjects = (
@@ -1135,13 +1149,26 @@ def _obligation_satisfied(
             for result in usable
         )
     if obligation.kind == EvidenceObligationKind.KNOWLEDGE:
-        return any(
-            result.operation.capability == "knowledge.retrieve"
+        expected_product_ids = set(obligation.product_ids or candidates)
+        answerable_results = tuple(
+            result
+            for result in usable
+            if result.operation.capability == "knowledge.retrieve"
             and result.output is not None
             and result.output.get("answerable") is True
-            and bool(result.evidence.excerpts)
-            for result in usable
+            and result.evidence.excerpts
         )
+        if not expected_product_ids:
+            return bool(answerable_results)
+        covered_subject_ids = {
+            subject_id
+            for result in answerable_results
+            for excerpt in result.evidence.excerpts
+            for subject_id in excerpt.subject_ids
+        }
+        return {
+            f"product_{product_id}" for product_id in expected_product_ids
+        } <= covered_subject_ids
     if obligation.kind == EvidenceObligationKind.MARKET:
         return any(
             result.operation.capability == "market.snapshot"
