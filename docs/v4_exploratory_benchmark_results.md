@@ -23,7 +23,7 @@ Tài liệu này trình bày toàn bộ kết quả thực nghiệm **144 lượ
 │ Chỉ số đo lường               │ Đợt Đo Ban Đầu (v4 cũ)   │ Đợt Nâng Cấp OpenClaw MAS   │
 ├───────────────────────────────┼──────────────────────────┼─────────────────────────────┤
 │ Điểm Fact trung bình (Macro)  │ SA: 99.31% | MA: 99.31%  │ SA: 98.96% | MA: 100.00%    │
-│ Đếm trực tiếp Verdict (Micro) │ SA: 126/129 | MA: 126/129│ SA: 126/129 | MA: 129/129   │
+│ Đếm trực tiếp Verdict (Micro) │ SA: 128/129 | MA: 128/129│ SA: 126/129 | MA: 129/129   │
 │ Chênh lệch Fact (Delta Δ)     │ Δ = 0.00%                │ Δ = +1.04% (nghiêng về MA)  │
 │ Độ trễ TB Pipeline sinh câu   │ SA: 1.334 s | MA: 5.644 s│ SA: 1.428 s | MA: 6.746 s   │
 │ Tỷ lệ đánh đổi độ trễ         │ SA nhanh hơn 4.23 lần    │ SA nhanh hơn 4.73 lần       │
@@ -32,16 +32,15 @@ Tài liệu này trình bày toàn bộ kết quả thực nghiệm **144 lượ
 │ Đối đầu ghép cặp (Win-Tie-Loss│ 1 SA Win | 22 Tie | 1 MA │ 0 SA Win | 23 Tie | 1 MA Win│
 │ Khoảng tin cậy 95% (CI)       │ [-2.08%, +2.08%]         │ [-1.11%, +3.20%]            │
 │ Kiểm định t-ghép cặp (t-stat) │ t = 0.000 (p = 1.000)    │ t = 1.000 (p = 0.328)       │
-│ Ca phân định thắng thua       │ Lệch do False Negative   │ MA thắng ca Catalog 01      │
+│ Ca phân định thắng thua       │ 1 SA (c07) | 1 MA (c06)  │ MA thắng ca Catalog 01      │
 └───────────────────────────────┴──────────────────────────┴─────────────────────────────┘
 ```
 
 > [!NOTE]
-> *Lưu ý về số liệu micro:*
-> - Tập benchmark gồm 43 required facts $\times$ 3 lần lặp = **129 verdicts**.
-> - Trong JSON kết quả, SA đạt 42/43 facts ở cả 3 repeats, tổng cộng **126/129 verdicts** (trượt `fact_t1_c01_name` do thiếu hậu tố ấn bản `(Tái Bản 2022)`).
-> - MA đạt 43/43 facts ở cả 3 repeats, tổng cộng **129/129 verdicts**.
-> - Chi phí Token và Độ trễ được đo lường riêng cho **pipeline sinh câu trả lời (generation pipeline)**, không gộp các model call của khâu thẩm định.
+> *Lưu ý về số liệu micro và kết luận thống kê:*
+> - **Đợt đo ban đầu (baseline v4 cũ):** Mỗi bên đạt **128/129 verdicts**. SA trượt 1 fact ở `fair_tier2_cross_07` (do judge phạt khi nêu thêm review ngoài blueprint), MA trượt 1 fact ở `fair_tier2_cross_06` (do judge phạt nhận xét phàn nàn). Sau đối chiếu snapshot, cả hai đều có trong nguồn thật.
+> - **Đợt nâng cấp mới (OpenClaw MAS):** MA đạt **129/129 verdicts** (100.00%). SA đạt **126/129 verdicts** do trượt `fact_t1_c01_name` ở cả 3 repeats của ca `fair_tier1_catalog_01` (thiếu hậu tố ấn bản `(Tái Bản 2022)`).
+> - **Đánh giá học thuật trung thực:** Kết quả mới ghi nhận **1 ca MA thắng, 23 ca hòa**, kiểm định t-ghép cặp cho thấy $p = 0.328$ (chưa có ý nghĩa thống kê ở mức $\alpha = 0.05$). Đồng thời, MA chậm hơn khoảng **4.73 lần** và tiêu tốn gấp **2.78 lần token**. Do đó, kết quả này **chưa chứng minh Multi-Agent có ưu thế tổng quát vượt trội** và chỉ dừng lại ở mức khảo sát thử nghiệm thăm dò, không phải bằng chứng cho runtime production.
 
 ---
 
@@ -68,7 +67,7 @@ Qua việc kiểm tra đối chiếu trực tiếp giữa câu trả lời sinh 
 * **Bối cảnh ca kiểm thử:** Yêu cầu tra cứu giá bán, tác giả, nhà xuất bản của *Sapiens: Lược Sử Loài Người* trong catalog. Fact blueprint bắt buộc phải chỉ ra tên đầy đủ của ấn bản được lưu trữ trong cơ sở dữ liệu Tiki: `"Sapiens Lược Sử Loài Người (Tái Bản 2022)"`.
 * **Kết quả Single-Agent (3/4 facts - 75.0%):** Do chỉ tiếp nhận flat prompt mà không có schema ràng buộc, Single-Agent lặp lại cụm từ người dùng hỏi (*"Sapiens: Lược Sử Loài Người"*) mà bỏ sót hậu tố ấn bản `(Tái Bản 2022)` có trong bản ghi catalog.
 * **Kết quả Multi-Agent OpenClaw (4/4 facts - 100.0%):** Catalog Specialist trích xuất toàn vẹn 11 trường thông tin theo schema nghiêm ngặt (`name: Sapiens Lược Sử Loài Người (Tái Bản 2022)`), và Synthesizer bảo toàn chính xác tên ấn bản cùng bảng thông số chuẩn. Multi-Agent đạt điểm tuyệt đối 100% qua cả 3 lần lặp lại độc lập.
-* **Tổng kết toàn bộ 24 ca:** Multi-Agent đạt **100.00% Fact Coverage (129/129 verdicts)**, Single-Agent đạt **98.96% (128/129 verdicts)**, đem lại kết quả **1 MA Thắng - 23 Hòa - 0 SA Thắng**.
+* **Tổng kết toàn bộ 24 ca:** Multi-Agent đạt **100.00% Fact Coverage (129/129 verdicts)**, Single-Agent đạt **98.96% (126/129 verdicts)**, đem lại kết quả **1 MA Thắng - 23 Hòa - 0 SA Thắng**.
 
 ---
 
