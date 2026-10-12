@@ -240,7 +240,11 @@ class EvaluationV3ObservationExecutor:
         planning_context = PlanningContext(
             access=access,
             versions=self.runtime.shared_services.versions,
-            resolved_product_ids=self.case.resolved_product_ids,
+            resolved_product_ids=(
+                self.case.resolved_product_ids
+                if self.case.principal_role == "merchant"
+                else ()
+            ),
             merchant_target=self._merchant_target(),
         )
         durable_turn_id = canonical_turn_id(
