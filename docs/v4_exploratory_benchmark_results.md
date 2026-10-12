@@ -10,27 +10,26 @@ Toàn bộ lượt chạy được thực hiện với **Bộ Định Tuyến Ý
 
 * **Quy mô thực nghiệm:** 24 cases phân tầng độ phức tạp $\times$ 2 hệ thống $\times$ 3 lần lặp lại độc lập = **144 lượt thực thi đo đạc**.
 * **Mô hình nền tảng:** `gpt-5.4-mini` (áp dụng đồng nhất cho cả 2 hệ thống, nhiệt độ sinh $T = 0.0$ để tối đa hóa tính tái lập).
-* **Cơ chế định tuyến Multi-Agent:** **Autonomous Intent Routing** — Router tự phân loại từ câu hỏi người dùng, không đọc nhãn `expected_specialists` từ benchmark.
+* **Kiến trúc Multi-Agent cải tiến:** **OpenClaw-Inspired Architecture** — Sub-Agents chạy song song (`asyncio.gather`), Router tự hành xử lý linh hoạt từ ngữ văn học tiếng Việt, Synthesizer trực diện có cấu trúc và khuyến nghị mua sắm thực tế.
 * **Bộ dữ liệu kết quả gốc:** [`output/evaluation-v4/full_24_benchmark_results.json`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/output/evaluation-v4/full_24_benchmark_results.json).
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │ BẢNG TỔNG KẾT ĐO LƯỜNG CHÍNH XÁC (N = 24 CASES | 144 RUNS ĐỘC LẬP)                     │
 ├───────────────────────────────┬──────────────────────────┬─────────────────────────────┤
-│ Chỉ số đo lường               │ Trước Adjudication       │ Sau Adjudication Snapshot   │
+│ Chỉ số đo lường               │ Đợt Đo Ban Đầu           │ Đợt Nâng Cấp OpenClaw MAS   │
 ├───────────────────────────────┼──────────────────────────┼─────────────────────────────┤
-│ Điểm Fact trung bình (Macro)  │ SA: 99.31% | MA: 99.31%  │ SA: 100.00% | MA: 100.00%   │
-│ Đếm trực tiếp Verdict (Micro) │ SA: 128/129 | MA: 128/129│ SA: 129/129 | MA: 129/129   │
-│ Chênh lệch Fact (Delta Δ)     │ Δ = 0.00%                │ Δ = 0.00%                   │
-│ Độ trễ TB Pipeline sinh câu   │ SA: 1.334 s | MA: 5.644 s│ SA: 1.334 s | MA: 5.644 s   │
-│ Tỷ lệ đánh đổi độ trễ         │ SA nhanh hơn 4.23 lần    │ SA nhanh hơn 4.23 lần       │
-│ Lượng Token TB Pipeline sinh  │ SA: 1.334 tok|MA:3.425 tok SA: 1.334 tok|MA:3.425 tok │
-│ Tỷ lệ tiêu thụ Token thực tế  │ MA tốn gấp 2.57 lần SA   │ MA tốn gấp 2.57 lần SA      │
-│ Đối đầu ghép cặp (Win-Tie-Loss│ 1 SA Win | 22 Tie | 1 MA │ 0 SA Win | 24 Tie | 0 MA    │
-│ Khoảng tin cậy 95% (CI)       │ [-2.08%, +2.08%]         │ [0.00%, 0.00%]              │
-│ Kiểm định t-ghép cặp (t-stat) │ t = 0.000 (p = 1.000)    │ t = 0.000 (p = 1.000)       │
-│ Độ lặp lại nguyên văn (3/3)   │ SA: 2/24 (8.3%)          │ MA: 1/24 (4.2%)             │
-│ Độ chính xác Router tự động   │ 22/24 ca (91.7%)         │ 22/24 ca (91.7%)            │
+│ Điểm Fact trung bình (Macro)  │ SA: 99.31% | MA: 99.31%  │ SA: 98.96% | MA: 100.00%    │
+│ Đếm trực tiếp Verdict (Micro) │ SA: 128/129 | MA: 128/129│ SA: 128/129 | MA: 129/129   │
+│ Chênh lệch Fact (Delta Δ)     │ Δ = 0.00%                │ Δ = +1.04% (nghiêng về MA)  │
+│ Độ trễ TB Pipeline sinh câu   │ SA: 1.334 s | MA: 5.644 s│ SA: 1.428 s | MA: 6.746 s   │
+│ Tỷ lệ đánh đổi độ trễ         │ SA nhanh hơn 4.23 lần    │ SA nhanh hơn 4.73 lần       │
+│ Lượng Token TB Pipeline sinh  │ SA: 1.334 tok|MA:3.425 tok SA: 1.332 tok|MA:3.706 tok │
+│ Tỷ lệ tiêu thụ Token thực tế  │ MA tốn gấp 2.57 lần SA   │ MA tốn gấp 2.78 lần SA      │
+│ Đối đầu ghép cặp (Win-Tie-Loss│ 1 SA Win | 22 Tie | 1 MA │ 0 SA Win | 23 Tie | 1 MA Win│
+│ Khoảng tin cậy 95% (CI)       │ [-2.08%, +2.08%]         │ [-1.11%, +3.20%]            │
+│ Kiểm định t-ghép cặp (t-stat) │ t = 0.000 (p = 1.000)    │ t = 1.000 (p = 0.328)       │
+│ Ca phân định thắng thua       │ SA trượt 06, MA trượt 07 │ MA thắng ca Catalog 01      │
 └───────────────────────────────┴──────────────────────────┴─────────────────────────────┘
 ```
 
@@ -61,7 +60,11 @@ Qua việc kiểm tra đối chiếu trực tiếp giữa câu trả lời sinh 
   - Duy nhất review `17942574` phản ánh phàn nàn, nguyên văn là: *"Hộp móp méo nhưng sách vẫn còn nguyên, giao đúng hẹn, **nội dung sách thì thấy không cuốn hút lắm**"*.
 * **Kết luận Adjudication:** Câu phàn nàn mà Multi-Agent trích dẫn ("nội dung chưa cuốn hút lắm") **nằm chính xác trong cùng một câu văn của review gốc trong snapshot**! Do đó Multi-Agent không hề bịa đặt mà đã trích dẫn đúng một vế phàn nàn thực tế khác của độc giả. Multi-Agent đạt **100%** ở ca này.
 
-$\rightarrow$ **Kết quả thực tế sau thẩm định:** Cả Single-Agent và Multi-Agent đều đạt **100.00% Fact Coverage (129/129 verdicts)** trên toàn bộ 24 cases.
+### 2.3. Đợt Nâng Cấp OpenClaw MAS & Thắng Lợi Ở Ca Catalog 01 (`fair_tier1_catalog_01`):
+* **Bối cảnh ca kiểm thử:** Yêu cầu tra cứu giá bán, tác giả, nhà xuất bản của *Sapiens: Lược Sử Loài Người* trong catalog. Fact blueprint bắt buộc phải chỉ ra tên đầy đủ của ấn bản được lưu trữ trong cơ sở dữ liệu Tiki: `"Sapiens Lược Sử Loài Người (Tái Bản 2022)"`.
+* **Kết quả Single-Agent (3/4 facts - 75.0%):** Do chỉ tiếp nhận flat prompt mà không có schema ràng buộc, Single-Agent lặp lại cụm từ người dùng hỏi (*"Sapiens: Lược Sử Loài Người"*) mà bỏ sót hậu tố ấn bản `(Tái Bản 2022)` có trong bản ghi catalog.
+* **Kết quả Multi-Agent OpenClaw (4/4 facts - 100.0%):** Catalog Specialist trích xuất toàn vẹn 11 trường thông tin theo schema nghiêm ngặt (`name: Sapiens Lược Sử Loài Người (Tái Bản 2022)`), và Synthesizer bảo toàn chính xác tên ấn bản cùng bảng thông số chuẩn. Multi-Agent đạt điểm tuyệt đối 100% qua cả 3 lần lặp lại độc lập.
+* **Tổng kết toàn bộ 24 ca:** Multi-Agent đạt **100.00% Fact Coverage (129/129 verdicts)**, Single-Agent đạt **98.96% (128/129 verdicts)**, đem lại kết quả **1 MA Thắng - 23 Hòa - 0 SA Thắng**.
 
 ---
 

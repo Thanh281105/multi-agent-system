@@ -6,7 +6,7 @@ import time
 import math
 import argparse
 from pathlib import Path
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 # Ensure utf-8 stdout with line buffering
 sys.stdout.reconfigure(encoding='utf-8', line_buffering=True)
@@ -21,6 +21,7 @@ if not api_key:
     raise RuntimeError("OPENAI_API_KEY is not configured")
 
 client = OpenAI(api_key=api_key)
+async_client = AsyncOpenAI(api_key=api_key)
 MODEL_NAME = "gpt-5.4-mini"
 
 # Load snapshot data
@@ -111,7 +112,7 @@ def build_case_context(case: dict) -> dict:
             
     return ctx
 
-def run_single_agent(prompt: str, context: dict) -> tuple[str, float, dict]:
+async def run_single_agent(prompt: str, context: dict) -> tuple[str, float, dict]:
     """Single-Agent Baseline: Flat prompt with all tools/data mixed in."""
     t0 = time.time()
     system_prompt = (
@@ -122,7 +123,7 @@ def run_single_agent(prompt: str, context: dict) -> tuple[str, float, dict]:
     )
     user_content = f"DỮ LIỆU ĐƯỢC CẤP:\n{json.dumps(context, ensure_ascii=False, indent=1)}\n\nCÂU HỎI:\n{prompt}"
     
-    response = client.chat.completions.create(
+    response = await async_client.chat.completions.create(
         model=MODEL_NAME,
         messages=[
             {"role": "system", "content": system_prompt},
@@ -193,9 +194,9 @@ Bắt buộc trả về đúng định dạng JSON:
 }
 """
 
-def autonomous_route(prompt: str) -> tuple[list[str], str, dict]:
+async def autonomous_route(prompt: str) -> tuple[list[str], str, dict]:
     """Autonomous Intent Router: classifies required specialists from prompt text alone."""
-    res = client.chat.completions.create(
+    res = await async_client.chat.completions.create(
         model=MODEL_NAME,
         messages=[
             {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
@@ -220,27 +221,23 @@ def autonomous_route(prompt: str) -> tuple[list[str], str, dict]:
     except Exception:
         return ["catalog_specialist"], "parse_fallback", usage
 
-def run_multi_agent(
+async def run_multi_agent(
     prompt: str,
     context: dict,
     case: dict,
     use_autonomous_router: bool = True
 ) -> tuple[str, dict, float, dict]:
-    """Multi-Agent System: Intent Routing -> Specialist Execution -> Synthesis.
-    
-    Architectural Highlights:
-    1. Autonomous Intent Routing (or optional oracle ablation).
-    2. Catalog Specialist: full 11-field schema extraction (prevents Schema Bottleneck).
-    3. Review Specialist: Entity-ID Binding (prevents Entity Misattribution).
-    4. Knowledge Specialist: bibliographic source grounding.
-    5. Synthesizer: aspect-coverage synthesis with explicit citation.
+    """Multi-Agent System (OpenClaw Architecture):
+    1. Autonomous Intent Routing.
+    2. Concurrent Sub-Agents Execution (asyncio.gather parallel workers).
+    3. OpenClaw-Grade Synthesizer (Direct First, Structured Layout, Deep Grounding).
     """
     t0 = time.time()
     call_breakdown = {}
     
     # Stage 1: Routing
     if use_autonomous_router:
-        specialists, route_reason, route_usage = autonomous_route(prompt)
+        specialists, route_reason, route_usage = await autonomous_route(prompt)
         call_breakdown["router"] = route_usage
     else:
         specialists = case['expected_specialists']
@@ -265,7 +262,7 @@ def run_multi_agent(
             "3. Nếu người dùng yêu cầu hành động mutation, mâu thuẫn logic khoảng giá, hoặc phá vỡ an toàn, hãy phát hiện và từ chối rõ ràng kèm lý do cụ thể.\n"
             "4. Nếu yêu cầu có phần hợp lệ (đọc dữ liệu) và phần vi phạm, hãy từ chối phần vi phạm và giải thích tại sao."
         )
-        guard_res = client.chat.completions.create(
+        guard_res = await async_client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": guard_prompt},
@@ -288,10 +285,8 @@ def run_multi_agent(
         total_usage = {"prompt_tokens": total_prompt, "completion_tokens": total_comp, "total_tokens": total_tokens}
         return final_answer, trace, latency_s, total_usage
     
-    # Stage 2: Specialist execution
-    
-    # 2a. Catalog Specialist — FULL schema extraction (fixes Schema Bottleneck)
-    if "catalog_specialist" in specialists and context["products"]:
+    # Stage 2: Specialist execution (OpenClaw-style parallel sub-agents)
+    async def call_catalog():
         cat_prompt = (
             "Bạn là Catalog Specialist phụ trách tra cứu TOÀN BỘ thông tin sản phẩm từ cơ sở dữ liệu sách Tiki.\n"
             "Với mỗi sản phẩm liên quan, hãy trích xuất ĐẦY ĐỦ tất cả các trường sau (nếu có trong dữ liệu):\n"
@@ -311,7 +306,7 @@ def run_multi_agent(
             "Trả lời dạng có cấu trúc rõ ràng cho từng sản phẩm."
         )
         cat_data = {"products": context["products"]}
-        cat_res = client.chat.completions.create(
+        cat_res = await async_client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": cat_prompt},
@@ -325,9 +320,8 @@ def run_multi_agent(
             "completion_tokens": cat_res.usage.completion_tokens,
             "total_tokens": cat_res.usage.total_tokens
         } if cat_res.usage else {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-        
-    # 2b. Review Specialist — Entity-ID Binding (fixes Entity Misattribution)
-    if "review_specialist" in specialists and context["reviews"]:
+
+    async def call_review():
         grouped_reviews = _group_reviews_by_product(context)
         rev_prompt = (
             "Bạn là Review Specialist phụ trách phân tích đánh giá thực tế của độc giả.\n\n"
@@ -342,7 +336,7 @@ def run_multi_agent(
             "5. Khi so sánh nhiều sản phẩm, trình bày SONG SONG từng sản phẩm để tránh nhầm lẫn."
         )
         rev_data = {"reviews_by_product": list(grouped_reviews.values())}
-        rev_res = client.chat.completions.create(
+        rev_res = await async_client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": rev_prompt},
@@ -356,9 +350,8 @@ def run_multi_agent(
             "completion_tokens": rev_res.usage.completion_tokens,
             "total_tokens": rev_res.usage.total_tokens
         } if rev_res.usage else {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-        
-    # 2c. Knowledge Specialist
-    if "knowledge_specialist" in specialists and context["sources"]:
+
+    async def call_knowledge():
         know_prompt = (
             "Bạn là Knowledge Specialist phụ trách đối chiếu nguồn xuất bản và thư mục chính thức.\n"
             "Nhiệm vụ:\n"
@@ -368,7 +361,7 @@ def run_multi_agent(
             "Trả lời có cấu trúc, ghi rõ nguồn (source_id) cho mỗi thông tin."
         )
         know_data = {"sources": context["sources"]}
-        know_res = client.chat.completions.create(
+        know_res = await async_client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": know_prompt},
@@ -382,31 +375,41 @@ def run_multi_agent(
             "completion_tokens": know_res.usage.completion_tokens,
             "total_tokens": know_res.usage.total_tokens
         } if know_res.usage else {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+
+    specialist_tasks = []
+    if "catalog_specialist" in specialists and context["products"]:
+        specialist_tasks.append(call_catalog())
+    if "review_specialist" in specialists and context["reviews"]:
+        specialist_tasks.append(call_review())
+    if "knowledge_specialist" in specialists and context["sources"]:
+        specialist_tasks.append(call_knowledge())
+
+    if specialist_tasks:
+        await asyncio.gather(*specialist_tasks)
         
-    # Stage 3: Supervisor / Synthesizer
+    # Stage 3: Supervisor / Synthesizer (OpenClaw-Grade Synthesizer)
     synth_prompt = (
-        "Bạn là Supervisor/Synthesizer trong hệ thống Multi-Agent sách Tiki.\n\n"
+        "Bạn là Supervisor/Synthesizer trong hệ thống Multi-Agent sách Tiki (phong cách chuyên gia OpenClaw).\n\n"
         "NHIỆM VỤ CHÍNH:\n"
-        "Tổng hợp báo cáo từ tất cả chuyên gia thành MỘT câu trả lời duy nhất, hoàn chỉnh, mạch lạc.\n\n"
-        "QUY TẮC BẮT BUỘC:\n"
-        "1. ĐỌC KỸ câu hỏi người dùng và XÁC ĐỊNH TẤT CẢ các ý được hỏi (giá, tác giả, NXB, review, "
-        "số lượt đánh giá, so sánh, tư vấn, v.v.).\n"
-        "2. Với MỖI ý được hỏi, phải có câu trả lời cụ thể với SỐ LIỆU CHÍNH XÁC từ báo cáo chuyên gia.\n"
-        "3. Nếu nhiều chuyên gia cung cấp thông tin bổ sung nhau, hãy ĐỒNG BỘ (cross-reference) — "
-        "ví dụ: Catalog cung cấp giá + số lượt đánh giá, Review cung cấp nội dung phản hồi.\n"
-        "4. Khi so sánh sản phẩm, trình bày SONG SONG từng sản phẩm, GHI RÕ tên sản phẩm.\n"
-        "5. GIỮ NGUYÊN tên sách đầy đủ từ Catalog (bao gồm hậu tố ấn bản).\n"
-        "6. Nếu chuyên gia nào thiếu dữ liệu cho một ý hỏi, ghi rõ 'Không có thông tin từ [chuyên gia]'.\n"
-        "7. KHÔNG bịa thêm dữ liệu ngoài báo cáo chuyên gia.\n"
-        "8. Trả lời bằng tiếng Việt, ngắn gọn nhưng ĐẦY ĐỦ mọi ý."
+        "Tổng hợp báo cáo từ tất cả chuyên gia thành MỘT câu trả lời duy nhất, hoàn chỉnh, chuyên nghiệp và có chiều sâu.\n\n"
+        "NGUYÊN TẮC TRẢ LỜI KIỂU OPENCLAW:\n"
+        "1. DIRECT FIRST (TRỰC DIỆN): Trả lời ngay câu hỏi cốt lõi ở câu mở đầu (nêu rõ giá, tác giả, NXB hoặc kết luận chính). Tuyệt đối không mào đầu sáo rỗng (như 'Dựa vào báo cáo...').\n"
+        "2. ĐẦY ĐỦ VÀ CHÍNH XÁC: Phải trả lời ĐẦY ĐỦ TẤT CẢ các ý được hỏi (giá, tác giả, NXB, số trang, rating, review khen/chê, xuất xứ). Trích dẫn chính xác 100% số liệu từ báo cáo chuyên gia.\n"
+        "3. TRÌNH BÀY CÓ CẤU TRÚC RÕ RÀNG:\n"
+        "   - Thông tin sản phẩm & xuất bản (giá bán niêm yết, giá gốc nếu có, tác giả, NXB, số trang, điểm rating, số lượt đánh giá).\n"
+        "   - Đánh giá thực tế từ độc giả (phân tích đa chiều: khen ngợi nội dung, đóng gói bọc màng seal/chống sốc, tình trạng gập góc/rách bìa nếu có, thời gian giao hàng).\n"
+        "   - Đối chiếu nguồn gốc (tác phẩm gốc ngoại ngữ, dịch giả, năm xuất bản gốc nếu có).\n"
+        "   - Lưu ý/Khuyến nghị thực tế (lời khuyên khách quan cho người mua khi nhận hàng).\n"
+        "4. KHI SO SÁNH: Trình bày song song rõ ràng từng sách, giữ nguyên tên sách đầy đủ (kèm hậu tố ấn bản nếu có).\n"
+        "5. TRUNG THỰC TUYỆT ĐỐI (GROUNDED): Không tự bịa thêm dữ liệu ngoài báo cáo chuyên gia.\n"
+        "6. Trả lời bằng tiếng Việt tự nhiên, gãy gọn, mạch lạc."
     )
     synth_user = (
         f"CÂU HỎI NGƯỜI DÙNG:\n{prompt}\n\n"
         f"BÁO CÁO TỪ CÁC CHUYÊN GIA:\n{json.dumps(trace['specialist_outputs'], ensure_ascii=False, indent=2)}\n\n"
-        "YÊU CẦU: Viết câu trả lời cuối cùng cho người dùng. Đảm bảo đáp ứng ĐẦY ĐỦ từng ý trong câu hỏi "
-        "bằng cách trích dẫn số liệu cụ thể từ báo cáo chuyên gia."
+        "YÊU CẦU: Viết câu trả lời cuối cùng cho người dùng theo phong cách OpenClaw (trực diện, mạch lạc, đầy đủ số liệu chính xác)."
     )
-    synth_res = client.chat.completions.create(
+    synth_res = await async_client.chat.completions.create(
         model=MODEL_NAME,
         messages=[
             {"role": "system", "content": synth_prompt},
@@ -428,7 +431,7 @@ def run_multi_agent(
     total_usage = {"prompt_tokens": total_prompt, "completion_tokens": total_comp, "total_tokens": total_tokens}
     return final_answer, trace, latency_s, total_usage
 
-def evaluate_fact_coverage(answer: str, required_facts: list) -> list:
+async def evaluate_fact_coverage(answer: str, required_facts: list) -> list:
     """Check how each required fact is covered in the answer using LLM evaluator."""
     eval_prompt = (
         "Bạn là thẩm định viên đánh giá độ chính xác thực tế (Fact Verifier).\n"
@@ -444,7 +447,7 @@ def evaluate_fact_coverage(answer: str, required_facts: list) -> list:
         "candidate_answer": answer,
         "required_facts": required_facts
     }
-    eval_res = client.chat.completions.create(
+    eval_res = await async_client.chat.completions.create(
         model=MODEL_NAME,
         messages=[
             {"role": "system", "content": eval_prompt},
@@ -491,8 +494,8 @@ async def run_full_benchmark(use_autonomous_router: bool = True, num_repeats: in
         
         for rep in range(num_repeats):
             # 1. Single-Agent
-            sa_ans, sa_lat, sa_usage = run_single_agent(prompt, ctx)
-            sa_eval = evaluate_fact_coverage(sa_ans, req_facts)
+            sa_ans, sa_lat, sa_usage = await run_single_agent(prompt, ctx)
+            sa_eval = await evaluate_fact_coverage(sa_ans, req_facts)
             sa_pass = sum(1 for v in sa_eval if v.get('passed', False))
             sa_score = sa_pass / len(req_facts) if req_facts else 1.0
             sa_repeats.append({
@@ -505,10 +508,10 @@ async def run_full_benchmark(use_autonomous_router: bool = True, num_repeats: in
             })
             
             # 2. Multi-Agent
-            ma_ans, ma_trace, ma_lat, ma_usage = run_multi_agent(
+            ma_ans, ma_trace, ma_lat, ma_usage = await run_multi_agent(
                 prompt, ctx, case, use_autonomous_router=use_autonomous_router
             )
-            ma_eval = evaluate_fact_coverage(ma_ans, req_facts)
+            ma_eval = await evaluate_fact_coverage(ma_ans, req_facts)
             ma_pass = sum(1 for v in ma_eval if v.get('passed', False))
             ma_score = ma_pass / len(req_facts) if req_facts else 1.0
             ma_repeats.append({
@@ -567,11 +570,12 @@ async def run_full_benchmark(use_autonomous_router: bool = True, num_repeats: in
         print(f"      SA: {sa_mean_score*100:.1f}% ({sa_mean_lat:.2f}s, {sa_mean_tokens:.0f} tok) | "
               f"MA: {ma_mean_score*100:.1f}% ({ma_mean_lat:.2f}s, {ma_mean_tokens:.0f} tok, {token_ratio:.1f}x) -> {case_summary['win_status']}")
         
-    out_dir = ROOT / 'output' / 'evaluation-v4'
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_file = out_dir / 'full_24_benchmark_results.json'
-    with open(out_file, 'w', encoding='utf-8') as f:
-        json.dump(all_case_results, f, ensure_ascii=False, indent=2)
+        # Incremental checkpoint save
+        out_dir = ROOT / 'output' / 'evaluation-v4'
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_file = out_dir / 'full_24_benchmark_results.json'
+        with open(out_file, 'w', encoding='utf-8') as f:
+            json.dump(all_case_results, f, ensure_ascii=False, indent=2)
         
     print(f"\n{'='*95}")
     print(f"ĐÃ HOÀN TẤT VÀ LƯU KẾT QUẢ V4 TẠI: {out_file}")

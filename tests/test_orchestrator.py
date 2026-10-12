@@ -487,3 +487,27 @@ def test_multi_agent_scoring_is_transparent_stable_and_renormalizes_gaps() -> No
         [],
     )
     assert [item["id"] for item in tied["candidates"]] == [2, 1]
+
+
+def test_router_supports_rich_literature_and_book_markers() -> None:
+    sessions = InMemorySessionStore()
+    session = sessions.create(owner_id="user-a", session_id="sess_lit_123")
+    router = IntentRouter()
+
+    routed_work = router.route("Tác phẩm Cây Cam Ngọt Của Tôi giá bao nhiêu?", session)
+    assert routed_work.intent == "product.search"
+    assert routed_work.entities.get("product_query") == "Cây Cam Ngọt Của Tôi"
+
+    routed_novel = router.route("Review tiểu thuyết Rừng Na Uy giúp tôi", session)
+    assert routed_novel.intent == "review.summary"
+    assert routed_novel.entities.get("product_query") == "Rừng Na Uy"
+
+    routed_manga = router.route("Tìm truyện tranh Doraemon tập 1", session)
+    assert routed_manga.intent == "product.search"
+    assert "Doraemon tập 1" in routed_manga.entities.get("product_query", "")
+
+    routed_author = router.route("Tìm tác phẩm của Nguyễn Nhật Ánh dưới 100k", session)
+    assert routed_author.intent == "product.search"
+    assert routed_author.entities.get("author") == "Nguyễn Nhật Ánh"
+    assert routed_author.entities.get("max_price") == 100_000
+
