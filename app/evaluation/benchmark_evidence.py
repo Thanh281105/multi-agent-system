@@ -21,6 +21,7 @@ from typing import Any, Literal, Protocol
 
 from pydantic import Field, ValidationError, model_validator
 
+from app.agents.product.skills import rank_products
 from app.agents.review.skills import extract_review_aspects
 from app.agents.trust.skills import analyze_review_trust, detect_complaints
 from app.data.contracts import DatasetManifest, NormalizedProduct, NormalizedReview
@@ -236,13 +237,22 @@ class ImmutableCatalogReviewSourceV3:
             EvidenceKind.REVIEW: "review_sample",
             EvidenceKind.TRUST: "trust_sample",
         }.get(reference.kind)
+        rank_match = (
+            re.fullmatch(
+                r"rank_([1-9][0-9]*)_([0-9a-f]{24})", reference.source_id
+            )
+            if reference.kind is EvidenceKind.CATALOG
+            else None
+        )
         if catalog_seeded_offer and reference.kind is EvidenceKind.SANDBOX:
             if authorization.binding.mode is not ConversationMode.SHOPPER:
                 raise CatalogReviewAuthorizationMismatchErrorV3(
                     "catalog-seeded price requires the original shopper authority"
                 )
             prefix = "sandbox_offer"
-        match = re.fullmatch(rf"{prefix}_([1-9][0-9]*)", reference.source_id)
+        match = rank_match or re.fullmatch(
+            rf"{prefix}_([1-9][0-9]*)", reference.source_id
+        )
         if prefix is None or match is None:
             raise CatalogReviewAuthorityUnavailableErrorV3(
                 "catalog/review/trust source is not a fully "
@@ -254,7 +264,31 @@ class ImmutableCatalogReviewSourceV3:
                 "catalog/review/trust product is outside the immutable source asset"
             )
         product = self._products[line - 1]
-        if reference.kind is EvidenceKind.SANDBOX:
+        if rank_match is not None:
+            candidate_scope = _sandbox_tool_id("rnk", [line])[-24:]
+            if rank_match.group(2) != candidate_scope:
+                raise CatalogReviewAuthorityUnavailableErrorV3(
+                    "rank source does not bind a reconstructible singleton candidate set"
+                )
+            ranking = rank_products(
+                [
+                    {
+                        "id": line,
+                        "name": product.name,
+                        "price": product.price_vnd,
+                        "rating": product.rating,
+                        "sold_count": product.sold_count,
+                    }
+                ]
+            )["products"]
+            if len(ranking) != 1:
+                raise CatalogReviewAuthorityUnavailableErrorV3(
+                    "rank source did not produce one exact candidate score"
+                )
+            exact_score = Decimal(str(ranking[0]["ranking_score"]))
+            text = f"ranking_score: {exact_score:f} score"
+            title = f"{product.name} — điểm xếp hạng snapshot trong nhóm ứng viên"
+        elif reference.kind is EvidenceKind.SANDBOX:
             metadata = Product(
                 category=product.category,
                 page_count=product.page_count,
