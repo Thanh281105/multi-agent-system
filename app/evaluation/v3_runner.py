@@ -396,6 +396,23 @@ class ModelCallEvidenceV3(FrozenRunnerContractV3):
     call_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,127}$")
     attribution: ExecutionAttributionV3
     model: str = Field(min_length=1, max_length=128)
+    stage: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_.-]{1,63}$",
+    )
+    actor_id: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_-]{2,127}$",
+    )
+    error_code: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_.-]{1,95}$",
+    )
+    fallback_reason: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_.-]{1,79}$",
+    )
+    latency_ms: float | None = Field(default=None, ge=0)
     attempts: int = Field(ge=0, le=16)
     input_tokens: int = Field(ge=0)
     cached_input_tokens: int = Field(ge=0)

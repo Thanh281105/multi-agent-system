@@ -40,6 +40,7 @@ from app.evaluation.v3_runner import (
 from app.evaluation.v3_variant_runtime import (
     EvaluationV3VariantComposer,
     EvaluationV3VariantRuntime,
+    FinalizedModelCallEvidenceV3,
 )
 from app.models.v2 import (
     V2ActionAudit,
@@ -319,6 +320,7 @@ class EvaluationV3ObservationExecutor:
                 }
             ),
             attempts=attempts,
+            recorded_calls=recorded_calls,
             elapsed_seconds=elapsed,
         )
         if execution_error_code is not None or outcome is None:
@@ -626,6 +628,7 @@ def _turn_result(
     request: UserTurnExecutionRequestV3,
     outcome_payload: dict[str, Any],
     attempts: Sequence[ProviderAttemptSnapshot],
+    recorded_calls: Sequence[FinalizedModelCallEvidenceV3],
     elapsed_seconds: float,
 ) -> UserTurnExecutionResultV3:
     _validate_attempt_rows(attempts)
@@ -635,6 +638,7 @@ def _turn_result(
     )
     for attempt in dispatched_attempts:
         grouped[attempt.call_id].append(attempt)
+    call_traces = {call.call_id: call for call in recorded_calls}
     model_calls: list[ModelCallEvidenceV3] = []
     embedding_calls: list[EmbeddingCallEvidenceV3] = []
     retry_events: list[RetryEvidenceV3] = []
@@ -655,11 +659,23 @@ def _turn_result(
                 )
             )
         if first.operation == "generation":
+            call_trace = call_traces.get(call_id)
             model_calls.append(
                 ModelCallEvidenceV3(
                     call_id=call_id,
                     attribution=request.attribution,
                     model=first.resolved_model,
+                    stage=call_trace.stage if call_trace is not None else None,
+                    actor_id=call_trace.actor_id if call_trace is not None else None,
+                    error_code=(
+                        call_trace.error_code if call_trace is not None else None
+                    ),
+                    fallback_reason=(
+                        call_trace.fallback_reason if call_trace is not None else None
+                    ),
+                    latency_ms=(
+                        call_trace.latency_ms if call_trace is not None else None
+                    ),
                     attempts=len(rows),
                     input_tokens=sum(row.input_tokens or 0 for row in rows),
                     cached_input_tokens=sum(

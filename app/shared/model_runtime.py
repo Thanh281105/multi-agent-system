@@ -56,6 +56,10 @@ ModelErrorCode = Literal[
     "model_response_incomplete",
     "model_response_contract_violation",
     "model_response_invalid",
+    "model_response_claim_count_invalid",
+    "model_response_claim_shape_invalid",
+    "model_response_selector_invalid",
+    "model_response_schema_invalid",
     "model_runtime_failed",
     "model_circuit_open",
 ]
@@ -154,6 +158,10 @@ class _ModelResponseError(ValueError):
             "model_response_incomplete",
             "model_response_contract_violation",
             "model_response_invalid",
+            "model_response_claim_count_invalid",
+            "model_response_claim_shape_invalid",
+            "model_response_selector_invalid",
+            "model_response_schema_invalid",
         ],
     ) -> None:
         super().__init__(code)
@@ -725,7 +733,36 @@ class OpenAIModelRuntime:
         output_text = getattr(response, "output_text", None)
         if not isinstance(output_text, str) or not output_text:
             raise _ModelResponseError("model_response_contract_violation")
-        return schema.model_validate_json(output_text)
+        try:
+            return schema.model_validate_json(output_text)
+        except ValidationError as exc:
+            details = exc.errors(include_input=False)
+            if any(item.get("type") == "json_invalid" for item in details):
+                code = "model_response_invalid"
+            elif any(
+                item.get("type") in {"too_long", "too_short"}
+                and any(
+                    field in {"fact_ids", "evidence_ids"}
+                    for field in item.get("loc", ())
+                )
+                for item in details
+            ):
+                code = "model_response_selector_invalid"
+            elif any(
+                item.get("loc") == ("claims",)
+                and item.get("type") in {"too_long", "too_short"}
+                for item in details
+            ):
+                code = "model_response_claim_count_invalid"
+            elif any(
+                item.get("loc")
+                and item.get("loc", ())[0] == "claims"
+                for item in details
+            ):
+                code = "model_response_claim_shape_invalid"
+            else:
+                code = "model_response_schema_invalid"
+            raise _ModelResponseError(code) from None
 
     @staticmethod
     def _optional_response_text(response: Any, field: str) -> str | None:

@@ -1351,7 +1351,10 @@ def _deterministic_request(
         )
     if has_price:
         obligation_specs.append((EvidenceObligationKind.PRICE, True, "price"))
-    if has_review or has_recommendation:
+    if has_review or any(
+        capability in {"review.retrieve", "review.compare"}
+        for capability in capabilities
+    ):
         obligation_specs.append(
             (
                 EvidenceObligationKind.REVIEW,
@@ -1359,7 +1362,10 @@ def _deterministic_request(
                 "snapshot review evidence",
             )
         )
-    if has_trust or has_recommendation:
+    if has_trust or any(
+        capability in {"trust.analyze", "trust.compare"}
+        for capability in capabilities
+    ):
         obligation_specs.append(
             (
                 EvidenceObligationKind.TRUST,
@@ -1848,6 +1854,9 @@ def _authorized_plan_options(
 
     authorized: list[tuple[str, tuple[str, ...]]] = []
     templates = registry.templates_for_mode(context.access.binding.mode)
+    requested_capabilities = set(
+        _normalize_capability_sequence(list(request.capabilities))
+    )
     candidates = [
         (
             template.template_id,
@@ -1882,7 +1891,12 @@ def _authorized_plan_options(
                 break
             capabilities.append(required)
         normalized = _normalize_capability_sequence(capabilities)
-        if not normalized or len(normalized) > MAX_EXPERT_STEPS:
+        # The model may choose a template, but cannot expand request-derived tool scope.
+        if (
+            not normalized
+            or len(normalized) > MAX_EXPERT_STEPS
+            or set(normalized) != requested_capabilities
+        ):
             continue
         valid = True
         for capability in normalized:

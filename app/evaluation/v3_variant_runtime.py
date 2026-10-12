@@ -252,6 +252,11 @@ class FinalizedModelCallEvidenceV3(BaseModel):
     requested_model: Literal["gpt-5.4-mini-2026-03-17"]
     resolved_model: Literal["gpt-5.4-mini-2026-03-17"]
     status: Literal["success", "failed"]
+    error_code: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_.-]{1,95}$",
+    )
+    latency_ms: float = Field(ge=0)
     attempts: int = Field(ge=0, le=10)
     fallback_used: bool
     fallback_reason: str | None = Field(
@@ -319,6 +324,8 @@ class EvaluationV3ModelCallRecorder:
             requested_model=PINNED_GENERATION_MODEL_V3,
             resolved_model=PINNED_GENERATION_MODEL_V3,
             status=metadata.status,
+            error_code=metadata.error_code,
+            latency_ms=metadata.duration_ms,
             attempts=metadata.attempts,
             fallback_used=metadata.fallback_used,
             fallback_reason=metadata.fallback_reason,
