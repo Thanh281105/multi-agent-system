@@ -502,9 +502,12 @@ async def test_model_cannot_select_an_unimplemented_registry_template() -> None:
             model_runtime=_ChoiceRuntime(unavailable),
             runtime_mode="required",
         ).plan("Tìm sách Sapiens", _context())
-    assert required.clarification_code == "action_mode_mismatch"
-    assert required.desired_capabilities == ()
-    assert required.initial_operations == ()
+    assert required.template_id == "shopper_catalog"
+    assert required.desired_capabilities == ("product.catalog.search",)
+    assert [item.capability for item in required.initial_operations] == [
+        "product.catalog.search"
+    ]
+    assert required.fallback_reason == "model_plan_not_authorized"
 
 
 @pytest.mark.asyncio
@@ -1735,7 +1738,7 @@ async def test_single_book_recommendation_does_not_require_two_candidates() -> N
 
 
 @pytest.mark.asyncio
-async def test_hybrid_rejects_invented_ids_and_required_keeps_failure_visible() -> None:
+async def test_invalid_required_shopper_plan_uses_only_server_resolved_ids() -> None:
     malicious = {
         "template_id": "shopper_compare",
         "capabilities": ["product.catalog.search", "product.compare"],
@@ -1761,8 +1764,13 @@ async def test_hybrid_rejects_invented_ids_and_required_keeps_failure_visible() 
             model_runtime=_ChoiceRuntime(malicious),
             runtime_mode="required",
         ).plan("So sánh hai sách", context)
-    assert required.clarification_code == "action_mode_mismatch"
-    assert required.initial_operations == ()
+    assert required.fallback_reason == "model_plan_not_authorized"
+    comparison = next(
+        operation
+        for operation in required.initial_operations
+        if operation.capability == "product.compare"
+    )
+    assert comparison.parameters["product_ids"] == [1, 2]
 
 
 @pytest.mark.asyncio

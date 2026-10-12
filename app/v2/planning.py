@@ -506,6 +506,7 @@ class BoundedV2Planner:
             if (
                 self.runtime_mode == "required"
                 and fallback_reason == "model_plan_not_authorized"
+                and context.access.binding.mode != ConversationMode.SHOPPER
             ):
                 clarification = _action_clarification_request(
                     message,
