@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC
@@ -621,7 +622,24 @@ def _asset_bindings(
         pricing_manifest_sha256=pricing.manifest_sha256,
         usage_ledger_sha256=ledger_contract_sha256,
         rubric_sha256=scoring_rubric_sha256,
+        sut_git_revision=_sut_git_revision(project_root),
     )
+
+
+def _sut_git_revision(project_root: Path) -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(project_root), "rev-parse", "--verify", "HEAD"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    revision = completed.stdout.strip()
+    if completed.returncode != 0 or re.fullmatch(r"[0-9a-f]{40}", revision) is None:
+        raise EvaluationV3CLIError(
+            "sut_git_revision_unavailable",
+            "the SUT Git revision could not be captured",
+        )
+    return revision
 
 
 def _build_live_executor_factory(

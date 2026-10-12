@@ -4,9 +4,16 @@ from __future__ import annotations
 
 from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Any, Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from app.contracts import TaskStatus
 from app.evaluation.protocol import canonical_sha256
@@ -337,6 +344,16 @@ class EvaluationAssetBindingsV3(FrozenContractV3):
     pricing_manifest_sha256: Sha256V3
     usage_ledger_sha256: Sha256V3
     rubric_sha256: Sha256V3
+    sut_git_revision: Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")] | None = None
+
+    @model_serializer(mode="wrap")
+    def omit_absent_sut_revision(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        payload = handler(self)
+        if payload.get("sut_git_revision") is None:
+            payload.pop("sut_git_revision", None)
+        return payload
 
     @model_validator(mode="before")
     @classmethod
