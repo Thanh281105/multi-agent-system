@@ -216,7 +216,7 @@ _QUOTED_QUERY_PATTERN = re.compile(r"[\"“”'](?P<query>[^\"“”']{2,160})[\
 _QUERY_PREFIX_PATTERN = re.compile(
     r"^(?:(?:hãy|vui lòng|giúp(?:\s+(?:mình|tôi))?|cho tôi|cho mình|"
     r"mình muốn|tôi muốn)\s+)*"
-    r"(?:tìm|kiếm|gợi ý|đề xuất|recommend|find|search|so sánh|compare|"
+    r"(?:tìm|kiếm|xem|gợi ý|đề xuất|recommend|find|search|so sánh|compare|"
     r"(?:khách hàng|người mua)\s+(?:review|đánh giá|nhận xét)|"
     r"phân tích\s+(?:review|đánh giá|nhận xét)|"
     r"(?:xem\s+)?(?:review|đánh giá|nhận xét))\s+"
@@ -2117,9 +2117,33 @@ def _extract_catalog_query(message: str) -> str | None:
     if quoted is not None:
         return quoted.group("query").strip()[:300]
 
-    candidate = _QUERY_PREFIX_PATTERN.sub("", message.strip(), count=1)
+    if re.fullmatch(
+        r"(?:(?:hãy|vui lòng)\s+)?(?:nhớ|ghi nhớ)\s+(?:đúng\s+)?"
+        r"(?:cuốn|sách|quyển)\s+vừa\s+(?:nêu|nói|nhắc)[.!?]*",
+        message.strip(),
+        flags=re.IGNORECASE,
+    ):
+        return None
+
     candidate = re.sub(
-        r"^(?:(?:mình|tôi)\s+(?:cần|đang cân nhắc)|có)\s+",
+        r"^(?:bây giờ)\s+",
+        "",
+        message.strip(),
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    candidate = re.sub(
+        r"^(?:(?:giữ nguyên|về|còn)\s+)?(?:cuốn|sách|quyển)\s+"
+        r"(?:vừa\s+(?:nêu|nói|nhắc)|này|đó|ấy)\s*[:,;]?\s*",
+        "",
+        candidate,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    candidate = _QUERY_PREFIX_PATTERN.sub("", candidate, count=1)
+    candidate = re.sub(
+        r"^(?:(?:mình|tôi)\s+(?:cần|đang cân nhắc)|"
+        r"(?:cho|giúp)\s+(?:mình|tôi)|có)\s+",
         "",
         candidate,
         count=1,
