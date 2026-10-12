@@ -2239,7 +2239,7 @@ def _extract_entity_queries(message: str) -> tuple[str, ...]:
     if candidate is None:
         return ()
     parts = re.split(
-        r"\s+(?:và|với|and|versus|vs\.?)\s+", candidate, flags=re.IGNORECASE
+        r"\s+(?:và|với|(?i:and|versus|vs\.?))\s+", candidate
     )
     if len(parts) < 2:
         return ()
