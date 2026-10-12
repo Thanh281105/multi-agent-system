@@ -673,14 +673,14 @@ python scripts/run_full_p7_p8_benchmark.py
 * **Kết quả Plan Admissibility:** Đạt **100.0% độ hợp lệ kế hoạch** trên cả 3 biến thể có RAG, giải quyết triệt để 4 nhóm lỗi từng đạt 0.0% plan validity trong lịch sử (`multi_constraint`, `multi_expert_compare_recommendation`, `multi_turn_memory`, `shopping_merchant`).
 * **Giới hạn học thuật:** Đây là phép đo kiểm tra tính đúng đắn của pha Lập Kế Hoạch (Planning Stage), **chưa phải là phép đo Task Completion toàn trình có Model Judge** của Package 8, do chưa thực thi trọn vẹn specialist execution, live RAG retrieval và automated LLM judging.
 
-### 12.3. Kết Quả Benchmark Toàn Trình P8 Held-out (720/720 Ô Đã Hoàn Thành Thực Nghiệm Ngày 10/10/2026)
+### 12.3. Kết Quả Benchmark Toàn Trình P8 Held-out (720/720 Ô Thu Thập Thực Nghiệm Ngày 10/10/2026)
 
 Thực nghiệm toàn trình **Package 8 (P8 Held-out Live v3)** trên toàn bộ 60 ca kiểm thử held-out độc lập (không nằm trong tập phát triển) đã được thực thi trọn vẹn và tự động chấm điểm qua hệ thống thẩm định mô hình bền vững (**Durable Model Judge V3** với `gpt-5.4-mini`) ghi nhận vào sổ cái giao dịch PostgreSQL (`codex-p7-p8-ledger`).
 
 * **Mã định danh thực thi (Run ID):** `run_p8_live_v3`
 * **Quy mô ma trận kiểm thử:** $60 \text{ cases} \times 4 \text{ variants} \times 3 \text{ repeats} = 720$ ô thực nghiệm toàn trình.
 * **Tổng số lượt tương tác mô hình (Total Provider Attempts):** 3,530 lượt (2,770 lượt sinh tác tử SUT + 760 lượt thẩm định Model Judge).
-* **Số ca chấp nhận kiểm định (Accepted Observations):** **720 / 720 (100.0%)** — Không có ô nào bị thiếu, hủy bỏ hoặc lỗi không đồng nhất.
+* **Độ phủ thực thi chấp nhận kiểm định (Accepted Observations):** **720 / 720 ô (100.0% execution coverage)** — Toàn bộ 720 ô quan sát đều được thu thập đầy đủ vào sổ cái, không có ô nào bị thiếu, hủy bỏ hoặc lỗi mồ côi (lưu ý: đây là độ phủ thu thập dữ liệu thực nghiệm, không phải tỷ lệ hoàn thành tác vụ hay độ chính xác).
 * **Chi phí thực thi thực tế (Total Effective Cost):** 9.534 USD.
 * **Gói xuất bản kết quả (Publication Artifacts):** [`output/evaluation-v3/heldout-live-v3/p8-publication/p8-report/`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/output/evaluation-v3/heldout-live-v3/p8-publication/p8-report)
   - `report_sha256`: `15a7452b5965e54a80ba47f2b4ecf2eb66b98c20f6ca97fc0cdaa445a523230f`
@@ -734,7 +734,20 @@ Trong số các trường hợp Task Completion bằng 0:
 - **Từ chối sai mục tiêu (Bad Abstention):** Xuất hiện ở 91.9% số ca thất bại của `ma_adaptive_no_rag`, 63.0% ở `ma_fixed_rag` nhưng giảm xuống chỉ còn 45.7% ở `ma_adaptive_rag`.
 - **Vi phạm phạm vi tác tử (Unauthorized Actions):** `ma_fixed_rag` đạt 0.0% vi phạm, trong khi `ma_adaptive_rag` gặp 20.7% ca do cơ chế thích ứng tự động kích hoạt công cụ vượt blueprint cho phép.
 
-> [!NOTE]
-> Toàn bộ kết quả thực nghiệm 720/720 ô trên là minh chứng thực tế, độc lập và đầy đủ về mặt khoa học, đáp ứng trọn vẹn yêu cầu thẩm định và đánh giá của hội đồng Khóa luận tốt nghiệp.
+#### 5. Ranh Giới Khoa Học & Định Hướng Đánh Giá Cốt Lõi
+
+> [!IMPORTANT]
+> **Ý NGHĨA THỰC CỦA CHỈ SỐ 720/720 Ô QUAN SÁT:**
+> - **720/720 là độ phủ thực thi (Execution Coverage / Observation Completeness):** Con số này xác nhận toàn bộ ma trận kiểm thử ($60 \text{ cases} \times 4 \text{ biến thể} \times 3 \text{ repeats} = 720$ ô) đã hoàn tất chạy và thu thập dữ liệu đầy đủ vào sổ cái PostgreSQL (`codex-p7-p8-ledger`), không có ô nào bị thiếu, hủy bỏ hoặc lỗi mồ côi.
+> - **720/720 KHÔNG PHẢI là độ chính xác hay tỷ lệ thành công tác vụ:** Con số này hoàn toàn không đồng nghĩa với việc 720 lượt đều thành công hay chứng minh Multi-Agent tốt hơn Single-Agent. Trên thực tế, Task Completion của các biến thể chỉ đạt trong khoảng **33% – 36%** (`ma_adaptive_rag`: 35.56%, `sa_shared_tools_rag`: 36.11%).
+
+##### Giả thuyết nghiên cứu hẹp cho phần cốt lõi (Adaptive RAG):
+1. **Dữ liệu ủng hộ cải thiện chất lượng căn cứ (Grounding) cục bộ:** So với Fixed RAG, cơ chế Adaptive RAG đem lại cải thiện có ý nghĩa thống kê về **Claim Support** ($\Delta = +4.12\%$, 95% CI: $[+0.51\%, +8.13\%]$), **Citation Precision** ($\Delta = +9.34\%$, 95% CI: $[+3.05\%, +16.80\%]$) và khả năng dẫn giải hữu ích (`useful_continuation` $\Delta = +18.72\%$).
+2. **Chưa có bằng chứng tăng Task Completion tổng thể:** Khi đối chiếu với Single-Agent baseline (`sa_shared_tools_rag`), `ma_adaptive_rag` đạt 35.56% so với 36.11% ($\Delta = -0.55\%$, 95% CI: $[-4.12\%, +3.70\%]$, 3 thắng, 20 hòa, 4 thua). Sự khác biệt này không có ý nghĩa thống kê; kiến trúc Multi-Agent chưa thể hiện ưu thế vượt trội về độ hoàn thành nhiệm vụ chung cuộc.
+3. **Đánh đổi vận hành & Rủi ro phân quyền:** Adaptive RAG làm tăng độ trễ trung bình ~3.8s – 4.0s và khiến tỷ lệ tuân thủ phân quyền (**Authorization**) giảm xuống **86.67%** (do cơ chế thích ứng tự động kích hoạt công cụ vượt blueprint cho phép trong 20.7% số ca thất bại, trong khi Fixed RAG đạt 100.00%).
+
+##### Nguyên tắc cho các đợt đánh giá tiếp theo:
+- **Dừng mở rộng benchmark thăm dò ad-hoc:** Không tiếp tục tạo các kịch bản benchmark thăm dò đơn lẻ.
+- **Khóa tiêu chí thẩm định trên runtime chính:** Mọi đợt đo đạc mới chỉ được tiến hành khi đã khóa phương pháp thẩm định trực tiếp trên runtime sản phẩm chuẩn ([`app/v2`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/app/v2)), kết hợp đối chiếu nguồn snapshot (source-grounding) và một phần thẩm định mù bởi con người (blind human audit) thay vì chỉ phụ thuộc vào automated LLM Judge.
 
 
