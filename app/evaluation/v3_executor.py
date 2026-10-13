@@ -62,6 +62,7 @@ from app.shared.budget import (
     DEFAULT_MAX_GENERATION_CALLS,
     DEFAULT_MAX_PROVIDER_ATTEMPTS,
     DEFAULT_MAX_RETRIES,
+    DEFAULT_SCOPE_DEADLINE_SECONDS,
     DEFAULT_TURN_LIMIT_NANO_USD,
     BudgetPurpose,
     ProviderAttemptSnapshot,
@@ -281,7 +282,7 @@ class EvaluationV3ObservationExecutor:
             or limits.provider_concurrency != DEFAULT_MAX_CONCURRENCY
             or limits.max_retries != DEFAULT_MAX_RETRIES
             or limits.attempt_timeout_seconds != DEFAULT_ATTEMPT_TIMEOUT_SECONDS
-            or limits.turn_deadline_seconds != 60.0
+            or limits.turn_deadline_seconds != DEFAULT_SCOPE_DEADLINE_SECONDS
             or limits.max_input_tokens_per_generation != 12_000
             or limits.max_output_tokens_per_generation != 1_200
         ):

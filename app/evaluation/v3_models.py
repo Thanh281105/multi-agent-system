@@ -212,8 +212,8 @@ class BudgetPolicyV3(FrozenContractV3):
     max_provider_attempts_per_turn: int = Field(default=16, ge=1)
     provider_concurrency: int = Field(default=2, ge=1)
     max_retries: int = Field(default=1, ge=0)
-    attempt_timeout_seconds: float = Field(default=18.0, gt=0)
-    turn_deadline_seconds: float = Field(default=60.0, gt=0)
+    attempt_timeout_seconds: float = Field(default=30.0, gt=0)
+    turn_deadline_seconds: float = Field(default=90.0, gt=0)
     max_input_tokens_per_generation: int = Field(default=12_000, ge=1)
     max_output_tokens_per_generation: int = Field(default=1_200, ge=1)
 
@@ -243,7 +243,7 @@ class BudgetPolicyV3(FrozenContractV3):
             self.max_input_tokens_per_generation,
             self.max_output_tokens_per_generation,
         )
-        if controls != (10, 16, 2, 1, 18.0, 60.0, 12_000, 1_200):
+        if controls != (10, 16, 2, 1, 30.0, 90.0, 12_000, 1_200):
             raise ValueError("Package 7 provider resource limits are frozen")
         if sum(monetary[:4], Decimal("0")) != self.reservation_cap_usd:
             raise ValueError("evaluation allocations must equal the reservation cap")

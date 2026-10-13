@@ -42,8 +42,8 @@ DEFAULT_MAX_GENERATION_CALLS = 10
 DEFAULT_MAX_PROVIDER_ATTEMPTS = 16
 DEFAULT_MAX_CONCURRENCY = 2
 DEFAULT_MAX_RETRIES = 1
-DEFAULT_ATTEMPT_TIMEOUT_SECONDS = 18.0
-DEFAULT_SCOPE_DEADLINE_SECONDS = 60.0
+DEFAULT_ATTEMPT_TIMEOUT_SECONDS = 30.0
+DEFAULT_SCOPE_DEADLINE_SECONDS = 90.0
 GENERATION_INPUT_TOKEN_LIMIT = 16_000
 GENERATION_OUTPUT_TOKEN_LIMIT = 1_200
 JUDGE_GENERATION_OUTPUT_TOKEN_LIMIT = 3_600
@@ -565,7 +565,7 @@ class ProviderBudgetContext:
         if not 0 <= self.max_retries <= DEFAULT_MAX_RETRIES:
             raise ValueError("budgeted retries must be between 0 and 1")
         if not 0 < self.attempt_timeout_seconds <= DEFAULT_ATTEMPT_TIMEOUT_SECONDS:
-            raise ValueError("budgeted attempt timeout must be at most 18 seconds")
+            raise ValueError("budgeted attempt timeout must be at most 30 seconds")
 
     def cancelled(self) -> bool:
         return bool(
