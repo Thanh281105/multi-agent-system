@@ -95,6 +95,11 @@ _COMPACT_REPAIR_INSTRUCTIONS = (
     "rejected claim, keep only the portion directly supported by supplied selectors, "
     "or remove it if none is supported; do not preserve unsupported portions by inference."
 )
+_COMPACT_REPAIR_SCHEMA_RETRY_INSTRUCTIONS = (
+    _COMPACT_REPAIR_INSTRUCTIONS
+    + " The previous response did not match the required answer structure. Return one "
+    "complete corrected draft using only the supplied claim forms and evidence selectors."
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -754,21 +759,44 @@ class GroundedAnswerProducer:
                 generated.value,
                 schema=model_schema,
             )
-        except (TypeError, ValueError) as exc:
-            if retried_compact:
-                raise GroundingContractError("answer_repair_invalid") from exc
-            instructions = _COMPACT_REPAIR_INSTRUCTIONS
-            generated = await generate(
-                instructions,
-                include_optional_items=False,
-            )
-            try:
-                draft = _normalize_model_answer_draft(
-                    generated.value,
-                    schema=model_schema,
+        except (TypeError, ValueError):
+            if not retried_compact:
+                instructions = _COMPACT_REPAIR_INSTRUCTIONS
+                generated = await generate(
+                    instructions,
+                    include_optional_items=False,
                 )
-            except (TypeError, ValueError) as retry_exc:
-                raise GroundingContractError("answer_repair_invalid") from retry_exc
+                try:
+                    draft = _normalize_model_answer_draft(
+                        generated.value,
+                        schema=model_schema,
+                    )
+                except (TypeError, ValueError):
+                    instructions = _COMPACT_REPAIR_SCHEMA_RETRY_INSTRUCTIONS
+                    generated = await generate(
+                        instructions,
+                        include_optional_items=False,
+                    )
+                    try:
+                        draft = _normalize_model_answer_draft(
+                            generated.value,
+                            schema=model_schema,
+                        )
+                    except (TypeError, ValueError) as retry_exc:
+                        raise GroundingContractError("answer_repair_invalid") from retry_exc
+            else:
+                instructions = _COMPACT_REPAIR_SCHEMA_RETRY_INSTRUCTIONS
+                generated = await generate(
+                    instructions,
+                    include_optional_items=False,
+                )
+                try:
+                    draft = _normalize_model_answer_draft(
+                        generated.value,
+                        schema=model_schema,
+                    )
+                except (TypeError, ValueError) as retry_exc:
+                    raise GroundingContractError("answer_repair_invalid") from retry_exc
         metadata = getattr(generated, "metadata", None)
         return _DraftAttempt(
             draft=draft,
