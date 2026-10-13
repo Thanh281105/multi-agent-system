@@ -886,11 +886,18 @@ người chấm. Chúng chưa được dùng để đối chiếu judge
 không chấm P8 r7 ở mục 12.5. Vì vậy vẫn chưa có kết luận semantic về MA so với
 SA.
 
-Kiểm tra trace pilot ghi nhận `ma_adaptive_rag` trả `action_mode_mismatch` ở ca
-`dev_shopping_merchant_01`, trong khi `ma_fixed_rag` và SA trả thẻ checkout chờ
-xác nhận. Đây chỉ là dấu hiệu thăm dò: protocol P7 trong artifact không khớp
-hash của gold hiện tại (`f6988415…` trong protocol so với `31bcb31c…` ở HEAD);
-hash split cũng khác (`d4af32e7…` so với `49adf66b…`). Checkpoint không bind Git
-SHA của SUT. Không thể dùng trace đó để khẳng định lỗi còn tái hiện trên
-`app/v2` ở HEAD hoặc để xác nhận một thay đổi source.
+Trace P7 r5 ghi `ma_adaptive_rag` trả `action_mode_mismatch` ở ca
+`dev_shopping_merchant_01`; r6 và r7 ghi nhánh này trả thẻ checkout chờ xác
+nhận. Code hiện tại có thay đổi planner tại commit `e2d1f8b` xử lý an toàn
+trường hợp model plan không được phép trong shopper mode; chuỗi trace phù hợp
+với một fix có ích. Đây chưa phải kiểm định nhân quả: protocol assets đổi giữa
+r5/r6/r7, cả ba dùng gold `f6988415…` và split `d4af32e7…`, khác hash hiện tại
+`31bcb31c…` và `49adf66b…`, đồng thời checkpoint không bind Git SHA của SUT.
+
+Trong 32 lượt đo P7 r7, Adaptive RAG và SA đều có 6 `answered`, 1
+`needs_clarification`, 1 `awaiting_confirmation`. Adaptive RAG dùng 40 generation
+calls, `$0.077554`, p50 `10.883s`; SA dùng 35 calls, `$0.070811`, p50 `9.406s`.
+Đây là outcome/chi phí/latency mô tả trên 8 ca development, không phải điểm đúng
+ngữ nghĩa, CI hay xác nhận kiến trúc. Pilot chưa cho thấy lợi ích outcome quan
+sát được của MA để bù chi phí tăng.
 
