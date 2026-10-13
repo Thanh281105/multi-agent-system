@@ -345,9 +345,10 @@ class DraftClaim(V2Contract):
     claim_id: str = Field(pattern=IDENTIFIER_PATTERN)
     text: str | None = Field(default=None, min_length=1, max_length=1_000)
     fact_ids: tuple[StableId, ...] = ()
+    comparison_fact_ids: tuple[StableId, ...] = ()
     evidence_ids: tuple[StableId, ...] = ()
 
-    @field_validator("fact_ids", "evidence_ids")
+    @field_validator("fact_ids", "comparison_fact_ids", "evidence_ids")
     @classmethod
     def validate_unique_selectors(cls, value: tuple[str, ...]) -> tuple[str, ...]:
         if len(value) != len(set(value)):
@@ -356,6 +357,15 @@ class DraftClaim(V2Contract):
 
     @model_validator(mode="after")
     def validate_claim_shape(self) -> DraftClaim:
+        if self.comparison_fact_ids:
+            if (
+                len(self.comparison_fact_ids) != 2
+                or self.fact_ids
+                or self.text is not None
+                or self.evidence_ids
+            ):
+                raise ValueError("comparison drafts require exactly two fact selectors")
+            return self
         if self.fact_ids:
             if self.text is not None:
                 raise ValueError("structured fact drafts cannot supply prose")
