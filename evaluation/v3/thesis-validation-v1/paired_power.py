@@ -64,8 +64,10 @@ def main() -> int:
     rows = [
         paired_binary_power_plan(
             discordance=discordance,
+            true_effect=true_effect,
             candidate_groups=arguments.candidate_groups,
         )
+        for true_effect in (0.075, 0.10)
         for discordance in (0.10, 0.20, 0.30, 0.50)
     ]
     report = json.dumps(rows, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
