@@ -1,0 +1,374 @@
+{
+  "schema_version": "p8_trace_result_summary_v2",
+  "classification": "development_regression_not_independent_validation",
+  "analysis_unit": "one conversation/case receipt; quality status is final user-turn outcome; E2E latency is sum of user-turn elapsed_seconds within the receipt",
+  "sut_git_revision": "e99f186eb6662a99cd8397da1ea633473a6b3a54",
+  "p7": {
+    "run_id": "run_p7_trace_20261012_r3",
+    "completed_cells": 36,
+    "failed_or_missing": 0,
+    "known_cost_usd": "0.23139729",
+    "protocol_sha256": "806efc5d2f00ed66e5a6ef56cc3f8df033d9e76f9013f4b7d2225501b1435f7b",
+    "schedule_sha256": "edb55564648ddd8b168004a48c7d6f8e10734edefe98d74812ca8657882d29ed"
+  },
+  "p8": {
+    "run_id": "run_p8_trace_20261012_r3",
+    "cases": 60,
+    "variants": {
+      "ma_adaptive_no_rag": {
+        "cells": 180,
+        "application_outcomes_final_turn": {
+          "abstained": 125,
+          "awaiting_confirmation": 6,
+          "needs_clarification": 49
+        },
+        "latency_seconds_per_cell_sum_of_turns": {
+          "p50_median": 1.649,
+          "p95_nearest_rank": 8.047
+        },
+        "known_cost_usd": "0.32210475",
+        "tokens_input_plus_output": 246388,
+        "final_turn_warning_counts": {
+          "action_mode_mismatch": 7,
+          "action_write_permission_required": 6,
+          "answer_draft_not_grounded": 2,
+          "checkout_execution_requires_confirmed_proposal": 3,
+          "evidence_incomplete": 140,
+          "merchant_offer_execution_requires_confirmed_proposal": 3,
+          "price_range_invalid": 9,
+          "prompt_injection_rejected": 6
+        },
+        "all_turn_warning_counts": {
+          "action_mode_mismatch": 7,
+          "action_write_permission_required": 6,
+          "answer_draft_not_grounded": 2,
+          "answer_draft_repaired": 2,
+          "answer_repair_not_grounded": 1,
+          "checkout_execution_requires_confirmed_proposal": 3,
+          "evidence_incomplete": 164,
+          "merchant_offer_execution_requires_confirmed_proposal": 3,
+          "price_range_invalid": 9,
+          "prompt_injection_rejected": 6
+        }
+      },
+      "ma_adaptive_rag": {
+        "cells": 180,
+        "application_outcomes_final_turn": {
+          "abstained": 6,
+          "answered": 119,
+          "awaiting_confirmation": 6,
+          "needs_clarification": 49
+        },
+        "latency_seconds_per_cell_sum_of_turns": {
+          "p50_median": 10.82,
+          "p95_nearest_rank": 28.0
+        },
+        "known_cost_usd": "1.36081138",
+        "tokens_input_plus_output": 989113,
+        "final_turn_warning_counts": {
+          "action_mode_mismatch": 7,
+          "action_write_permission_required": 6,
+          "answer_draft_not_grounded": 3,
+          "answer_draft_repaired": 12,
+          "answer_repair_not_grounded": 51,
+          "checkout_execution_requires_confirmed_proposal": 3,
+          "evidence_incomplete": 21,
+          "merchant_offer_execution_requires_confirmed_proposal": 3,
+          "price_range_invalid": 9,
+          "prompt_injection_rejected": 6
+        },
+        "all_turn_warning_counts": {
+          "action_mode_mismatch": 7,
+          "action_write_permission_required": 6,
+          "answer_draft_not_grounded": 3,
+          "answer_draft_repaired": 13,
+          "answer_repair_not_grounded": 52,
+          "checkout_execution_requires_confirmed_proposal": 3,
+          "evidence_incomplete": 42,
+          "merchant_offer_execution_requires_confirmed_proposal": 3,
+          "price_range_invalid": 9,
+          "prompt_injection_rejected": 6
+        }
+      },
+      "ma_fixed_rag": {
+        "cells": 180,
+        "application_outcomes_final_turn": {
+          "abstained": 6,
+          "answered": 120,
+          "awaiting_confirmation": 6,
+          "needs_clarification": 48
+        },
+        "latency_seconds_per_cell_sum_of_turns": {
+          "p50_median": 9.507,
+          "p95_nearest_rank": 28.5
+        },
+        "known_cost_usd": "1.30889818",
+        "tokens_input_plus_output": 965040,
+        "final_turn_warning_counts": {
+          "action_mode_mismatch": 6,
+          "action_write_permission_required": 6,
+          "answer_draft_not_grounded": 1,
+          "answer_draft_repaired": 23,
+          "answer_repair_not_grounded": 51,
+          "checkout_execution_requires_confirmed_proposal": 3,
+          "evidence_incomplete": 21,
+          "merchant_offer_execution_requires_confirmed_proposal": 3,
+          "price_range_invalid": 9,
+          "prompt_injection_rejected": 6
+        },
+        "all_turn_warning_counts": {
+          "action_mode_mismatch": 6,
+          "action_write_permission_required": 6,
+          "answer_draft_not_grounded": 1,
+          "answer_draft_repaired": 25,
+          "answer_repair_not_grounded": 51,
+          "checkout_execution_requires_confirmed_proposal": 3,
+          "evidence_incomplete": 42,
+          "merchant_offer_execution_requires_confirmed_proposal": 3,
+          "price_range_invalid": 9,
+          "prompt_injection_rejected": 6
+        }
+      },
+      "sa_shared_tools_rag": {
+        "cells": 180,
+        "application_outcomes_final_turn": {
+          "abstained": 6,
+          "answered": 120,
+          "awaiting_confirmation": 6,
+          "needs_clarification": 48
+        },
+        "latency_seconds_per_cell_sum_of_turns": {
+          "p50_median": 11.484,
+          "p95_nearest_rank": 25.562
+        },
+        "known_cost_usd": "1.28674557",
+        "tokens_input_plus_output": 908330,
+        "final_turn_warning_counts": {
+          "action_mode_mismatch": 6,
+          "action_write_permission_required": 6,
+          "answer_draft_not_grounded": 2,
+          "answer_draft_repaired": 16,
+          "answer_repair_not_grounded": 57,
+          "checkout_execution_requires_confirmed_proposal": 3,
+          "evidence_incomplete": 21,
+          "merchant_offer_execution_requires_confirmed_proposal": 3,
+          "price_range_invalid": 9,
+          "prompt_injection_rejected": 6
+        },
+        "all_turn_warning_counts": {
+          "action_mode_mismatch": 6,
+          "action_write_permission_required": 6,
+          "answer_draft_not_grounded": 2,
+          "answer_draft_repaired": 18,
+          "answer_repair_not_grounded": 59,
+          "checkout_execution_requires_confirmed_proposal": 3,
+          "evidence_incomplete": 42,
+          "merchant_offer_execution_requires_confirmed_proposal": 3,
+          "price_range_invalid": 9,
+          "prompt_injection_rejected": 6
+        }
+      }
+    },
+    "planned_measured_cells": 720,
+    "completed_cells": 720,
+    "failed_or_missing": 0,
+    "user_turn_results": 864,
+    "repetitions": 3,
+    "known_cost_usd": "4.27855988",
+    "unresolved_reservations_usd": "0",
+    "tokens_input_plus_output": 3108871,
+    "protocol_sha256": "806efc5d2f00ed66e5a6ef56cc3f8df033d9e76f9013f4b7d2225501b1435f7b",
+    "schedule_sha256": "f2f8cfa414accadc3bf2f90351d01086628f58a6892082c5139f0255a8c47e25",
+    "latency_definition": "Per-cell sum of turn_results.elapsed_seconds; p50=median; p95=nearest-rank; per-turn values also retained in trace_analysis."
+  },
+  "trace_followup": {
+    "catalog_title_cases": {
+      "held_multi_expert_03": {
+        "ma_adaptive_no_rag": {
+          "abstained": 3
+        },
+        "ma_adaptive_rag": {
+          "answered": 3
+        },
+        "ma_fixed_rag": {
+          "answered": 3
+        },
+        "sa_shared_tools_rag": {
+          "answered": 3
+        }
+      },
+      "held_multi_expert_04": {
+        "ma_adaptive_no_rag": {
+          "abstained": 3
+        },
+        "ma_adaptive_rag": {
+          "answered": 3
+        },
+        "ma_fixed_rag": {
+          "answered": 3
+        },
+        "sa_shared_tools_rag": {
+          "answered": 3
+        }
+      },
+      "held_multi_expert_10": {
+        "ma_adaptive_no_rag": {
+          "abstained": 3
+        },
+        "ma_adaptive_rag": {
+          "answered": 2,
+          "needs_clarification": 1
+        },
+        "ma_fixed_rag": {
+          "answered": 3
+        },
+        "sa_shared_tools_rag": {
+          "answered": 3
+        }
+      },
+      "held_multi_expert_11": {
+        "ma_adaptive_no_rag": {
+          "abstained": 3
+        },
+        "ma_adaptive_rag": {
+          "answered": 3
+        },
+        "ma_fixed_rag": {
+          "answered": 3
+        },
+        "sa_shared_tools_rag": {
+          "answered": 3
+        }
+      }
+    },
+    "interpretation": "The parser fix removes title-splitting/catalog-ambiguity failures in the targeted cases. Raw outcomes do not establish semantic correctness or MA superiority."
+  },
+  "trace_analysis": {
+    "adaptive_continuation": {
+      "configured_max_continuations": 1,
+      "observed_additional_plan_revisions_per_user_turn": {
+        "ma_adaptive_no_rag": {
+          "0": 216
+        },
+        "ma_adaptive_rag": {
+          "0": 216
+        },
+        "ma_fixed_rag": {
+          "0": 216
+        },
+        "sa_shared_tools_rag": {
+          "0": 216
+        }
+      },
+      "interpretation": "No additional plan revision occurred in any recorded user turn. The adaptive continuation branch was available but not exercised by this workload; its effect is not estimated by this run."
+    },
+    "per_variant_all_turns": {
+      "ma_adaptive_no_rag": {
+        "user_turns": 216,
+        "additional_plan_revisions_per_user_turn": {
+          "0": 216
+        },
+        "model_call_stages_all_turns": {
+          "answer.draft": 15,
+          "answer.repair": 3,
+          "v2_expert_reasoning": 73,
+          "v2_planning": 144
+        },
+        "mean_model_calls_per_cell_all_turns": 1.306,
+        "fallback_reasons_all_turns": {
+          "answer_not_grounded": 2,
+          "answer_repair": 3,
+          "answer_repair_rejected_structured_fact_required": 1,
+          "v2_plan_rejected": 1
+        },
+        "latency_seconds_per_user_turn": {
+          "p50_median": 1.781,
+          "p95_nearest_rank": 7.063
+        }
+      },
+      "ma_adaptive_rag": {
+        "user_turns": 216,
+        "additional_plan_revisions_per_user_turn": {
+          "0": 216
+        },
+        "model_call_stages_all_turns": {
+          "answer.draft": 138,
+          "answer.grounding": 172,
+          "answer.repair": 65,
+          "knowledge_query_plan": 134,
+          "v2_expert_reasoning": 108,
+          "v2_planning": 183
+        },
+        "mean_model_calls_per_cell_all_turns": 4.444,
+        "fallback_reasons_all_turns": {
+          "answer_not_grounded": 3,
+          "answer_repair": 65,
+          "answer_repair_missing_required_knowledge": 49,
+          "answer_repair_rejected_structured_fact_required": 1,
+          "answer_repair_rejected_unsupported_claim": 2,
+          "v2_plan_rejected": 1
+        },
+        "latency_seconds_per_user_turn": {
+          "p50_median": 8.617,
+          "p95_nearest_rank": 27.313
+        }
+      },
+      "ma_fixed_rag": {
+        "user_turns": 216,
+        "additional_plan_revisions_per_user_turn": {
+          "0": 216
+        },
+        "model_call_stages_all_turns": {
+          "answer.draft": 139,
+          "answer.grounding": 179,
+          "answer.repair": 76,
+          "knowledge_query_plan": 135,
+          "v2_expert_reasoning": 111
+        },
+        "mean_model_calls_per_cell_all_turns": 3.556,
+        "fallback_reasons_all_turns": {
+          "answer_not_grounded": 1,
+          "answer_repair": 76,
+          "answer_repair_missing_required_knowledge": 47,
+          "answer_repair_rejected_unsupported_claim": 4
+        },
+        "latency_seconds_per_user_turn": {
+          "p50_median": 7.492,
+          "p95_nearest_rank": 27.953
+        }
+      },
+      "sa_shared_tools_rag": {
+        "user_turns": 216,
+        "additional_plan_revisions_per_user_turn": {
+          "0": 216
+        },
+        "model_call_stages_all_turns": {
+          "answer.draft": 139,
+          "answer.grounding": 179,
+          "answer.repair": 79,
+          "knowledge_query_plan": 135,
+          "v2_planning": 183
+        },
+        "mean_model_calls_per_cell_all_turns": 3.972,
+        "fallback_reasons_all_turns": {
+          "answer_not_grounded": 2,
+          "answer_repair": 77,
+          "answer_repair_missing_required_knowledge": 54,
+          "answer_repair_rejected_number_not_in_evidence": 2,
+          "answer_repair_rejected_unsupported_claim": 3
+        },
+        "latency_seconds_per_user_turn": {
+          "p50_median": 9.375,
+          "p95_nearest_rank": 22.922
+        }
+      }
+    },
+    "repair_failure_limit": "The final trace stores fallback reason and public deterministic fallback, but not intermediate answer.draft/answer.repair text. For answer_repair_missing_required_knowledge it cannot distinguish omitted selectors from a rejected semantic paraphrase."
+  },
+  "judging": {
+    "semantic_judgments_present": false,
+    "human_review_present": false,
+    "operate_complete": false,
+    "reason": "The P8 held-out set was used during remediation and is development data. LLM judge/operate remains pending explicit approval for the exact judge payload and destination."
+  }
+}

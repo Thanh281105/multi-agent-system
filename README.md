@@ -320,36 +320,65 @@ không có checked-in live-LLM result cho historical v2 corpus Tiki Books. Các
 real-model report generic cũ dùng `sample_ecommerce_vi_28_v1`, nằm trong nhóm
 legacy và không hỗ trợ current Tiki claim.
 
-### Trạng thái P7/P8 trên source đã remediation — 2026-10-05
+### P8 r3 lịch sử — 2026-10-12
 
-Source `74149c8bc395852772e8b9ef92853e0b914ed816` hoàn tất P7 v15 `36/36` và P8
-v16 `720/720` cells. P8 có 60 conversations, bốn variants × 180 cells, ba repeats
-và 27 work groups. Cả 752 lượt chấm tự động (32 calibration + 720 held-out) đều
-hoàn tất, không có job lỗi hoặc mơ hồ. Report SHA-256:
-`97cf42490819abdb55f61173d178701760b826f26ace7f74e4a3cc3a9b042df9`.
-Validation local nằm tại
-[`current-publication-validation.v8.json`](output/review-remediation/current-publication-validation.v8.json).
+Sau khi sửa parser tên sách, đúng commit SUT
+`e99f186eb6662a99cd8397da1ea633473a6b3a54` hoàn tất P7 `36/36` và P8
+`720/720` (60 ca × 4 nhánh × 3 lần lặp). Đây là regression trên bộ held-out đã
+được dùng trong remediation, nên vẫn là **development**, không phải xác nhận độc
+lập. Chưa chạy semantic judge hoặc operate; `720/720` chỉ là độ phủ thu thập.
 
-Task completion theo cell: SA+RAG `42/180` (23,3%), fixed MA+RAG `41/180`
-(22,8%), adaptive MA+RAG `41/180` (22,8%), adaptive MA không RAG `9/180`
-(5,0%). Theo paired bootstrap trên 27 work groups, adaptive MA+RAG so với SA+RAG
-chênh `−0,31` điểm phần trăm (95% CI `−0,93` đến `0,00`); chưa thấy lợi ích MA
-theo metric này. Adaptive MA+RAG so với adaptive MA không RAG cao hơn `15,43`
-điểm (95% CI `7,41` đến `24,69`). CI dùng work-group weighting, nên không bằng
-phép trừ trực tiếp hai tỷ lệ cell.
+P8 ghi `$4.27855988` known cost, 3.108.871 input+output tokens và không còn
+reservation chưa quyết toán. Số `answered` dưới đây là trạng thái ứng dụng thô,
+không phải độ đúng:
 
-Đây là kết quả rubric với judge tự động, không phải accuracy đã được người chấm
-xác nhận. 720 cells không độc lập; các held-out cases đã được dùng trong quá
-trình remediation; document recall chưa đo ở cell nào. Human audit không có vì
-chưa có nhãn người chấm. Source gate riêng ghi 610 test cases duy nhất trên 32
-module cùng Ruff, format và mypy pass; gate đó không xác nhận chất lượng answer
-hay demo trực tiếp.
+| Nhánh | Answered / 180 | Latency p50 / p95 | Chi phí |
+| --- | ---: | ---: | ---: |
+| Single-Agent + RAG | 120 | 11,48 / 25,56 giây | $1,2867 |
+| Fixed Multi-Agent + RAG | 120 | 9,51 / 28,50 giây | $1,3089 |
+| Adaptive Multi-Agent + RAG | 119 | 10,82 / 28,00 giây | $1,3608 |
+| Adaptive Multi-Agent không RAG | 0 | 1,65 / 8,05 giây | $0,3221 |
 
-P8 report accounting ghi `$4.64562124` known cost và `$0.052923` unresolved
-reservation estimate, tổng effective `$4.69854424`; đây là ledger estimate, không
-phải đối soát hóa đơn provider. Strict deployed HTTP/JSON/SSE/cancel rehearsal
-trên source này **chưa chạy**; xem [runbook](docs/operations.md) và
-[kết quả evaluation](docs/evaluation.md) trước khi trình diễn.
+Raw checkpoint và hash: [`gói P7/P8 r3`](evaluation/v3/results/p8-trace-20261012-r3/README.md),
+[`summary.json`](evaluation/v3/results/p8-trace-20261012-r3/summary.json). Trace xác
+nhận parser đã bỏ lỗi tách sai liên từ viết hoa trong tên sách; vẫn còn nhiều
+`answer_repair_not_grounded` và `evidence_incomplete`, nên chưa thể kết luận về
+đúng/sai ngữ nghĩa hay ưu thế MA. Outcome lấy ở lượt cuối; latency E2E cộng thời
+gian các lượt trong cùng ca. Xem [phân tích evaluation](docs/evaluation.md)
+và [protocol xác nhận](docs/thesis-validation-protocol.md).
+
+Strict deployed HTTP/JSON/SSE/cancel rehearsal **chưa chạy**; xem
+[runbook](docs/operations.md) trước khi trình diễn.
+
+### P8 r7 mới nhất — 2026-10-13 (development trace, chưa chấm)
+
+Trên SUT `app/v2` tại commit
+`4238394ee932dbf79a53aaa1a565c5203f857263`, P7 hoàn tất `36/36`; P8 hoàn tất
+`720/720` (60 ca × 4 nhánh × 3 lần lặp), không thiếu hoặc lỗi ô. Held-out đã
+được dùng trong remediation nên lần chạy này vẫn là **development regression**.
+Chưa chạy semantic judge hoặc `operate`; 720/720 chỉ xác nhận độ phủ.
+
+| Nhánh | Calls | Known cost (USD) | Latency p50 / p95 (giây) | `answered` / 216 lượt user |
+| --- | ---: | ---: | ---: | ---: |
+| Adaptive MA + RAG | 874 | 1.601708 | 11.172 / 27.006 | 168 |
+| Single-Agent + RAG | 773 | 1.432035 | 11.125 / 24.429 | 168 |
+| Fixed MA + RAG | 700 | 1.457079 | 9.438 / 24.664 | 168 |
+| Adaptive MA không RAG | 234 | 0.339016 | 1.640 / 7.193 | 33 |
+
+Mỗi nhánh có 180 observations nhưng 216 lượt user do một số ca nhiều lượt; có
+27 work groups. Adaptive RAG dùng 13,1% thêm calls và 11,85% thêm chi phí so với
+SA RAG, p95 cao hơn 10,55%. Trong 8-fact cases, fallback sau sửa câu trả lời
+xuất hiện ở 32/36 Adaptive, 30/36 Fixed, 33/36 SA observations. Đây là tín hiệu
+về đường grounding dùng chung; chưa cho biết câu trả lời cuối đúng hay retrieval
+bỏ sót tài liệu.
+
+Protocol SHA-256 `342906ef4713edaef23fc0b829780ff7d70a3bc1f64fa58cd36cefe28f999a2a`;
+P8 schedule SHA-256 `e07a5e9996f12a57093a66f17de7585f63c0c1f0120cabf17aa2866fea495cef`;
+checkpoint SHA-256
+`cd9f7c0de094e1c7935880f3adc3c210604ac24c66f8cd9caede58f804e53261`. Xem [trace
+audit r7](evaluation/v3/results/p8-trace-20261013-r7/README.md) và [protocol xác
+nhận còn ở trạng thái draft](docs/thesis-validation-protocol.md). Tập xác nhận
+độc lập mới, đánh giá mù, semantic scores và document recall vẫn chưa có.
 
 ### Snapshot lịch sử — 2026-10-01; ledger trước P8 v23 lúc 2026-10-02 02:07 UTC
 
@@ -451,14 +480,13 @@ tests/                # offline regression + optional integration
   **Chưa có long-term** preference, summary hoặc artifact memory.
 - Rate limiter, trace ring và metrics aggregation nằm trong một process; scale
   nhiều replica cần distributed replacements.
-- Held-out live-model evidence hiện có là P7 successor v5 và các P8 successor
-  v6-v9; cả bốn P8 runs đều terminal partial. Source remediation mới cần P7
-  successor pilot và P8 run tiếp theo trước khi có thể xác nhận kết quả live
-  chính thức sau sửa. Diagnostic replay đã hoàn tất 8/8 sau sửa, nhưng dùng
-  pilot aliases nên không đủ điều kiện benchmark.
-  Calibrated judge output, exact evidence resolver run, completed analysis
-  matrix, human review, load/soak, fairness/drift và production HA vẫn chưa được
-  xác minh.
+- P7/P8 r7 trên SUT commit `4238394ee932dbf79a53aaa1a565c5203f857263` đã hoàn tất
+  36/36 và 720/720 SUT cells; các P8 v6-v9 cũ vẫn là terminal partial. r7 chạy
+  trên held-out đã dùng trong remediation, nên chỉ là development regression.
+  Chưa có calibrated semantic judge, exact evidence-resolution/operate result,
+  correctness analysis, document recall hoặc human audit; không dùng r7 để kết
+  luận MA hơn SA. Protocol xác nhận độc lập vẫn ở trạng thái draft.
+  Load/soak, fairness/drift và production HA cũng chưa được xác minh.
 
 Các giới hạn này là một phần của evidence contract, không phải footnote tùy
 chọn.

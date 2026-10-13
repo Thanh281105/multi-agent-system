@@ -1,0 +1,616 @@
+{
+  "classification": "development_trace_only_not_independent_validation",
+  "run_id": "run_p8_trace_20261013_r7",
+  "sut_git_revision": "4238394ee932dbf79a53aaa1a565c5203f857263",
+  "protocol_sha256": "342906ef4713edaef23fc0b829780ff7d70a3bc1f64fa58cd36cefe28f999a2a",
+  "p7_schedule_sha256": "a3eb783bfd2b036f3a39572d0f9e42e3453e7c74d4e00866ac6659dfd0b61c95",
+  "p7_checkpoint_sha256": "c06704e7dcc0bb6f217937d3a79a126f3d6da91cd112c855dd6274ad7b131286",
+  "p8_schedule_sha256": "e07a5e9996f12a57093a66f17de7585f63c0c1f0120cabf17aa2866fea495cef",
+  "p8_checkpoint_sha256": "cd9f7c0de094e1c7935880f3adc3c210604ac24c66f8cd9caede58f804e53261",
+  "p8_checkpoint_bytes": 12325381,
+  "p8_started_cells": 720,
+  "p8_completed_cells": 720,
+  "variants": {
+    "ma_adaptive_no_rag": {
+      "observations": 180,
+      "cases": 60,
+      "work_groups": 27,
+      "user_turns": 216,
+      "generation_calls": 234,
+      "retry_count": 0,
+      "input_tokens": 213770,
+      "output_tokens": 50499,
+      "known_cost_usd": "0.33901620",
+      "observation_latency_seconds": {
+        "definition": "sum of elapsed_seconds across turns inside each observation; type-7 percentile",
+        "p50": 1.6405,
+        "p95": 7.19325
+      },
+      "user_turn_outcomes": {
+        "abstained": 141,
+        "answered": 33,
+        "awaiting_confirmation": 6,
+        "needs_clarification": 36
+      },
+      "knowledge_retrieval_count_by_user_turn": {
+        "0": 216
+      },
+      "citation_structure_only": {
+        "claims": 46,
+        "claims_with_citation_ids": 46,
+        "citation_references": 48,
+        "citation_references_resolved": 48,
+        "citations": 48,
+        "citations_with_evidence_resolved": 48,
+        "emitted_evidence_items": 30
+      },
+      "answer_repair_missing_required_knowledge_by_gold_fact_count": {
+        "0": {
+          "observations": 42,
+          "user_turns": 42,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 14,
+          "work_groups": 12
+        },
+        "1": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "2": {
+          "observations": 3,
+          "user_turns": 3,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 1,
+          "work_groups": 1
+        },
+        "4": {
+          "observations": 63,
+          "user_turns": 99,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 21,
+          "work_groups": 13
+        },
+        "8": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 12,
+          "work_groups": 12
+        }
+      },
+      "answer_repair_missing_required_knowledge_by_gold_category": {
+        "insufficient_conflict_injection": {
+          "observations": 24,
+          "user_turns": 24,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 8,
+          "work_groups": 6
+        },
+        "knowledge_source": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_constraint": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_expert_compare_recommendation": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_turn_memory": {
+          "observations": 24,
+          "user_turns": 60,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 8,
+          "work_groups": 8
+        },
+        "shopping_merchant": {
+          "observations": 24,
+          "user_turns": 24,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 8,
+          "work_groups": 8
+        }
+      },
+      "model_call_stages": {
+        "answer.draft": 24,
+        "answer.repair": 3,
+        "v2_expert_reasoning": 75,
+        "v2_planning": 132
+      },
+      "model_error_codes": {},
+      "fallback_reasons": {
+        "answer_not_grounded": 1,
+        "answer_repair": 3
+      }
+    },
+    "ma_adaptive_rag": {
+      "observations": 180,
+      "cases": 60,
+      "work_groups": 27,
+      "user_turns": 216,
+      "generation_calls": 874,
+      "retry_count": 6,
+      "input_tokens": 977842,
+      "output_tokens": 259351,
+      "known_cost_usd": "1.60170757",
+      "observation_latency_seconds": {
+        "definition": "sum of elapsed_seconds across turns inside each observation; type-7 percentile",
+        "p50": 11.1715,
+        "p95": 27.0057
+      },
+      "user_turn_outcomes": {
+        "abstained": 6,
+        "answered": 168,
+        "awaiting_confirmation": 6,
+        "needs_clarification": 36
+      },
+      "knowledge_retrieval_count_by_user_turn": {
+        "0": 81,
+        "1": 135
+      },
+      "citation_structure_only": {
+        "claims": 472,
+        "claims_with_citation_ids": 472,
+        "citation_references": 473,
+        "citation_references_resolved": 473,
+        "citations": 473,
+        "citations_with_evidence_resolved": 473,
+        "emitted_evidence_items": 427
+      },
+      "answer_repair_missing_required_knowledge_by_gold_fact_count": {
+        "0": {
+          "observations": 42,
+          "user_turns": 42,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 14,
+          "work_groups": 12
+        },
+        "1": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 20,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "2": {
+          "observations": 3,
+          "user_turns": 3,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 1,
+          "work_groups": 1
+        },
+        "4": {
+          "observations": 63,
+          "user_turns": 99,
+          "knowledge_retrieval_turns": 63,
+          "missing_required_knowledge_fallback_turns": 20,
+          "unique_cases": 21,
+          "work_groups": 13
+        },
+        "8": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 32,
+          "unique_cases": 12,
+          "work_groups": 12
+        }
+      },
+      "answer_repair_missing_required_knowledge_by_gold_category": {
+        "insufficient_conflict_injection": {
+          "observations": 24,
+          "user_turns": 24,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 8,
+          "work_groups": 6
+        },
+        "knowledge_source": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 20,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_constraint": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 11,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_expert_compare_recommendation": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 32,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_turn_memory": {
+          "observations": 24,
+          "user_turns": 60,
+          "knowledge_retrieval_turns": 27,
+          "missing_required_knowledge_fallback_turns": 9,
+          "unique_cases": 8,
+          "work_groups": 8
+        },
+        "shopping_merchant": {
+          "observations": 24,
+          "user_turns": 24,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 8,
+          "work_groups": 8
+        }
+      },
+      "model_call_stages": {
+        "answer.draft": 160,
+        "answer.grounding": 205,
+        "answer.repair": 92,
+        "knowledge_query_plan": 135,
+        "v2_expert_reasoning": 111,
+        "v2_planning": 171
+      },
+      "model_error_codes": {
+        "model_response_incomplete": 1
+      },
+      "fallback_reasons": {
+        "answer_not_grounded": 3,
+        "answer_repair": 92,
+        "answer_repair_missing_required_knowledge": 72,
+        "answer_repair_rejected_unsupported_claim": 1
+      }
+    },
+    "ma_fixed_rag": {
+      "observations": 180,
+      "cases": 60,
+      "work_groups": 27,
+      "user_turns": 216,
+      "generation_calls": 700,
+      "retry_count": 8,
+      "input_tokens": 909517,
+      "output_tokens": 240260,
+      "known_cost_usd": "1.45707887",
+      "observation_latency_seconds": {
+        "definition": "sum of elapsed_seconds across turns inside each observation; type-7 percentile",
+        "p50": 9.438,
+        "p95": 24.6635
+      },
+      "user_turn_outcomes": {
+        "abstained": 6,
+        "answered": 168,
+        "awaiting_confirmation": 6,
+        "needs_clarification": 36
+      },
+      "knowledge_retrieval_count_by_user_turn": {
+        "0": 81,
+        "1": 135
+      },
+      "citation_structure_only": {
+        "claims": 471,
+        "claims_with_citation_ids": 471,
+        "citation_references": 472,
+        "citation_references_resolved": 472,
+        "citations": 472,
+        "citations_with_evidence_resolved": 472,
+        "emitted_evidence_items": 433
+      },
+      "answer_repair_missing_required_knowledge_by_gold_fact_count": {
+        "0": {
+          "observations": 42,
+          "user_turns": 42,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 14,
+          "work_groups": 12
+        },
+        "1": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 22,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "2": {
+          "observations": 3,
+          "user_turns": 3,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 1,
+          "work_groups": 1
+        },
+        "4": {
+          "observations": 63,
+          "user_turns": 99,
+          "knowledge_retrieval_turns": 63,
+          "missing_required_knowledge_fallback_turns": 22,
+          "unique_cases": 21,
+          "work_groups": 13
+        },
+        "8": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 30,
+          "unique_cases": 12,
+          "work_groups": 12
+        }
+      },
+      "answer_repair_missing_required_knowledge_by_gold_category": {
+        "insufficient_conflict_injection": {
+          "observations": 24,
+          "user_turns": 24,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 8,
+          "work_groups": 6
+        },
+        "knowledge_source": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 22,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_constraint": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 13,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_expert_compare_recommendation": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 30,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_turn_memory": {
+          "observations": 24,
+          "user_turns": 60,
+          "knowledge_retrieval_turns": 27,
+          "missing_required_knowledge_fallback_turns": 9,
+          "unique_cases": 8,
+          "work_groups": 8
+        },
+        "shopping_merchant": {
+          "observations": 24,
+          "user_turns": 24,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 8,
+          "work_groups": 8
+        }
+      },
+      "model_call_stages": {
+        "answer.draft": 160,
+        "answer.grounding": 203,
+        "answer.repair": 91,
+        "knowledge_query_plan": 135,
+        "v2_expert_reasoning": 111
+      },
+      "model_error_codes": {
+        "model_response_incomplete": 2
+      },
+      "fallback_reasons": {
+        "answer_not_grounded": 2,
+        "answer_repair": 90,
+        "answer_repair_missing_required_knowledge": 74
+      }
+    },
+    "sa_shared_tools_rag": {
+      "observations": 180,
+      "cases": 60,
+      "work_groups": 27,
+      "user_turns": 216,
+      "generation_calls": 773,
+      "retry_count": 4,
+      "input_tokens": 849886,
+      "output_tokens": 240693,
+      "known_cost_usd": "1.43203463",
+      "observation_latency_seconds": {
+        "definition": "sum of elapsed_seconds across turns inside each observation; type-7 percentile",
+        "p50": 11.125,
+        "p95": 24.4292
+      },
+      "user_turn_outcomes": {
+        "abstained": 6,
+        "answered": 168,
+        "awaiting_confirmation": 6,
+        "needs_clarification": 36
+      },
+      "knowledge_retrieval_count_by_user_turn": {
+        "0": 81,
+        "1": 135
+      },
+      "citation_structure_only": {
+        "claims": 478,
+        "claims_with_citation_ids": 478,
+        "citation_references": 480,
+        "citation_references_resolved": 480,
+        "citations": 480,
+        "citations_with_evidence_resolved": 480,
+        "emitted_evidence_items": 436
+      },
+      "answer_repair_missing_required_knowledge_by_gold_fact_count": {
+        "0": {
+          "observations": 42,
+          "user_turns": 42,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 14,
+          "work_groups": 12
+        },
+        "1": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 21,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "2": {
+          "observations": 3,
+          "user_turns": 3,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 1,
+          "work_groups": 1
+        },
+        "4": {
+          "observations": 63,
+          "user_turns": 99,
+          "knowledge_retrieval_turns": 63,
+          "missing_required_knowledge_fallback_turns": 22,
+          "unique_cases": 21,
+          "work_groups": 13
+        },
+        "8": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 33,
+          "unique_cases": 12,
+          "work_groups": 12
+        }
+      },
+      "answer_repair_missing_required_knowledge_by_gold_category": {
+        "insufficient_conflict_injection": {
+          "observations": 24,
+          "user_turns": 24,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 8,
+          "work_groups": 6
+        },
+        "knowledge_source": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 21,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_constraint": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 12,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_expert_compare_recommendation": {
+          "observations": 36,
+          "user_turns": 36,
+          "knowledge_retrieval_turns": 36,
+          "missing_required_knowledge_fallback_turns": 33,
+          "unique_cases": 12,
+          "work_groups": 12
+        },
+        "multi_turn_memory": {
+          "observations": 24,
+          "user_turns": 60,
+          "knowledge_retrieval_turns": 27,
+          "missing_required_knowledge_fallback_turns": 10,
+          "unique_cases": 8,
+          "work_groups": 8
+        },
+        "shopping_merchant": {
+          "observations": 24,
+          "user_turns": 24,
+          "knowledge_retrieval_turns": 0,
+          "missing_required_knowledge_fallback_turns": 0,
+          "unique_cases": 8,
+          "work_groups": 8
+        }
+      },
+      "model_call_stages": {
+        "answer.draft": 161,
+        "answer.grounding": 206,
+        "answer.repair": 100,
+        "knowledge_query_plan": 135,
+        "v2_planning": 171
+      },
+      "model_error_codes": {
+        "model_response_incomplete": 2
+      },
+      "fallback_reasons": {
+        "answer_not_grounded": 2,
+        "answer_repair": 100,
+        "answer_repair_missing_required_knowledge": 76,
+        "answer_repair_rejected_number_not_in_evidence": 1,
+        "answer_repair_rejected_structured_fact_required": 1
+      }
+    }
+  },
+  "trace_only_comparisons": {
+    "adaptive_rag_vs_sa_rag": {
+      "generation_calls_delta_percent": 13.066,
+      "known_cost_delta_percent": 11.848,
+      "p95_observation_latency_delta_percent": 10.547
+    },
+    "adaptive_rag_vs_fixed_rag": {
+      "generation_calls_delta_percent": 24.857,
+      "known_cost_delta_percent": 9.926,
+      "p95_observation_latency_delta_percent": 9.497
+    },
+    "p8_known_cost_usd_all_variants": "4.82983727"
+  },
+  "not_measured": [
+    "semantic correctness",
+    "claim-to-source support",
+    "citation precision or coverage",
+    "document recall",
+    "human agreement",
+    "independent confirmation performance",
+    "document recall because retrieval-hit source IDs were not persisted in this run"
+  ],
+  "analysis_method": {
+    "observations_per_variant": 180,
+    "work_groups_per_variant": 27,
+    "repeats_per_case": 3,
+    "latency_percentile": "Hyndman-Fan type 7 over 180 observation sums",
+    "cost_source": "checkpoint receipt totals.known_cost_usd",
+    "token_source": "checkpoint receipt totals.input_tokens/output_tokens",
+    "outcome_counts_unit": "user turns recorded within observations; not independent tasks",
+    "gold_fact_count_unit": "case-level required_fact_blueprints; repeated observations are descriptive only",
+    "citation_structure_only": "ID/link integrity, not semantic source support or citation precision",
+    "no_semantic_judgment_was_run": true
+  }
+}

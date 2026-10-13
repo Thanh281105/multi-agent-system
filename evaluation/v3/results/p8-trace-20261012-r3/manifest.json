@@ -1,0 +1,44 @@
+{
+  "schema_version": "p8_trace_result_package_v1",
+  "classification": "development_regression_not_independent_validation",
+  "sut_git_revision": "e99f186eb6662a99cd8397da1ea633473a6b3a54",
+  "archive": {
+    "path": "p7-p8-r3-raw-artifacts.zip",
+    "bytes": 1202321,
+    "sha256": "16982c5abe7bd6b7c2a6e4437df648598a123e8a6f727afc777a706f0c4541a1"
+  },
+  "summary": {
+    "path": "summary.json",
+    "bytes": 13106,
+    "sha256": "5b8ce6e166931465772a5fcb09699b502840715b073db9c18c095c0dbabf0a28"
+  },
+  "source_files": {
+    "app/v2/planning.py": "a149b3f04c67fcf65c40c080d7b1a85d94c169125e687e04f20a1f0250e85ef9",
+    "data/knowledge/books-v2/sources.json": "ea75cacd4f8f1493e53f917e7f12356903caf9a23c686c08cbcb3e2056448aa7",
+    "data/knowledge/books-v2/mappings.json": "b1979012259d6cf7f9bbe0b948b2d00b5492f2d4f9bc5f3c0eff1b651235a0f0"
+  },
+  "raw_artifact_count": 15,
+  "p7": {
+    "run_id": "run_p7_trace_20261012_r3",
+    "completed_turns": 36,
+    "failed_or_missing": 0,
+    "known_cost_usd": "0.23139729",
+    "protocol_sha256": "806efc5d2f00ed66e5a6ef56cc3f8df033d9e76f9013f4b7d2225501b1435f7b",
+    "schedule_sha256": "edb55564648ddd8b168004a48c7d6f8e10734edefe98d74812ca8657882d29ed"
+  },
+  "p8": {
+    "run_id": "run_p8_trace_20261012_r3",
+    "cases": 60,
+    "planned_measured_cells": 720,
+    "completed_cells": 720,
+    "failed_or_missing": 0,
+    "user_turn_results": 864,
+    "repetitions": 3,
+    "known_cost_usd": "4.27855988",
+    "unresolved_reservations_usd": "0",
+    "tokens_input_plus_output": 3108871,
+    "protocol_sha256": "806efc5d2f00ed66e5a6ef56cc3f8df033d9e76f9013f4b7d2225501b1435f7b",
+    "schedule_sha256": "f2f8cfa414accadc3bf2f90351d01086628f58a6892082c5139f0255a8c47e25",
+    "latency_definition": "Per-cell sum of turn_results.elapsed_seconds; p50=median; p95=nearest-rank; per-turn values also retained in trace_analysis."
+  }
+}
