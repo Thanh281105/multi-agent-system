@@ -179,7 +179,13 @@ class ModelRuntimeExpertReasoner:
         self.reasoning_effort = reasoning_effort
 
     async def enrich(self, result: ExpertResult) -> ExpertResult:
-        if self.runtime_mode == "off" or result.status == TaskStatus.FAILED:
+        # This read already returns the chosen pair as structured facts. The
+        # selector cannot add information and risks dropping a subject.
+        if (
+            self.runtime_mode == "off"
+            or result.status == TaskStatus.FAILED
+            or result.operation.capability == "product.compare"
+        ):
             return result
         input_text, fact_ids, evidence_ids = _expert_model_input(result)
         if not fact_ids and not evidence_ids:
