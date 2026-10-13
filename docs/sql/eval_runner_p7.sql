@@ -52,6 +52,15 @@ GRANT SELECT, INSERT ON TABLE
     public.v2_cart_lines
 TO eval_runner;
 
+-- Checkout proposal handling uses SELECT ... FOR UPDATE on these tables.
+-- PostgreSQL requires UPDATE on at least one column for row locking; grant only
+-- the non-business timestamp column so the pilot cannot change cart or stock data.
+GRANT UPDATE (updated_at) ON TABLE
+    public.v2_carts,
+    public.v2_cart_lines,
+    public.v2_offers
+TO eval_runner;
+
 -- The checkout fixture checks for prior orders; the unconfirmed proposal is stored.
 GRANT SELECT ON TABLE public.v2_orders TO eval_runner;
 GRANT SELECT, INSERT ON TABLE public.v2_proposals TO eval_runner;
