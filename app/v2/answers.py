@@ -573,10 +573,16 @@ class GroundedAnswerProducer:
                 include_optional_items=include_optional_items,
             )
 
-        instructions = _MODEL_INSTRUCTIONS
-        input_text = build_input(instructions, include_optional_items=True)
-        try:
-            generated = await self.runtime.generate_structured(
+        async def generate(
+            instructions: str,
+            *,
+            include_optional_items: bool,
+        ):
+            input_text = build_input(
+                instructions,
+                include_optional_items=include_optional_items,
+            )
+            return await self.runtime.generate_structured(
                 stage=stage,
                 agent_id="grounding",
                 model=self.model,
@@ -585,29 +591,44 @@ class GroundedAnswerProducer:
                 schema=model_schema,
                 max_output_tokens=self.draft_max_output_tokens,
                 reasoning_effort=self.reasoning_effort,
+            )
+
+        instructions = _MODEL_INSTRUCTIONS
+        retried_compact = False
+        try:
+            generated = await generate(
+                instructions,
+                include_optional_items=True,
             )
         except ModelRuntimeError as exc:
             if not exc.code.startswith("model_response_"):
                 raise
             instructions = _COMPACT_DRAFT_INSTRUCTIONS
-            input_text = build_input(instructions, include_optional_items=False)
-            generated = await self.runtime.generate_structured(
-                stage=stage,
-                agent_id="grounding",
-                model=self.model,
-                instructions=instructions,
-                input_text=input_text,
-                schema=model_schema,
-                max_output_tokens=self.draft_max_output_tokens,
-                reasoning_effort=self.reasoning_effort,
+            generated = await generate(
+                instructions,
+                include_optional_items=False,
             )
+            retried_compact = True
         try:
             draft = _normalize_model_answer_draft(
                 generated.value,
                 schema=model_schema,
             )
         except (TypeError, ValueError) as exc:
-            raise GroundingContractError("answer_draft_invalid") from exc
+            if retried_compact:
+                raise GroundingContractError("answer_draft_invalid") from exc
+            instructions = _COMPACT_DRAFT_INSTRUCTIONS
+            generated = await generate(
+                instructions,
+                include_optional_items=False,
+            )
+            try:
+                draft = _normalize_model_answer_draft(
+                    generated.value,
+                    schema=model_schema,
+                )
+            except (TypeError, ValueError) as retry_exc:
+                raise GroundingContractError("answer_draft_invalid") from retry_exc
         metadata = getattr(generated, "metadata", None)
         return _DraftAttempt(
             draft=draft,
@@ -684,12 +705,16 @@ class GroundedAnswerProducer:
                 include_optional_items=include_optional_items,
             )
 
-        input_text = build_input(
-            instructions,
-            include_optional_items=bool(check.rejections),
-        )
-        try:
-            generated = await self.runtime.generate_structured(
+        async def generate(
+            instructions: str,
+            *,
+            include_optional_items: bool,
+        ):
+            input_text = build_input(
+                instructions,
+                include_optional_items=include_optional_items,
+            )
+            return await self.runtime.generate_structured(
                 stage="answer.repair",
                 agent_id="grounding",
                 model=self.model,
@@ -698,29 +723,43 @@ class GroundedAnswerProducer:
                 schema=model_schema,
                 max_output_tokens=self.draft_max_output_tokens,
                 reasoning_effort=self.reasoning_effort,
+            )
+
+        retried_compact = False
+        try:
+            generated = await generate(
+                instructions,
+                include_optional_items=bool(check.rejections),
             )
         except ModelRuntimeError as exc:
             if not exc.code.startswith("model_response_"):
                 raise
             instructions = _COMPACT_REPAIR_INSTRUCTIONS
-            input_text = build_input(instructions, include_optional_items=False)
-            generated = await self.runtime.generate_structured(
-                stage="answer.repair",
-                agent_id="grounding",
-                model=self.model,
-                instructions=instructions,
-                input_text=input_text,
-                schema=model_schema,
-                max_output_tokens=self.draft_max_output_tokens,
-                reasoning_effort=self.reasoning_effort,
+            generated = await generate(
+                instructions,
+                include_optional_items=False,
             )
+            retried_compact = True
         try:
             draft = _normalize_model_answer_draft(
                 generated.value,
                 schema=model_schema,
             )
         except (TypeError, ValueError) as exc:
-            raise GroundingContractError("answer_repair_invalid") from exc
+            if retried_compact:
+                raise GroundingContractError("answer_repair_invalid") from exc
+            instructions = _COMPACT_REPAIR_INSTRUCTIONS
+            generated = await generate(
+                instructions,
+                include_optional_items=False,
+            )
+            try:
+                draft = _normalize_model_answer_draft(
+                    generated.value,
+                    schema=model_schema,
+                )
+            except (TypeError, ValueError) as retry_exc:
+                raise GroundingContractError("answer_repair_invalid") from retry_exc
         metadata = getattr(generated, "metadata", None)
         return _DraftAttempt(
             draft=draft,
