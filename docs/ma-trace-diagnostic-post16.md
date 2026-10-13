@@ -23,3 +23,7 @@ Ca `dev_knowledge_source_01` là lỗi chung ở answer pipeline: cả ba RAG ar
 ## Thay đổi ứng viên và cổng xác nhận
 
 Source hiện bỏ lượt specialist selector trên capability `product.compare`; selector vẫn hoạt động cho các capability khác, gồm truy hồi tri thức dạng văn bản. Mục tiêu là bỏ một lần gọi không thêm evidence cho phép so sánh có cấu trúc, không khẳng định cải thiện correctness. Cần đo lại trên đúng commit `app/v2`: P7 trước, P8 chính thức đủ 720/720, rồi operate trên cùng binding. Chưa có kết quả lifecycle nào xác nhận thay đổi này.
+
+Tối ưu được commit tại `fcb2dbe0fee35b616707fce812a512b3a79a63f1` (`Skip redundant product comparison selector`); source `app/v2/execution.py` hiện có Git blob ID `7f5804fb11224eb66a48a96ea3ecb76cd2e8fbde` và SHA-256 byte `d8cc64b7957353fe52119bda456ead5c2901a6f413b478883d61892f5b057cec`. Các thay đổi sau commit này chỉ cập nhật audit/protocol, không sửa source runtime. Trace P7 `run_p7_trace_20261013_r5` bind `sut_git_revision=f756c84f14f2efa8d73a4e6618e654f720f8c741`, là commit trước tối ưu; `post16` không có Git SHA. Do đó hiện chưa có benchmark trace nào xác nhận hành vi sau tối ưu.
+
+Preflight ngày 2026-10-13 không tìm thấy listener PostgreSQL ở `127.0.0.1:55433`; Docker Desktop API trả `permission denied`. Không khởi chạy runner và không dùng SQLite thay cho lifecycle evaluation. Benchmark development mới trên đúng `app/v2` đang chờ evaluation PostgreSQL khả dụng; sau đó vẫn phải chạy P7 → P8 đủ 720/720 → operate trên cùng binding.
