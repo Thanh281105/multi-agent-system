@@ -670,6 +670,7 @@ class GroundedAnswerProducer:
                                     claim.text[:400]
                                     for claim in previous.claims
                                     if claim.claim_id == item.claim_id
+                                    and claim.text is not None
                                 ),
                                 "",
                             ),
