@@ -893,6 +893,10 @@ trường hợp model plan không được phép trong shopper mode; chuỗi tra
 với một fix có ích. Đây chưa phải kiểm định nhân quả: protocol assets đổi giữa
 r5/r6/r7, cả ba dùng gold `f6988415…` và split `d4af32e7…`, khác hash hiện tại
 `31bcb31c…` và `49adf66b…`, đồng thời checkpoint không bind Git SHA của SUT.
+Ở cấp từng case, cả 8 execution-case hash trong mỗi run r5/r6/r7 đều khớp 8
+case pilot hiện tại; sai khác gold/split tổng thể nằm ở protocol/roster đầy đủ.
+Raw checkpoint, schedule, protocol, script và manifest đã được lưu tại
+[`P7 trace archive`](../evaluation/v3/results/p7-trace-20261013/README.md).
 
 Trong 32 lượt đo P7 r7, Adaptive RAG và SA đều có 6 `answered`, 1
 `needs_clarification`, 1 `awaiting_confirmation`. Adaptive RAG dùng 40 generation
@@ -900,4 +904,11 @@ calls, `$0.077554`, p50 `10.883s`; SA dùng 35 calls, `$0.070811`, p50 `9.406s`.
 Đây là outcome/chi phí/latency mô tả trên 8 ca development, không phải điểm đúng
 ngữ nghĩa, CI hay xác nhận kiến trúc. Pilot chưa cho thấy lợi ích outcome quan
 sát được của MA để bù chi phí tăng.
+
+Ở `dev_multi_expert_01`, cả hai nhánh Adaptive RAG và SA trả bản liệt kê
+evidence dài 1.803 ký tự, không có câu so sánh hay khuyến nghị trực tiếp dù
+prompt yêu cầu; cả hai có cảnh báo `answer_repair_not_grounded`. Đây là điểm yếu
+tổng hợp câu trả lời dùng chung: verifier hiện từ chối claim có phép so sánh.
+Nó là ứng viên sửa trên development, nhưng phải được áp dụng công bằng cho các
+arm và kiểm tra lại bằng P7/P8 trước khi dùng làm kết quả luận văn.
 
