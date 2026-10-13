@@ -45,6 +45,7 @@ DEFAULT_MAX_RETRIES = 1
 DEFAULT_ATTEMPT_TIMEOUT_SECONDS = 30.0
 DEFAULT_SCOPE_DEADLINE_SECONDS = 90.0
 GENERATION_INPUT_TOKEN_LIMIT = 16_000
+JUDGE_GENERATION_INPUT_TOKEN_LIMIT = 22_000
 GENERATION_OUTPUT_TOKEN_LIMIT = 1_200
 JUDGE_GENERATION_OUTPUT_TOKEN_LIMIT = 3_600
 EMBEDDING_INPUT_TOKEN_LIMIT = 8_192
@@ -265,8 +266,13 @@ class PricingManifest:
             if purpose == "judge"
             else GENERATION_OUTPUT_TOKEN_LIMIT
         )
+        input_limit = (
+            JUDGE_GENERATION_INPUT_TOKEN_LIMIT
+            if purpose == "judge"
+            else GENERATION_INPUT_TOKEN_LIMIT
+        )
         if operation == "generation" and (
-            input_token_bound > GENERATION_INPUT_TOKEN_LIMIT
+            input_token_bound > input_limit
             or output_token_bound > output_limit
         ):
             raise BudgetLimitExceededError("generation_payload_limit_exceeded")
