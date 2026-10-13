@@ -1,0 +1,30 @@
+{
+  "answer_key_count": 628,
+  "audit_script_sha256": "815f2a2a130aaea4404460fdf6f771d344ad5757c1a71621f9705dcea26e92a3",
+  "candidate_file_sha256": {
+    "answer-key.jsonl": "4be1dbba705249db3729305ffcb18523fb5aa464419ef4d2903b4d0fb9453bf2",
+    "catalog-products.jsonl": "75e61c0b09b2dcb82416545a9e59e355c3dbffa95b760404d637d2e0e9d504fc",
+    "prompts.jsonl": "f3600422f9a43809a896e5bff04c7c879fc354705050fc66cb7f27c6bc8cb5b7"
+  },
+  "candidate_manifest_sha256": "64a155f9390436e6376ab9b320eeb6a71cf8913b7b4f687a5fb21c23a2726acf",
+  "candidate_status_unchanged": "candidate_unreviewed_not_locked",
+  "catalog_product_count": 1439,
+  "error_count": 0,
+  "errors": [],
+  "limitations": [
+    "title/edition ambiguity still needs human review",
+    "oracle values are checked against the same snapshot, not an independent authority",
+    "the candidate shares the Tiki/Kaggle source family and cannot validate external-domain generalization",
+    "catalog tasks do not measure knowledge document recall"
+  ],
+  "old_eval_product_id_overlap": 0,
+  "old_eval_products_sha256": "830c684733e47a2dddc4591ffba7d62d5db01600f0c00910b02730b1e8da148e",
+  "old_eval_snapshot_manifest_sha256": "e4f6580e33aa458713842855a7bb58b0e9a73942d888ff124ba4d30fd6513e8e",
+  "old_eval_title_author_overlap": 0,
+  "page_count_task_count": 100,
+  "schema_version": "catalog_pair_candidate_structural_audit_v1",
+  "status": "structural_pass_not_human_or_external_validation",
+  "task_count": 628,
+  "unique_used_product_count": 1256,
+  "unique_used_title_author_count": 1256
+}
