@@ -30,7 +30,11 @@ from app.shared.budget import (
     provider_budget_scope,
 )
 from app.shared.model_runtime import ModelCallMetadata, ModelRuntimeError
-from app.v2.answers import EvidenceRequirement, GroundedAnswerProducer
+from app.v2.answers import (
+    EvidenceRequirement,
+    GroundedAnswerProducer,
+    _repair_fallback_reason,
+)
 from app.v2.authorization import ResourceAuthorization, ResourceBinding
 from app.v2.contracts import (
     ConversationMode,
@@ -851,6 +855,15 @@ async def test_failed_repair_stops_after_one_and_returns_exact_extract() -> None
     assert result.draft_repairs == 1
     assert result.claims[0].text == evidence.excerpts[0].exact_text
     assert "answer_repair_not_grounded" in result.warnings
+
+
+def test_repair_fallback_trace_reason_keeps_rejection_and_missing_kind() -> None:
+    reason = _repair_fallback_reason(
+        (EvidenceRequirement(EvidenceKind.KNOWLEDGE, subject_id="product_1"),),
+        {"unsupported_claim"},
+    )
+
+    assert reason == "answer_repair_rejected_unsupported_claim_missing_knowledge"
 
 
 @pytest.mark.asyncio

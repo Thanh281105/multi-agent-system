@@ -433,8 +433,8 @@ class GroundedAnswerProducer:
             )
         rejection_codes = {item.code for item in repaired_check.rejections}
         if repaired_missing:
-            repair_failure_reason = _missing_requirement_fallback_reason(
-                repaired_missing
+            repair_failure_reason = _repair_fallback_reason(
+                repaired_missing, rejection_codes
             )
         elif len(rejection_codes) == 1:
             repair_failure_reason = (
@@ -1373,3 +1373,18 @@ def _missing_requirement_fallback_reason(
     if not kinds:
         return "answer_repair_missing_required_evidence"
     return f"answer_repair_missing_required_{'_'.join(kinds)}"[:80]
+
+
+def _repair_fallback_reason(
+    missing_requirements: tuple[EvidenceRequirement, ...],
+    rejection_codes: set[str],
+) -> str:
+    if not rejection_codes:
+        return _missing_requirement_fallback_reason(missing_requirements)
+    kinds = sorted({requirement.kind.value for requirement in missing_requirements})
+    primary_code = sorted(rejection_codes)[0]
+    rejection_summary = (
+        primary_code if len(rejection_codes) == 1 else f"{primary_code}_multiple"
+    )
+    missing_summary = "_".join(kinds) or "evidence"
+    return f"answer_repair_rejected_{rejection_summary}_missing_{missing_summary}"[:80]
