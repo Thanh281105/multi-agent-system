@@ -1,0 +1,56 @@
+{
+  "comparison_outcome_counts": {
+    "cheaper": {
+      "A": 327,
+      "B": 301,
+      "tie": 0
+    },
+    "higher_rating": {
+      "A": 216,
+      "B": 192,
+      "tie": 220
+    }
+  },
+  "eligible_unique_work_groups": 1439,
+  "excluded_old_eval_external_ids": 200,
+  "excluded_old_eval_work_groups": 198,
+  "fact_count_distribution": {
+    "6": 528,
+    "8": 100
+  },
+  "files": {
+    "answer-key.jsonl": "4be1dbba705249db3729305ffcb18523fb5aa464419ef4d2903b4d0fb9453bf2",
+    "catalog-products.jsonl": "75e61c0b09b2dcb82416545a9e59e355c3dbffa95b760404d637d2e0e9d504fc",
+    "prompts.jsonl": "f3600422f9a43809a896e5bff04c7c879fc354705050fc66cb7f27c6bc8cb5b7"
+  },
+  "generator_sha256": "19cc682ba00f74d06c6c75bd557c133ad633d7c04fbfd9436eccf6d4e70228dd",
+  "grouping_rule": "NFKD_casefold_unaccented_title_authors_strip_parenthetical_edition_markers_v1",
+  "manifest_sha256": "64a155f9390436e6376ab9b320eeb6a71cf8913b7b4f687a5fb21c23a2726acf",
+  "not_ready_reasons": [
+    "human audit of title, author, edition, and prompt ambiguity is pending",
+    "independent audit of metadata oracles is pending",
+    "dynamic app/v2 runner and exact snapshot binding are not built",
+    "this catalog task suite does not measure RAG document recall",
+    "LLM judge/human scoring protocol and budget lock are not complete"
+  ],
+  "page_count_stratum_tasks": 100,
+  "primary_unit": "one pair task using two previously unused title-author work groups",
+  "required_values_per_task_distribution": {
+    "6": 528,
+    "8": 100
+  },
+  "schema_version": "catalog_pair_validation_candidate_v1",
+  "seed": 20261013,
+  "snapshot": {
+    "normalized_snapshot_sha256": "c76a52fa6b3c3c3a934537699998c460a95226320861f4935f04560240b06e09",
+    "products_sha256": "95125b20640e5bac30a12def57865ad8080c071cc83eb8bd6ca3309639884485",
+    "profile": "full",
+    "raw_archive_sha256": "371a618ed66425f8f2738ab01514ab2f20ed1bed645258b509fcce443bd32bbb",
+    "source_license": "CC0-1.0"
+  },
+  "status": "candidate_unreviewed_not_locked",
+  "sut_executed": false,
+  "task_count": 628,
+  "unique_work_groups_used": 1256,
+  "unused_unique_work_groups": 183
+}

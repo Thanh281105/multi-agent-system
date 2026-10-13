@@ -1,0 +1,1574 @@
+{
+  "schema_version": "3.0",
+  "split": "development",
+  "protocol_sha256": "dddfa274629519feb87d38215dedc2295fabdf681d51e4d5d14a5d012da81a69",
+  "references": [
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_19ad666f28181f1c87405d554fdbce43d2827f95b43cd22c",
+      "development_observation_id": "obs_06ec59819c543a1927ae90cb6b61f0dacb17d90e3f5326281e7ddfbe8d0dd235",
+      "development_case_sha256": "6a28b02e6bc77f257fbddabb4db1d25373f0c70ad6e2d59982223f4c148673f9",
+      "answer_sha256": "1fd9e9709558920bc92a26f6c9a219577641429e36d84f74f2ef841d18759cb9",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "1fd9e9709558920bc92a26f6c9a219577641429e36d84f74f2ef841d18759cb9",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": []
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "4a60149fc4811b6c40f74c47d403ca2250a3876564259f6e8cd156c516f5a4e2"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_2cc7259527bfbae2f28e02c18a38873ea0490af0df052996",
+      "development_observation_id": "obs_a65a62dabf72922a67bded5efedce4aecee46623814ff27f6d6c278cae69aadb",
+      "development_case_sha256": "43d1f029db0979fc0f541620309acc3680cea4196f679d0546f72a7cb3bd613f",
+      "answer_sha256": "d9c00b52a3b6c531b4343c0e31b4d3625ab9f125b6ab3475108543b039476d8c",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "d9c00b52a3b6c531b4343c0e31b4d3625ab9f125b6ab3475108543b039476d8c",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "b952a7ed3548345f8b6bfe4e83ffdaec247eb846bb438e6db9f00969542f3d71"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_30db0ad714db46c60a6602207ea0c6fa51e90d4d23903a31",
+      "development_observation_id": "obs_551c581bd0ae3f7ade019c128d319d1d353e5dc6f4e810ff759ea7bc01a71705",
+      "development_case_sha256": "55ede88c6ad98767a8c83aa2799fa4ef985fea378186f656b9dff2f7cd1cf76e",
+      "answer_sha256": "5b17b42c20791cf39a86bff936e3340894caa48479cb1cacdcc7733ed19ae19b",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "5b17b42c20791cf39a86bff936e3340894caa48479cb1cacdcc7733ed19ae19b",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "f414ba61f30aaaea948199f2a8e012a2fab3a0b718e3c9f49b232c87db74bdec"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_4898b601843d99171e79e89e16f5ce61a02d6dabc68474ca",
+      "development_observation_id": "obs_701d1e56562d69d64f7b09d43bab10bf9515b4f7aa0dcd25e76c9b6a5bcc68f7",
+      "development_case_sha256": "ded00140ce819a16d72572459668d76fef136d7833f77897a3e4130daf5aa04e",
+      "answer_sha256": "801ede4d50e68ec7d708b4c8a34c63269c98f52405bd4f00dd25fc54eaf9481b",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "801ede4d50e68ec7d708b4c8a34c63269c98f52405bd4f00dd25fc54eaf9481b",
+        "claim_count": 1,
+        "supported_claim_count": 1,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "c853e45f872973b921ea2e43c7092db9d2b94150c74683bca6d6e7297c25fa0c"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_4fbe46d75f1d85a5f76dd293672a3cf33c535241bb4a477a",
+      "development_observation_id": "obs_2c3f2a945004e8976355b2821d1c518b0dea415f348d975cd9cd99fb3c63d9ed",
+      "development_case_sha256": "4a32735a2b6e3488a32d30b057017f7476cc1611d815c5024e95798fbc9692a9",
+      "answer_sha256": "ae2c8b457b385444f1c7457cd42068a646dc869249ea5fb9c8d6cc9dc058c78d",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "ae2c8b457b385444f1c7457cd42068a646dc869249ea5fb9c8d6cc9dc058c78d",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": []
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "be5a305ef84b211515d86aa7f27e45373fedd3512cb28c8496e4267dcc6585ba"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_501476a0318f5bf0ae920eb4e4519d65e0590c284f041ba2",
+      "development_observation_id": "obs_b3e985269210c21707cc899e1a7c4f22219f493e43fcbe0687e816a9366ca56b",
+      "development_case_sha256": "44d3a99e7a2132a9856fccd74008187cf0c86eddb42a0894fd33d2018b0e528c",
+      "answer_sha256": "4926713a564784cbd913445d1b5dfaad2cf176dd43f3dd6fd56de1a92d4753ec",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "4926713a564784cbd913445d1b5dfaad2cf176dd43f3dd6fd56de1a92d4753ec",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 0.0,
+        "claim_support": 1.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "6a569a8765f0394276becf1df53761ac0ff546f63c838624a635d128af73e24a"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_51411a67d5177d89cb4cf12d5cf766d3d8af9a55b2d60c41",
+      "development_observation_id": "obs_b0eba777766d72583af8686c63cb41db387054fb3cb586d9bd30361ea9549c37",
+      "development_case_sha256": "56c8128fc99f1cfa54d0c8fc7adb6f8e4d9c4f52cfe42670e079226ff2d55c20",
+      "answer_sha256": "ab947289cb93961fcfa0299909733b4e3b18f6adeec9d3147c26a704349a950c",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "ab947289cb93961fcfa0299909733b4e3b18f6adeec9d3147c26a704349a950c",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "a78dffaef1e72c614d51ab830d7fb7fdaab2a63d3a98604f5212c3d5d5c8eb9c"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_5b1f24f4c15051323fdf150acfec00faf448dd83b46e6690",
+      "development_observation_id": "obs_f3bb379a48bf4148e9b05456658fe6e87c1e795bfa7eb45c1b0e6453942232a1",
+      "development_case_sha256": "c0cec38ace2e02bc8633888180012f2f80715df6d0c631556adb39a26319a9ea",
+      "answer_sha256": "818feb3a066c8857d1c60d212c913e9e23467e9dd418de7ea09e891df47b1534",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "818feb3a066c8857d1c60d212c913e9e23467e9dd418de7ea09e891df47b1534",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "62e7ed85a31b490cc92d49598aaa67082c6e8636dfbe2b052976187b30c6ab9c"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_61bdc767589ee7abbc17104e8a7938204d6b842c7cdd07ad",
+      "development_observation_id": "obs_56a62282998537e5b24c72d67c6d1e8692ca04fd79adba4db3e0691267c2249b",
+      "development_case_sha256": "17b93d30e72306d7a7552f422fc0135e825b240047b0f42e42177ec04d858bc0",
+      "answer_sha256": "b2d9f6ea9a7036fc9d789e085dfc51af2faa4c003a4d0d787a511ebd3fed335e",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "b2d9f6ea9a7036fc9d789e085dfc51af2faa4c003a4d0d787a511ebd3fed335e",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": []
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "b83d591e238d18a7f13a6d4c4bb8bc93f68f4da6575d3f101e0a830ed1af1c77"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_7b28de08f7ead96c5015b280ca2d552faae06e52172f2cb4",
+      "development_observation_id": "obs_5e0bd2e1652efdfc7ce1b4c90a190baef8ca61e97b6c01d12e99ac4b7ca5f49e",
+      "development_case_sha256": "b39bf6ac8fb94e03470a898ef892a2c1c2061577051a405fb3d704b1a379297b",
+      "answer_sha256": "0f16c267bf6cfac6aeedbb7ea9d2b8f64887b021d53660c4ce6efa59d0f6c7e9",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "0f16c267bf6cfac6aeedbb7ea9d2b8f64887b021d53660c4ce6efa59d0f6c7e9",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "fdeb2a9c2ff24f71456454393739b2439bd666e0e44d6b8a086874a8148bb893"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_7b733bca8ea7a9b5439a8130829a01f82d80d1216c14b483",
+      "development_observation_id": "obs_e3191c4f58d7c4aaad6418676b84beba1a7f6567eb28425206b50aa1a554cc10",
+      "development_case_sha256": "2372b4bdf8a1906cea0b7b2dfba6583475a87cb630246e6e39c428dde974d207",
+      "answer_sha256": "6443ae1406e38f97c85d01acb89ade86a420e27a2fdde7b3b4d0616dcdf644ad",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "6443ae1406e38f97c85d01acb89ade86a420e27a2fdde7b3b4d0616dcdf644ad",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "1ead493d89b724bb5954239dafc156c674050bc287b3707c0ea0777656ba9315"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_910382f7536802453bef77bd1709379d07d953cf93941b67",
+      "development_observation_id": "obs_afd8d3c3a20a7834c9e3df8744cf3b81023f7246804316d66679c83bc81587be",
+      "development_case_sha256": "bfa5a829c45affe17849fe9234c234198739f674b4feebdd1ab9bdcb96e2e3c3",
+      "answer_sha256": "0f2dfd61e25b15a0c9fd9825fe2c6a1d00a17e4f54da330ee442174a17553d69",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "0f2dfd61e25b15a0c9fd9825fe2c6a1d00a17e4f54da330ee442174a17553d69",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "f11442a543ec4c11db24709c7b9477becef788ea72e8da5bd9b5b5cfbaa5ff04"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_951c7a86db5edf603b70ee1cc89abae178135dc12281b04b",
+      "development_observation_id": "obs_4c8593eb758a367e2aeb08b51f08b7737dc7113a81c25bdd20782d2350d0c423",
+      "development_case_sha256": "26a83e49a09e0b493e85fbf4b2b026f55e885338fec64f1f9e279ce21bbf6c6f",
+      "answer_sha256": "e7081f5afa0667cebf4dc41697c046935c90e816711203d4861b26defb73d7e4",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "e7081f5afa0667cebf4dc41697c046935c90e816711203d4861b26defb73d7e4",
+        "claim_count": 12,
+        "supported_claim_count": 10,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 2,
+            "supported": false,
+            "citation_labels": [],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 3,
+            "supported": true,
+            "citation_labels": [
+              "[C4]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 4,
+            "supported": true,
+            "citation_labels": [
+              "[C5]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 5,
+            "supported": false,
+            "citation_labels": [],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 6,
+            "supported": true,
+            "citation_labels": [
+              "[C7]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 7,
+            "supported": true,
+            "citation_labels": [
+              "[C8]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 8,
+            "supported": true,
+            "citation_labels": [
+              "[C9]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 9,
+            "supported": true,
+            "citation_labels": [
+              "[C10]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 10,
+            "supported": true,
+            "citation_labels": [
+              "[C11]"
+            ],
+            "rubric_fact_indices": [
+              7
+            ]
+          },
+          {
+            "claim_index": 11,
+            "supported": true,
+            "citation_labels": [
+              "[C12]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 0.8333333333333334
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 0.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "8b4ae26d276bc837ee0cfd6b5e7eecd40eb57d2ed7343f2ce7f9a7d6b1046d80"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_9c4add3271dea1509b0bc93c4b0df16c096b2c597a440ea1",
+      "development_observation_id": "obs_914a1220023350f7f93a97cee06c8544c0bbe4ba4f7e7c5b340a9c4408c64990",
+      "development_case_sha256": "89521b2f83a67b40aa40362696bc800b19ef54332ec6c8e8428910e9d1625821",
+      "answer_sha256": "1a3b71e790c2a611c84af0c6eec12549d86304a3dce207785adda4f78f790440",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "1a3b71e790c2a611c84af0c6eec12549d86304a3dce207785adda4f78f790440",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 0.0,
+        "claim_support": 1.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "387406992dd84bf9e9f9b0abb8399940433d54586b0b4fa8d064ef8de28aa377"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_9e0959dbb55f9505a5ff5bd2ddf478de665b07de88a1195a",
+      "development_observation_id": "obs_3162477f5236807792e39a866d8e4c7651fad1b52585a8d6198cbf54ef1e2bba",
+      "development_case_sha256": "dc61a5f35be34a3528faa8a024ba482646d6dafdeff9b68611c969e3c81faef1",
+      "answer_sha256": "134239e161e005447dc6e22c72139dfad36ce68d405bbca449b0e3adfffadb8b",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "134239e161e005447dc6e22c72139dfad36ce68d405bbca449b0e3adfffadb8b",
+        "claim_count": 12,
+        "supported_claim_count": 10,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 2,
+            "supported": false,
+            "citation_labels": [],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 3,
+            "supported": true,
+            "citation_labels": [
+              "[C4]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 4,
+            "supported": true,
+            "citation_labels": [
+              "[C5]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 5,
+            "supported": false,
+            "citation_labels": [],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 6,
+            "supported": true,
+            "citation_labels": [
+              "[C7]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 7,
+            "supported": true,
+            "citation_labels": [
+              "[C8]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 8,
+            "supported": true,
+            "citation_labels": [
+              "[C9]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 9,
+            "supported": true,
+            "citation_labels": [
+              "[C10]"
+            ],
+            "rubric_fact_indices": []
+          },
+          {
+            "claim_index": 10,
+            "supported": true,
+            "citation_labels": [
+              "[C11]"
+            ],
+            "rubric_fact_indices": [
+              7
+            ]
+          },
+          {
+            "claim_index": 11,
+            "supported": true,
+            "citation_labels": [
+              "[C12]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 0.8333333333333334
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 0.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "34d2684e32f65fd35a04d21341d082f2bb0f11acbe53a6f6990582a9a6dd246c"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_9f339ae1ec00cb5c302ea13c1b38b5cbab7236c10d1645b8",
+      "development_observation_id": "obs_608e11cf51fab8e009d048de3a20f6310acaaa17b1880deb2613f3e78c85944b",
+      "development_case_sha256": "ea04c0e5b5ea7ccf42f5697d81cc1b283f7b15a4ac0e9fbb0f6da99df7ed0e8b",
+      "answer_sha256": "d57e018841343c746b09ceb71b1743281cb30096fb2a50146eafe1658c01c34f",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "d57e018841343c746b09ceb71b1743281cb30096fb2a50146eafe1658c01c34f",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "dd1361a6d1e721b6ece35c4b78bd6283d022ef478f8af91e6f04e11245db532c"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_a0b6225f06f4354602d54226243a5b46604ad502f4b8ecbe",
+      "development_observation_id": "obs_31375c536144df8b08b8ca06a2de441797a5fb7901c536eb06e227117c977c25",
+      "development_case_sha256": "2ca04591eb4478ac2de744f1f61f1eccef60984c0c1f095b3a7ff92028ba978c",
+      "answer_sha256": "eddbf92dceabd9e63227393dc57259ea551bda40273e819c80ce7d9ba8bfd154",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "eddbf92dceabd9e63227393dc57259ea551bda40273e819c80ce7d9ba8bfd154",
+        "claim_count": 1,
+        "supported_claim_count": 1,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "9de2db342fbb240124207fa8d50adaf779bb81d5c2d6b287e59158fcc9797b47"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_a80d9787c41d02593327c2d956341a6e950ffd4cc6f03fa0",
+      "development_observation_id": "obs_ef279e93dc3ada39dbc53900a68659d464cdcf7d548adec4dd60097bb9c5ab2a",
+      "development_case_sha256": "2c20f2c2a315357e76f8d3eabb41576b6ac87c8f2732a84d2be1f350a37f83f9",
+      "answer_sha256": "8423f366fd8a540d2cd79363331c269a60a08cb3e368f9785045c6432f61fd27",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "8423f366fd8a540d2cd79363331c269a60a08cb3e368f9785045c6432f61fd27",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "463e0b474e972d90005eedfe3a72dc6f8564a9e224745ecfd89c44a0aa93b69d"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_b3148b6e3c292cd884d0e7b8e0f082451136dbef824c7584",
+      "development_observation_id": "obs_1951118e2eb66869928cebe760cfe6b80060f26d0ecd246962a37b0e91a1cb7e",
+      "development_case_sha256": "e8b24f824d030f29de0cef5b22bbe8d3954d2c5d10d54d1f05c1382ff6956bcc",
+      "answer_sha256": "392e7e7a09e58350c9d0a8585c292f4c9a52e2482dcf47ced2a29a0ee9f7e2b2",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "392e7e7a09e58350c9d0a8585c292f4c9a52e2482dcf47ced2a29a0ee9f7e2b2",
+        "claim_count": 1,
+        "supported_claim_count": 1,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "59e647c4fafdb74693d853c11b6c749df6c3e07053f3c23ee528c2ff6aaecfdb"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_b3a8c7def0585a642c5421360ad232afbac615b0a21debf6",
+      "development_observation_id": "obs_3333a9df2d7018a9cda454877c8c0841bfcde34736ea7ea7203ed5e9827e8e3b",
+      "development_case_sha256": "d368c1acea6473b154a92206d82b8507a86fb1e1bf905f574b0dfc6412c6371d",
+      "answer_sha256": "bddc65f447b675c0cbbf061517d92ee02bdeb53f03e9b5b7494b362f8bc94ab5",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "bddc65f447b675c0cbbf061517d92ee02bdeb53f03e9b5b7494b362f8bc94ab5",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 0.0,
+        "claim_support": 1.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "29845276752129914ae7f8fd2f3f697c81d2595594c6013c27c345412bdeed17"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_ba2272d607720552a3c0624264c9e28327e337d11383d32b",
+      "development_observation_id": "obs_7a77defc25b286f731f17ddaa9d99be73f4b9bcd978bceeea5e7c309a79417b1",
+      "development_case_sha256": "2ff753466a00340504304dc7fbfc72808e2cb818a38a97ebe0cf47ec3205be7d",
+      "answer_sha256": "43886723c98e056ee7dc2d2467b42c0856c116c9fbd0dec28f9ba5a0a0523577",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "43886723c98e056ee7dc2d2467b42c0856c116c9fbd0dec28f9ba5a0a0523577",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "7450abaf3eafa2e2c44b57b77f62df342946cee0e838e68d334ee6f4e1c5a266"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_bae48df186a35ee41bec3f90c21f001c0699cec9ba646a46",
+      "development_observation_id": "obs_723ca6d1205f3779776acf567b168c08e98410cb26477975cbefdc76d8e2b913",
+      "development_case_sha256": "c528ceb764a93559d2afdf9b49e1cb19e256e30f69680647bd72395a95de5323",
+      "answer_sha256": "0e5ebe61c959a45e588e1619891041b57adeebebab0ae8d1d827bd8081308865",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "0e5ebe61c959a45e588e1619891041b57adeebebab0ae8d1d827bd8081308865",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "3cf95e3a8429fc78b1f2be0051ccccca8fff365f3a4ba585d86efde7fd516e6e"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_bc15b5186a48f3fb5a4fdfa7119e002c86562d062112e15a",
+      "development_observation_id": "obs_f5b3bd1d6607393e6596eb2f8bfba6566bdc5b1eb07b19636877cbef86f22260",
+      "development_case_sha256": "62039c1bb454271eaa626152f8ff19437abf8e26de73134a4862b4902ff2c1c3",
+      "answer_sha256": "57d70a4360939c1d86901c053a714df9619926ccf818e89a685bbefd3759d93b",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "57d70a4360939c1d86901c053a714df9619926ccf818e89a685bbefd3759d93b",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "8fa023d1356ee32f8d78b5f1478d0dc5448ff0a669d5dc4afd84f65961c3ac0a"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_bfb747681ecb36e4e76b702f0f580c7c73313fdd7d2a8c35",
+      "development_observation_id": "obs_82ccd0ba36908b17e4906ac016811b36fc20b0221506eb20da319e96e0297ffa",
+      "development_case_sha256": "d2879b666e39c5c9ace6b4ba068c9048171e0c5aed03ab6cbaa6f5a92fe08658",
+      "answer_sha256": "b9bd000870ebb3346c97fdec995362548f3a792328239a67205eb478d458afcd",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "b9bd000870ebb3346c97fdec995362548f3a792328239a67205eb478d458afcd",
+        "claim_count": 1,
+        "supported_claim_count": 1,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "e50e7d17f0c8656a0284b01e3252de0b16b630505ae44804bf269aebb169f0cc"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_c36f1992949b263216201addaa13dbf42ac310c7e84ef255",
+      "development_observation_id": "obs_216200b2676f3f632f3483035ca75ed569f23638e249a95e87dd8fc8d14c30bf",
+      "development_case_sha256": "786e2f67eaf14527256795c3607c498770c936542ebe608d9efc8540d3a30619",
+      "answer_sha256": "41b549a171302e0a554bba8daf18b0d1a7e70c11b003c9e16a340abf23f56372",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "41b549a171302e0a554bba8daf18b0d1a7e70c11b003c9e16a340abf23f56372",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "098e40ea7fbff90a63558bcb30fb8812c1fcdd3d70e1932942e4c85bc6820551"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_d1cbc645e89ab995fcf8913c8de71cdb128ecdaaa425e46f",
+      "development_observation_id": "obs_9be9f3b04888c492a4d8bbe7a82709c842331421fda4355c63f9ff5b625872ab",
+      "development_case_sha256": "42d6e8e33808dc775e8497700bd1f22560d18e05f310b1efccd83df5e28eac22",
+      "answer_sha256": "88367153892a35fc9792789e4946e8b6d59b9e04edd72c1d52a66a3d80e42b46",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "88367153892a35fc9792789e4946e8b6d59b9e04edd72c1d52a66a3d80e42b46",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 0.0,
+        "claim_support": 1.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "b21fa9d66eeac8ee555506dc79b1cac180ef7bbddfd4ccf10b5903801734a212"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_d395a9620fecc6d6a67009b93e9dfdc3349b68c92a74ec78",
+      "development_observation_id": "obs_8fcd57be3434234a259ac5898953bddfb455426e7f030654457e60ab384f4393",
+      "development_case_sha256": "c74bcc75805a0922dae9ab17c7a32bd039d0c92043e42def66d97b78adc67ac7",
+      "answer_sha256": "22f7ae74633e23982d547b750ea03077d82a35ab8cac9498f7c269aeb8754299",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "22f7ae74633e23982d547b750ea03077d82a35ab8cac9498f7c269aeb8754299",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": []
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "e84aa729dc380b6e0edb89ba4fcc42468aa3b41e2001d3d16def06586716d1c9"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_dc4bae8c04f8dc78d2a3595ca3dfecc3cbef1823bb6db736",
+      "development_observation_id": "obs_513db99decd7dcb05c651d4b7d200ddcfb4a0e2687cdfa99452890af86f4fe56",
+      "development_case_sha256": "14bffdfa302fc70d0129b4d744113f8c8d67996405bd3017be115b0fffc50f8f",
+      "answer_sha256": "928ef62cbd9a68c549898e245d35cde7cdcd82c7d7da2ec95545d66c5b99fd85",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "928ef62cbd9a68c549898e245d35cde7cdcd82c7d7da2ec95545d66c5b99fd85",
+        "claim_count": 1,
+        "supported_claim_count": 1,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": []
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "9dba2759eeeaaeb1f9d5d8a1ec22ebda8efe5848d38d72a8eddc68696705df64"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_dee9327e1fda88dffd54ca056b83d3e3c6ad5dd4cdb639ff",
+      "development_observation_id": "obs_4a750cad221546ed5e7589f0a4aa78a7cd76b2357a755cee83291298295c0539",
+      "development_case_sha256": "29fd48d88edd65a4c50fd09ae44ae2c2a5878006ec1cda8d12c6e6f45330f18f",
+      "answer_sha256": "7fe31ddd1ad18203e9e53ed78c111b4c0018b8af64b55b1b7efad26c61e80c1f",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "7fe31ddd1ad18203e9e53ed78c111b4c0018b8af64b55b1b7efad26c61e80c1f",
+        "claim_count": 1,
+        "supported_claim_count": 1,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": []
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "1933e63b2c3aa8551e40b78cebc50e9a695e8c7c9d75516621e7f92808a80324"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_e2f0c3c188393094958588b8df706aba0da804736744d76e",
+      "development_observation_id": "obs_9849befca8119a4a3f39317f68976217abddfb229f213e72498263e00577cd7b",
+      "development_case_sha256": "628a3ecc07e7db7fc333743cd6b694445b850a24628d9b0ad88ba46e39dcd43b",
+      "answer_sha256": "8378dc44639ff2a9656f3a66388d4735e5245c145ca58f4137d732f078a57c54",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "8378dc44639ff2a9656f3a66388d4735e5245c145ca58f4137d732f078a57c54",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "f16394dd89e87e37f327d5bc7daddba40a27ae3b731fba85aef15149c0ec5076"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_eed5441c05aa5a371818b197fde0416d0794cdd52e73b7b7",
+      "development_observation_id": "obs_d5af6daafd8113d5a2effbc68466994c593f108b36dd6ec1dda3d734a72a8363",
+      "development_case_sha256": "20ba2c4ca3e318587d47ccbef60d4bde3a8cb0c85e1b5e455eb302161c563546",
+      "answer_sha256": "81ff5fc37ea47ae1d5899f07e14533ef45e6d93d3c236056ce677c37f41c657d",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "81ff5fc37ea47ae1d5899f07e14533ef45e6d93d3c236056ce677c37f41c657d",
+        "claim_count": 3,
+        "supported_claim_count": 3,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 2,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": []
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "5b010d3c709890ef46b0f7313f8bc6dea544e438719b01aa5def10661c8ea055"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_f87af5ffbafea3fd93f02f1e552479cf2ad7bb35e4ea5b24",
+      "development_observation_id": "obs_7cf2f2fa0be21848a61a07f29f4b954a69616b949e8feea648922a8f765c68d5",
+      "development_case_sha256": "4346b31a36f85ab84558d7b4c76441a29e4ba28a512efb13a27ce1d61a015dc2",
+      "answer_sha256": "39c9210a1714a8169731255296049193d24687328002890b3c1f4357fc9b3962",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "gpt6_luna_reference_judge_v1",
+        "method": "automated_model",
+        "source_system": "OpenAI Responses API",
+        "model_snapshot": "gpt-6-luna",
+        "instructions_sha256": "3545a0755900cb5537eca91bc293e19b52e5090c5b9f59d6ebc0d1d22a69e559"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "39c9210a1714a8169731255296049193d24687328002890b3c1f4357fc9b3962",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "c2bf5fba23af5cf7a7e1ce87b2b1c35bce95102417d5f3bc5b53cde6eb884548"
+    }
+  ],
+  "reference_bundle_sha256": "4a5c0b8457d530de662d3e4e1dec78268f76fc95f56cef6631286425b9b65022"
+}

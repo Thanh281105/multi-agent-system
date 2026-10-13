@@ -1,0 +1,28 @@
+{
+  "candidate_product_record_count": 1577,
+  "candidate_title_author_group_count": 1553,
+  "excluded_duplicate_work_group_count": 0,
+  "excluded_duplicate_work_record_count": 0,
+  "excluded_eval_external_id_count": 200,
+  "excluded_eval_work_group_count": 198,
+  "full_profile": {
+    "product_count": 1777,
+    "products_sha256": "95125b20640e5bac30a12def57865ad8080c071cc83eb8bd6ca3309639884485",
+    "raw_archive_sha256": "371a618ed66425f8f2738ab01514ab2f20ed1bed645258b509fcce443bd32bbb",
+    "review_count": 76755,
+    "reviews_sha256": "fa84ca08bcc6e37923ba7a4fae4e8370aa93093b76613fc217506a86314f7f32",
+    "snapshot_sha256": "c76a52fa6b3c3c3a934537699998c460a95226320861f4935f04560240b06e09"
+  },
+  "group_count_with_value": {
+    "page_count": 1335,
+    "price_vnd": 1553,
+    "rating": 1553,
+    "source_review_count": 1553
+  },
+  "grouping_rule": "NFKD_casefold_unaccented_title_authors_strip_parenthetical_edition_markers_v1",
+  "id_disjoint_candidate_record_count": 1577,
+  "prompt_eligibility_rule": "same name, author, price, and rating filters as build_catalog_pair_candidate.py",
+  "prompt_eligible_group_count_with_page_count": 1268,
+  "prompt_eligible_title_author_group_count": 1439,
+  "schema_version": "thesis_validation_candidate_pool_v1"
+}
