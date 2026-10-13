@@ -799,7 +799,7 @@ class ObservationExecutorFactoryV3(Protocol):
 
 
 class EvaluationV3ObservationRunner:
-    """Run or resume one schedule while retaining the checkpoint writer lock."""
+    """Run a frozen P7 or explicitly bound dynamic schedule with one checkpoint."""
 
     def __init__(
         self,
@@ -809,16 +809,57 @@ class EvaluationV3ObservationRunner:
         checkpoint_path: Path,
         cases: Mapping[str, EvaluationCaseV3],
         executor_factory: ObservationExecutorFactoryV3,
+        protocol_sha256_override: str | None = None,
+        case_group_bindings_override: Mapping[str, str] | None = None,
+        warmup_case_id_override: str | None = None,
     ) -> None:
         validate_evaluation_protocol_v3(protocol)
         self.protocol = protocol
-        self.protocol_sha256 = evaluation_protocol_sha256_v3(protocol)
+        dynamic_bindings = (
+            protocol_sha256_override,
+            case_group_bindings_override,
+            warmup_case_id_override,
+        )
+        if any(value is not None for value in dynamic_bindings) and not all(
+            value is not None for value in dynamic_bindings
+        ):
+            raise ValueError("dynamic validation requires all three protocol bindings")
+        if protocol_sha256_override is not None and re.fullmatch(
+            r"[a-f0-9]{64}", protocol_sha256_override
+        ) is None:
+            raise ValueError("dynamic protocol hash must be a lowercase SHA-256 digest")
+        self.protocol_sha256 = (
+            protocol_sha256_override or evaluation_protocol_sha256_v3(protocol)
+        )
+        self.case_group_bindings = dict(
+            case_group_bindings_override
+            if case_group_bindings_override is not None
+            else {
+                item.case_id: item.work_group_id
+                for item in protocol.experiment.pilot_cases
+            }
+        )
+        self.warmup_case_id = (
+            warmup_case_id_override
+            if warmup_case_id_override is not None
+            else protocol.experiment.warmup_case_id
+        )
         self.schedule = tuple(schedule)
         self.schedule_sha256 = pilot_schedule_sha256_v3(self.schedule)
         self.run_id = _schedule_run_id(self.schedule)
         self.limits = EvaluationResourceLimitsV3.from_budget(protocol.experiment.budget)
         self.checkpoint_path = checkpoint_path
-        self.cases = _validate_cases(protocol, self.schedule, cases)
+        scheduled_case_ids = {turn.identity.case_id for turn in self.schedule}
+        if protocol_sha256_override is not None and set(
+            self.case_group_bindings
+        ) != scheduled_case_ids:
+            raise ValueError("dynamic case bindings must exactly cover the schedule")
+        self.cases = _validate_cases(
+            protocol,
+            self.schedule,
+            cases,
+            expected_case_groups=self.case_group_bindings,
+        )
         self.execution_case_sha256_by_id = {
             case_id: execution_case_sha256_v3(case)
             for case_id, case in self.cases.items()
@@ -833,7 +874,16 @@ class EvaluationV3ObservationRunner:
             self.schedule,
             run_id=self.run_id,
             protocol_sha256=self.protocol_sha256,
+            expected_case_groups=self.case_group_bindings,
+            warmup_case_id=self.warmup_case_id,
         )
+        if protocol_sha256_override is not None:
+            _validate_dynamic_schedule_coverage(
+                self.schedule,
+                case_group_bindings=self.case_group_bindings,
+                warmup_case_id=self.warmup_case_id,
+                variant_ids=tuple(variant.variant_id for variant in protocol.variants),
+            )
 
     async def run(self) -> EvaluationRunResultV3:
         with CheckpointWriterV3(
@@ -1577,10 +1627,17 @@ def _validate_cases(
     protocol: EvaluationProtocolV3,
     schedule: Sequence[ScheduledTurnV3],
     cases: Mapping[str, EvaluationCaseV3],
+    *,
+    expected_case_groups: Mapping[str, str] | None = None,
 ) -> dict[str, EvaluationCaseV3]:
-    expected_groups: dict[str, str] = {
-        item.case_id: item.work_group_id for item in protocol.experiment.pilot_cases
-    }
+    expected_groups = (
+        dict(expected_case_groups)
+        if expected_case_groups is not None
+        else {
+            item.case_id: item.work_group_id
+            for item in protocol.experiment.pilot_cases
+        }
+    )
     required_ids = {turn.identity.case_id for turn in schedule}
     supplied_ids = set(cases)
     missing = sorted(required_ids - supplied_ids)
@@ -1603,13 +1660,21 @@ def _validate_schedule_against_protocol(
     *,
     run_id: str,
     protocol_sha256: str,
+    expected_case_groups: Mapping[str, str] | None = None,
+    warmup_case_id: str | None = None,
 ) -> None:
     if not schedule:
         raise ValueError("evaluation schedule cannot be empty")
     variant_ids = {variant.variant_id for variant in protocol.variants}
-    case_groups: dict[str, str] = {
-        case.case_id: case.work_group_id for case in protocol.experiment.pilot_cases
-    }
+    case_groups = (
+        dict(expected_case_groups)
+        if expected_case_groups is not None
+        else {
+            case.case_id: case.work_group_id
+            for case in protocol.experiment.pilot_cases
+        }
+    )
+    expected_warmup_case_id = warmup_case_id or protocol.experiment.warmup_case_id
     if [turn.schedule_index for turn in schedule] != list(range(len(schedule))):
         raise ValueError("schedule indices must be contiguous from zero")
     measured_orders = [
@@ -1631,9 +1696,78 @@ def _validate_schedule_against_protocol(
             raise ValueError("schedule case and work group differ from the protocol")
         if (
             identity.turn_kind is ScheduledTurnKindV3.WARMUP
-            and identity.case_id != protocol.experiment.warmup_case_id
+            and identity.case_id != expected_warmup_case_id
         ):
             raise ValueError("warmup schedule item uses a non-warmup case")
+
+
+def _validate_dynamic_schedule_coverage(
+    schedule: Sequence[ScheduledTurnV3],
+    *,
+    case_group_bindings: Mapping[str, str],
+    warmup_case_id: str,
+    variant_ids: tuple[str, ...],
+) -> None:
+    warmup_turns = tuple(
+        turn
+        for turn in schedule
+        if turn.identity.turn_kind is ScheduledTurnKindV3.WARMUP
+    )
+    measured_turns = tuple(
+        turn
+        for turn in schedule
+        if turn.identity.turn_kind is ScheduledTurnKindV3.MEASURED
+    )
+    measured_case_ids = tuple(
+        case_id for case_id in case_group_bindings if case_id != warmup_case_id
+    )
+    measured_work_group_ids = tuple(
+        case_group_bindings[case_id] for case_id in measured_case_ids
+    )
+    if len(measured_work_group_ids) != len(set(measured_work_group_ids)):
+        raise ValueError("dynamic validation work groups must be unique")
+    if case_group_bindings.get(warmup_case_id) in set(measured_work_group_ids):
+        raise ValueError("development warmup must be outside measured work groups")
+    warmup_keys = tuple(
+        (
+            turn.identity.case_id,
+            turn.identity.work_group_id,
+            turn.identity.variant_id,
+            turn.identity.repetition,
+        )
+        for turn in warmup_turns
+    )
+    expected_warmups = {
+        (
+            warmup_case_id,
+            case_group_bindings[warmup_case_id],
+            variant_id,
+            0,
+        )
+        for variant_id in variant_ids
+    }
+    measured_keys = tuple(
+        (
+            turn.identity.case_id,
+            turn.identity.work_group_id,
+            turn.identity.variant_id,
+            turn.identity.repetition,
+        )
+        for turn in measured_turns
+    )
+    expected_measured = {
+        (case_id, work_group_id, variant_id, 0)
+        for case_id, work_group_id in case_group_bindings.items()
+        if case_id != warmup_case_id
+        for variant_id in variant_ids
+    }
+    if (
+        len(warmup_keys) != len(expected_warmups)
+        or set(warmup_keys) != expected_warmups
+        or len(measured_keys) != len(expected_measured)
+        or set(measured_keys) != expected_measured
+    ):
+        raise ValueError("dynamic schedule must cover each frozen arm/case cell once")
 
 
 def _schedule_run_id(schedule: Sequence[ScheduledTurnV3]) -> str:

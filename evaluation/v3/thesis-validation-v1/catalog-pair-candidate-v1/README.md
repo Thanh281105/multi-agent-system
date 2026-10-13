@@ -16,6 +16,12 @@ The manifest binds this generator, the normalized source snapshot, and all three
 generated files. Hash-bound JSONL files use UTF-8 with LF line endings.
 The source archive is CC0-1.0; raw review comments were not read or included.
 
+Prepare the dynamic schedule preview with
+`python evaluation/v3/thesis-validation-v1/prepare_catalog_validation_plan.py`.
+It uses only the prompt roster, keeps the answer key outside execution cases,
+and writes a draft-only schedule; the preview does not authorize or perform a
+live run.
+
 ## Required review before locking
 
 - Human review must merge works missed by the title-author heuristic and reject
