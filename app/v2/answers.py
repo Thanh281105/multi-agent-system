@@ -82,6 +82,11 @@ _COMPACT_DRAFT_INSTRUCTIONS = (
     + " Return the smallest complete claim set that satisfies the listed requirements; "
     "omit optional evidence and claims."
 )
+_COMPACT_DRAFT_SCHEMA_RETRY_INSTRUCTIONS = (
+    _COMPACT_DRAFT_INSTRUCTIONS
+    + " The previous response did not match the required answer structure. Return one "
+    "complete response using only the supplied claim forms and evidence selectors."
+)
 _COMPACT_REPAIR_INSTRUCTIONS = (
     _COMPACT_DRAFT_INSTRUCTIONS
     + " Return a complete corrected draft. Keep selectors for claims not listed in "
@@ -614,21 +619,25 @@ class GroundedAnswerProducer:
                 generated.value,
                 schema=model_schema,
             )
-        except (TypeError, ValueError) as exc:
-            if retried_compact:
-                raise GroundingContractError("answer_draft_invalid") from exc
-            instructions = _COMPACT_DRAFT_INSTRUCTIONS
-            generated = await generate(
-                instructions,
-                include_optional_items=False,
-            )
+        except (TypeError, ValueError):
+            if not retried_compact:
+                instructions = _COMPACT_DRAFT_INSTRUCTIONS
+                generated = await generate(instructions, include_optional_items=False)
             try:
                 draft = _normalize_model_answer_draft(
                     generated.value,
                     schema=model_schema,
                 )
-            except (TypeError, ValueError) as retry_exc:
-                raise GroundingContractError("answer_draft_invalid") from retry_exc
+            except (TypeError, ValueError):
+                instructions = _COMPACT_DRAFT_SCHEMA_RETRY_INSTRUCTIONS
+                generated = await generate(instructions, include_optional_items=False)
+                try:
+                    draft = _normalize_model_answer_draft(
+                        generated.value,
+                        schema=model_schema,
+                    )
+                except (TypeError, ValueError) as retry_exc:
+                    raise GroundingContractError("answer_draft_invalid") from retry_exc
         metadata = getattr(generated, "metadata", None)
         return _DraftAttempt(
             draft=draft,
