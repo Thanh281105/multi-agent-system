@@ -14,19 +14,23 @@ kiểm tra lại hash request/response trong `run-manifest.json`.
 `archive-manifest.json` ràng buộc bốn file portable và hash của raw capture.
 
 Model tham chiếu khác model SUT/judge `gpt-5.4-mini-2026-03-17`, nên có thể dùng
-để đo mức đồng thuận giữa hai model. Điều này không thay thế hiệu chuẩn với
-người chấm: đồng thuận giữa LLM không phải xác nhận độc lập của con người. 752
-lượt judge P8 và phép so sánh với các nhãn tham chiếu này chưa được chạy trong
-artifact này.
+để đo mức đồng thuận giữa hai model. Kiểm tra trạng thái ngày 2026-10-13 thấy
+32/32 job calibration development và 720/720 job P8 held-out đã hoàn tất trong
+`output/evaluation-v3/heldout-live-v3`. Calibration freeze ghi nhận bất đồng
+16/49 nhãn claim (32,65%), với ngưỡng lỗi đúng bằng tỷ lệ này. Đây không phải
+hiệu chuẩn với người chấm; đồng thuận giữa LLM không xác nhận độ đúng ngữ nghĩa.
+Các output P8 nằm trong thư mục bị `.gitignore` loại khỏi checkout sạch, dùng
+judge cùng model với SUT và thuộc split held-out đã được dùng remediation.
 
 Nguồn được xác minh bằng cách ghép 32 observation ID và receipt SHA-256 với
 checkpoint `output/evaluation-v3/pilot-live-v3/pilot-checkpoint.v3.jsonl`;
 schedule có 8 ca × 4 nhánh đo, không gồm warmup. Tuy nhiên, protocol P7 trong
 artifact bind gold `f6988415…`, khác hash `31bcb31c…` của
 `evaluation/v3/gold.v3.json` hiện tại; hash split cũng khác (`d4af32e7…` so với
-`49adf66b…`). Checkpoint không ghi Git SHA của SUT. Vì vậy các trace này không
-xác nhận hành vi của mã `app/v2` hiện ở HEAD và không đủ căn cứ để chốt sửa
-source.
+`49adf66b…`). Runtime manifest bind `source_head=9adbf74c74bed0439ba317cc3956c9dea1c99249`
+(xác minh 2026-10-04), cũ hơn các thay đổi `app/v2` hiện tại. Vì vậy các trace
+này không xác nhận hành vi của source hiện tại. Không gửi lại các request chỉ
+để tái tạo chúng; lần chạy P7 mới phải dùng đúng source snapshot đã khóa.
 
 Muốn tái tạo các request, dùng packet input và bản script đã lưu bên dưới; chạy
 lại sẽ phát sinh phí API mới:
