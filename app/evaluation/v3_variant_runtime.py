@@ -140,8 +140,9 @@ class EvaluationV3VariantPolicy:
 
     @property
     def planner_runtime_mode(self) -> ModelRuntimeMode:
-        """Share one deterministic initial plan across all benchmark variants."""
-        return "off"
+        if self.planning_mode is PlanningModeV3.FIXED:
+            return "off"
+        return "required"
 
     def actor_id(self, stage: str, supplied_agent_id: str) -> str:
         if self.agent_topology is AgentTopologyV3.SINGLE:
