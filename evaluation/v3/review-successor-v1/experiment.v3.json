@@ -141,8 +141,8 @@
     "max_provider_attempts_per_turn": 16,
     "provider_concurrency": 2,
     "max_retries": 1,
-    "attempt_timeout_seconds": 18.0,
-    "turn_deadline_seconds": 60.0,
+    "attempt_timeout_seconds": 30.0,
+    "turn_deadline_seconds": 90.0,
     "max_input_tokens_per_generation": 12000,
     "max_output_tokens_per_generation": 1200
   },
