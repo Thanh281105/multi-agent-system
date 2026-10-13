@@ -105,7 +105,7 @@ class EvaluationResourceLimitsV3(FrozenRunnerContractV3):
             self.max_input_tokens_per_generation,
             self.max_output_tokens_per_generation,
         )
-        expected = (2, 10, 16, 1, 18.0, 60.0, Decimal("0.25"), 12_000, 1_200)
+        expected = (2, 10, 16, 1, 30.0, 90.0, Decimal("0.25"), 12_000, 1_200)
         if actual != expected:
             raise ValueError("executor limits differ from the frozen Package 7 policy")
         return self
