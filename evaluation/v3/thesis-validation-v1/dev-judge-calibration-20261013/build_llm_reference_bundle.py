@@ -1,4 +1,4 @@
-"""Create independent LLM reference labels for P8 development calibration cases."""
+"""Create LLM reference labels from P7 pilot outputs for later P8 judge calibration."""
 
 from __future__ import annotations
 

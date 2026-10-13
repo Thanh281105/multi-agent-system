@@ -872,14 +872,25 @@ Raw trace audit, script tái tạo và toàn bộ số đếm nằm tại
 
 ### 12.6. LLM reference calibration — 2026-10-13 (development only)
 
-Đã tạo 32 nhãn tham chiếu cho packet `heldout-live-v3` bằng `gpt-6-luna` với
-`store=false`; tổng chi phí ước tính `$0.0064505`, dưới cap `$0.25`. Packet,
-output đầy đủ, request manifest và đúng bản script đã chạy được lưu tại
+Đã tạo 32 nhãn tham chiếu bằng `gpt-6-luna` với `store=false` cho 32
+observation đo của pilot P7 (`pilot-live-v3`: 8 ca development × 4 nhánh); đây
+là nhãn tham chiếu để hiệu chuẩn judge P8 trong tương lai, không phải kết quả
+chấm câu trả lời P8. Tổng chi phí ước tính `$0.0064505`, dưới cap `$0.25`.
+Packet, output đầy đủ, request manifest và đúng bản script đã chạy được lưu tại
 [`evaluation/v3/thesis-validation-v1/dev-judge-calibration-20261013`](../evaluation/v3/thesis-validation-v1/dev-judge-calibration-20261013/README.md).
 
-Các nhãn này là reference do LLM tạo trên dữ liệu development, không phải
-ground truth của người chấm. Chúng chưa được dùng để đối chiếu judge
+Các nhãn này đã được ghép với receipt P7 bằng hash JSON canonical, nhưng vẫn là
+reference do LLM tạo trên dữ liệu development, không phải ground truth của
+người chấm. Chúng chưa được dùng để đối chiếu judge
 `gpt-5.4-mini-2026-03-17`; 752 lượt P8 judge đã duyệt chưa được chạy, và chúng
 không chấm P8 r7 ở mục 12.5. Vì vậy vẫn chưa có kết luận semantic về MA so với
 SA.
+
+Kiểm tra trace pilot ghi nhận `ma_adaptive_rag` trả `action_mode_mismatch` ở ca
+`dev_shopping_merchant_01`, trong khi `ma_fixed_rag` và SA trả thẻ checkout chờ
+xác nhận. Đây chỉ là dấu hiệu thăm dò: protocol P7 trong artifact không khớp
+hash của gold hiện tại (`f6988415…` trong protocol so với `31bcb31c…` ở HEAD);
+hash split cũng khác (`d4af32e7…` so với `49adf66b…`). Checkpoint không bind Git
+SHA của SUT. Không thể dùng trace đó để khẳng định lỗi còn tái hiện trên
+`app/v2` ở HEAD hoặc để xác nhận một thay đổi source.
 
