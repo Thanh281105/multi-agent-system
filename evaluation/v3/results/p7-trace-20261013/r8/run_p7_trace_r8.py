@@ -16,10 +16,10 @@ ROOT = Path(__file__).resolve().parents[5]
 os.chdir(ROOT)
 sys.path.insert(0, str(ROOT))
 
-from sqlalchemy.engine import make_url
+from sqlalchemy.engine import make_url  # noqa: E402
 
-from app.core.config import Settings
-from app.db.session import create_database_engine
+from app.core.config import Settings  # noqa: E402
+from app.db.session import create_database_engine  # noqa: E402
 
 OUTPUT_DIR = ROOT / "output" / "evaluation-v3" / "p7-trace-20261013-r8"
 EXPERIMENT = ROOT / "evaluation" / "v3" / "review-successor-v1" / "experiment.v3.json"
@@ -72,9 +72,7 @@ os.environ.update(
     }
 )
 
-from app.evaluation import v3_cli
-from app.evaluation.benchmark_v3 import SuccessorBindingV3, canonical_sha256
-from app.evaluation.v3_gold import load_evaluation_gold_v3
+from app.evaluation import v3_cli  # noqa: E402
 
 common = [
     "--project-root",
@@ -107,45 +105,16 @@ pilot_code = v3_cli.cli(
 if pilot_code != 0:
     sys.exit(pilot_code)
 
-freeze_code = v3_cli.cli(
-    ["repeat-freeze", *common, "--run-key", RUN_KEY, "--output", str(OUTPUT_DIR)]
-)
-if freeze_code != 0:
-    sys.exit(freeze_code)
-
 protocol_bytes = (OUTPUT_DIR / "protocol.v3.json").read_bytes()
-repeat_bytes = (OUTPUT_DIR / "repeat-decision.v3.json").read_bytes()
-loaded = load_evaluation_gold_v3(GOLD, SPLIT, project_root=ROOT)
-binding_data = {
-    "schema_version": "3.1",
-    "binding_id": "review_p8_successor_trace_20261013_r8",
-    "evaluator_contract": "evidence_semantics_v2",
-    "protocol_sha256": hashlib.sha256(protocol_bytes).hexdigest(),
-    "repeat_decision_sha256": hashlib.sha256(repeat_bytes).hexdigest(),
-    "gold_sha256": loaded.gold_sha256,
-    "split_sha256": loaded.split_sha256,
-    "experiment_path": EXPERIMENT.relative_to(ROOT).as_posix(),
-    "gold_path": GOLD.relative_to(ROOT).as_posix(),
-    "split_path": SPLIT.relative_to(ROOT).as_posix(),
-    "runtime_manifest_path": RUNTIME_MANIFEST.relative_to(ROOT).as_posix(),
-    "runtime_manifest_sha256": hashlib.sha256(RUNTIME_MANIFEST.read_bytes()).hexdigest(),
-}
-binding_data["binding_sha256"] = canonical_sha256(binding_data)
-binding = SuccessorBindingV3.model_validate(binding_data)
-(OUTPUT_DIR / "successor-binding.v3.json").write_text(
-    json.dumps(binding.model_dump(mode="json"), indent=2) + "\n",
-    encoding="utf-8",
-)
+protocol = json.loads(protocol_bytes)
 
 print(
     json.dumps(
         {
-            "status": "p7_trace_r8_frozen",
+            "status": "p7_development_pilot_r8_complete",
             "run_id": RUN_ID,
-            "sut_git_revision": json.loads(protocol_bytes)
-            .get("assets", {})
-            .get("sut_git_revision"),
-            "binding_sha256": binding.binding_sha256,
+            "sut_git_revision": protocol.get("assets", {}).get("sut_git_revision"),
+            "protocol_sha256": hashlib.sha256(protocol_bytes).hexdigest(),
             "output": str(OUTPUT_DIR.resolve()),
         }
     )
