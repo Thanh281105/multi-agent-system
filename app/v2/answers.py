@@ -437,6 +437,14 @@ class GroundedAnswerProducer:
                 draft_repairs=1,
             )
         rejection_codes = {item.code for item in repaired_check.rejections}
+        if not repaired_missing and repaired_check.claims:
+            _mark_fallback(repaired.metadata, "answer_repair_removed_unsupported_claims")
+            return _assemble_result(
+                repaired_check.claims,
+                evidence,
+                warnings=("answer_repair_removed_unsupported_claims",),
+                draft_repairs=1,
+            )
         if repaired_missing:
             repair_failure_reason = _repair_fallback_reason(
                 repaired_missing, rejection_codes
