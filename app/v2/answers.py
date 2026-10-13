@@ -86,7 +86,9 @@ _COMPACT_REPAIR_INSTRUCTIONS = (
     _COMPACT_DRAFT_INSTRUCTIONS
     + " Return a complete corrected draft. Keep selectors for claims not listed in "
     "rejections; add supplied selectors matching every missing_required item, even "
-    "if that makes the answer longer. Use only IDs present in catalog."
+    "if that makes the answer longer. Use only IDs present in catalog. For each "
+    "rejected claim, keep only the portion directly supported by supplied selectors, "
+    "or remove it if none is supported; do not preserve unsupported portions by inference."
 )
 
 
@@ -623,7 +625,9 @@ class GroundedAnswerProducer:
             "Keep selectors for claims not listed in rejections. For every missing_required "
             "item, include a supplied fact or evidence selector matching its kind, subject, "
             "and field, even if that makes the answer longer. Use catalog IDs only. "
-            "Do not preserve a rejected value merely because it is plausible."
+            "Do not preserve a rejected value merely because it is plausible. For each "
+            "rejected claim, keep only the portion directly supported by supplied selectors, "
+            "or remove it if none is supported; do not preserve unsupported portions by inference."
         )
         compact_previous = [
             {
