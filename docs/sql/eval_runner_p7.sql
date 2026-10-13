@@ -4,10 +4,10 @@
 --   psql -h 127.0.0.1 -p 55433 -U postgres -d evaluation -v ON_ERROR_STOP=1 -f docs/sql/eval_runner_p7.sql
 -- Then set the secret interactively in psql (do not put it in this file):
 --   \password eval_runner
--- Point the runner at:
+-- The r8 launcher defaults to this URL (no password embedded):
 --   postgresql+psycopg://eval_runner@127.0.0.1:55433/evaluation
--- The saved r7 launcher currently hardcodes `postgres`; update its local
--- DATABASE_URL/--database-url before using this role.
+-- Set EVALUATION_DATABASE_URL only when the DBA provides a different endpoint;
+-- the launcher rejects URLs whose username is not `eval_runner`.
 -- Use a NEW run_id for each run: v3 derives conversation/fixture IDs from it.
 -- This avoids granting DELETE on prior-run state. The roster has seven read-only
 -- cases and one unconfirmed checkout proposal; it does not execute an order.
