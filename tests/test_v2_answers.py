@@ -531,6 +531,7 @@ async def test_model_comparison_uses_checked_numeric_fact_pair() -> None:
         cheaper_ref.evidence_id,
         costlier_ref.evidence_id,
     }
+    assert "emit a comparison claim for that field" in runtime.calls[0]["instructions"]
     assert len(runtime.calls) == 1
 
 
