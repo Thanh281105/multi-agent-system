@@ -785,7 +785,7 @@ def _deterministic_draft(
         return None, False
 
     selected = _select_deterministic_candidates(candidates, requirements)
-    truncated = len(selected) < len(candidates)
+    truncated = not requirements and len(selected) < len(candidates)
     return AnswerDraft(
         claims=tuple(candidate.draft for candidate in selected)
     ), truncated
@@ -853,6 +853,9 @@ def _select_deterministic_candidates(
             raise GroundingEvidenceError("required_evidence_exceeds_claim_limit")
         if _selected_public_chars(candidates, selected) > _MAX_PUBLIC_ANSWER_CHARS:
             raise GroundingEvidenceError("required_evidence_exceeds_answer_limit")
+
+    if requirements:
+        return [candidates[index] for index in sorted(selected)]
 
     covered_kinds = {
         kind
