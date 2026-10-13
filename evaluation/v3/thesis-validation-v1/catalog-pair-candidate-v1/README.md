@@ -21,6 +21,9 @@ The source archive is CC0-1.0; raw review comments were not read or included.
 - Human review must merge works missed by the title-author heuristic and reject
   prompts where a title/author could resolve ambiguously.
 - Verify oracle values against the exact catalog snapshot and its record IDs.
+- Review `author-overlap-audit.json` and pre-register how repeated authors affect
+  confidence intervals and power. Its connected components are a dependence
+  screen, not a replacement sample size.
 - Build a dynamic runner that calls the same `app/v2` runtime and logs catalog
   candidates/citations; this suite does not test RAG document recall.
 - Freeze the judge, blinding, analysis, budget, SUT commit, and schedule before
