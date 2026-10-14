@@ -16,11 +16,21 @@ from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_matching import exact_value_in_text_v3, citation_supports_fact_v3
 
 ROOT = Path(__file__).resolve().parents[1]
-PILOT_DIR = ROOT / "output" / "evaluation-v3" / "pilot-mini-luna-judge-v3-20261014"
-HELDOUT_DIR = ROOT / "output" / "evaluation-v3" / "heldout-mini-luna-judge-v3-20261014"
-DATABASE_URL = "postgresql+psycopg://postgres:@127.0.0.1:55433/evaluation"
+PILOT_DIR = Path(
+    os.getenv(
+        "P8_PILOT_DIR",
+        str(ROOT / "output" / "evaluation-v3" / "pilot-mini-luna-judge-v3-rating-fix-20261014"),
+    )
+)
+HELDOUT_DIR = Path(
+    os.getenv(
+        "P8_HELDOUT_DIR",
+        str(ROOT / "output" / "evaluation-v3" / "heldout-mini-luna-judge-v3-rating-fix-20261014"),
+    )
+)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://postgres:@127.0.0.1:55433/evaluation")
 RUNTIME_MANIFEST = ROOT / "output" / "review-remediation" / "live-runtime-manifest.v2.json"
-RUN_ID = "run_p8_mini_luna_judge_v3_20261014"
+RUN_ID = os.getenv("P8_RUN_ID", "run_p8_mini_luna_judge_v3_rating_fix_20261014")
 
 
 def export_reference_cases() -> None:
