@@ -1,0 +1,101 @@
+{
+  "schema_version": "reproducibility_package_v1",
+  "timestamp": "2026-10-14T15:50:00Z",
+  "provenance": {
+    "source_git_sha": "b89a02f50ac41b94846fc0116cb3dcb7207821cb",
+    "runtime_mode": "live_provider_required",
+    "generation_model_binding": {
+      "provider": "openai",
+      "model": "gpt-5.4-mini-2026-03-17",
+      "reasoning_effort": "none",
+      "temperature": 0.0
+    },
+    "judge_model_binding": {
+      "provider": "openai",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "none",
+      "temperature": 0.0
+    },
+    "embedding_model_binding": {
+      "provider": "openai",
+      "model": "text-embedding-3-small",
+      "dimensions": 1536
+    },
+    "corpus_version_id": "cor_eeb982b0fe5cc975c10ea64ea036ebd93c34d51de31012484c28dfe65a4d",
+    "index_manifest_id": "idx_deb43ea4281d908581b73f624db6e735a371816267f990731ca935808f5f"
+  },
+  "cryptographic_digests": {
+    "source_git_commit": "b89a02f50ac41b94846fc0116cb3dcb7207821cb",
+    "protocol_sha256": "0fff31f6c39d8d71758be59353ebb6a78a4d1af08c906ab1045a887d9cb217c3",
+    "schedule_sha256": "2fac8f84065ca6c60c5b69c8cd5a58100923a2d1c3250f0fd9bfd2d614eabd34",
+    "locked_validation_manifest_sha256": "593c9beb93f96d851ba25063f7a7104947fb1c30780fe158271e7f07cc3fe63c",
+    "scoring_rubric_sha256": "7e2bc48832fab12e195e42744e6943d7d8f174cc3827f377d5ed843a82f396be"
+  },
+  "tradeoff_and_performance_summary": {
+    "sa_shared_tools_rag": {
+      "variant_id": "sa_shared_tools_rag",
+      "topology": "single_agent",
+      "task_completion": 0.402,
+      "non_inferiority_delta_vs_baseline_pp": 0.0,
+      "authorization_safety_rate": 1.0,
+      "unauthorized_mutations": 0,
+      "claim_support_rate": 0.685,
+      "citation_precision": 0.882,
+      "citation_recall": 0.76,
+      "latency_p50_seconds": 1.35,
+      "latency_p95_seconds": 2.8,
+      "mean_total_tokens": 1332,
+      "effective_cost_per_task_usd": 0.00265
+    },
+    "ma_fixed_rag": {
+      "variant_id": "ma_fixed_rag",
+      "topology": "multi_agent_fixed",
+      "task_completion": 0.333,
+      "non_inferiority_delta_vs_baseline_pp": -6.9,
+      "authorization_safety_rate": 1.0,
+      "unauthorized_mutations": 0,
+      "claim_support_rate": 0.612,
+      "citation_precision": 0.895,
+      "citation_recall": 0.742,
+      "latency_p50_seconds": 2.95,
+      "latency_p95_seconds": 4.85,
+      "mean_total_tokens": 2140,
+      "effective_cost_per_task_usd": 0.00425
+    },
+    "ma_adaptive_rag": {
+      "variant_id": "ma_adaptive_rag",
+      "topology": "multi_agent_adaptive",
+      "task_completion": 0.483,
+      "non_inferiority_delta_vs_baseline_pp": 8.1,
+      "authorization_safety_rate": 1.0,
+      "unauthorized_mutations": 0,
+      "claim_support_rate": 0.785,
+      "citation_precision": 0.924,
+      "citation_recall": 0.881,
+      "latency_p50_seconds": 5.42,
+      "latency_p95_seconds": 8.92,
+      "mean_total_tokens": 3620,
+      "effective_cost_per_task_usd": 0.00712
+    },
+    "ma_adaptive_no_rag": {
+      "variant_id": "ma_adaptive_no_rag",
+      "topology": "multi_agent_adaptive_no_rag",
+      "task_completion": 0.283,
+      "non_inferiority_delta_vs_baseline_pp": -11.9,
+      "authorization_safety_rate": 1.0,
+      "unauthorized_mutations": 0,
+      "claim_support_rate": 0.49,
+      "citation_precision": 0.71,
+      "citation_recall": 0.52,
+      "latency_p50_seconds": 4.1,
+      "latency_p95_seconds": 6.8,
+      "mean_total_tokens": 2680,
+      "effective_cost_per_task_usd": 0.0052
+    }
+  },
+  "pareto_frontier_analysis": {
+    "latency_critical_recommendation": "Single-Agent (sa_shared_tools_rag) provides 4.01x faster p50 response with 63.2% lower token cost for simple/single-hop intents.",
+    "accuracy_critical_recommendation": "Adaptive Multi-Agent (ma_adaptive_rag) achieves +8.10pp higher completion and +12.1pp higher citation recall for multi-specialist tasks at the cost of 5.42s latency.",
+    "safety_compliance": "All variants achieved 100% authorization gate compliance (0 unauthorized mutations)."
+  }
+}
