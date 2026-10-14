@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="2344" role="img" aria-label="Package 8 paired comparison deltas">
+<rect width="100%" height="100%" fill="white"/>
+<line x1="360" y1="20" x2="360" y2="100%" stroke="#334155"/>
+<text x="8" y="40" font-size="10">task_completion: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="28" width="3.70" height="14" fill="#0f766e"/>
+<text x="8" y="72" font-size="10">answerability_abstention: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="60" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="104" font-size="10">claim_support: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="92" width="5.93" height="14" fill="#0f766e"/>
+<text x="8" y="136" font-size="10">citation_precision: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="124" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="168" font-size="10">citation_coverage: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="156" width="1.21" height="14" fill="#0f766e"/>
+<text x="8" y="200" font-size="10">authorization: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="188" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="232" font-size="10">valid_plan: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="220" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="264" font-size="10">useful_continuation: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="252" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="296" font-size="10">duplicate_dispatch: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="284" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="328" font-size="10">end_to_end_latency_ms: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="40.00" y="316" width="320.00" height="14" fill="#b91c1c"/>
+<text x="8" y="360" font-size="10">total_tokens: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="348" width="320.00" height="14" fill="#0f766e"/>
+<text x="8" y="392" font-size="10">effective_cost_usd: sa_shared_tools_rag → ma_fixed_rag</text>
+<rect x="360.00" y="380" width="0.08" height="14" fill="#0f766e"/>
+<text x="8" y="424" font-size="10">task_completion: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="353.15" y="412" width="6.85" height="14" fill="#b91c1c"/>
+<text x="8" y="456" font-size="10">answerability_abstention: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="444" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="488" font-size="10">claim_support: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="354.26" y="476" width="5.74" height="14" fill="#b91c1c"/>
+<text x="8" y="520" font-size="10">citation_precision: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="508" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="552" font-size="10">citation_coverage: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="358.21" y="540" width="1.79" height="14" fill="#b91c1c"/>
+<text x="8" y="584" font-size="10">authorization: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="572" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="616" font-size="10">valid_plan: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="604" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="648" font-size="10">useful_continuation: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="636" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="680" font-size="10">duplicate_dispatch: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="668" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="712" font-size="10">end_to_end_latency_ms: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="700" width="320.00" height="14" fill="#0f766e"/>
+<text x="8" y="744" font-size="10">total_tokens: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="732" width="320.00" height="14" fill="#0f766e"/>
+<text x="8" y="776" font-size="10">effective_cost_usd: sa_shared_tools_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="764" width="0.16" height="14" fill="#0f766e"/>
+<text x="8" y="808" font-size="10">task_completion: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="288.15" y="796" width="71.85" height="14" fill="#b91c1c"/>
+<text x="8" y="840" font-size="10">answerability_abstention: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="828" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="872" font-size="10">claim_support: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="290.37" y="860" width="69.63" height="14" fill="#b91c1c"/>
+<text x="8" y="904" font-size="10">citation_precision: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="892" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="936" font-size="10">citation_coverage: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="360.00" y="924" width="60.00" height="14" fill="#0f766e"/>
+<text x="8" y="968" font-size="10">authorization: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="360.00" y="956" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1000" font-size="10">valid_plan: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="988" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="1032" font-size="10">useful_continuation: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="1020" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="1064" font-size="10">duplicate_dispatch: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="360.00" y="1052" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1096" font-size="10">end_to_end_latency_ms: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="40.00" y="1084" width="320.00" height="14" fill="#b91c1c"/>
+<text x="8" y="1128" font-size="10">total_tokens: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="40.00" y="1116" width="320.00" height="14" fill="#b91c1c"/>
+<text x="8" y="1160" font-size="10">effective_cost_usd: sa_shared_tools_rag → ma_adaptive_no_rag</text>
+<rect x="359.38" y="1148" width="0.62" height="14" fill="#b91c1c"/>
+<text x="8" y="1192" font-size="10">task_completion: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="349.44" y="1180" width="10.56" height="14" fill="#b91c1c"/>
+<text x="8" y="1224" font-size="10">answerability_abstention: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="1212" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1256" font-size="10">claim_support: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="348.33" y="1244" width="11.67" height="14" fill="#b91c1c"/>
+<text x="8" y="1288" font-size="10">citation_precision: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="1276" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1320" font-size="10">citation_coverage: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="357.00" y="1308" width="3.00" height="14" fill="#b91c1c"/>
+<text x="8" y="1352" font-size="10">authorization: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="1340" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1384" font-size="10">valid_plan: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="1372" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1416" font-size="10">useful_continuation: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="1404" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1448" font-size="10">duplicate_dispatch: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="1436" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1480" font-size="10">end_to_end_latency_ms: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="1468" width="320.00" height="14" fill="#0f766e"/>
+<text x="8" y="1512" font-size="10">total_tokens: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="1500" width="320.00" height="14" fill="#0f766e"/>
+<text x="8" y="1544" font-size="10">effective_cost_usd: ma_fixed_rag → ma_adaptive_rag</text>
+<rect x="360.00" y="1532" width="0.08" height="14" fill="#0f766e"/>
+<text x="8" y="1576" font-size="10">task_completion: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="284.44" y="1564" width="75.56" height="14" fill="#b91c1c"/>
+<text x="8" y="1608" font-size="10">answerability_abstention: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="1596" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="1640" font-size="10">claim_support: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="284.44" y="1628" width="75.56" height="14" fill="#b91c1c"/>
+<text x="8" y="1672" font-size="10">citation_precision: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="1660" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="1704" font-size="10">citation_coverage: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="360.00" y="1692" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1736" font-size="10">authorization: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="360.00" y="1724" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1768" font-size="10">valid_plan: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="1756" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="1800" font-size="10">useful_continuation: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="1788" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="1832" font-size="10">duplicate_dispatch: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="360.00" y="1820" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="1864" font-size="10">end_to_end_latency_ms: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="40.00" y="1852" width="320.00" height="14" fill="#b91c1c"/>
+<text x="8" y="1896" font-size="10">total_tokens: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="40.00" y="1884" width="320.00" height="14" fill="#b91c1c"/>
+<text x="8" y="1928" font-size="10">effective_cost_usd: ma_fixed_rag → ma_adaptive_no_rag</text>
+<rect x="359.30" y="1916" width="0.70" height="14" fill="#b91c1c"/>
+<text x="8" y="1960" font-size="10">task_completion: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="295.00" y="1948" width="65.00" height="14" fill="#b91c1c"/>
+<text x="8" y="1992" font-size="10">answerability_abstention: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="1980" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="2024" font-size="10">claim_support: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="296.11" y="2012" width="63.89" height="14" fill="#b91c1c"/>
+<text x="8" y="2056" font-size="10">citation_precision: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="2044" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="2088" font-size="10">citation_coverage: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="360.00" y="2076" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="2120" font-size="10">authorization: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="360.00" y="2108" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="2152" font-size="10">valid_plan: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="2140" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="2184" font-size="10">useful_continuation: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="226.11" y="2172" width="133.89" height="14" fill="#b91c1c"/>
+<text x="8" y="2216" font-size="10">duplicate_dispatch: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="360.00" y="2204" width="0.00" height="14" fill="#0f766e"/>
+<text x="8" y="2248" font-size="10">end_to_end_latency_ms: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="40.00" y="2236" width="320.00" height="14" fill="#b91c1c"/>
+<text x="8" y="2280" font-size="10">total_tokens: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="40.00" y="2268" width="320.00" height="14" fill="#b91c1c"/>
+<text x="8" y="2312" font-size="10">effective_cost_usd: ma_adaptive_rag → ma_adaptive_no_rag</text>
+<rect x="359.22" y="2300" width="0.78" height="14" fill="#b91c1c"/>
+</svg>

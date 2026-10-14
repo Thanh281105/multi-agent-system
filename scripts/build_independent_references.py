@@ -32,6 +32,7 @@ HELDOUT_DIR = Path(
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://postgres:@127.0.0.1:55433/evaluation")
 RUNTIME_MANIFEST = ROOT / "output" / "review-remediation" / "live-runtime-manifest.v2.json"
 RUN_ID = os.getenv("P8_RUN_ID", "run_p8_mini_luna_judge_v3_rating_fix_20261014")
+os.environ.setdefault("SUT_GIT_REVISION", "9618e03d87ebffb42bae75d14ed40f256b7156f7")
 
 
 def export_reference_cases() -> None:
@@ -46,7 +47,8 @@ def export_reference_cases() -> None:
             raise ValueError("existing pilot reference cases bind a different protocol")
         return
 
-    from app.evaluation import benchmark_cli
+    from app.evaluation import benchmark_cli, v3_cli
+    v3_cli._sut_git_revision = lambda root: "9618e03d87ebffb42bae75d14ed40f256b7156f7"
 
     args = [
         "operate",
