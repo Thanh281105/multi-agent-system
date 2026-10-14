@@ -112,8 +112,8 @@ class ScheduledTurnKindV3(StrEnum):
 
 class GenerationBindingV3(FrozenContractV3):
     provider: Literal["openai"] = "openai"
-    model: Literal["gpt-5.4-mini-2026-03-17"]
-    reasoning_effort: Literal["low", "medium"] = "low"
+    model: Literal["gpt-6-luna"]
+    reasoning_effort: Literal["none"] = "none"
 
 
 class GoldPolicyV3(FrozenContractV3):

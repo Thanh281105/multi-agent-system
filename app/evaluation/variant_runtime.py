@@ -74,7 +74,7 @@ def build_variant_orchestrator_v2(
         specialist_model=(
             specialist_binding.model
             if specialist_binding is not None
-            else "gpt-5.4-nano"
+            else "gpt-6-luna"
         ),
         reasoning_effort=_reasoning_effort(specialist_binding),
     )
@@ -90,7 +90,7 @@ def build_variant_orchestrator_v2(
             model_runtime=(model_runtime if routing_binding is not None else None),
             runtime_mode=(runtime_mode if routing_binding is not None else "off"),
             model=(
-                routing_binding.model if routing_binding is not None else "gpt-5.4-nano"
+                routing_binding.model if routing_binding is not None else "gpt-6-luna"
             ),
             reasoning_effort=_reasoning_effort(routing_binding),
         ),
@@ -100,7 +100,7 @@ def build_variant_orchestrator_v2(
             model=(
                 planning_binding.model
                 if planning_binding is not None
-                else "gpt-5.4-nano"
+                else "gpt-6-luna"
             ),
             reasoning_effort=_reasoning_effort(planning_binding),
         ),
@@ -110,7 +110,7 @@ def build_variant_orchestrator_v2(
             model=(
                 synthesis_binding.model
                 if synthesis_binding is not None
-                else "gpt-5.4-mini"
+                else "gpt-6-luna"
             ),
             reasoning_effort=_reasoning_effort(synthesis_binding),
         ),
@@ -210,7 +210,7 @@ def _binding(
 
 
 def _reasoning_effort(binding: ModelBindingV2 | None) -> ReasoningEffort:
-    return binding.reasoning_effort.value if binding is not None else "low"
+    return binding.reasoning_effort.value if binding is not None else "none"
 
 
 def _milliseconds(duration_ns: int) -> float:

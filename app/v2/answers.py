@@ -224,7 +224,7 @@ class GroundedAnswerProducer:
         *,
         runtime_mode: ModelRuntimeMode,
         model: str | None,
-        reasoning_effort: ReasoningEffort = "low",
+        reasoning_effort: ReasoningEffort = "none",
         draft_max_output_tokens: int | None = None,
         verifier_max_output_tokens: int | None = None,
     ) -> None:

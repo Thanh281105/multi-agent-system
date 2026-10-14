@@ -276,7 +276,7 @@ class ReferenceAdjudicatorV3(FrozenJudgeContractV3):
     """Declared independent label provenance, separate from the scored judge."""
 
     adjudicator_id: str = Field(pattern=_IDENTIFIER)
-    method: Literal["automated_model", "human_review"]
+    method: Literal["automated_model", "automated_rules", "human_review"]
     source_system: str = Field(min_length=1, max_length=200)
     model_snapshot: str | None = Field(default=None, min_length=1, max_length=200)
     instructions_sha256: str = Field(pattern=_SHA256)
@@ -330,9 +330,12 @@ class CalibrationReferenceLabelsV3(FrozenJudgeContractV3):
         elif self.reviewer_ids:
             raise ValueError("automated references forbid reviewer IDs")
         if self.source_classification == "automated_independent_semantic":
-            if self.adjudicator is None or self.adjudicator.method != "automated_model":
+            if self.adjudicator is None or self.adjudicator.method not in (
+                "automated_model",
+                "automated_rules",
+            ):
                 raise ValueError(
-                    "independent semantic labels require automated model provenance"
+                    "independent semantic labels require automated adjudication provenance"
                 )
         if self.adjudicator is not None and (
             (self.source_classification == "human_review")
@@ -843,7 +846,11 @@ def validate_calibration_reference_v3(
     if successor:
         validate_reference_claim_coverage_v3(case, reference)
         assert reference.adjudicator is not None
-        if reference.adjudicator.model_snapshot == configuration.model_binding.model:
+        if (
+            reference.adjudicator.method == "automated_model"
+            and reference.adjudicator.model_snapshot
+            == configuration.model_binding.model
+        ):
             raise ValueError("reference adjudicator must differ from the scored judge")
 
 

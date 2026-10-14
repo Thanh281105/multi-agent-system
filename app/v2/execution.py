@@ -167,7 +167,7 @@ class ModelRuntimeExpertReasoner:
         *,
         runtime_mode: ModelRuntimeMode,
         model: str | None,
-        reasoning_effort: ReasoningEffort = "low",
+        reasoning_effort: ReasoningEffort = "none",
     ) -> None:
         if (runtime is None) != (model is None):
             raise ValueError("expert runtime and model must be configured together")

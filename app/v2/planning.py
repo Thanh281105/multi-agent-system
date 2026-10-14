@@ -446,8 +446,8 @@ class BoundedV2Planner:
         registry: V2CapabilityRegistry = default_v2_registry,
         model_runtime: ModelRuntime | None = None,
         runtime_mode: ModelRuntimeMode = "off",
-        model: str = "gpt-5.4-mini",
-        reasoning_effort: ReasoningEffort = "low",
+        model: str = "gpt-6-luna",
+        reasoning_effort: ReasoningEffort = "none",
         rag_enabled: bool = True,
     ) -> None:
         if type(rag_enabled) is not bool:

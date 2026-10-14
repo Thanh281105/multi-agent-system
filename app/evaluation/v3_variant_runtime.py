@@ -49,10 +49,8 @@ from app.v2.turn_service import V2TurnService
 
 StructuredT = TypeVar("StructuredT", bound=BaseModel)
 
-PINNED_GENERATION_MODEL_V3: Literal["gpt-5.4-mini-2026-03-17"] = (
-    "gpt-5.4-mini-2026-03-17"
-)
-PINNED_REASONING_EFFORT_V3: ReasoningEffort = "low"
+PINNED_GENERATION_MODEL_V3: Literal["gpt-6-luna"] = "gpt-6-luna"
+PINNED_REASONING_EFFORT_V3: ReasoningEffort = "none"
 PINNED_MAX_OUTPUT_TOKENS_V3 = 1_200
 CONTROLLER_ACTOR_ID_V3 = "controller"
 
@@ -207,7 +205,7 @@ class EvaluationV3LogicalModelRuntime:
         input_text: str,
         schema: type[StructuredT],
         max_output_tokens: int | None = None,
-        reasoning_effort: ReasoningEffort = "low",
+        reasoning_effort: ReasoningEffort = "none",
         validate_output: Callable[[StructuredT], None] | None = None,
     ) -> StructuredModelResult[StructuredT]:
         if model != PINNED_GENERATION_MODEL_V3:
@@ -249,8 +247,8 @@ class FinalizedModelCallEvidenceV3(BaseModel):
     call_id: str = Field(pattern=r"^mcall_[a-f0-9]{32}$")
     stage: str = Field(pattern=r"^[a-z][a-z0-9_.-]{1,63}$")
     actor_id: str = Field(pattern=r"^[a-z][a-z0-9_-]{2,127}$")
-    requested_model: Literal["gpt-5.4-mini-2026-03-17"]
-    resolved_model: Literal["gpt-5.4-mini-2026-03-17"]
+    requested_model: Literal["gpt-6-luna"]
+    resolved_model: Literal["gpt-6-luna"]
     status: Literal["success", "failed"]
     error_code: str | None = Field(
         default=None,

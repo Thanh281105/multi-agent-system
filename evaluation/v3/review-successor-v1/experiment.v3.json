@@ -15,8 +15,8 @@
       "rag_enabled": true,
       "generation_binding": {
         "provider": "openai",
-        "model": "gpt-5.4-mini-2026-03-17",
-        "reasoning_effort": "low"
+        "model": "gpt-6-luna",
+        "reasoning_effort": "none"
       }
     },
     {
@@ -28,8 +28,8 @@
       "rag_enabled": true,
       "generation_binding": {
         "provider": "openai",
-        "model": "gpt-5.4-mini-2026-03-17",
-        "reasoning_effort": "low"
+        "model": "gpt-6-luna",
+        "reasoning_effort": "none"
       }
     },
     {
@@ -41,8 +41,8 @@
       "rag_enabled": true,
       "generation_binding": {
         "provider": "openai",
-        "model": "gpt-5.4-mini-2026-03-17",
-        "reasoning_effort": "low"
+        "model": "gpt-6-luna",
+        "reasoning_effort": "none"
       }
     },
     {
@@ -54,8 +54,8 @@
       "rag_enabled": false,
       "generation_binding": {
         "provider": "openai",
-        "model": "gpt-5.4-mini-2026-03-17",
-        "reasoning_effort": "low"
+        "model": "gpt-6-luna",
+        "reasoning_effort": "none"
       }
     }
   ],
@@ -124,8 +124,8 @@
     "mode": "model_judge",
     "model_binding": {
       "provider": "openai",
-      "model": "gpt-5.4-mini-2026-03-17",
-      "reasoning_effort": "medium"
+      "model": "gpt-6-luna",
+      "reasoning_effort": "none"
     },
     "human_judge_ids": []
   },

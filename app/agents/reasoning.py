@@ -63,7 +63,7 @@ class AgentReasoner:
         *,
         runtime_mode: ModelRuntimeMode,
         model: str,
-        reasoning_effort: ReasoningEffort = "low",
+        reasoning_effort: ReasoningEffort = "none",
     ) -> None:
         self.runtime = runtime
         self.runtime_mode = runtime_mode

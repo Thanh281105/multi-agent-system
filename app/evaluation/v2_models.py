@@ -79,7 +79,7 @@ class ModelBindingV2(BaseModel):
     stage: ModelStage
     provider: str = Field(pattern=r"^[a-z][a-z0-9_-]{1,63}$")
     model: str = Field(min_length=1, max_length=128)
-    reasoning_effort: ReasoningEffortV2 = ReasoningEffortV2.LOW
+    reasoning_effort: ReasoningEffortV2 = ReasoningEffortV2.NONE
 
 
 class ModelRuntimePolicyV2(BaseModel):

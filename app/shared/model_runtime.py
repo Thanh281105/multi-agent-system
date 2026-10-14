@@ -189,7 +189,7 @@ class ModelRuntime(Protocol):
         input_text: str,
         schema: type[StructuredT],
         max_output_tokens: int | None = None,
-        reasoning_effort: ReasoningEffort = "low",
+        reasoning_effort: ReasoningEffort = "none",
         validate_output: Callable[[StructuredT], None] | None = None,
     ) -> StructuredModelResult[StructuredT]: ...
 
@@ -294,7 +294,7 @@ class OpenAIModelRuntime:
         input_text: str,
         schema: type[StructuredT],
         max_output_tokens: int | None = None,
-        reasoning_effort: ReasoningEffort = "low",
+        reasoning_effort: ReasoningEffort = "none",
         validate_output: Callable[[StructuredT], None] | None = None,
     ) -> StructuredModelResult[StructuredT]:
         budget = current_provider_budget()
