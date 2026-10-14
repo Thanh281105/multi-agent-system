@@ -1,0 +1,102 @@
+{
+  "schema_version": "human_judge_calibration_v1",
+  "sample_size": 40,
+  "sampling_strategy": "stratified_across_4_tiers_and_4_variants",
+  "human_rater_agreement": {
+    "raters": [
+      "Reviewer_A",
+      "Reviewer_B"
+    ],
+    "raw_agreement_rate": 0.925,
+    "cohens_kappa": 0.8324,
+    "interpretation": "Substantial agreement (Landis & Koch standard: 0.61 - 0.80)"
+  },
+  "llm_judge_vs_adjudicated_gold": {
+    "judge_model": "gpt-6-luna",
+    "accuracy": 0.9,
+    "cohens_kappa": 0.7922,
+    "precision": 0.9565,
+    "recall": 0.88,
+    "f1_score": 0.9167,
+    "confusion_matrix": {
+      "true_positives": 22,
+      "true_negatives": 14,
+      "false_positives": 1,
+      "false_negatives": 3
+    }
+  },
+  "disagreement_rate": 0.15,
+  "disagreements_count": 6,
+  "disagreement_cases": [
+    {
+      "id": "blind_09",
+      "tier": "tier1_single",
+      "variant": "ma_adaptive_rag",
+      "human_a": 0,
+      "human_b": 1,
+      "llm_judge": 0,
+      "gold": 0,
+      "disagreement": true,
+      "note": "Over-summarization dropped publisher name; rater B missed omission, arbiter confirmed fail."
+    },
+    {
+      "id": "blind_10",
+      "tier": "tier1_single",
+      "variant": "sa_shared_tools_rag",
+      "human_a": 1,
+      "human_b": 1,
+      "llm_judge": 0,
+      "gold": 1,
+      "disagreement": true,
+      "note": "Judge False Negative: SA used natural Vietnamese synonym ('ấn bản mới') which judge flagged as non-exact string match. Arbiter passed."
+    },
+    {
+      "id": "blind_12",
+      "tier": "tier2_cross",
+      "variant": "sa_shared_tools_rag",
+      "human_a": 1,
+      "human_b": 1,
+      "llm_judge": 0,
+      "gold": 1,
+      "disagreement": true,
+      "note": "Judge False Negative: SA cited additional real review ('giao hàng nhanh'), judge flagged as unverified because it was outside narrow blueprint. Snapshot confirmed real."
+    },
+    {
+      "id": "blind_13",
+      "tier": "tier2_cross",
+      "variant": "ma_adaptive_rag",
+      "human_a": 1,
+      "human_b": 1,
+      "llm_judge": 0,
+      "gold": 1,
+      "disagreement": true,
+      "note": "Judge False Negative: MA cited 'nội dung chưa cuốn hút lắm', judge expected 'hộp móp méo'. Both were in same review. Arbiter passed."
+    },
+    {
+      "id": "blind_20",
+      "tier": "tier3_recom",
+      "variant": "sa_shared_tools_rag",
+      "human_a": 0,
+      "human_b": 1,
+      "llm_judge": 1,
+      "gold": 0,
+      "disagreement": true,
+      "note": "Judge False Positive: Hallucinated delivery rating for book B; judge missed the false assertion, arbiter caught it and marked fail."
+    },
+    {
+      "id": "blind_38",
+      "tier": "tier2_cross",
+      "variant": "sa_shared_tools_rag",
+      "human_a": 1,
+      "human_b": 0,
+      "llm_judge": 0,
+      "gold": 0,
+      "disagreement": true,
+      "note": "Rater A passed despite missing sub-clause; Rater B & Judge flagged correctly. Arbiter marked fail."
+    }
+  ],
+  "arbitration_protocol": {
+    "adjudicator": "Expert Lead Arbiter",
+    "resolution_rule": "When human raters disagree or LLM judge diverges from initial human marks, the arbiter inspects the verbatim database snapshot records. If an assertion is factual in the snapshot despite not matching the prompt blueprint exactly, the answer is ruled PASS. If an assertion is hallucinated or an essential fact omitted, it is ruled FAIL. All original and adjudicated marks are preserved."
+  }
+}
