@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
+from difflib import SequenceMatcher
 import hashlib
 import json
 import re
@@ -63,6 +65,98 @@ def _work_key(product: dict[str, Any]) -> tuple[str, tuple[str, ...]]:
     )
 
 
+def _ambiguity_profile(products: list[dict[str, Any]]) -> dict[str, Any]:
+    by_title: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_authors: dict[tuple[str, ...], list[dict[str, Any]]] = defaultdict(list)
+    for product in products:
+        title, authors = _work_key(product)
+        by_title[title].append(product)
+        by_authors[tuple(sorted(authors))].append(product)
+
+    multi_author_title_examples: list[dict[str, Any]] = []
+    for title, title_products in by_title.items():
+        author_sets = {
+            tuple(
+                sorted(
+                    _normalize_label(str(author))
+                    for author in product.get("authors", [])
+                    if str(author).strip()
+                )
+            )
+            for product in title_products
+        }
+        if title and len(author_sets) > 1:
+            multi_author_title_examples.append(
+                {
+                    "normalized_title": title,
+                    "variants": [
+                        {
+                            "external_id": str(product.get("external_id", "")),
+                            "title": product.get("name"),
+                            "authors": product.get("authors", []),
+                        }
+                        for product in title_products
+                    ],
+                }
+            )
+    short_titles = sum(
+        len(title.split()) <= 2
+        for title, _ in (_work_key(product) for product in products)
+        if title
+    )
+
+    similar_title_pairs = 0
+    examples: list[dict[str, Any]] = []
+    for authors, author_products in by_authors.items():
+        if not authors:
+            continue
+        for index, left in enumerate(author_products):
+            left_title = _work_key(left)[0]
+            for right in author_products[index + 1 :]:
+                right_title = _work_key(right)[0]
+                if not left_title or not right_title or left_title == right_title:
+                    continue
+                ratio = SequenceMatcher(None, left_title, right_title).ratio()
+                nested_title = (
+                    min(len(left_title), len(right_title)) > 12
+                    and (left_title in right_title or right_title in left_title)
+                )
+                if ratio < 0.88 and not nested_title:
+                    continue
+                similar_title_pairs += 1
+                if len(examples) < 8:
+                    examples.append(
+                        {
+                            "author_key": list(authors),
+                            "left_external_id": str(left.get("external_id", "")),
+                            "left_title": left.get("name"),
+                            "right_external_id": str(right.get("external_id", "")),
+                            "right_title": right.get("name"),
+                            "similarity": round(ratio, 3),
+                        }
+                    )
+
+    invalid_price_or_rating = sum(
+        type(product.get("price_vnd")) not in (int, float)
+        or product.get("price_vnd", 0) <= 0
+        or type(product.get("rating")) not in (int, float)
+        or not 0 <= product.get("rating", -1) <= 5
+        for product in products
+    )
+    return {
+        "method": "NFKD normalized labels; short means at most two title tokens; same-author pairs are review leads when SequenceMatcher is at least 0.88 or one normalized title is nested in another with both over 12 characters",
+        "exact_normalized_titles_with_multiple_author_sets": len(
+            multi_author_title_examples
+        ),
+        "multiple_author_title_examples": multi_author_title_examples[:8],
+        "short_title_product_count": short_titles,
+        "similar_same_author_title_pair_review_leads": similar_title_pairs,
+        "similar_title_examples": examples,
+        "invalid_price_or_rating_product_count": invalid_price_or_rating,
+        "interpretation": "heuristic screening only; do not treat as confirmed duplicate works or oracle validation",
+    }
+
+
 def audit(candidate_dir: Path, eval_snapshot: Path) -> dict[str, Any]:
     manifest_path = candidate_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -89,6 +183,7 @@ def audit(candidate_dir: Path, eval_snapshot: Path) -> dict[str, Any]:
 
     used_ids: list[str] = []
     used_work_keys: list[tuple[str, tuple[str, ...]]] = []
+    used_products: dict[str, dict[str, Any]] = {}
     page_tasks = 0
     for index, (prompt, oracle) in enumerate(zip(prompts, answer_key), start=1):
         expected_case_id = f"catalog_pair_{index:04d}"
@@ -113,6 +208,7 @@ def audit(candidate_dir: Path, eval_snapshot: Path) -> dict[str, Any]:
             if source is None:
                 errors.append(f"oracle product absent from catalog: {expected_case_id}/{side}")
                 continue
+            used_products[external_id] = source
             for field in ("name", "authors", "price_vnd", "page_count", "rating"):
                 if book.get(field) != source.get(field):
                     errors.append(f"oracle/source mismatch: {expected_case_id}/{side}/{field}")
@@ -207,6 +303,9 @@ def audit(candidate_dir: Path, eval_snapshot: Path) -> dict[str, Any]:
         "catalog_product_count": len(catalog),
         "unique_used_product_count": len(set(used_ids)),
         "unique_used_title_author_count": len(set(used_work_keys)),
+        "used_product_ambiguity_profile": _ambiguity_profile(
+            list(used_products.values())
+        ),
         "page_count_task_count": page_tasks,
         "old_eval_product_id_overlap": product_id_overlap,
         "old_eval_title_author_overlap": work_key_overlap,

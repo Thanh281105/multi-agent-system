@@ -1,6 +1,6 @@
 {
   "answer_key_count": 628,
-  "audit_script_sha256": "815f2a2a130aaea4404460fdf6f771d344ad5757c1a71621f9705dcea26e92a3",
+  "audit_script_sha256": "8cfdff713f4e83059eb6605ed89d0e327338216a4a7ec42c684694d5949d072c",
   "candidate_file_sha256": {
     "answer-key.jsonl": "4be1dbba705249db3729305ffcb18523fb5aa464419ef4d2903b4d0fb9453bf2",
     "catalog-products.jsonl": "75e61c0b09b2dcb82416545a9e59e355c3dbffa95b760404d637d2e0e9d504fc",
@@ -26,5 +26,135 @@
   "status": "structural_pass_not_human_or_external_validation",
   "task_count": 628,
   "unique_used_product_count": 1256,
-  "unique_used_title_author_count": 1256
+  "unique_used_title_author_count": 1256,
+  "used_product_ambiguity_profile": {
+    "exact_normalized_titles_with_multiple_author_sets": 2,
+    "interpretation": "heuristic screening only; do not treat as confirmed duplicate works or oracle validation",
+    "invalid_price_or_rating_product_count": 0,
+    "method": "NFKD normalized labels; short means at most two title tokens; same-author pairs are review leads when SequenceMatcher is at least 0.88 or one normalized title is nested in another with both over 12 characters",
+    "multiple_author_title_examples": [
+      {
+        "normalized_title": "suc manh cua ngon tu",
+        "variants": [
+          {
+            "authors": [
+              "Shin Dohyeon"
+            ],
+            "external_id": "57870426",
+            "title": "Sức Mạnh Của Ngôn Từ (Tặng Kèm 1 Photocard Mintbooks Limited)"
+          },
+          {
+            "authors": [
+              "Don Gabor"
+            ],
+            "external_id": "174842858",
+            "title": "Sức Mạnh Của Ngôn Từ (Tái Bản 2022)"
+          }
+        ]
+      },
+      {
+        "normalized_title": "chuyen con oc sen muon biet tai sao no cham chap",
+        "variants": [
+          {
+            "authors": [
+              "Luis Sepulveda"
+            ],
+            "external_id": "3955683",
+            "title": "Chuyện Con Ốc Sên Muốn Biết Tại Sao Nó Chậm Chạp (Tái Bản)"
+          },
+          {
+            "authors": [
+              "Neil Gaiman"
+            ],
+            "external_id": "202895290",
+            "title": "Chuyện Con Ốc Sên Muốn Biết Tại Sao Nó Chậm Chạp"
+          }
+        ]
+      }
+    ],
+    "short_title_product_count": 38,
+    "similar_same_author_title_pair_review_leads": 231,
+    "similar_title_examples": [
+      {
+        "author_key": [
+          "nguyen phong"
+        ],
+        "left_external_id": "142002263",
+        "left_title": "Muôn Kiếp Nhân Sinh 2 (Bìa Cứng)",
+        "right_external_id": "111945017",
+        "right_title": "Combo Muôn kiếp nhân sinh 1 (53160) (khổ nhỏ) + Muôn kiếp nhân sinh 2 (54570) (khổ nhỏ)",
+        "similarity": 0.429
+      },
+      {
+        "author_key": [
+          "nguyen phong"
+        ],
+        "left_external_id": "142002263",
+        "left_title": "Muôn Kiếp Nhân Sinh 2 (Bìa Cứng)",
+        "right_external_id": "95470626",
+        "right_title": "Combo 2 Cuốn: Muôn Kiếp Nhân Sinh + Muôn Kiếp Nhân Sinh 2 (Bìa Mềm)",
+        "similarity": 0.56
+      },
+      {
+        "author_key": [
+          "nguyen phong"
+        ],
+        "left_external_id": "142002263",
+        "left_title": "Muôn Kiếp Nhân Sinh 2 (Bìa Cứng)",
+        "right_external_id": "111580006",
+        "right_title": "Muôn Kiếp Nhân Sinh 2 (Khổ Nhỏ)",
+        "similarity": 0.84
+      },
+      {
+        "author_key": [
+          "nguyen phong"
+        ],
+        "left_external_id": "142002263",
+        "left_title": "Muôn Kiếp Nhân Sinh 2 (Bìa Cứng)",
+        "right_external_id": "56878836",
+        "right_title": "Muôn Kiếp Nhân Sinh (Bìa Cứng)",
+        "similarity": 0.95
+      },
+      {
+        "author_key": [
+          "nguyen phong"
+        ],
+        "left_external_id": "111945017",
+        "left_title": "Combo Muôn kiếp nhân sinh 1 (53160) (khổ nhỏ) + Muôn kiếp nhân sinh 2 (54570) (khổ nhỏ)",
+        "right_external_id": "56878836",
+        "right_title": "Muôn Kiếp Nhân Sinh (Bìa Cứng)",
+        "similarity": 0.396
+      },
+      {
+        "author_key": [
+          "nguyen phong"
+        ],
+        "left_external_id": "69219919",
+        "left_title": "Muôn Kiếp Nhân Sinh (Khổ Nhỏ)",
+        "right_external_id": "111580006",
+        "right_title": "Muôn Kiếp Nhân Sinh 2 (Khổ Nhỏ)",
+        "similarity": 0.964
+      },
+      {
+        "author_key": [
+          "nguyen phong"
+        ],
+        "left_external_id": "69219919",
+        "left_title": "Muôn Kiếp Nhân Sinh (Khổ Nhỏ)",
+        "right_external_id": "56878836",
+        "right_title": "Muôn Kiếp Nhân Sinh (Bìa Cứng)",
+        "similarity": 0.826
+      },
+      {
+        "author_key": [
+          "nguyen phong"
+        ],
+        "left_external_id": "95470626",
+        "left_title": "Combo 2 Cuốn: Muôn Kiếp Nhân Sinh + Muôn Kiếp Nhân Sinh 2 (Bìa Mềm)",
+        "right_external_id": "56878836",
+        "right_title": "Muôn Kiếp Nhân Sinh (Bìa Cứng)",
+        "similarity": 0.521
+      }
+    ]
+  }
 }
