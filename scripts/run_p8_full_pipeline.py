@@ -16,6 +16,8 @@ from pathlib import Path
 from app.core.config import Settings
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 PILOT_DIR = ROOT / "output" / "evaluation-v3" / "pilot-mini-luna-judge-v3-20261014"
 HELDOUT_DIR = ROOT / "output" / "evaluation-v3" / "heldout-mini-luna-judge-v3-20261014"
 DATABASE_URL = "postgresql+psycopg://postgres:@127.0.0.1:55433/evaluation"
