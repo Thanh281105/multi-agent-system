@@ -350,7 +350,7 @@ class ModelRuntimeKnowledgeQueryPlanner:
                 ),
                 schema=_ModelKnowledgePlan,
                 max_output_tokens=600,
-                reasoning_effort="low",
+                reasoning_effort="none",
             )
         except ModelRuntimeError as exc:
             if not self.fallback_on_model_error:
