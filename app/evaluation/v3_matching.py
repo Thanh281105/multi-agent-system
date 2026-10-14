@@ -15,7 +15,8 @@ from app.evaluation.v3_artifacts import CitationForReviewV3, RubricFactV3
 # Accept a rating numerator on the five-point scale, never its denominator.
 _NUMBER = re.compile(
     r"(?<![\w.,/])[-+]?\d+(?:[.,]\d+)?"
-    r"(?:(?![\w.,/])|(?=/5(?:[.,]0+)?(?![\w.,/])))"
+    r"(?:(?![\w.,/])|(?=/5(?:[.,]0+)?"
+    r"(?![\w,/]|[.,]\d|[.,](?!\s|$|[)\]}!?;:]))))"
 )
 _CATALOG_FIELDS = {
     "/name": "title",
