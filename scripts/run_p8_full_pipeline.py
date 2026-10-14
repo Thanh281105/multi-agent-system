@@ -16,11 +16,11 @@ from pathlib import Path
 from app.core.config import Settings
 
 ROOT = Path(__file__).resolve().parents[1]
-PILOT_DIR = ROOT / "output" / "evaluation-v3" / "pilot-mini-luna-judge-20261014"
-HELDOUT_DIR = ROOT / "output" / "evaluation-v3" / "heldout-mini-luna-judge-20261014"
+PILOT_DIR = ROOT / "output" / "evaluation-v3" / "pilot-mini-luna-judge-v2-20261014"
+HELDOUT_DIR = ROOT / "output" / "evaluation-v3" / "heldout-mini-luna-judge-v2-20261014"
 DATABASE_URL = "postgresql+psycopg://postgres:@127.0.0.1:55433/evaluation"
 RUNTIME_MANIFEST = ROOT / "output" / "review-remediation" / "live-runtime-manifest.v2.json"
-RUN_ID = "run_p8_mini_luna_judge_20261014"
+RUN_ID = "run_p8_mini_luna_judge_v2_20261014"
 
 settings = Settings()
 api_key = settings.openai_api_key_value

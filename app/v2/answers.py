@@ -127,9 +127,15 @@ class _DraftAttempt:
 
 
 class _FactModelDraftClaim(V2Contract):
-    kind: Literal["facts", "comparison"]
+    kind: Literal["facts"]
     claim_id: str = Field(pattern=IDENTIFIER_PATTERN)
     fact_ids: tuple[StableId, ...] = Field(min_length=1)
+
+
+class _ComparisonModelDraftClaim(V2Contract):
+    kind: Literal["comparison"]
+    claim_id: str = Field(pattern=IDENTIFIER_PATTERN)
+    fact_ids: tuple[StableId, ...] = Field(min_length=2, max_length=2)
 
 
 class _KnowledgeModelDraftClaim(V2Contract):
@@ -149,7 +155,7 @@ class _BoundedModelAnswerDraft(AnswerDraft):
 def _bounded_model_answer_schema(evidence: ToolEvidence) -> type[BaseModel]:
     claim_types: list[type[BaseModel]] = []
     if evidence.facts:
-        claim_types.append(_FactModelDraftClaim)
+        claim_types.extend((_FactModelDraftClaim, _ComparisonModelDraftClaim))
     if evidence.excerpts:
         claim_types.append(_KnowledgeModelDraftClaim)
     if not claim_types:
@@ -176,12 +182,12 @@ def _normalize_model_answer_draft(
                 claim_id=claim.claim_id,
                 fact_ids=claim.fact_ids,
             )
-            if isinstance(claim, _FactModelDraftClaim) and claim.kind == "facts"
+            if isinstance(claim, _FactModelDraftClaim)
             else DraftClaim(
                 claim_id=claim.claim_id,
                 comparison_fact_ids=claim.fact_ids,
             )
-            if isinstance(claim, _FactModelDraftClaim)
+            if isinstance(claim, _ComparisonModelDraftClaim)
             else DraftClaim(
                 claim_id=claim.claim_id,
                 text=claim.text,

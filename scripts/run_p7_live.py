@@ -4,7 +4,7 @@ from pathlib import Path
 from app.core.config import Settings
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT_DIR = ROOT / "output" / "evaluation-v3" / "pilot-mini-luna-judge-20261014"
+OUTPUT_DIR = ROOT / "output" / "evaluation-v3" / "pilot-mini-luna-judge-v2-20261014"
 DATABASE_URL = "postgresql+psycopg://postgres:@127.0.0.1:55433/evaluation"
 
 settings = Settings()
@@ -43,8 +43,8 @@ pilot_args = [
     "--gold", "evaluation/v3/review-successor-v1/gold.v3.json",
     "--split", "evaluation/v3/review-successor-v1/split.v3.json",
     "--runtime-manifest", "output/review-remediation/live-runtime-manifest.v2.json",
-    "--run-id", "run_p7_mini_luna_judge_20261014",
-    "--run-key", "package7-pilot-mini-luna-judge-20261014",
+    "--run-id", "run_p7_mini_luna_judge_v2_20261014",
+    "--run-key", "package7-pilot-mini-luna-judge-v2-20261014",
     "--output", str(OUTPUT_DIR),
     "--allow-network",
     "--database-url", DATABASE_URL,
@@ -64,8 +64,8 @@ freeze_args = [
     "--gold", "evaluation/v3/review-successor-v1/gold.v3.json",
     "--split", "evaluation/v3/review-successor-v1/split.v3.json",
     "--runtime-manifest", "output/review-remediation/live-runtime-manifest.v2.json",
-    "--run-id", "run_p7_mini_luna_judge_20261014",
-    "--run-key", "package7-pilot-mini-luna-judge-20261014",
+    "--run-id", "run_p7_mini_luna_judge_v2_20261014",
+    "--run-key", "package7-pilot-mini-luna-judge-v2-20261014",
     "--output", str(OUTPUT_DIR),
 ]
 
@@ -94,7 +94,7 @@ manifest_sha256 = hashlib.sha256((ROOT / manifest_path).read_bytes()).hexdigest(
 
 data = {
     "schema_version": "3.1",
-    "binding_id": "mini_generation_luna_judge_p8_successor_v1",
+    "binding_id": "mini_generation_luna_judge_p8_successor_v2",
     "evaluator_contract": "evidence_semantics_v2",
     "protocol_sha256": protocol_sha256,
     "repeat_decision_sha256": repeat_decision_sha256,
