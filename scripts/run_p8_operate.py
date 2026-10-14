@@ -4,11 +4,11 @@ from pathlib import Path
 from app.core.config import Settings
 
 ROOT = Path(__file__).resolve().parents[1]
-PILOT_DIR = ROOT / "output" / "evaluation-v3" / "pilot-luna6-20261014"
-HELDOUT_DIR = ROOT / "output" / "evaluation-v3" / "heldout-luna6-20261014"
+PILOT_DIR = ROOT / "output" / "evaluation-v3" / "pilot-mini-luna-judge-20261014"
+HELDOUT_DIR = ROOT / "output" / "evaluation-v3" / "heldout-mini-luna-judge-20261014"
 DATABASE_URL = "postgresql+psycopg://postgres:@127.0.0.1:55433/evaluation"
 RUNTIME_MANIFEST = ROOT / "output" / "review-remediation" / "live-runtime-manifest.v2.json"
-RUN_ID = "run_p8_luna6_20261014"
+RUN_ID = "run_p8_mini_luna_judge_20261014"
 
 settings = Settings()
 api_key = settings.openai_api_key_value
@@ -18,11 +18,11 @@ if not api_key:
 os.environ["OPENAI_API_KEY"] = api_key
 os.environ["DATABASE_URL"] = DATABASE_URL
 os.environ["MODEL_RUNTIME_MODE"] = "required"
-os.environ["OPENAI_MODEL"] = "gpt-6-luna"
-os.environ["OPENAI_ROUTING_MODEL"] = "gpt-6-luna"
-os.environ["OPENAI_PLANNING_MODEL"] = "gpt-6-luna"
-os.environ["OPENAI_SPECIALIST_MODEL"] = "gpt-6-luna"
-os.environ["OPENAI_SYNTHESIS_MODEL"] = "gpt-6-luna"
+os.environ["OPENAI_MODEL"] = "gpt-5.4-mini-2026-03-17"
+os.environ["OPENAI_ROUTING_MODEL"] = "gpt-5.4-mini-2026-03-17"
+os.environ["OPENAI_PLANNING_MODEL"] = "gpt-5.4-mini-2026-03-17"
+os.environ["OPENAI_SPECIALIST_MODEL"] = "gpt-5.4-mini-2026-03-17"
+os.environ["OPENAI_SYNTHESIS_MODEL"] = "gpt-5.4-mini-2026-03-17"
 os.environ["OPENAI_REASONING_EFFORT"] = "none"
 os.environ["EMBEDDING_BACKEND"] = "openai"
 os.environ["OPENAI_EMBEDDING_MODEL"] = "text-embedding-3-small"
@@ -652,12 +652,16 @@ p8_operate_args = [
     "--pilot-schedule", str(PILOT_DIR / "pilot-schedule.v3.json"),
     "--allow-network",
     "--database-url", DATABASE_URL,
-    "--judge-budget-nano-usd", "50000000000",
+    "--judge-budget-nano-usd", "16000000000",
     "--independent-references", str(HELDOUT_DIR / "independent-calibration-references.p8.json"),
     "--output", str(HELDOUT_DIR),
 ]
 
 if __name__ == "__main__":
+    from scripts.build_independent_references import build_bundle, export_reference_cases
+
+    export_reference_cases()
+    build_bundle()
     args = list(p8_operate_args) + sys.argv[1:]
     print(f"Starting P8 Held-out Operate (args={sys.argv[1:]})...")
     code = benchmark_cli.cli(args)

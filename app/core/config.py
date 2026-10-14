@@ -121,7 +121,7 @@ class Settings(BaseSettings):
         validation_alias="OPENAI_API_KEY",
     )
     openai_model: str = Field(
-        default="gpt-6-luna",
+        default="gpt-5.4-mini-2026-03-17",
         validation_alias=AliasChoices("OPENAI_MODEL", "MODEL"),
     )
     model_runtime_mode: Literal["off", "shadow", "hybrid", "required"] = Field(
@@ -129,19 +129,19 @@ class Settings(BaseSettings):
         validation_alias="MODEL_RUNTIME_MODE",
     )
     openai_routing_model: str = Field(
-        default="gpt-6-luna",
+        default="gpt-5.4-mini-2026-03-17",
         validation_alias="OPENAI_ROUTING_MODEL",
     )
     openai_planning_model: str = Field(
-        default="gpt-6-luna",
+        default="gpt-5.4-mini-2026-03-17",
         validation_alias="OPENAI_PLANNING_MODEL",
     )
     openai_specialist_model: str = Field(
-        default="gpt-6-luna",
+        default="gpt-5.4-mini-2026-03-17",
         validation_alias="OPENAI_SPECIALIST_MODEL",
     )
     openai_synthesis_model: str = Field(
-        default="gpt-6-luna",
+        default="gpt-5.4-mini-2026-03-17",
         validation_alias="OPENAI_SYNTHESIS_MODEL",
     )
     openai_reasoning_effort: Literal["none", "low", "medium", "high", "xhigh"] = Field(

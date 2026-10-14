@@ -4,7 +4,7 @@ from pathlib import Path
 from app.core.config import Settings
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT_DIR = ROOT / "output" / "evaluation-v3" / "pilot-luna6-20261014"
+OUTPUT_DIR = ROOT / "output" / "evaluation-v3" / "pilot-mini-luna-judge-20261014"
 DATABASE_URL = "postgresql+psycopg://postgres:@127.0.0.1:55433/evaluation"
 
 settings = Settings()
@@ -15,11 +15,11 @@ if not api_key:
 os.environ["OPENAI_API_KEY"] = api_key
 os.environ["DATABASE_URL"] = DATABASE_URL
 os.environ["MODEL_RUNTIME_MODE"] = "required"
-os.environ["OPENAI_MODEL"] = "gpt-6-luna"
-os.environ["OPENAI_ROUTING_MODEL"] = "gpt-6-luna"
-os.environ["OPENAI_PLANNING_MODEL"] = "gpt-6-luna"
-os.environ["OPENAI_SPECIALIST_MODEL"] = "gpt-6-luna"
-os.environ["OPENAI_SYNTHESIS_MODEL"] = "gpt-6-luna"
+os.environ["OPENAI_MODEL"] = "gpt-5.4-mini-2026-03-17"
+os.environ["OPENAI_ROUTING_MODEL"] = "gpt-5.4-mini-2026-03-17"
+os.environ["OPENAI_PLANNING_MODEL"] = "gpt-5.4-mini-2026-03-17"
+os.environ["OPENAI_SPECIALIST_MODEL"] = "gpt-5.4-mini-2026-03-17"
+os.environ["OPENAI_SYNTHESIS_MODEL"] = "gpt-5.4-mini-2026-03-17"
 os.environ["OPENAI_REASONING_EFFORT"] = "none"
 os.environ["EMBEDDING_BACKEND"] = "openai"
 os.environ["OPENAI_EMBEDDING_MODEL"] = "text-embedding-3-small"
@@ -39,12 +39,12 @@ from app.evaluation.v3_gold import load_evaluation_gold_v3
 pilot_args = [
     "pilot",
     "--project-root", str(ROOT),
-    "--experiment", "evaluation/v3/review-successor-v1/experiment.v3.json",
+    "--experiment", "evaluation/v3/mini-generation-luna-judge-v1/experiment.v3.json",
     "--gold", "evaluation/v3/review-successor-v1/gold.v3.json",
     "--split", "evaluation/v3/review-successor-v1/split.v3.json",
     "--runtime-manifest", "output/review-remediation/live-runtime-manifest.v2.json",
-    "--run-id", "run_p7_luna6_20261014",
-    "--run-key", "package7-pilot-luna6-20261014",
+    "--run-id", "run_p7_mini_luna_judge_20261014",
+    "--run-key", "package7-pilot-mini-luna-judge-20261014",
     "--output", str(OUTPUT_DIR),
     "--allow-network",
     "--database-url", DATABASE_URL,
@@ -60,12 +60,12 @@ print("P7 Pilot Complete! Now freezing repeat decision...")
 freeze_args = [
     "repeat-freeze",
     "--project-root", str(ROOT),
-    "--experiment", "evaluation/v3/review-successor-v1/experiment.v3.json",
+    "--experiment", "evaluation/v3/mini-generation-luna-judge-v1/experiment.v3.json",
     "--gold", "evaluation/v3/review-successor-v1/gold.v3.json",
     "--split", "evaluation/v3/review-successor-v1/split.v3.json",
     "--runtime-manifest", "output/review-remediation/live-runtime-manifest.v2.json",
-    "--run-id", "run_p7_luna6_20261014",
-    "--run-key", "package7-pilot-luna6-20261014",
+    "--run-id", "run_p7_mini_luna_judge_20261014",
+    "--run-key", "package7-pilot-mini-luna-judge-20261014",
     "--output", str(OUTPUT_DIR),
 ]
 
@@ -94,13 +94,13 @@ manifest_sha256 = hashlib.sha256((ROOT / manifest_path).read_bytes()).hexdigest(
 
 data = {
     "schema_version": "3.1",
-    "binding_id": "review_p8_successor_live_v3",
+    "binding_id": "mini_generation_luna_judge_p8_successor_v1",
     "evaluator_contract": "evidence_semantics_v2",
     "protocol_sha256": protocol_sha256,
     "repeat_decision_sha256": repeat_decision_sha256,
     "gold_sha256": loaded.gold_sha256,
     "split_sha256": loaded.split_sha256,
-    "experiment_path": "evaluation/v3/review-successor-v1/experiment.v3.json",
+    "experiment_path": "evaluation/v3/mini-generation-luna-judge-v1/experiment.v3.json",
     "gold_path": gold_path,
     "split_path": split_path,
     "runtime_manifest_path": manifest_path,

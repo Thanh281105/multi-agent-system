@@ -112,7 +112,7 @@ class ScheduledTurnKindV3(StrEnum):
 
 class GenerationBindingV3(FrozenContractV3):
     provider: Literal["openai"] = "openai"
-    model: Literal["gpt-6-luna"]
+    model: Literal["gpt-5.4-mini-2026-03-17", "gpt-6-luna"]
     reasoning_effort: Literal["none"] = "none"
 
 
@@ -309,9 +309,11 @@ class EvaluationExperimentConfigV3(FrozenContractV3):
             self.judgment_policy.model_binding.provider
             != self.variants[0].generation_binding.provider
             or self.judgment_policy.model_binding.model
-            != self.variants[0].generation_binding.model
+            == self.variants[0].generation_binding.model
         ):
-            raise ValueError("model judge must use the frozen model snapshot")
+            raise ValueError(
+                "model judge must be frozen separately from the generation snapshot"
+            )
         adaptive = self.variants[2].model_dump(
             exclude={"variant_id", "description", "rag_enabled"}
         )
