@@ -18,6 +18,7 @@ from sqlalchemy.sql.dml import Insert
 
 from app.models.product import Product
 from app.models.v2 import V2Offer
+from app.repositories.book_domain import book_product_filter
 from app.v2.authorization import DEMO_STORE_ID
 from app.v2.tools import CatalogSnapshot, load_catalog_snapshot
 
@@ -134,6 +135,7 @@ def _eligible_products(
             .where(
                 Product.platform == "Tiki",
                 Product.source_id.in_(catalog_snapshot.source_ids),
+                book_product_filter(),
             )
             .order_by(Product.id)
         )

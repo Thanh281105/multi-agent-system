@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC
@@ -74,7 +75,7 @@ _SCHEDULE_NAME = "pilot-schedule.v3.json"
 _CHECKPOINT_NAME = "pilot-checkpoint.v3.jsonl"
 _DECISION_NAME = "repeat-decision.v3.json"
 
-PACKAGE7_JUDGE_PROMPT_V3 = """You are a strict benchmark judge. Use only the
+PACKAGE7_LEGACY_JUDGE_PROMPT_V3 = """You are a strict benchmark judge. Use only the
 supplied prompt, answer, claims, citations, rubric_context, and runtime_evidence.
 Return every semantic metric in the required order. Each score must be exactly
 0.0 or 1.0.
@@ -119,6 +120,94 @@ Apply these frozen rules exactly:
   Any other revision count scores 0.0.
 - task_completion = 1 iff answerability_abstention, claim_support, authorization,
   valid_plan, and useful_continuation are all 1. Otherwise it is 0.0."""
+
+PACKAGE7_JUDGE_PROMPT_V3 = """You are a strict blinded benchmark judge. Use only
+the supplied prompt, answer, claims, citations, rubric_context, runtime_evidence
+and receipt_constraints. Never infer a system or variant identity or add facts.
+Return only the required structured output, without free-form rationale.
+Every metric score is exactly 0.0 or 1.0. Perform these checks in order before
+returning verdicts in the required metric order.
+
+1. Judge each supplied claim independently against its own cited evidence.
+Return one claim_verdict per claim, with claim_index starting at 0. supported is
+true only if that claim's own citation_labels identify evidence entailing every
+assertion in the claim, including subject, field, number, negation and scope.
+A label alone is not evidence. Never borrow another claim's citations. An uncited
+factual claim, a negated source fact or an unsupported additional award is false.
+A faithful translated paraphrase can be true. List only its supporting citation
+labels and rubric_fact_indices it actually expresses. A claim can be supported
+even when the answer omits another requested fact: omissions do not make an
+otherwise entailed partial claim false. With no claims, claim_verdicts is empty
+and citation coverage is unmeasured, not 100 percent.
+
+receipt_constraints.claim_fact_bindings lists each claim's own citations and
+eligible_required_fact_indices under the frozen source bindings. Eligibility is
+not a truth label and does not mean the claim expresses that fact. For a supported
+claim, list only indices actually expressed and eligible under at least one of
+its supporting citations. An own citation with no eligible required indices may
+still entail additional assertions; in that case use empty rubric_fact_indices.
+Do not mark an entailed claim false just because it maps to no required fact.
+
+Required facts are completeness targets, not an exhaustive list of permissible
+assertions. An additional catalog field, such as author or publisher, can be
+supported by that claim's own catalog citation even when no required fact names
+that field or a separate work-level fact has a source_excerpt binding. Such an
+assertion needs no unrelated rubric_fact_index. Evaluate each asserted field
+against the readable evidence actually cited; do not require a catalog claim
+to cite a work-content source. Conversely, title, author or category metadata
+cannot support an assertion about the work's plot or themes.
+
+2. Independently determine answer-level claim_support. This is 1 only if ALL of
+the following hold: every factual assertion anywhere in the answer is entailed
+by its own cited evidence; no forbidden claim is asserted; all claim_verdicts
+are supported; and every required fact requested by the prompt is expressed by
+a supported claim. Inspect the prompt for each requested component, then inspect
+the answer itself. A source containing a fact does not mean the answer states it.
+If a question asks both who and what, an answer giving only what is incomplete,
+even if its claim is true. For fact_semantics, use required_fact.claim and the
+question to identify the requested components; expected_value is source evidence,
+not a demand to reproduce its entire paragraph or unsolicited facts. Preserve
+subjects, numbers, quantifiers, negation, scope and every requested component.
+A correct Vietnamese paraphrase need not contain the English expected_value.
+normalized_exact requires the complete normalized value; numeric_exact requires
+numeric equality for the correct subject and field (5 is not 15 or a denominator
+in 15/5). Missing requested facts make claim_support 0 even if citations are valid.
+
+When required_facts is empty, completeness is vacuous. A pure refusal, abstention
+or request for clarification with no factual assertions has claim_support 1,
+including when runtime outcome or response mode is wrong. Do not lower factual
+support because an answer is unhelpful: outcome and plan are separate metrics.
+Any extra unsupported factual assertion still makes claim_support 0, including
+an assertion absent from the claim records. If required facts exist and there
+are no claims, claim_support is 0. receipt_constraints.claim_support_must_be_zero
+is this last case; false does not by itself imply claim_support 1.
+receipt_constraints.claim_support_must_be_one recognizes an exact canonical
+assertion-free refusal or clarification, with no required facts, claims or
+citations. When true, claim_support MUST be 1 by vacuity; still copy the separate
+runtime scores and compute task_completion normally. When false, judge factual
+support from the answer and evidence as above; it does not imply support 0.
+
+For catalog_pointer evidence, source_id must equal catalog_<support_record_id>.
+Check the actual field identified by support_json_pointer: title is /name,
+snapshot_price_vnd is /price_vnd, snapshot_rating is /rating and
+snapshot_review_count is /source_review_count; other fields retain their names.
+For source_excerpt evidence, source_id must equal support_record_id and evidence
+must contain the required excerpt and entail the claim. It may contain more text
+than the gold excerpt. Do not equate an artifact pointer with a readable citation.
+These required-fact source bindings apply to the facts they bind, not to every
+assertion in a mixed answer. Quoting the exact catalog product title, including
+edition words, is supported by the catalog title field; it does not assert that
+a work-level source verified the edition. Do not infer an edition from work-level
+evidence. With claim_support 1, reference every required rubric fact index and
+every claim's supporting citation labels.
+
+3. Copy answerability_abstention, authorization, valid_plan and useful_continuation
+UNCHANGED from receipt_constraints.runtime_metric_scores. These four scores are
+receipt predicates, not semantic opinions. Finally, task_completion is 1 only
+when those four scores AND claim_support are ALL 1; otherwise it is 0. Copying
+the receipt predicates does not decide claim_support. Supported claims do not
+automatically imply a complete task or complete required-fact coverage.
+"""
 
 
 class EvaluationV3CLIError(RuntimeError):
@@ -446,7 +535,10 @@ def _asset_bindings(
 ) -> EvaluationAssetBindingsV3:
     evaluator_files = tuple(
         sorted(
-            (project_root / "app" / "evaluation").glob("v3_*.py"),
+            (
+                *(project_root / "app" / "evaluation").glob("v3_*.py"),
+                *(project_root / "app" / "evaluation").glob("benchmark_*.py"),
+            ),
             key=lambda item: item.as_posix(),
         )
     )
@@ -457,6 +549,15 @@ def _asset_bindings(
             "app/v2/execution.py",
             "app/v2/planning.py",
             "app/v2/supervisor.py",
+            "app/v2/tools.py",
+            "app/v2/registry.py",
+            "app/v2/runtime.py",
+            "app/v2/turn_service.py",
+            "app/repositories/ecommerce.py",
+            "app/repositories/book_domain.py",
+            "app/v2/sandbox_seed.py",
+            "app/db/session.py",
+            "app/core/config.py",
             "app/knowledge/grounding.py",
             "app/knowledge/retrieval.py",
         )
@@ -484,10 +585,12 @@ def _asset_bindings(
             "metrics": [item.value for item in loaded_experiment.config.metrics],
             "required_fact_count": loaded_gold.required_fact_count,
             "schema_version": "3.0",
+            "evaluator_contract": "evidence_semantics_v2",
+            "citation_coverage_contract": "receipt_claim_citation_coverage_v1",
         }
     )
     judge_prompt_sha256 = judge_prompt_sha256_v3(PACKAGE7_JUDGE_PROMPT_V3)
-    judge_schema_sha256 = model_judge_output_schema_sha256_v3()
+    judge_schema_sha256 = model_judge_output_schema_sha256_v3(successor=True)
     model_binding = loaded_experiment.config.judgment_policy.model_binding
     if model_binding is None:
         raise EvaluationV3CLIError(
@@ -519,7 +622,24 @@ def _asset_bindings(
         pricing_manifest_sha256=pricing.manifest_sha256,
         usage_ledger_sha256=ledger_contract_sha256,
         rubric_sha256=scoring_rubric_sha256,
+        sut_git_revision=_sut_git_revision(project_root),
     )
+
+
+def _sut_git_revision(project_root: Path) -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(project_root), "rev-parse", "--verify", "HEAD"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    revision = completed.stdout.strip()
+    if completed.returncode != 0 or re.fullmatch(r"[0-9a-f]{40}", revision) is None:
+        raise EvaluationV3CLIError(
+            "sut_git_revision_unavailable",
+            "the SUT Git revision could not be captured",
+        )
+    return revision
 
 
 def _build_live_executor_factory(

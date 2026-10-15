@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
@@ -183,9 +184,24 @@ class V2ReadSupervisor:
         fallback_reasons = (
             (planned.fallback_reason,) if planned.fallback_reason is not None else ()
         )
-        if planned.clarification_code is not None:
+        if planned.intent == "conversation.acknowledgment":
             result = TurnResult(
-                outcome=DialogueOutcome.NEEDS_CLARIFICATION,
+                outcome=DialogueOutcome.ANSWERED,
+                answer="Được, mình sẽ giữ cuốn sách vừa nêu làm ngữ cảnh cho lượt tiếp theo.",
+                plan=_plan_trace(planned, (), None, None),
+            )
+            return TurnComputation(
+                result=result,
+                fallback_reasons=fallback_reasons,
+            )
+        if planned.clarification_code is not None:
+            outcome = (
+                DialogueOutcome.ABSTAINED
+                if planned.clarification_code == "prompt_injection_rejected"
+                else DialogueOutcome.NEEDS_CLARIFICATION
+            )
+            result = TurnResult(
+                outcome=outcome,
                 answer=_clarification_answer(planned.clarification_code),
                 plan=_plan_trace(planned, (), None, None),
                 warnings=(planned.clarification_code,),
@@ -206,7 +222,8 @@ class V2ReadSupervisor:
                     context=context,
                     fallback_reasons=fallback_reasons,
                 )
-            return self._create_proposal(
+            return await asyncio.to_thread(
+                self._create_proposal,
                 conversation_id=conversation_id,
                 turn_id=turn_id,
                 lease_owner=lease_owner,
@@ -264,7 +281,9 @@ class V2ReadSupervisor:
             )
         all_results = initial.results
         reused_step_ids = set(initial.reused_step_ids)
-        budget = self._budget_remaining(turn_id, deadline_monotonic)
+        budget = await asyncio.to_thread(
+            self._budget_remaining, turn_id, deadline_monotonic
+        )
         assessment = assess_evidence(
             planned.obligations,
             all_results,
@@ -296,7 +315,9 @@ class V2ReadSupervisor:
             all_operations = (*all_operations, *continuation_operations)
             all_results = (*all_results, *continuation.results)
             reused_step_ids.update(continuation.reused_step_ids)
-            budget = self._budget_remaining(turn_id, deadline_monotonic)
+            budget = await asyncio.to_thread(
+                self._budget_remaining, turn_id, deadline_monotonic
+            )
             assessment = assess_evidence(
                 planned.obligations,
                 all_results,
@@ -365,6 +386,15 @@ class V2ReadSupervisor:
                 if outcome == DialogueOutcome.NEEDS_CLARIFICATION
                 else "Mình chưa có đủ bằng chứng đã xác minh để trả lời yêu cầu này."
             )
+            if any(
+                result.error is not None
+                and result.error.code == "catalog_entity_ambiguous"
+                for result in all_results
+            ):
+                answer = (
+                    "Tên sách khớp nhiều ấn bản; bạn hãy nêu tên đầy đủ, "
+                    "năm tái bản hoặc nhà xuất bản để chọn đúng cuốn."
+                )
             result = TurnResult(
                 outcome=outcome,
                 answer=answer,
@@ -559,7 +589,8 @@ class V2ReadSupervisor:
             return TurnComputation(
                 result=read_result, fallback_reasons=fallback_reasons
             )
-        proposal = self._create_proposal(
+        proposal = await asyncio.to_thread(
+            self._create_proposal,
             conversation_id=conversation_id,
             turn_id=turn_id,
             lease_owner=lease_owner,
@@ -958,6 +989,17 @@ def select_grounding_evidence(
             continue
         keep_fact_ids.update(result.selected_fact_ids)
         keep_evidence_ids.update(result.selected_evidence_ids)
+        selected_subjects = {
+            fact.subject_id
+            for fact in result.evidence.facts
+            if fact.fact_id in result.selected_fact_ids
+        }
+        if selected_subjects:
+            keep_fact_ids.update(
+                fact.fact_id
+                for fact in result.evidence.facts
+                if fact.subject_id in selected_subjects
+            )
 
     facts = tuple(fact for fact in full.facts if fact.fact_id in keep_fact_ids)
     keep_evidence_ids.update(
@@ -1007,6 +1049,13 @@ def _grounding_requirements(
         subjects: tuple[str | None, ...]
         if obligation.kind == EvidenceObligationKind.MARKET:
             subjects = (None,)
+        elif obligation.kind == EvidenceObligationKind.KNOWLEDGE:
+            product_ids = obligation.product_ids or candidates
+            subjects = (
+                tuple(f"product_{product_id}" for product_id in product_ids)
+                if product_ids
+                else (None,)
+            )
         else:
             product_ids = obligation.product_ids or candidates
             subjects = (
@@ -1052,10 +1101,30 @@ def _obligation_satisfied(
 ) -> bool:
     usable = tuple(result for result in results if result.status != TaskStatus.FAILED)
     if obligation.kind == EvidenceObligationKind.CATALOG:
-        return bool(candidates) and any(
-            result.operation.capability
-            in {"product.catalog.search", "product.rank", "merchant.catalog.read"}
+        catalog_results = tuple(
+            result
             for result in usable
+            if result.operation.capability
+            in {"product.catalog.search", "product.rank", "merchant.catalog.read"}
+        )
+        if not candidates or not catalog_results:
+            return False
+        if not obligation.product_ids:
+            return True
+        catalog_candidates = _candidate_product_ids(catalog_results)
+        catalog_subjects = {
+            fact.subject_id
+            for result in catalog_results
+            for fact in result.evidence.facts
+            if any(
+                reference.kind == EvidenceKind.CATALOG
+                and reference.evidence_id in fact.evidence_ids
+                for reference in result.evidence.references
+            )
+        }
+        return set(obligation.product_ids) <= set(catalog_candidates) and all(
+            f"product_{product_id}" in catalog_subjects
+            for product_id in obligation.product_ids
         )
     if obligation.kind == EvidenceObligationKind.COMPARISON:
         return len(candidates) >= 2 and any(
@@ -1080,13 +1149,26 @@ def _obligation_satisfied(
             for result in usable
         )
     if obligation.kind == EvidenceObligationKind.KNOWLEDGE:
-        return any(
-            result.operation.capability == "knowledge.retrieve"
+        expected_product_ids = set(obligation.product_ids or candidates)
+        answerable_results = tuple(
+            result
+            for result in usable
+            if result.operation.capability == "knowledge.retrieve"
             and result.output is not None
             and result.output.get("answerable") is True
-            and bool(result.evidence.excerpts)
-            for result in usable
+            and result.evidence.excerpts
         )
+        if not expected_product_ids:
+            return bool(answerable_results)
+        covered_subject_ids = {
+            subject_id
+            for result in answerable_results
+            for excerpt in result.evidence.excerpts
+            for subject_id in excerpt.subject_ids
+        }
+        return {
+            f"product_{product_id}" for product_id in expected_product_ids
+        } <= covered_subject_ids
     if obligation.kind == EvidenceObligationKind.MARKET:
         return any(
             result.operation.capability == "market.snapshot"
@@ -1234,6 +1316,10 @@ def _needs_entity_clarification(
 
 
 def _clarification_answer(code: str) -> str:
+    if code == "book_domain_unsupported":
+        return "Hiện tôi chỉ hỗ trợ tìm và phân tích sách trong catalog lịch sử."
+    if code == "catalog_constraint_invalid":
+        return "Bạn hãy nêu rating từ 0 đến 5 và khoảng số trang hợp lệ."
     if code == "candidate_limit_exceeds_five":
         return "Mỗi lượt hỗ trợ tối đa 5 ứng viên; bạn muốn ưu tiên tiêu chí nào?"
     if code == "price_range_invalid":
@@ -1285,6 +1371,13 @@ def _clarification_answer(code: str) -> str:
             "Chỉ có thể áp dụng ưu đãi từ một đề xuất đã được xác nhận; "
             "hãy tạo và xác nhận đề xuất trước."
         )
+    if code == "checkout_execution_requires_confirmed_proposal":
+        return (
+            "Chỉ có thể hoàn tất thanh toán từ một đề xuất đã được xác nhận; "
+            "hãy tạo và xác nhận đề xuất trước."
+        )
+    if code == "prompt_injection_rejected":
+        return "Không có đủ bằng chứng đã kiểm tra để trả lời."
     return "Bạn hãy nêu rõ hơn tên sách, tác giả hoặc tiêu chí cần kiểm tra."
 
 

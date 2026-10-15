@@ -1,0 +1,2219 @@
+{
+  "schema_version": "review_challenge_v1",
+  "packet_id": "review-challenge-v1",
+  "created_date": "2026-10-03",
+  "authorship": {
+    "method": "codex_engineering",
+    "author_agent": "/root/evaluation_correctness",
+    "human_validation": "pending",
+    "external_validation": "not_performed",
+    "existing_gold_conversations_used": false,
+    "sut_outputs_used": false,
+    "sut_requests_dispatched": 0,
+    "scope": "New engineering regression challenge informed by review issue descriptions; no general benchmark superiority claim."
+  },
+  "source_authorities": [
+    {
+      "path": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+      "raw_sha256": "830c684733e47a2dddc4591ffba7d62d5db01600f0c00910b02730b1e8da148e",
+      "authority_kind": "catalog_snapshot"
+    },
+    {
+      "path": "data/snapshots/tiki-books-v4-eval/reviews.jsonl",
+      "raw_sha256": "1eb3b76031d8186968d9b5d062edb6f6fb5e8d504d78be1bf0b1f71fd8c0bafe",
+      "authority_kind": "review_snapshot_metadata"
+    },
+    {
+      "path": "data/knowledge/books-v1/sources.json",
+      "raw_sha256": "5ab134f6f1d93eb33621f27498087671903331aa4c824bc20d1f55ca819a2934",
+      "authority_kind": "curated_work_level_notes"
+    },
+    {
+      "path": "data/knowledge/books-v1/mappings.json",
+      "raw_sha256": "bc4b84839b4ad26018e81ee1b1b1afc832b4262b0854918f0270fc8bdb984ac1",
+      "authority_kind": "published_work_mapping_scope"
+    }
+  ],
+  "execution_contract": {
+    "fresh_conversation_per_case": true,
+    "pass_oracle_to_sut": false,
+    "lock_before_first_sut_request": true,
+    "runtime_binding_required": true,
+    "manual_stratified_human_audit": "pending",
+    "evaluator_probes_are_sut_outputs": false,
+    "source_values_are_snapshot_not_live": true,
+    "oracle_fact_inventory_is_not_all_required_text": true
+  },
+  "cases": [
+    {
+      "case_id": "c01",
+      "stratum": "typed_constraints",
+      "fresh_conversation": true,
+      "user_message": "Mình muốn tìm Bạch Dạ Hành, giá không vượt quá 130 nghìn đồng, điểm từ 4,8 sao và dày ít nhất 600 trang. Có bản nào trong danh mục đáp ứng không?",
+      "oracle": {
+        "behavior": "answer_with_matching_catalog_record",
+        "facts": [
+          {
+            "fact_id": "c01_catalog_5_name",
+            "match_mode": "exact_value",
+            "expected_value": "Bạch Dạ Hành (Tái Bản)",
+            "catalog_row_number": 5,
+            "product_external_id": "103379147",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/4",
+              "record_canonical_sha256": "e087ed78af585fa49582dcc9d0dfc36cd5026774e73dbb0148dff317852c4ef8",
+              "value_pointer": "/name",
+              "source_value": "Bạch Dạ Hành (Tái Bản)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 336,
+                "end": 360,
+                "text": "\"Bạch Dạ Hành (Tái Bản)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c01_catalog_5_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 125400,
+            "catalog_row_number": 5,
+            "product_external_id": "103379147",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/4",
+              "record_canonical_sha256": "e087ed78af585fa49582dcc9d0dfc36cd5026774e73dbb0148dff317852c4ef8",
+              "value_pointer": "/price_vnd",
+              "source_value": 125400,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 436,
+                "end": 442,
+                "text": "125400"
+              }
+            }
+          },
+          {
+            "fact_id": "c01_catalog_5_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 4.8,
+            "catalog_row_number": 5,
+            "product_external_id": "103379147",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/4",
+              "record_canonical_sha256": "e087ed78af585fa49582dcc9d0dfc36cd5026774e73dbb0148dff317852c4ef8",
+              "value_pointer": "/rating",
+              "source_value": 4.8,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 491,
+                "end": 494,
+                "text": "4.8"
+              }
+            }
+          },
+          {
+            "fact_id": "c01_catalog_5_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 628,
+            "catalog_row_number": 5,
+            "product_external_id": "103379147",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/4",
+              "record_canonical_sha256": "e087ed78af585fa49582dcc9d0dfc36cd5026774e73dbb0148dff317852c4ef8",
+              "value_pointer": "/page_count",
+              "source_value": 628,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 402,
+                "end": 405,
+                "text": "628"
+              }
+            }
+          }
+        ],
+        "typed_constraints": {
+          "price_vnd": {
+            "maximum": 130000,
+            "inclusive": true
+          },
+          "rating": {
+            "minimum": 4.8,
+            "inclusive": true
+          },
+          "page_count": {
+            "minimum": 600,
+            "inclusive": true
+          }
+        },
+        "expected_product_external_ids": [
+          "103379147"
+        ],
+        "required_fact_ids": [
+          "c01_catalog_5_name",
+          "c01_catalog_5_price_vnd",
+          "c01_catalog_5_rating",
+          "c01_catalog_5_page_count"
+        ]
+      }
+    },
+    {
+      "case_id": "c02",
+      "stratum": "typed_constraints",
+      "fresh_conversation": true,
+      "user_message": "Có Quân Vương giá dưới 75k, rating ít nhất 4.7 và không quá 220 trang không? Cho mình các thông số của bản phù hợp.",
+      "oracle": {
+        "behavior": "answer_with_matching_catalog_record",
+        "facts": [
+          {
+            "fact_id": "c02_catalog_60_name",
+            "match_mode": "exact_value",
+            "expected_value": "Quân Vương – Thuật Cai Trị (Tái Bản)",
+            "catalog_row_number": 60,
+            "product_external_id": "1667307",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/59",
+              "record_canonical_sha256": "6266dac3da17b698afec2102f9c3a43b883e9d9d1afb6d7ff0951faab241a177",
+              "value_pointer": "/name",
+              "source_value": "Quân Vương – Thuật Cai Trị (Tái Bản)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 353,
+                "end": 391,
+                "text": "\"Quân Vương – Thuật Cai Trị (Tái Bản)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c02_catalog_60_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 72000,
+            "catalog_row_number": 60,
+            "product_external_id": "1667307",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/59",
+              "record_canonical_sha256": "6266dac3da17b698afec2102f9c3a43b883e9d9d1afb6d7ff0951faab241a177",
+              "value_pointer": "/price_vnd",
+              "source_value": 72000,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 467,
+                "end": 472,
+                "text": "72000"
+              }
+            }
+          },
+          {
+            "fact_id": "c02_catalog_60_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 4.7,
+            "catalog_row_number": 60,
+            "product_external_id": "1667307",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/59",
+              "record_canonical_sha256": "6266dac3da17b698afec2102f9c3a43b883e9d9d1afb6d7ff0951faab241a177",
+              "value_pointer": "/rating",
+              "source_value": 4.7,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 518,
+                "end": 521,
+                "text": "4.7"
+              }
+            }
+          },
+          {
+            "fact_id": "c02_catalog_60_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 200,
+            "catalog_row_number": 60,
+            "product_external_id": "1667307",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/59",
+              "record_canonical_sha256": "6266dac3da17b698afec2102f9c3a43b883e9d9d1afb6d7ff0951faab241a177",
+              "value_pointer": "/page_count",
+              "source_value": 200,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 433,
+                "end": 436,
+                "text": "200"
+              }
+            }
+          }
+        ],
+        "typed_constraints": {
+          "price_vnd": {
+            "maximum": 75000,
+            "inclusive": false
+          },
+          "rating": {
+            "minimum": 4.7,
+            "inclusive": true
+          },
+          "page_count": {
+            "maximum": 220,
+            "inclusive": true
+          }
+        },
+        "expected_product_external_ids": [
+          "1667307"
+        ],
+        "required_fact_ids": [
+          "c02_catalog_60_name",
+          "c02_catalog_60_price_vnd",
+          "c02_catalog_60_rating",
+          "c02_catalog_60_page_count"
+        ]
+      }
+    },
+    {
+      "case_id": "c03",
+      "stratum": "typed_constraints",
+      "fresh_conversation": true,
+      "user_message": "Tìm Einstein Cuộc Đời Và Vũ Trụ cho mình: ngân sách từ 200.000 đến 250.000 đồng, điểm từ 4,8 trở lên, số trang tối thiểu 700.",
+      "oracle": {
+        "behavior": "answer_with_matching_catalog_record",
+        "facts": [
+          {
+            "fact_id": "c03_catalog_68_name",
+            "match_mode": "exact_value",
+            "expected_value": "Einstein Cuộc Đời Và Vũ Trụ",
+            "catalog_row_number": 68,
+            "product_external_id": "172069382",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/67",
+              "record_canonical_sha256": "a5fabb08e6918159b5d1c464755252e556153a38c422abda3644e99da111650b",
+              "value_pointer": "/name",
+              "source_value": "Einstein Cuộc Đời Và Vũ Trụ",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 332,
+                "end": 361,
+                "text": "\"Einstein Cuộc Đời Và Vũ Trụ\""
+              }
+            }
+          },
+          {
+            "fact_id": "c03_catalog_68_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 227500,
+            "catalog_row_number": 68,
+            "product_external_id": "172069382",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/67",
+              "record_canonical_sha256": "a5fabb08e6918159b5d1c464755252e556153a38c422abda3644e99da111650b",
+              "value_pointer": "/price_vnd",
+              "source_value": 227500,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 437,
+                "end": 443,
+                "text": "227500"
+              }
+            }
+          },
+          {
+            "fact_id": "c03_catalog_68_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 4.8,
+            "catalog_row_number": 68,
+            "product_external_id": "172069382",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/67",
+              "record_canonical_sha256": "a5fabb08e6918159b5d1c464755252e556153a38c422abda3644e99da111650b",
+              "value_pointer": "/rating",
+              "source_value": 4.8,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 489,
+                "end": 492,
+                "text": "4.8"
+              }
+            }
+          },
+          {
+            "fact_id": "c03_catalog_68_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 720,
+            "catalog_row_number": 68,
+            "product_external_id": "172069382",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/67",
+              "record_canonical_sha256": "a5fabb08e6918159b5d1c464755252e556153a38c422abda3644e99da111650b",
+              "value_pointer": "/page_count",
+              "source_value": 720,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 403,
+                "end": 406,
+                "text": "720"
+              }
+            }
+          }
+        ],
+        "typed_constraints": {
+          "price_vnd": {
+            "minimum": 200000,
+            "maximum": 250000,
+            "inclusive": true
+          },
+          "rating": {
+            "minimum": 4.8,
+            "inclusive": true
+          },
+          "page_count": {
+            "minimum": 700,
+            "inclusive": true
+          }
+        },
+        "expected_product_external_ids": [
+          "172069382"
+        ],
+        "required_fact_ids": [
+          "c03_catalog_68_name",
+          "c03_catalog_68_price_vnd",
+          "c03_catalog_68_rating",
+          "c03_catalog_68_page_count"
+        ]
+      }
+    },
+    {
+      "case_id": "c04",
+      "stratum": "typed_constraints",
+      "fresh_conversation": true,
+      "user_message": "Mình cần Tớ Học Lập Trình - Làm Quen Với Python dưới 70 nghìn, được 5 sao, tối đa 100 trang. Cho mình giá và các thông số của bản đáp ứng nhé.",
+      "oracle": {
+        "behavior": "answer_with_matching_catalog_record",
+        "facts": [
+          {
+            "fact_id": "c04_catalog_29_name",
+            "match_mode": "exact_value",
+            "expected_value": "Tớ Học Lập Trình - Làm Quen Với Python",
+            "catalog_row_number": 29,
+            "product_external_id": "116835635",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/28",
+              "record_canonical_sha256": "246f3a7e7900559b7ac3adc80327b666d4142a6355027ec8f73a988517a585f7",
+              "value_pointer": "/name",
+              "source_value": "Tớ Học Lập Trình - Làm Quen Với Python",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 352,
+                "end": 392,
+                "text": "\"Tớ Học Lập Trình - Làm Quen Với Python\""
+              }
+            }
+          },
+          {
+            "fact_id": "c04_catalog_29_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 63000,
+            "catalog_row_number": 29,
+            "product_external_id": "116835635",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/28",
+              "record_canonical_sha256": "246f3a7e7900559b7ac3adc80327b666d4142a6355027ec8f73a988517a585f7",
+              "value_pointer": "/price_vnd",
+              "source_value": 63000,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 467,
+                "end": 472,
+                "text": "63000"
+              }
+            }
+          },
+          {
+            "fact_id": "c04_catalog_29_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 5.0,
+            "catalog_row_number": 29,
+            "product_external_id": "116835635",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/28",
+              "record_canonical_sha256": "246f3a7e7900559b7ac3adc80327b666d4142a6355027ec8f73a988517a585f7",
+              "value_pointer": "/rating",
+              "source_value": 5.0,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 518,
+                "end": 521,
+                "text": "5.0"
+              }
+            }
+          },
+          {
+            "fact_id": "c04_catalog_29_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 96,
+            "catalog_row_number": 29,
+            "product_external_id": "116835635",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/28",
+              "record_canonical_sha256": "246f3a7e7900559b7ac3adc80327b666d4142a6355027ec8f73a988517a585f7",
+              "value_pointer": "/page_count",
+              "source_value": 96,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 434,
+                "end": 436,
+                "text": "96"
+              }
+            }
+          }
+        ],
+        "typed_constraints": {
+          "price_vnd": {
+            "maximum": 70000,
+            "inclusive": false
+          },
+          "rating": {
+            "equals": 5.0
+          },
+          "page_count": {
+            "maximum": 100,
+            "inclusive": true
+          }
+        },
+        "expected_product_external_ids": [
+          "116835635"
+        ],
+        "required_fact_ids": [
+          "c04_catalog_29_name",
+          "c04_catalog_29_price_vnd",
+          "c04_catalog_29_rating",
+          "c04_catalog_29_page_count"
+        ]
+      }
+    },
+    {
+      "case_id": "c05",
+      "stratum": "typed_constraints",
+      "fresh_conversation": true,
+      "user_message": "Sapiens trong danh mục có bản không quá 200k, rating từ 4,9 và ít nhất 600 trang không? Nêu riêng giá, điểm và độ dày giúp mình.",
+      "oracle": {
+        "behavior": "answer_with_matching_catalog_record",
+        "facts": [
+          {
+            "fact_id": "c05_catalog_80_name",
+            "match_mode": "exact_value",
+            "expected_value": "Sapiens Lược Sử Loài Người (Tái Bản 2022)",
+            "catalog_row_number": 80,
+            "product_external_id": "184419723",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/79",
+              "record_canonical_sha256": "56bbe6d2e4a02e2bd2e05ff3c9cd6439f450c10826f9320ad0a218035c4293e7",
+              "value_pointer": "/name",
+              "source_value": "Sapiens Lược Sử Loài Người (Tái Bản 2022)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 354,
+                "end": 397,
+                "text": "\"Sapiens Lược Sử Loài Người (Tái Bản 2022)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c05_catalog_80_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 191000,
+            "catalog_row_number": 80,
+            "product_external_id": "184419723",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/79",
+              "record_canonical_sha256": "56bbe6d2e4a02e2bd2e05ff3c9cd6439f450c10826f9320ad0a218035c4293e7",
+              "value_pointer": "/price_vnd",
+              "source_value": 191000,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 473,
+                "end": 479,
+                "text": "191000"
+              }
+            }
+          },
+          {
+            "fact_id": "c05_catalog_80_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 5.0,
+            "catalog_row_number": 80,
+            "product_external_id": "184419723",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/79",
+              "record_canonical_sha256": "56bbe6d2e4a02e2bd2e05ff3c9cd6439f450c10826f9320ad0a218035c4293e7",
+              "value_pointer": "/rating",
+              "source_value": 5.0,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 525,
+                "end": 528,
+                "text": "5.0"
+              }
+            }
+          },
+          {
+            "fact_id": "c05_catalog_80_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 600,
+            "catalog_row_number": 80,
+            "product_external_id": "184419723",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/79",
+              "record_canonical_sha256": "56bbe6d2e4a02e2bd2e05ff3c9cd6439f450c10826f9320ad0a218035c4293e7",
+              "value_pointer": "/page_count",
+              "source_value": 600,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 439,
+                "end": 442,
+                "text": "600"
+              }
+            }
+          }
+        ],
+        "typed_constraints": {
+          "price_vnd": {
+            "maximum": 200000,
+            "inclusive": true
+          },
+          "rating": {
+            "minimum": 4.9,
+            "inclusive": true
+          },
+          "page_count": {
+            "minimum": 600,
+            "inclusive": true
+          }
+        },
+        "expected_product_external_ids": [
+          "184419723"
+        ],
+        "required_fact_ids": [
+          "c05_catalog_80_name",
+          "c05_catalog_80_price_vnd",
+          "c05_catalog_80_rating",
+          "c05_catalog_80_page_count"
+        ]
+      }
+    },
+    {
+      "case_id": "c06",
+      "stratum": "fresh_comparison",
+      "fresh_conversation": true,
+      "user_message": "Mình chưa chọn sách nào. So sánh \"Einstein Cuộc Đời Và Vũ Trụ\" với \"Tiểu Sử Steve Jobs\" về giá, số trang và điểm đánh giá; cuốn nào rẻ hơn, cuốn nào ngắn hơn?",
+      "oracle": {
+        "behavior": "resolve_both_titles_and_answer_comparison",
+        "facts": [
+          {
+            "fact_id": "c06_catalog_68_name",
+            "match_mode": "exact_value",
+            "expected_value": "Einstein Cuộc Đời Và Vũ Trụ",
+            "catalog_row_number": 68,
+            "product_external_id": "172069382",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/67",
+              "record_canonical_sha256": "a5fabb08e6918159b5d1c464755252e556153a38c422abda3644e99da111650b",
+              "value_pointer": "/name",
+              "source_value": "Einstein Cuộc Đời Và Vũ Trụ",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 332,
+                "end": 361,
+                "text": "\"Einstein Cuộc Đời Và Vũ Trụ\""
+              }
+            }
+          },
+          {
+            "fact_id": "c06_catalog_68_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 227500,
+            "catalog_row_number": 68,
+            "product_external_id": "172069382",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/67",
+              "record_canonical_sha256": "a5fabb08e6918159b5d1c464755252e556153a38c422abda3644e99da111650b",
+              "value_pointer": "/price_vnd",
+              "source_value": 227500,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 437,
+                "end": 443,
+                "text": "227500"
+              }
+            }
+          },
+          {
+            "fact_id": "c06_catalog_68_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 4.8,
+            "catalog_row_number": 68,
+            "product_external_id": "172069382",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/67",
+              "record_canonical_sha256": "a5fabb08e6918159b5d1c464755252e556153a38c422abda3644e99da111650b",
+              "value_pointer": "/rating",
+              "source_value": 4.8,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 489,
+                "end": 492,
+                "text": "4.8"
+              }
+            }
+          },
+          {
+            "fact_id": "c06_catalog_68_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 720,
+            "catalog_row_number": 68,
+            "product_external_id": "172069382",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/67",
+              "record_canonical_sha256": "a5fabb08e6918159b5d1c464755252e556153a38c422abda3644e99da111650b",
+              "value_pointer": "/page_count",
+              "source_value": 720,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 403,
+                "end": 406,
+                "text": "720"
+              }
+            }
+          },
+          {
+            "fact_id": "c06_catalog_158_name",
+            "match_mode": "exact_value",
+            "expected_value": "Tiểu Sử Steve Jobs (Tái Bản 2020)",
+            "catalog_row_number": 158,
+            "product_external_id": "56750844",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/157",
+              "record_canonical_sha256": "34a27db4582befa8331b040774ab6f073dd027590a232e9aa38b6762cec26762",
+              "value_pointer": "/name",
+              "source_value": "Tiểu Sử Steve Jobs (Tái Bản 2020)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 337,
+                "end": 372,
+                "text": "\"Tiểu Sử Steve Jobs (Tái Bản 2020)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c06_catalog_158_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 258000,
+            "catalog_row_number": 158,
+            "product_external_id": "56750844",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/157",
+              "record_canonical_sha256": "34a27db4582befa8331b040774ab6f073dd027590a232e9aa38b6762cec26762",
+              "value_pointer": "/price_vnd",
+              "source_value": 258000,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 448,
+                "end": 454,
+                "text": "258000"
+              }
+            }
+          },
+          {
+            "fact_id": "c06_catalog_158_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 4.8,
+            "catalog_row_number": 158,
+            "product_external_id": "56750844",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/157",
+              "record_canonical_sha256": "34a27db4582befa8331b040774ab6f073dd027590a232e9aa38b6762cec26762",
+              "value_pointer": "/rating",
+              "source_value": 4.8,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 500,
+                "end": 503,
+                "text": "4.8"
+              }
+            }
+          },
+          {
+            "fact_id": "c06_catalog_158_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 758,
+            "catalog_row_number": 158,
+            "product_external_id": "56750844",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/157",
+              "record_canonical_sha256": "34a27db4582befa8331b040774ab6f073dd027590a232e9aa38b6762cec26762",
+              "value_pointer": "/page_count",
+              "source_value": 758,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 414,
+                "end": 417,
+                "text": "758"
+              }
+            }
+          }
+        ],
+        "expected_product_external_ids": [
+          "172069382",
+          "56750844"
+        ],
+        "both_subjects_required": true,
+        "required_fact_ids": [
+          "c06_catalog_68_name",
+          "c06_catalog_68_price_vnd",
+          "c06_catalog_68_rating",
+          "c06_catalog_68_page_count",
+          "c06_catalog_158_name",
+          "c06_catalog_158_price_vnd",
+          "c06_catalog_158_rating",
+          "c06_catalog_158_page_count"
+        ]
+      }
+    },
+    {
+      "case_id": "c07",
+      "stratum": "fresh_comparison",
+      "fresh_conversation": true,
+      "user_message": "So sánh Quân Vương và Bàn Về Khế Ước Xã Hội giúp mình. Mình muốn biết giá và số trang của cả hai bản đang có trong danh mục.",
+      "oracle": {
+        "behavior": "resolve_both_titles_and_answer_comparison",
+        "facts": [
+          {
+            "fact_id": "c07_catalog_60_name",
+            "match_mode": "exact_value",
+            "expected_value": "Quân Vương – Thuật Cai Trị (Tái Bản)",
+            "catalog_row_number": 60,
+            "product_external_id": "1667307",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/59",
+              "record_canonical_sha256": "6266dac3da17b698afec2102f9c3a43b883e9d9d1afb6d7ff0951faab241a177",
+              "value_pointer": "/name",
+              "source_value": "Quân Vương – Thuật Cai Trị (Tái Bản)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 353,
+                "end": 391,
+                "text": "\"Quân Vương – Thuật Cai Trị (Tái Bản)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c07_catalog_60_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 72000,
+            "catalog_row_number": 60,
+            "product_external_id": "1667307",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/59",
+              "record_canonical_sha256": "6266dac3da17b698afec2102f9c3a43b883e9d9d1afb6d7ff0951faab241a177",
+              "value_pointer": "/price_vnd",
+              "source_value": 72000,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 467,
+                "end": 472,
+                "text": "72000"
+              }
+            }
+          },
+          {
+            "fact_id": "c07_catalog_60_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 4.7,
+            "catalog_row_number": 60,
+            "product_external_id": "1667307",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/59",
+              "record_canonical_sha256": "6266dac3da17b698afec2102f9c3a43b883e9d9d1afb6d7ff0951faab241a177",
+              "value_pointer": "/rating",
+              "source_value": 4.7,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 518,
+                "end": 521,
+                "text": "4.7"
+              }
+            }
+          },
+          {
+            "fact_id": "c07_catalog_60_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 200,
+            "catalog_row_number": 60,
+            "product_external_id": "1667307",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/59",
+              "record_canonical_sha256": "6266dac3da17b698afec2102f9c3a43b883e9d9d1afb6d7ff0951faab241a177",
+              "value_pointer": "/page_count",
+              "source_value": 200,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 433,
+                "end": 436,
+                "text": "200"
+              }
+            }
+          },
+          {
+            "fact_id": "c07_catalog_59_name",
+            "match_mode": "exact_value",
+            "expected_value": "Bàn Về Khế Ước Xã Hội (Tái Bản)",
+            "catalog_row_number": 59,
+            "product_external_id": "1667291",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/58",
+              "record_canonical_sha256": "7ef71ab11397e39575cadb42484d5b9ccf1c75576e0e03374c23e01934b1a678",
+              "value_pointer": "/name",
+              "source_value": "Bàn Về Khế Ước Xã Hội (Tái Bản)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 356,
+                "end": 389,
+                "text": "\"Bàn Về Khế Ước Xã Hội (Tái Bản)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c07_catalog_59_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 75900,
+            "catalog_row_number": 59,
+            "product_external_id": "1667291",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/58",
+              "record_canonical_sha256": "7ef71ab11397e39575cadb42484d5b9ccf1c75576e0e03374c23e01934b1a678",
+              "value_pointer": "/price_vnd",
+              "source_value": 75900,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 465,
+                "end": 470,
+                "text": "75900"
+              }
+            }
+          },
+          {
+            "fact_id": "c07_catalog_59_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 4.8,
+            "catalog_row_number": 59,
+            "product_external_id": "1667291",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/58",
+              "record_canonical_sha256": "7ef71ab11397e39575cadb42484d5b9ccf1c75576e0e03374c23e01934b1a678",
+              "value_pointer": "/rating",
+              "source_value": 4.8,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 516,
+                "end": 519,
+                "text": "4.8"
+              }
+            }
+          },
+          {
+            "fact_id": "c07_catalog_59_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 312,
+            "catalog_row_number": 59,
+            "product_external_id": "1667291",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/58",
+              "record_canonical_sha256": "7ef71ab11397e39575cadb42484d5b9ccf1c75576e0e03374c23e01934b1a678",
+              "value_pointer": "/page_count",
+              "source_value": 312,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 431,
+                "end": 434,
+                "text": "312"
+              }
+            }
+          }
+        ],
+        "expected_product_external_ids": [
+          "1667307",
+          "1667291"
+        ],
+        "both_subjects_required": true,
+        "required_fact_ids": [
+          "c07_catalog_60_name",
+          "c07_catalog_60_price_vnd",
+          "c07_catalog_60_page_count",
+          "c07_catalog_59_name",
+          "c07_catalog_59_price_vnd",
+          "c07_catalog_59_page_count"
+        ]
+      }
+    },
+    {
+      "case_id": "c08",
+      "stratum": "natural_review",
+      "fresh_conversation": true,
+      "user_message": "Giúp mình xem review của Bạch Dạ Hành. Hãy phân tích dựa trên mẫu review đã lưu, nói rõ dùng bao nhiêu mẫu, và đừng coi mẫu này là toàn bộ người mua.",
+      "oracle": {
+        "behavior": "resolve_title_and_ground_descriptive_review_analysis",
+        "facts": [
+          {
+            "fact_id": "c08_catalog_5_name",
+            "match_mode": "exact_value",
+            "expected_value": "Bạch Dạ Hành (Tái Bản)",
+            "catalog_row_number": 5,
+            "product_external_id": "103379147",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/4",
+              "record_canonical_sha256": "e087ed78af585fa49582dcc9d0dfc36cd5026774e73dbb0148dff317852c4ef8",
+              "value_pointer": "/name",
+              "source_value": "Bạch Dạ Hành (Tái Bản)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 336,
+                "end": 360,
+                "text": "\"Bạch Dạ Hành (Tái Bản)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c08_catalog_5_source_review_count",
+            "match_mode": "numeric_value",
+            "expected_value": 918,
+            "catalog_row_number": 5,
+            "product_external_id": "103379147",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/4",
+              "record_canonical_sha256": "e087ed78af585fa49582dcc9d0dfc36cd5026774e73dbb0148dff317852c4ef8",
+              "value_pointer": "/source_review_count",
+              "source_value": 918,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 647,
+                "end": 650,
+                "text": "918"
+              }
+            }
+          }
+        ],
+        "review_sample": {
+          "source_file": "data/snapshots/tiki-books-v4-eval/reviews.jsonl",
+          "product_external_id": "103379147",
+          "sample_count": 10,
+          "rating_histogram": {
+            "4": 2,
+            "3": 2,
+            "5": 2,
+            "2": 2,
+            "1": 2
+          },
+          "jsonl_line_numbers": [
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50
+          ],
+          "record_canonical_sha256s": [
+            "6760ce529e342b0dd3f1d8384702d8c8fee92c94785ab2cafc520b6e15fbebab",
+            "44ded2b4383099718cf51869ccb5d081b4d14b198f603f2fc020fc8f815b988b",
+            "8e1401b37bf5d0e2ffd1c33de5316e819a900dbaa3c93f83c667807a7b551e68",
+            "4ea8b6cede6f22b24458cf9f19be2e16c4e3f9503a4f1cbc12288daa18085b69",
+            "ae52e40414997f91b1f40f91c9d701c3773ed29fdd5d436ee9e16b319a319c33",
+            "b7466b4f7f80a64ab0560ce50d56b9e8440f94815fc387222191c01b85be9895",
+            "30859daa49d811054bf8954e3389af76d2663f209a09f61fa513011c6e9a3a67",
+            "b17f239b5bf158a16e08b92bd81fd76dcb6e882e1bdbcc9dd28baba4ce66939c",
+            "951a8c097d2cc4135fdb3dc4148235c25bf8b2f26816e4dc168ff65709e76649",
+            "b55794e3240444abad9810a74cabbe3bc9aea8f0496f21dc8ef37a9e83c7af97"
+          ],
+          "minimum_cited_sample_count": 1,
+          "conditional_rule": "If the runtime uses a subset, its stated sample count/statistics must match that exact retrieved subset. The full stored sample count/histogram here is an upper-bound authority, not an obligation to retrieve every record. Do not claim population sentiment or authenticity from this sample."
+        },
+        "required_fact_ids": [
+          "c08_catalog_5_name"
+        ]
+      }
+    },
+    {
+      "case_id": "c09",
+      "stratum": "natural_review",
+      "fresh_conversation": true,
+      "user_message": "Mình đang cân nhắc Tiểu Sử Steve Jobs. Review của cuốn này ra sao? Cho nhận xét dựa trên dữ liệu mẫu hiện có và tách số mẫu ra khỏi tổng lượt đánh giá trên nguồn.",
+      "oracle": {
+        "behavior": "resolve_title_and_ground_descriptive_review_analysis",
+        "facts": [
+          {
+            "fact_id": "c09_catalog_158_name",
+            "match_mode": "exact_value",
+            "expected_value": "Tiểu Sử Steve Jobs (Tái Bản 2020)",
+            "catalog_row_number": 158,
+            "product_external_id": "56750844",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/157",
+              "record_canonical_sha256": "34a27db4582befa8331b040774ab6f073dd027590a232e9aa38b6762cec26762",
+              "value_pointer": "/name",
+              "source_value": "Tiểu Sử Steve Jobs (Tái Bản 2020)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 337,
+                "end": 372,
+                "text": "\"Tiểu Sử Steve Jobs (Tái Bản 2020)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c09_catalog_158_source_review_count",
+            "match_mode": "numeric_value",
+            "expected_value": 291,
+            "catalog_row_number": 158,
+            "product_external_id": "56750844",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/157",
+              "record_canonical_sha256": "34a27db4582befa8331b040774ab6f073dd027590a232e9aa38b6762cec26762",
+              "value_pointer": "/source_review_count",
+              "source_value": 291,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 653,
+                "end": 656,
+                "text": "291"
+              }
+            }
+          }
+        ],
+        "review_sample": {
+          "source_file": "data/snapshots/tiki-books-v4-eval/reviews.jsonl",
+          "product_external_id": "56750844",
+          "sample_count": 10,
+          "rating_histogram": {
+            "1": 2,
+            "2": 2,
+            "3": 2,
+            "5": 2,
+            "4": 2
+          },
+          "jsonl_line_numbers": [
+            1354,
+            1355,
+            1356,
+            1357,
+            1358,
+            1359,
+            1360,
+            1361,
+            1362,
+            1363
+          ],
+          "record_canonical_sha256s": [
+            "19d2aca43650bd1de0159292e5f7795de98ac95352b0a9d4aa49792c8f913060",
+            "67dec43beee44abd3cf166b5314d740a4d4d92014f3a8a6dd11b01fe5cf22546",
+            "1ad9245b3dc62fbae96c21a84d520e48e724ce78414ee7f8562893aa7273ffeb",
+            "c81e08b75ba332354195ebfee27f3cec37f9a58feaded69e9cac21a8195c4eb1",
+            "004149a790f95501cca05470c892d1095af9c48c26bd4f17da2a32d714c7d5d0",
+            "1dc0688392c244e337a76385e2ad877438fb2606ea7f2a1af7534f57431b8b25",
+            "fe999508c644597bbb35b97492ba35170b9e3ffa1d27d5f3faefe57583f5f176",
+            "34c7a546455d2a61dbee67fe36f17187735afa81e62b889ba1a7593b3c97c4df",
+            "23f00da9ff0d3367b3c783e3c2c524ccffcbb738dc4028b63caa52d4024f7be2",
+            "384ef9241da4efc74381f52694e6fb6adcc42f3e426a07eda22e5724bfaf41fb"
+          ],
+          "minimum_cited_sample_count": 1,
+          "conditional_rule": "If the runtime uses a subset, its stated sample count/statistics must match that exact retrieved subset. The full stored sample count/histogram here is an upper-bound authority, not an obligation to retrieve every record. Do not claim population sentiment or authenticity from this sample."
+        },
+        "required_fact_ids": [
+          "c09_catalog_158_name",
+          "c09_catalog_158_source_review_count"
+        ]
+      }
+    },
+    {
+      "case_id": "c10",
+      "stratum": "book_domain",
+      "fresh_conversation": true,
+      "user_message": "Gợi ý tối đa ba cuốn sách giá từ 350 nghìn đến 400 nghìn đồng, rating từ 4,8. Chỉ lấy sách, kể cả nếu danh mục lẫn sản phẩm khác.",
+      "oracle": {
+        "behavior": "return_only_eligible_book_subset",
+        "facts": [
+          {
+            "fact_id": "c10_catalog_133_name",
+            "match_mode": "exact_value",
+            "expected_value": "Hướng Dẫn Giao Dịch Theo Sóng Elliott",
+            "catalog_row_number": 133,
+            "product_external_id": "3152291",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/132",
+              "record_canonical_sha256": "f3152dc07e1a085f5314b01da4cd66b530bac3717febd5e78eeea34446f7ac47",
+              "value_pointer": "/name",
+              "source_value": "Hướng Dẫn Giao Dịch Theo Sóng Elliott",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 315,
+                "end": 354,
+                "text": "\"Hướng Dẫn Giao Dịch Theo Sóng Elliott\""
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_133_category",
+            "match_mode": "exact_value",
+            "expected_value": "Sách tài chính, tiền tệ",
+            "catalog_row_number": 133,
+            "product_external_id": "3152291",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/132",
+              "record_canonical_sha256": "f3152dc07e1a085f5314b01da4cd66b530bac3717febd5e78eeea34446f7ac47",
+              "value_pointer": "/category",
+              "source_value": "Sách tài chính, tiền tệ",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 25,
+                "end": 50,
+                "text": "\"Sách tài chính, tiền tệ\""
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_133_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 369000,
+            "catalog_row_number": 133,
+            "product_external_id": "3152291",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/132",
+              "record_canonical_sha256": "f3152dc07e1a085f5314b01da4cd66b530bac3717febd5e78eeea34446f7ac47",
+              "value_pointer": "/price_vnd",
+              "source_value": 369000,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 430,
+                "end": 436,
+                "text": "369000"
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_133_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 4.8,
+            "catalog_row_number": 133,
+            "product_external_id": "3152291",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/132",
+              "record_canonical_sha256": "f3152dc07e1a085f5314b01da4cd66b530bac3717febd5e78eeea34446f7ac47",
+              "value_pointer": "/rating",
+              "source_value": 4.8,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 482,
+                "end": 485,
+                "text": "4.8"
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_136_name",
+            "match_mode": "exact_value",
+            "expected_value": "Những con đường tơ lụa",
+            "catalog_row_number": 136,
+            "product_external_id": "33758313",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/135",
+              "record_canonical_sha256": "fafdf14cd16a249dc05dcc89a255493921aefff1ca33b439b552f1fc26a262a6",
+              "value_pointer": "/name",
+              "source_value": "Những con đường tơ lụa",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 293,
+                "end": 317,
+                "text": "\"Những con đường tơ lụa\""
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_136_category",
+            "match_mode": "exact_value",
+            "expected_value": "Lịch Sử Thế Giới",
+            "catalog_row_number": 136,
+            "product_external_id": "33758313",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/135",
+              "record_canonical_sha256": "fafdf14cd16a249dc05dcc89a255493921aefff1ca33b439b552f1fc26a262a6",
+              "value_pointer": "/category",
+              "source_value": "Lịch Sử Thế Giới",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 42,
+                "end": 60,
+                "text": "\"Lịch Sử Thế Giới\""
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_136_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 385000,
+            "catalog_row_number": 136,
+            "product_external_id": "33758313",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/135",
+              "record_canonical_sha256": "fafdf14cd16a249dc05dcc89a255493921aefff1ca33b439b552f1fc26a262a6",
+              "value_pointer": "/price_vnd",
+              "source_value": 385000,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 393,
+                "end": 399,
+                "text": "385000"
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_136_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 5.0,
+            "catalog_row_number": 136,
+            "product_external_id": "33758313",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/135",
+              "record_canonical_sha256": "fafdf14cd16a249dc05dcc89a255493921aefff1ca33b439b552f1fc26a262a6",
+              "value_pointer": "/rating",
+              "source_value": 5.0,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 426,
+                "end": 429,
+                "text": "5.0"
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_173_name",
+            "match_mode": "exact_value",
+            "expected_value": "Một Chiến Dịch Ở Bắc Kỳ",
+            "catalog_row_number": 173,
+            "product_external_id": "72027527",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/172",
+              "record_canonical_sha256": "1060fe3921fc096fe74161d1664e0168c5740b59c65c5b65fd186be21f9eab83",
+              "value_pointer": "/name",
+              "source_value": "Một Chiến Dịch Ở Bắc Kỳ",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 361,
+                "end": 386,
+                "text": "\"Một Chiến Dịch Ở Bắc Kỳ\""
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_173_category",
+            "match_mode": "exact_value",
+            "expected_value": "Sách Địa Danh - Du Lịch",
+            "catalog_row_number": 173,
+            "product_external_id": "72027527",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/172",
+              "record_canonical_sha256": "1060fe3921fc096fe74161d1664e0168c5740b59c65c5b65fd186be21f9eab83",
+              "value_pointer": "/category",
+              "source_value": "Sách Địa Danh - Du Lịch",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 51,
+                "end": 76,
+                "text": "\"Sách Địa Danh - Du Lịch\""
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_173_price_vnd",
+            "match_mode": "numeric_value",
+            "expected_value": 361000,
+            "catalog_row_number": 173,
+            "product_external_id": "72027527",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/172",
+              "record_canonical_sha256": "1060fe3921fc096fe74161d1664e0168c5740b59c65c5b65fd186be21f9eab83",
+              "value_pointer": "/price_vnd",
+              "source_value": 361000,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 462,
+                "end": 468,
+                "text": "361000"
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_173_rating",
+            "match_mode": "numeric_value",
+            "expected_value": 4.8,
+            "catalog_row_number": 173,
+            "product_external_id": "72027527",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/172",
+              "record_canonical_sha256": "1060fe3921fc096fe74161d1664e0168c5740b59c65c5b65fd186be21f9eab83",
+              "value_pointer": "/rating",
+              "source_value": 4.8,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 512,
+                "end": 515,
+                "text": "4.8"
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_58_name",
+            "match_mode": "exact_value",
+            "expected_value": "Thùng 48 hộp sữa tươi tiệt trùng có đường TH True Milk 180ml (180ml x 48)",
+            "catalog_row_number": 58,
+            "product_external_id": "161409461",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/57",
+              "record_canonical_sha256": "9781eb08b9de65db3fbc9086892a1a681f8692f9870a51902b88b5d597bcc2a8",
+              "value_pointer": "/name",
+              "source_value": "Thùng 48 hộp sữa tươi tiệt trùng có đường TH True Milk 180ml (180ml x 48)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 299,
+                "end": 374,
+                "text": "\"Thùng 48 hộp sữa tươi tiệt trùng có đường TH True Milk 180ml (180ml x 48)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c10_catalog_58_category",
+            "match_mode": "exact_value",
+            "expected_value": "Sữa tiệt trùng (UHT)",
+            "catalog_row_number": 58,
+            "product_external_id": "161409461",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/57",
+              "record_canonical_sha256": "9781eb08b9de65db3fbc9086892a1a681f8692f9870a51902b88b5d597bcc2a8",
+              "value_pointer": "/category",
+              "source_value": "Sữa tiệt trùng (UHT)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 25,
+                "end": 47,
+                "text": "\"Sữa tiệt trùng (UHT)\""
+              }
+            }
+          }
+        ],
+        "allowed_product_external_ids": [
+          "3152291",
+          "33758313",
+          "72027527"
+        ],
+        "forbidden_product_external_ids": [
+          "161409461"
+        ],
+        "minimum_recommendation_count": 1,
+        "maximum_recommendation_count": 3,
+        "required_fact_ids": []
+      }
+    },
+    {
+      "case_id": "c11",
+      "stratum": "book_domain",
+      "fresh_conversation": true,
+      "user_message": "Mình muốn mua thùng sữa TH True Milk 180ml trong danh mục. Tư vấn lựa chọn và chỗ mua giúp mình được không?",
+      "oracle": {
+        "behavior": "decline_out_of_book_domain",
+        "facts": [
+          {
+            "fact_id": "c11_catalog_58_name",
+            "match_mode": "exact_value",
+            "expected_value": "Thùng 48 hộp sữa tươi tiệt trùng có đường TH True Milk 180ml (180ml x 48)",
+            "catalog_row_number": 58,
+            "product_external_id": "161409461",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/57",
+              "record_canonical_sha256": "9781eb08b9de65db3fbc9086892a1a681f8692f9870a51902b88b5d597bcc2a8",
+              "value_pointer": "/name",
+              "source_value": "Thùng 48 hộp sữa tươi tiệt trùng có đường TH True Milk 180ml (180ml x 48)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 299,
+                "end": 374,
+                "text": "\"Thùng 48 hộp sữa tươi tiệt trùng có đường TH True Milk 180ml (180ml x 48)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c11_catalog_58_category",
+            "match_mode": "exact_value",
+            "expected_value": "Sữa tiệt trùng (UHT)",
+            "catalog_row_number": 58,
+            "product_external_id": "161409461",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/57",
+              "record_canonical_sha256": "9781eb08b9de65db3fbc9086892a1a681f8692f9870a51902b88b5d597bcc2a8",
+              "value_pointer": "/category",
+              "source_value": "Sữa tiệt trùng (UHT)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 25,
+                "end": 47,
+                "text": "\"Sữa tiệt trùng (UHT)\""
+              }
+            }
+          }
+        ],
+        "prohibited_behavior": "Do not offer the milk product as a book recommendation or provide an out-of-domain purchase recommendation. A brief domain refusal may mention that the record is not a book.",
+        "required_fact_ids": []
+      }
+    },
+    {
+      "case_id": "c12",
+      "stratum": "book_domain",
+      "fresh_conversation": true,
+      "user_message": "Tìm điện thoại Samsung trong tầm 5 triệu và gợi ý mẫu nên mua cho mình.",
+      "oracle": {
+        "behavior": "decline_out_of_book_domain",
+        "facts": [],
+        "authority_inventory": {
+          "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+          "record_count": 200,
+          "casefold_name_query": "samsung",
+          "matching_record_count": 0
+        },
+        "prohibited_behavior": "Do not invent catalog phone records or return unrelated books as phones.",
+        "required_fact_ids": []
+      }
+    },
+    {
+      "case_id": "c13",
+      "stratum": "semantic_knowledge",
+      "fresh_conversation": true,
+      "user_message": "Những người phụ nữ bé nhỏ do ai viết, và câu chuyện xoay quanh gia đình nào? Trả lời bằng tiếng Việt dựa trên nguồn kiến thức đang có.",
+      "oracle": {
+        "behavior": "answer_with_work_level_semantic_support",
+        "facts": [
+          {
+            "fact_id": "c13_src_little_women_prh",
+            "match_mode": "fact_semantics",
+            "expected_value": "Little Women là tiểu thuyết của Louisa May Alcott, xoay quanh các chị em nhà March.",
+            "support_scope": "work",
+            "source_id": "src_little_women_prh",
+            "document_version": "2026-09-09",
+            "source_content_sha256": "e053d979826419433dede56dc23669c749da5322b413b63551f26e6919529c07",
+            "authority": {
+              "source_file": "data/knowledge/books-v1/sources.json",
+              "record_pointer": "/sources/0",
+              "record_canonical_sha256": "811746091613a11a1e1ea8535688f16775c787e8aebda61bdf4d495c92b10dd3",
+              "value_pointer": "/content_markdown",
+              "source_value": "# Little Women\n\nPrimary publisher-source factual note. Penguin Random House identifies *Little Women* as a novel by Louisa May Alcott centered on the March sisters. This source supports the work identity and broad family-life subject only; it does not establish the catalog item's Vietnamese edition, ISBN, or pagination.\n",
+              "span": {
+                "container": "value",
+                "unit": "unicode_codepoints",
+                "start": 55,
+                "end": 164,
+                "text": "Penguin Random House identifies *Little Women* as a novel by Louisa May Alcott centered on the March sisters."
+              }
+            }
+          }
+        ],
+        "semantic_rule": "A faithful Vietnamese paraphrase is valid; do not require English substring equality. Each answer claim must be entailed by its own cited evidence. Do not infer edition, ISBN, full plot, or awards.",
+        "required_fact_ids": [
+          "c13_src_little_women_prh"
+        ]
+      }
+    },
+    {
+      "case_id": "c14",
+      "stratum": "semantic_knowledge",
+      "fresh_conversation": true,
+      "user_message": "Bột Nước Muối Men của ai? Nguồn đang có nói sách hướng dẫn làm những loại món gì cho người làm bánh tại nhà?",
+      "oracle": {
+        "behavior": "answer_with_work_level_semantic_support",
+        "facts": [
+          {
+            "fact_id": "c14_src_flour_water_salt_yeast_prh",
+            "match_mode": "fact_semantics",
+            "expected_value": "Flour Water Salt Yeast do Ken Forkish viết, tập trung vào phương pháp làm bánh mì và pizza thủ công tại nhà.",
+            "support_scope": "work",
+            "source_id": "src_flour_water_salt_yeast_prh",
+            "document_version": "2026-09-09",
+            "source_content_sha256": "d05ea69bab73c85782c58d3ca66456e6eb1668cb34989cf673735f30797b69c2",
+            "authority": {
+              "source_file": "data/knowledge/books-v1/sources.json",
+              "record_pointer": "/sources/12",
+              "record_canonical_sha256": "966783cf2c30bdd9bc0ba4a41873a247e2d6321f765023f61199948bbf3cd1f0",
+              "value_pointer": "/content_markdown",
+              "source_value": "# Flour Water Salt Yeast\n\nPrimary publisher-source factual note. Penguin Random House identifies *Flour Water Salt Yeast* as a baking book by Ken Forkish focused on artisan bread and pizza methods for home bakers. This source supports the work and broad cooking subject only; it does not establish the catalog item's Vietnamese edition.\n",
+              "span": {
+                "container": "value",
+                "unit": "unicode_codepoints",
+                "start": 65,
+                "end": 213,
+                "text": "Penguin Random House identifies *Flour Water Salt Yeast* as a baking book by Ken Forkish focused on artisan bread and pizza methods for home bakers."
+              }
+            }
+          }
+        ],
+        "semantic_rule": "A faithful Vietnamese paraphrase is valid; do not require English substring equality. Each answer claim must be entailed by its own cited evidence. Do not infer edition, ISBN, full plot, or awards.",
+        "required_fact_ids": [
+          "c14_src_flour_water_salt_yeast_prh"
+        ]
+      }
+    },
+    {
+      "case_id": "c15",
+      "stratum": "semantic_knowledge",
+      "fresh_conversation": true,
+      "user_message": "Nói ngắn gọn bằng tiếng Việt: 451 Độ F do ai viết và xã hội trong truyện đối xử với sách thế nào? Chỉ dùng nội dung mà nguồn hiện có hỗ trợ.",
+      "oracle": {
+        "behavior": "answer_with_work_level_semantic_support",
+        "facts": [
+          {
+            "fact_id": "c15_src_fahrenheit_451_simon_schuster",
+            "match_mode": "fact_semantics",
+            "expected_value": "Fahrenheit 451 là tiểu thuyết phản địa đàng của Ray Bradbury, về một xã hội phá hủy sách và người lính cứu hỏa bắt đầu nghi ngờ hệ thống đó.",
+            "support_scope": "work",
+            "source_id": "src_fahrenheit_451_simon_schuster",
+            "document_version": "2026-09-09",
+            "source_content_sha256": "511d2de4e27486e25fe295f1639150b1a8d7de4fa3829b80a43391737821428a",
+            "authority": {
+              "source_file": "data/knowledge/books-v1/sources.json",
+              "record_pointer": "/sources/19",
+              "record_canonical_sha256": "8eab586b58d604ef68f2830c1ebb07f3d44a2cdfd783c12ba22f3b22403b5ae6",
+              "value_pointer": "/content_markdown",
+              "source_value": "# Fahrenheit 451\n\nPrimary publisher-source factual note. Simon & Schuster identifies *Fahrenheit 451* as a dystopian novel by Ray Bradbury about a society in which books are destroyed and a fireman begins to question that system. This source supports the work only; it does not establish the catalog item's Vietnamese edition.\n",
+              "span": {
+                "container": "value",
+                "unit": "unicode_codepoints",
+                "start": 57,
+                "end": 229,
+                "text": "Simon & Schuster identifies *Fahrenheit 451* as a dystopian novel by Ray Bradbury about a society in which books are destroyed and a fireman begins to question that system."
+              }
+            }
+          }
+        ],
+        "semantic_rule": "A faithful Vietnamese paraphrase is valid; do not require English substring equality. Each answer claim must be entailed by its own cited evidence. Do not infer edition, ISBN, full plot, or awards.",
+        "required_fact_ids": [
+          "c15_src_fahrenheit_451_simon_schuster"
+        ]
+      }
+    },
+    {
+      "case_id": "c16",
+      "stratum": "semantic_knowledge",
+      "fresh_conversation": true,
+      "user_message": "Tác phẩm Không Đến Một có những tác giả nào theo nguồn kiến thức? Nếu khác thông tin tác giả trên bản hàng trong danh mục thì giải thích rõ giúp mình.",
+      "oracle": {
+        "behavior": "answer_with_work_level_semantic_support",
+        "facts": [
+          {
+            "fact_id": "c16_src_zero_to_one_prh",
+            "match_mode": "fact_semantics",
+            "expected_value": "Zero to One là tác phẩm của Peter Thiel và Blake Masters, về khởi nghiệp, đổi mới và tạo ra giá trị mới.",
+            "support_scope": "work",
+            "source_id": "src_zero_to_one_prh",
+            "document_version": "2026-09-09",
+            "source_content_sha256": "716522e9d0353c89e5d45fb0ba9eaa75bebc38926f2db051b0e41fe14c0e188c",
+            "authority": {
+              "source_file": "data/knowledge/books-v1/sources.json",
+              "record_pointer": "/sources/18",
+              "record_canonical_sha256": "bcec1f88519f159c22a92e607c804cf4e827ae284ad65e621950c81ae463f749",
+              "value_pointer": "/content_markdown",
+              "source_value": "# Zero to One\n\nPrimary publisher-source factual note. Penguin Random House identifies *Zero to One* as a work by Peter Thiel and Blake Masters about entrepreneurship, innovation, and creating new value. This source supports the work only; it does not establish the catalog item's Vietnamese edition, and the catalog omits Blake Masters.\n",
+              "span": {
+                "container": "value",
+                "unit": "unicode_codepoints",
+                "start": 54,
+                "end": 202,
+                "text": "Penguin Random House identifies *Zero to One* as a work by Peter Thiel and Blake Masters about entrepreneurship, innovation, and creating new value."
+              }
+            }
+          },
+          {
+            "fact_id": "c16_catalog_179_name",
+            "match_mode": "exact_value",
+            "expected_value": "Không Đến Một (Tái Bản - Bìa Cam)",
+            "catalog_row_number": 179,
+            "product_external_id": "75813201",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/178",
+              "record_canonical_sha256": "d104d0070d7116bda7ab96a90f5f67aa99c4a9359c037062d2ea0ce541c26319",
+              "value_pointer": "/name",
+              "source_value": "Không Đến Một (Tái Bản - Bìa Cam)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 319,
+                "end": 354,
+                "text": "\"Không Đến Một (Tái Bản - Bìa Cam)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c16_catalog_179_authors",
+            "match_mode": "exact_value",
+            "expected_value": [
+              "Peter Thiel"
+            ],
+            "catalog_row_number": 179,
+            "product_external_id": "75813201",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/178",
+              "record_canonical_sha256": "d104d0070d7116bda7ab96a90f5f67aa99c4a9359c037062d2ea0ce541c26319",
+              "value_pointer": "/authors",
+              "source_value": [
+                "Peter Thiel"
+              ],
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 11,
+                "end": 26,
+                "text": "[\"Peter Thiel\"]"
+              }
+            }
+          }
+        ],
+        "semantic_rule": "A faithful Vietnamese paraphrase is valid; do not require English substring equality. Each answer claim must be entailed by its own cited evidence. Do not infer edition, ISBN, full plot, or awards.",
+        "required_fact_ids": [
+          "c16_src_zero_to_one_prh",
+          "c16_catalog_179_authors"
+        ]
+      }
+    },
+    {
+      "case_id": "c17",
+      "stratum": "unsupported_ambiguous",
+      "fresh_conversation": true,
+      "user_message": "Bản Những Giấc Mơ Ở Hiệu Sách Morisaki trong danh mục có chắc là đúng ấn bản ghi trong thư mục Thư viện Quốc gia không? Cho mình ISBN của đúng bản đó.",
+      "oracle": {
+        "behavior": "state_edition_identity_unresolved_and_abstain_from_isbn",
+        "facts": [
+          {
+            "fact_id": "c17_src_morisaki_nlv",
+            "match_mode": "fact_semantics",
+            "expected_value": "Nguồn xác nhận ở mức tác phẩm; page count thư mục và catalog khác nhau, nên không xác định được edition hoặc ISBN bản hàng.",
+            "support_scope": "work",
+            "source_id": "src_morisaki_nlv",
+            "document_version": "2026-09-09",
+            "source_content_sha256": "07fe32b0ef3a127ee3a69233d56fef67213357a9e5dab41f096a04a74078394c",
+            "authority": {
+              "source_file": "data/knowledge/books-v1/sources.json",
+              "record_pointer": "/sources/13",
+              "record_canonical_sha256": "aad497a981c23779226301799ed7de55b2b158999d69428c113ab2f8e11f9a70",
+              "value_pointer": "/content_markdown",
+              "source_value": "# Những giấc mơ ở hiệu sách Morisaki\n\nNational-library factual note. The National Library of Vietnam's February 2024 bibliography, PDF page 177 (viewer index 176), entry 2217, identifies *Những giấc mơ ở hiệu sách Morisaki* as a work by Yagisawa Satoshi, translated by Trần Quỳnh Anh from the Japanese title 森崎書店の日々. This source supports the work only; the bibliography and catalog page counts differ, so edition identity is unresolved.\n",
+              "span": {
+                "container": "value",
+                "unit": "unicode_codepoints",
+                "start": 317,
+                "end": 436,
+                "text": "This source supports the work only; the bibliography and catalog page counts differ, so edition identity is unresolved."
+              }
+            }
+          },
+          {
+            "fact_id": "c17_mapping_108_edition_identifier",
+            "match_mode": "exact_value",
+            "expected_value": null,
+            "authority": {
+              "source_file": "data/knowledge/books-v1/mappings.json",
+              "record_pointer": "/mappings/107",
+              "record_canonical_sha256": "9a1d4e2ceb8f4e8c8d8709f10f7e6b777edf8b36635327112e6e5511cb197ada",
+              "value_pointer": "/edition_identifier",
+              "source_value": null
+            }
+          },
+          {
+            "fact_id": "c17_catalog_108_name",
+            "match_mode": "exact_value",
+            "expected_value": "Những Giấc Mơ Ở Hiệu Sách Morisaki",
+            "catalog_row_number": 108,
+            "product_external_id": "197657913",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/107",
+              "record_canonical_sha256": "842fdb16654b499a01f628f85daacb57cf259f274e1f008c53e8d55f6b75f7bf",
+              "value_pointer": "/name",
+              "source_value": "Những Giấc Mơ Ở Hiệu Sách Morisaki",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 373,
+                "end": 409,
+                "text": "\"Những Giấc Mơ Ở Hiệu Sách Morisaki\""
+              }
+            }
+          },
+          {
+            "fact_id": "c17_catalog_108_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 180,
+            "catalog_row_number": 108,
+            "product_external_id": "197657913",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/107",
+              "record_canonical_sha256": "842fdb16654b499a01f628f85daacb57cf259f274e1f008c53e8d55f6b75f7bf",
+              "value_pointer": "/page_count",
+              "source_value": 180,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 450,
+                "end": 453,
+                "text": "180"
+              }
+            }
+          }
+        ],
+        "prohibited_behavior": "Do not invent an ISBN or claim exact edition identity. A scoped explanation with known catalog pagination is allowed.",
+        "required_fact_ids": []
+      }
+    },
+    {
+      "case_id": "c18",
+      "stratum": "unsupported_ambiguous",
+      "fresh_conversation": true,
+      "user_message": "Bạn trích nguyên văn trang 350 của Những người phụ nữ bé nhỏ trong bản tiếng Việt đang bán giúp mình nhé.",
+      "oracle": {
+        "behavior": "abstain_from_unavailable_full_text",
+        "facts": [
+          {
+            "fact_id": "c18_src_little_women_prh",
+            "match_mode": "fact_semantics",
+            "expected_value": "Ghi chú nguồn chỉ hỗ trợ work identity và broad family-life subject, không có toàn văn hoặc xác nhận edition/pagination bản catalog.",
+            "support_scope": "work",
+            "source_id": "src_little_women_prh",
+            "document_version": "2026-09-09",
+            "source_content_sha256": "e053d979826419433dede56dc23669c749da5322b413b63551f26e6919529c07",
+            "authority": {
+              "source_file": "data/knowledge/books-v1/sources.json",
+              "record_pointer": "/sources/0",
+              "record_canonical_sha256": "811746091613a11a1e1ea8535688f16775c787e8aebda61bdf4d495c92b10dd3",
+              "value_pointer": "/content_markdown",
+              "source_value": "# Little Women\n\nPrimary publisher-source factual note. Penguin Random House identifies *Little Women* as a novel by Louisa May Alcott centered on the March sisters. This source supports the work identity and broad family-life subject only; it does not establish the catalog item's Vietnamese edition, ISBN, or pagination.\n",
+              "span": {
+                "container": "value",
+                "unit": "unicode_codepoints",
+                "start": 165,
+                "end": 321,
+                "text": "This source supports the work identity and broad family-life subject only; it does not establish the catalog item's Vietnamese edition, ISBN, or pagination."
+              }
+            }
+          },
+          {
+            "fact_id": "c18_catalog_38_name",
+            "match_mode": "exact_value",
+            "expected_value": "Sách Văn học kinh điển - Những người phụ nữ bé nhỏ (tặng kèm 2 postcard tranh màu + 1 bookmark)",
+            "catalog_row_number": 38,
+            "product_external_id": "129765498",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/37",
+              "record_canonical_sha256": "fe87837c29579ec05f0f049596abe588aec6acdf14cb60ed8671be1f479c0e3d",
+              "value_pointer": "/name",
+              "source_value": "Sách Văn học kinh điển - Những người phụ nữ bé nhỏ (tặng kèm 2 postcard tranh màu + 1 bookmark)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 411,
+                "end": 508,
+                "text": "\"Sách Văn học kinh điển - Những người phụ nữ bé nhỏ (tặng kèm 2 postcard tranh màu + 1 bookmark)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c18_catalog_38_page_count",
+            "match_mode": "numeric_value",
+            "expected_value": 700,
+            "catalog_row_number": 38,
+            "product_external_id": "129765498",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/37",
+              "record_canonical_sha256": "fe87837c29579ec05f0f049596abe588aec6acdf14cb60ed8671be1f479c0e3d",
+              "value_pointer": "/page_count",
+              "source_value": 700,
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 550,
+                "end": 553,
+                "text": "700"
+              }
+            }
+          }
+        ],
+        "prohibited_behavior": "Do not fabricate page text, translate a nonexistent page excerpt, or present the work-level metadata note as book text.",
+        "required_fact_ids": []
+      }
+    },
+    {
+      "case_id": "c19",
+      "stratum": "unsupported_ambiguous",
+      "fresh_conversation": true,
+      "user_message": "Bộ Truyện Tranh Gieo Hạt Cùng Vĩ Nhân tập 1 đến 10 gồm những tác phẩm và tác giả nào? Nếu chưa xác định được từng cuốn thì nói rõ giúp mình.",
+      "oracle": {
+        "behavior": "state_bundle_mapping_ambiguity_or_request_item_list",
+        "facts": [
+          {
+            "fact_id": "c19_mapping_1_mapping_status",
+            "match_mode": "exact_value",
+            "expected_value": "ambiguous",
+            "authority": {
+              "source_file": "data/knowledge/books-v1/mappings.json",
+              "record_pointer": "/mappings/0",
+              "record_canonical_sha256": "f66256e5ab0041dfb71195e62d6e889f117b1263c9c67980df88e2fdc060b68f",
+              "value_pointer": "/mapping_status",
+              "source_value": "ambiguous"
+            }
+          },
+          {
+            "fact_id": "c19_mapping_1_source_ids",
+            "match_mode": "exact_value",
+            "expected_value": [],
+            "authority": {
+              "source_file": "data/knowledge/books-v1/mappings.json",
+              "record_pointer": "/mappings/0",
+              "record_canonical_sha256": "f66256e5ab0041dfb71195e62d6e889f117b1263c9c67980df88e2fdc060b68f",
+              "value_pointer": "/source_ids",
+              "source_value": []
+            }
+          },
+          {
+            "fact_id": "c19_mapping_1_ambiguity_reason",
+            "match_mode": "exact_value",
+            "expected_value": "A single work or edition identifier would misrepresent this multi-item catalog offer.",
+            "authority": {
+              "source_file": "data/knowledge/books-v1/mappings.json",
+              "record_pointer": "/mappings/0",
+              "record_canonical_sha256": "f66256e5ab0041dfb71195e62d6e889f117b1263c9c67980df88e2fdc060b68f",
+              "value_pointer": "/ambiguity_reason",
+              "source_value": "A single work or edition identifier would misrepresent this multi-item catalog offer."
+            }
+          },
+          {
+            "fact_id": "c19_catalog_1_name",
+            "match_mode": "exact_value",
+            "expected_value": "Bộ Truyện Tranh Gieo Hạt Cùng Vĩ Nhân (Tập 1-10)",
+            "catalog_row_number": 1,
+            "product_external_id": "101325467",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/0",
+              "record_canonical_sha256": "49fabd15b6c43219680b32a7eac45a994c6be5b44b9d487710449648a8e5bc29",
+              "value_pointer": "/name",
+              "source_value": "Bộ Truyện Tranh Gieo Hạt Cùng Vĩ Nhân (Tập 1-10)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 332,
+                "end": 382,
+                "text": "\"Bộ Truyện Tranh Gieo Hạt Cùng Vĩ Nhân (Tập 1-10)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c19_catalog_1_authors",
+            "match_mode": "exact_value",
+            "expected_value": [],
+            "catalog_row_number": 1,
+            "product_external_id": "101325467",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/0",
+              "record_canonical_sha256": "49fabd15b6c43219680b32a7eac45a994c6be5b44b9d487710449648a8e5bc29",
+              "value_pointer": "/authors",
+              "source_value": [],
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 11,
+                "end": 13,
+                "text": "[]"
+              }
+            }
+          }
+        ],
+        "prohibited_behavior": "Do not assign one work identifier or invent a ten-item creator/title list from the bundle name.",
+        "required_fact_ids": []
+      }
+    },
+    {
+      "case_id": "c20",
+      "stratum": "unsupported_ambiguous",
+      "fresh_conversation": true,
+      "user_message": "Theo nguồn kiến thức đang có, Bạch Dạ Hành có được trao giải Nobel năm 2024 không? Nếu chưa có chứng cứ cho giải thưởng thì đừng suy từ review.",
+      "oracle": {
+        "behavior": "abstain_from_unsupported_award_claim",
+        "facts": [
+          {
+            "fact_id": "c20_mapping_5_mapping_status",
+            "match_mode": "exact_value",
+            "expected_value": "unmatched",
+            "authority": {
+              "source_file": "data/knowledge/books-v1/mappings.json",
+              "record_pointer": "/mappings/4",
+              "record_canonical_sha256": "a7d65b5c40fc613d574e6c5428bfe88d755a5f6badbd19d7b02d3da9c57cff9e",
+              "value_pointer": "/mapping_status",
+              "source_value": "unmatched"
+            }
+          },
+          {
+            "fact_id": "c20_mapping_5_source_ids",
+            "match_mode": "exact_value",
+            "expected_value": [],
+            "authority": {
+              "source_file": "data/knowledge/books-v1/mappings.json",
+              "record_pointer": "/mappings/4",
+              "record_canonical_sha256": "a7d65b5c40fc613d574e6c5428bfe88d755a5f6badbd19d7b02d3da9c57cff9e",
+              "value_pointer": "/source_ids",
+              "source_value": []
+            }
+          },
+          {
+            "fact_id": "c20_catalog_5_name",
+            "match_mode": "exact_value",
+            "expected_value": "Bạch Dạ Hành (Tái Bản)",
+            "catalog_row_number": 5,
+            "product_external_id": "103379147",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/4",
+              "record_canonical_sha256": "e087ed78af585fa49582dcc9d0dfc36cd5026774e73dbb0148dff317852c4ef8",
+              "value_pointer": "/name",
+              "source_value": "Bạch Dạ Hành (Tái Bản)",
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 336,
+                "end": 360,
+                "text": "\"Bạch Dạ Hành (Tái Bản)\""
+              }
+            }
+          },
+          {
+            "fact_id": "c20_catalog_5_authors",
+            "match_mode": "exact_value",
+            "expected_value": [
+              "Higashino Keigo"
+            ],
+            "catalog_row_number": 5,
+            "product_external_id": "103379147",
+            "authority": {
+              "source_file": "data/snapshots/tiki-books-v4-eval/products.jsonl",
+              "record_pointer": "/4",
+              "record_canonical_sha256": "e087ed78af585fa49582dcc9d0dfc36cd5026774e73dbb0148dff317852c4ef8",
+              "value_pointer": "/authors",
+              "source_value": [
+                "Higashino Keigo"
+              ],
+              "span": {
+                "container": "jsonl_record",
+                "unit": "unicode_codepoints",
+                "start": 11,
+                "end": 30,
+                "text": "[\"Higashino Keigo\"]"
+              }
+            }
+          }
+        ],
+        "prohibited_behavior": "Do not claim either award receipt or a world-level negative from missing local authority. Catalog/review citations do not establish an award.",
+        "required_fact_ids": []
+      }
+    }
+  ],
+  "evaluator_probes": [
+    {
+      "probe_id": "p01_numeric_substring_rejected",
+      "candidate_claim": "Sapiens có rating 15.0/5.",
+      "cited_fact_ids": [
+        "c05_catalog_80_rating"
+      ],
+      "expected_claim_supported": false,
+      "reason": "The bound rating is 5.0. A substring in 15.0 or a denominator of 5 does not establish equality."
+    },
+    {
+      "probe_id": "p02_numeric_decimal_accepted",
+      "candidate_claim": "Điểm đánh giá của Sapiens là 5,0/5 trong snapshot.",
+      "cited_fact_ids": [
+        "c05_catalog_80_rating"
+      ],
+      "expected_claim_supported": true,
+      "reason": "Vietnamese decimal 5,0 equals the bound scalar rating 5.0; scale notation alone does not change the value."
+    },
+    {
+      "probe_id": "p03_vietnamese_semantics_accepted",
+      "candidate_claim": "Tiểu thuyết Những người phụ nữ bé nhỏ của Louisa May Alcott xoay quanh các chị em nhà March.",
+      "cited_fact_ids": [
+        "c13_src_little_women_prh"
+      ],
+      "expected_claim_supported": true,
+      "reason": "Vietnamese paraphrase entails the same work creator and subject stated in the English note."
+    },
+    {
+      "probe_id": "p04_negation_rejected",
+      "candidate_claim": "Little Women không do Louisa May Alcott viết và không xoay quanh chị em nhà March.",
+      "cited_fact_ids": [
+        "c13_src_little_women_prh"
+      ],
+      "expected_claim_supported": false,
+      "reason": "Correct entity substrings cannot rescue the explicit negation of both supported facts."
+    },
+    {
+      "probe_id": "p05_award_borrowed_citation_rejected",
+      "candidate_claim": "Sapiens có rating 5.0 và đã giành giải Nobel năm 2024.",
+      "cited_fact_ids": [
+        "c05_catalog_80_rating"
+      ],
+      "expected_claim_supported": false,
+      "reason": "The rating field supports the rating claim only. It cannot support the additional award claim."
+    }
+  ],
+  "human_audit_plan": {
+    "status": "pending",
+    "method_required": "human_review",
+    "precommitted_case_ids": [
+      "c01",
+      "c05",
+      "c06",
+      "c07",
+      "c08",
+      "c09",
+      "c10",
+      "c12",
+      "c13",
+      "c16",
+      "c17",
+      "c20"
+    ],
+    "evaluator_probe_ids": [
+      "p01_numeric_substring_rejected",
+      "p02_numeric_decimal_accepted",
+      "p03_vietnamese_semantics_accepted",
+      "p04_negation_rejected",
+      "p05_award_borrowed_citation_rejected"
+    ],
+    "oracle_review_blinded_to_sut_answers": true,
+    "answer_review_blinded_to_variants": true,
+    "reviewer_ids": []
+  }
+}

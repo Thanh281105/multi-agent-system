@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from dataclasses import replace
@@ -14,6 +15,7 @@ from app.evaluation import benchmark_cli, benchmark_v3
 from app.evaluation.benchmark_v3 import (
     FrozenPackage7DriftError,
     HeldoutEvaluationV3ObservationRunner,
+    SuccessorBindingV3,
     build_heldout_execution_plan_v3,
     build_heldout_schedule_v3,
     load_frozen_package7_heldout_inputs_v3,
@@ -23,7 +25,10 @@ from app.evaluation.benchmark_v3 import (
     validate_heldout_schedule_v3,
 )
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
-from app.evaluation.v3_checkpoint import CheckpointWriterV3
+from app.evaluation.v3_checkpoint import (
+    CheckpointIntegrityErrorV3,
+    CheckpointWriterV3,
+)
 from app.evaluation.v3_gold import EvaluationSplitV3
 from app.evaluation.v3_models import (
     PACKAGE7_VARIANT_ORDER,
@@ -34,6 +39,7 @@ from app.evaluation.v3_models import (
 from app.evaluation.v3_protocol import evaluation_protocol_sha256_v3
 from app.evaluation.v3_runner import (
     EvaluationCaseV3,
+    EvaluationV3ObservationRunner,
     InitialStateResetReceiptV3,
     LedgerEventEvidenceV3,
     LedgerEventKindV3,
@@ -44,7 +50,7 @@ from app.evaluation.v3_runner import (
     UserTurnExecutionResultV3,
     initial_state_reset_receipt_v3,
 )
-from app.evaluation.v3_schedule import pilot_schedule_sha256_v3
+from app.evaluation.v3_schedule import build_pilot_schedule_v3, pilot_schedule_sha256_v3
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -100,7 +106,10 @@ def frozen(tmp_path_factory: pytest.TempPathFactory):
 def test_p8_preserves_the_frozen_package7_source_manifest_and_protocol(frozen) -> None:
     digest = hashlib.sha256()
     for path in sorted(
-        (PROJECT_ROOT / "app" / "evaluation").glob("v3_*.py"),
+        (
+            *(PROJECT_ROOT / "app" / "evaluation").glob("v3_*.py"),
+            *(PROJECT_ROOT / "app" / "evaluation").glob("benchmark_*.py"),
+        ),
         key=lambda item: item.as_posix(),
     ):
         content_sha256 = hashlib.sha256(
@@ -480,6 +489,199 @@ def test_p8_orphaned_start_is_sealed_as_ambiguous_without_dispatch(
     assert result.summary.pending_turn_ids[0] == schedule[1].turn_id
 
 
+def _partial_checkpoint(frozen, checkpoint: Path, tail: str):
+    schedule = build_heldout_schedule_v3(frozen, run_id="run_p8_partial_reader")
+    runner = HeldoutEvaluationV3ObservationRunner(
+        frozen=frozen,
+        schedule=schedule,
+        checkpoint_path=checkpoint,
+        executor_factory=_RecordingFactory(),
+    )
+    receipt = asyncio.run(runner._execute_observation(schedule[0]))
+    if tail == "foreign_receipt":
+        receipt = receipt.model_copy(update={"schedule_index": 1})
+    with CheckpointWriterV3(
+        checkpoint,
+        run_id=runner.run_id,
+        protocol_sha256=frozen.protocol_sha256,
+        execution_case_set_sha256=runner.execution_case_set_sha256,
+        schedule_sha256=runner.schedule_sha256,
+        schedule=schedule,
+    ) as writer:
+        writer.append_started(schedule[0])
+        writer.append_completed(
+            schedule[0], {"receipt": receipt.model_dump(mode="json")}
+        )
+        if tail in {"orphan", "sealed"}:
+            writer.append_started(schedule[1])
+    if tail == "sealed":
+        runner.seal_orphan_started_observations()
+    return runner
+
+
+@pytest.fixture
+def forbid_reader_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    def unexpected_dispatch(*_args, **_kwargs):
+        pytest.fail("checkpoint reader attempted to dispatch an unexecuted cell")
+
+    monkeypatch.setattr(
+        benchmark_cli._ForbiddenFactory, "__call__", unexpected_dispatch
+    )
+
+
+@pytest.mark.parametrize("tail", ("pending", "orphan", "sealed"))
+def test_native_partial_report_preserves_unexecuted_checkpoint(
+    frozen,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tail: str,
+    forbid_reader_dispatch: None,
+) -> None:
+    checkpoint = tmp_path / "heldout-checkpoint.v3.jsonl"
+    runner = _partial_checkpoint(frozen, checkpoint, tail)
+    before = checkpoint.read_bytes()
+    plan = build_heldout_execution_plan_v3(
+        frozen, runner.schedule, run_id=runner.run_id
+    )
+    (tmp_path / "heldout-execution-plan.p8.json").write_bytes(
+        canonical_json_bytes(plan)
+    )
+    (tmp_path / "heldout-schedule.p8.json").write_bytes(
+        canonical_json_bytes([turn.model_dump(mode="json") for turn in runner.schedule])
+    )
+    monkeypatch.setattr(benchmark_cli, "_load_frozen", lambda _: frozen)
+    arguments = (
+        "partial-report",
+        "--project-root",
+        str(PROJECT_ROOT),
+        "--output",
+        str(tmp_path),
+        "--run-id",
+        runner.run_id,
+    )
+    assert benchmark_cli.cli(arguments) == 3
+    report_path = tmp_path / "partial-execution-report.p8.json"
+    report_before = report_path.read_bytes()
+    report = json.loads(report_before)
+    assert checkpoint.read_bytes() == before
+    assert report["completed_turn_count"] == 1
+    assert report["failed_turn_count"] == 0
+    assert report["pending_turn_count"] == (719 if tail == "pending" else 718)
+    assert report["ambiguous_turn_count"] == int(tail != "pending")
+    assert report["orphan_started_turn_count"] == int(tail == "orphan")
+    assert report["checkpoint_sha256"] == hashlib.sha256(before).hexdigest()
+    assert report["receipt_accounting"]["receipt_count"] == 1
+    assert benchmark_cli.cli(arguments) == 3
+    assert checkpoint.read_bytes() == before
+    assert report_path.read_bytes() == report_before
+
+
+@pytest.mark.parametrize("tail", ("pending", "orphan", "sealed", "foreign_receipt"))
+def test_native_incomplete_heldout_reader_never_appends(
+    frozen,
+    tmp_path: Path,
+    tail: str,
+    forbid_reader_dispatch: None,
+) -> None:
+    checkpoint = tmp_path / "heldout-checkpoint.v3.jsonl"
+    runner = _partial_checkpoint(frozen, checkpoint, tail)
+    before = checkpoint.read_bytes()
+    if tail == "foreign_receipt":
+        with pytest.raises(CheckpointIntegrityErrorV3, match="current frozen schedule"):
+            benchmark_cli._load_complete_heldout_receipts(
+                frozen=frozen, schedule=runner.schedule, checkpoint=checkpoint
+            )
+    else:
+        with pytest.raises(benchmark_cli.BenchmarkCLIError) as caught:
+            benchmark_cli._load_complete_heldout_receipts(
+                frozen=frozen, schedule=runner.schedule, checkpoint=checkpoint
+            )
+        assert caught.value.code == "heldout_checkpoint_incomplete"
+    assert checkpoint.read_bytes() == before
+
+
+@pytest.mark.parametrize("orphan", (False, True))
+def test_native_incomplete_pilot_reader_never_appends(
+    frozen,
+    tmp_path: Path,
+    orphan: bool,
+    forbid_reader_dispatch: None,
+) -> None:
+    from app.evaluation import v3_cli
+
+    inputs = v3_cli._load_inputs(
+        v3_cli._parser().parse_args(
+            (
+                "validate",
+                "--project-root",
+                str(PROJECT_ROOT),
+            )
+        )
+    )
+    schedule = build_pilot_schedule_v3(
+        inputs.protocol,
+        run_id="run_pilot_reader",
+        protocol_sha256=evaluation_protocol_sha256_v3(inputs.protocol),
+    )
+    checkpoint = tmp_path / "pilot-checkpoint.v3.jsonl"
+    schedule_path = tmp_path / "pilot-schedule.v3.json"
+    schedule_path.write_bytes(
+        canonical_json_bytes([turn.model_dump(mode="json") for turn in schedule])
+    )
+    runner = EvaluationV3ObservationRunner(
+        protocol=inputs.protocol,
+        schedule=schedule,
+        checkpoint_path=checkpoint,
+        cases=inputs.cases,
+        executor_factory=_ForbiddenFactory(),
+    )
+    with CheckpointWriterV3(
+        checkpoint,
+        run_id=runner.run_id,
+        protocol_sha256=runner.protocol_sha256,
+        execution_case_set_sha256=runner.execution_case_set_sha256,
+        schedule_sha256=runner.schedule_sha256,
+        schedule=schedule,
+    ) as writer:
+        if orphan:
+            writer.append_started(schedule[0])
+    before = checkpoint.read_bytes()
+    with pytest.raises(benchmark_cli.BenchmarkCLIError) as caught:
+        benchmark_cli._load_complete_pilot_receipts(
+            frozen=frozen,
+            pilot_checkpoint=checkpoint,
+            pilot_schedule_path=schedule_path,
+        )
+    assert caught.value.code == "pilot_checkpoint_incomplete"
+    assert checkpoint.read_bytes() == before
+
+
+def test_native_complete_heldout_reader_returns_validated_receipts_without_append(
+    frozen,
+    tmp_path: Path,
+    forbid_reader_dispatch: None,
+) -> None:
+    schedule = build_heldout_schedule_v3(frozen, run_id="run_p8_complete_reader")
+    checkpoint = tmp_path / "heldout-checkpoint.v3.jsonl"
+    result = asyncio.run(
+        run_heldout_benchmark_v3(
+            frozen=frozen,
+            schedule=schedule,
+            checkpoint_path=checkpoint,
+            executor_factory=_RecordingFactory(),
+        )
+    )
+    before = checkpoint.read_bytes()
+    assert (
+        benchmark_cli._load_complete_heldout_receipts(
+            frozen=frozen, schedule=schedule, checkpoint=checkpoint
+        )
+        == result.receipts
+    )
+    assert len(result.receipts) == 720
+    assert checkpoint.read_bytes() == before
+
+
 class _RecordingFactory:
     def __init__(self) -> None:
         self.calls = 0
@@ -578,3 +780,76 @@ def _write_package7_artifacts(
     protocol_path.write_bytes(canonical_json_bytes(protocol))
     decision_path.write_bytes(canonical_json_bytes(decision))
     return protocol_path, decision_path
+
+
+def test_explicit_successor_binding_preserves_default_historical_guard(
+    frozen, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    protocol_path, decision_path = _write_package7_artifacts(
+        tmp_path, frozen.protocol, frozen.repeat_decision
+    )
+    runtime_relative = "data/knowledge/books-v1/runtime-manifest.json"
+    payload = {
+        "schema_version": "3.1",
+        "binding_id": "review_successor",
+        "evaluator_contract": "evidence_semantics_v2",
+        "protocol_sha256": frozen.protocol_sha256,
+        "repeat_decision_sha256": frozen.repeat_decision_sha256,
+        "gold_sha256": frozen.loaded_gold.gold_sha256,
+        "split_sha256": frozen.loaded_gold.split_sha256,
+        "experiment_path": "evaluation/v3/experiment.v3.json",
+        "gold_path": "evaluation/v3/gold.v3.json",
+        "split_path": "evaluation/v3/split.v3.json",
+        "runtime_manifest_path": runtime_relative,
+        "runtime_manifest_sha256": hashlib.sha256(
+            (PROJECT_ROOT / runtime_relative).read_bytes()
+        ).hexdigest(),
+    }
+    binding = SuccessorBindingV3.model_validate(
+        {**payload, "binding_sha256": canonical_sha256(payload)}
+    )
+    binding_path = tmp_path / "successor-binding.json"
+    binding_path.write_bytes(canonical_json_bytes(binding))
+    monkeypatch.setattr(benchmark_v3, "EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3", "e" * 64)
+    arguments = dict(
+        project_root=PROJECT_ROOT,
+        protocol_path=protocol_path,
+        repeat_decision_path=decision_path,
+        gold_path=PROJECT_ROOT / payload["gold_path"],
+        split_path=PROJECT_ROOT / payload["split_path"],
+    )
+    with pytest.raises(FrozenPackage7DriftError, match="protocol_hash_drift"):
+        load_frozen_package7_heldout_inputs_v3(**arguments)
+    accepted = load_frozen_package7_heldout_inputs_v3(
+        **arguments, successor_binding_path=binding_path
+    )
+    assert accepted.successor_binding == binding
+    changed = {**payload, "runtime_manifest_sha256": "f" * 64}
+    binding_path.write_bytes(
+        canonical_json_bytes({**changed, "binding_sha256": canonical_sha256(changed)})
+    )
+    with pytest.raises(FrozenPackage7DriftError, match="runtime_manifest_hash_drift"):
+        load_frozen_package7_heldout_inputs_v3(
+            **arguments, successor_binding_path=binding_path
+        )
+
+
+def test_successor_binding_rejects_path_escape() -> None:
+    payload = {
+        "schema_version": "3.1",
+        "binding_id": "bad_successor",
+        "evaluator_contract": "evidence_semantics_v2",
+        "protocol_sha256": "a" * 64,
+        "repeat_decision_sha256": "b" * 64,
+        "gold_sha256": "c" * 64,
+        "split_sha256": "d" * 64,
+        "experiment_path": "../outside.json",
+        "gold_path": "evaluation/gold.json",
+        "split_path": "evaluation/split.json",
+        "runtime_manifest_path": "data/runtime.json",
+        "runtime_manifest_sha256": "e" * 64,
+    }
+    with pytest.raises(ValueError, match="within the project"):
+        SuccessorBindingV3.model_validate(
+            {**payload, "binding_sha256": canonical_sha256(payload)}
+        )

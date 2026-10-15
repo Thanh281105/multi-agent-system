@@ -20,10 +20,12 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.base import Base
+from app.db.migrate import upgrade_database
 from app.models.budget import ProviderAttempt, ProviderBudgetScope
 from app.shared.budget import (
     GENERATION_INPUT_TOKEN_LIMIT,
     BudgetCancelledError,
+    BudgetConflictError,
     BudgetDeadlineError,
     BudgetDuplicateAttemptError,
     BudgetLimitExceededError,
@@ -36,6 +38,7 @@ from app.shared.budget import (
 )
 from app.shared.embedding_runtime import EmbeddingRuntimeError, OpenAIEmbeddingRuntime
 from app.shared.model_runtime import ModelRuntimeError, OpenAIModelRuntime
+from tests.v2_postgres_support import disposable_postgres_database
 
 
 class Answer(BaseModel):
@@ -211,6 +214,79 @@ def read_attempts(
 
 
 @pytest.mark.asyncio
+async def test_judge_output_bound_is_priced_reserved_and_settled_by_actual_ledger(
+    budget_store: tuple[SQLProviderBudgetLedger, sessionmaker[Session], Any],
+) -> None:
+    ledger, factory, _ = budget_store
+    context = add_scope(ledger, "large-judge", purpose="judge")
+    client = FakeGenerationClient([generation_response("judged")])
+    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)
+
+    with provider_budget_scope(context):
+        result = await runtime.generate_structured(
+            stage="evaluation.judge",
+            agent_id="model_judge",
+            model="gpt-5.4-mini",
+            instructions="Return the schema.",
+            input_text="bounded calibration evidence",
+            schema=Answer,
+            max_output_tokens=3_600,
+        )
+
+    assert result.value.answer == "judged"
+    assert len(client.responses.create_requests) == 1
+    assert client.responses.create_requests[0]["max_output_tokens"] == 3_600
+    attempts = read_attempts(factory, "large-judge")
+    assert len(attempts) == 1
+    attempt = attempts[0]
+    assert attempt.purpose == "judge" and attempt.output_token_bound == 3_600
+    pricing = ledger.manifest.resolve("gpt-5.4-mini", "generation")
+    assert attempt.reserved_nano_usd == (
+        attempt.input_token_bound * pricing.input_nano_usd_per_token
+        + 3_600 * pricing.output_nano_usd_per_token
+    )
+    assert attempt.usage_status == "known" and attempt.result_status == "success"
+    summary = ledger.account_summary("provider-global")
+    assert summary.known_nano_usd > 0 and summary.reserved_nano_usd == 0
+    with factory() as session:
+        scope = session.get(ProviderBudgetScope, "large-judge")
+        assert scope is not None and scope.active_attempts == 0
+
+
+@pytest.mark.asyncio
+async def test_large_judge_output_cannot_bypass_the_persisted_chat_scope(
+    budget_store: tuple[SQLProviderBudgetLedger, sessionmaker[Session], Any],
+) -> None:
+    ledger, factory, _ = budget_store
+    add_scope(ledger, "chat-scope")
+    context = ProviderBudgetContext(
+        ledger=ledger, scope_id="chat-scope", purpose="judge"
+    )
+    client = FakeGenerationClient([])
+    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)
+
+    with (
+        provider_budget_scope(context),
+        pytest.raises(
+            BudgetConflictError, match="provider_attempt_purpose_scope_mismatch"
+        ),
+    ):
+        await runtime.generate_structured(
+            stage="evaluation.judge",
+            agent_id="model_judge",
+            model="gpt-5.4-mini",
+            instructions="Return the schema.",
+            input_text="bounded evidence",
+            schema=Answer,
+            max_output_tokens=3_600,
+        )
+
+    assert not client.responses.create_requests
+    assert not read_attempts(factory, "chat-scope")
+    assert ledger.account_summary("provider-global").reserved_nano_usd == 0
+
+
+@pytest.mark.asyncio
 async def test_budgeted_generation_charges_retry_and_parses_after_usage(
     budget_store: tuple[SQLProviderBudgetLedger, sessionmaker[Session], Any],
     monkeypatch: pytest.MonkeyPatch,
@@ -284,6 +360,64 @@ async def test_malformed_output_is_charged_before_local_schema_parse(
     assert attempt.usage_status == "known"
     assert attempt.result_status == "error"
     assert attempt.actual_cost_nano_usd and attempt.actual_cost_nano_usd > 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("recover", [True, False])
+async def test_semantic_validation_settles_every_attempt_before_bounded_retry(
+    budget_store, recover
+):
+    ledger, factory, _ = budget_store
+    context = add_scope(ledger, "semantic-retry", max_retries=1)
+    client = FakeGenerationClient(
+        [
+            generation_response("wrong"),
+            generation_response("correct" if recover else "wrong"),
+        ]
+    )
+    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=1)
+
+    def validate(value):
+        if value.answer != "correct":
+            raise ValueError("private binding detail")
+
+    arguments = dict(
+        stage="synthesis",
+        agent_id="orchestrator",
+        model="gpt-5.4-mini",
+        instructions="Return the schema.",
+        input_text="bounded evidence",
+        schema=Answer,
+        validate_output=validate,
+    )
+    with provider_budget_scope(context):
+        if recover:
+            result = await runtime.generate_structured(**arguments)
+            assert result.value.answer == "correct" and result.metadata.attempts == 2
+        else:
+            with pytest.raises(ModelRuntimeError) as captured:
+                await runtime.generate_structured(**arguments)
+            assert captured.value.code == "model_response_invalid"
+            assert captured.value.metadata.attempts == 2
+            assert "private binding detail" not in str(captured.value)
+    attempts = read_attempts(factory, "semantic-retry")
+    assert [item.attempt_number for item in attempts] == [1, 2]
+    assert attempts[0].call_id == attempts[1].call_id
+    assert all(
+        item.usage_status == "known" and item.actual_cost_nano_usd > 0
+        for item in attempts
+    )
+    assert [item.result_status for item in attempts] == [
+        "error",
+        "success" if recover else "error",
+    ]
+    assert attempts[0].error_code == "model_response_invalid"
+    assert ledger.account_summary("provider-global").reserved_nano_usd == 0
+    assert len(client.responses.create_requests) == 2
+    assert client.responses.create_requests[0] == client.responses.create_requests[1]
+    with factory() as session:
+        scope = session.get(ProviderBudgetScope, "semantic-retry")
+        assert scope is not None and scope.generation_calls == 1
 
 
 @pytest.mark.asyncio
@@ -422,32 +556,46 @@ async def test_response_tier_mismatch_retains_unknown_and_surfaces_accounting(
 
 
 @pytest.mark.asyncio
-async def test_budget_context_isolated_across_concurrent_turns(
-    budget_store: tuple[SQLProviderBudgetLedger, sessionmaker[Session], Any],
-) -> None:
-    ledger, factory, _ = budget_store
-    first_context = add_scope(ledger, "context-a")
-    second_context = add_scope(ledger, "context-b")
-    client = EchoGenerationClient()
-    runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)
+async def test_postgres_budget_context_isolated_across_concurrent_turns() -> None:
+    # SQLite ignores SELECT FOR UPDATE, so shared-account concurrency needs
+    # the same row-lock semantics as the deployed PostgreSQL ledger.
+    with disposable_postgres_database("thanh_v2_p2_runtime_budget_") as database_url:
+        upgrade_database(database_url)
+        engine = create_engine(database_url)
+        factory = sessionmaker(bind=engine, expire_on_commit=False, class_=Session)
+        ledger = SQLProviderBudgetLedger(
+            factory, PricingManifest.load(default_pricing_manifest_path())
+        )
+        try:
+            ledger.create_account(account_id="provider-global")
+            first_context = add_scope(ledger, "context-a")
+            second_context = add_scope(ledger, "context-b")
+            client = EchoGenerationClient()
+            runtime = OpenAIModelRuntime("test-key", client=client, max_retries=0)
 
-    async def run(context: ProviderBudgetContext, text: str) -> str:
-        with provider_budget_scope(context):
-            result = await runtime.generate_structured(
-                stage="synthesis",
-                agent_id="orchestrator",
-                model="gpt-5.4-mini",
-                instructions="Return the schema.",
-                input_text=text,
-                schema=Answer,
-            )
-            return result.value.answer
+            async def run(context: ProviderBudgetContext, text: str) -> str:
+                with provider_budget_scope(context):
+                    result = await runtime.generate_structured(
+                        stage="synthesis",
+                        agent_id="orchestrator",
+                        model="gpt-5.4-mini",
+                        instructions="Return the schema.",
+                        input_text=text,
+                        schema=Answer,
+                    )
+                    return result.value.answer
 
-    assert await asyncio.gather(
-        run(first_context, "first"), run(second_context, "second")
-    ) == ["first", "second"]
-    assert len(read_attempts(factory, "context-a")) == 1
-    assert len(read_attempts(factory, "context-b")) == 1
+            assert await asyncio.gather(
+                run(first_context, "first"), run(second_context, "second")
+            ) == ["first", "second"]
+            for scope_id in ("context-a", "context-b"):
+                attempts = read_attempts(factory, scope_id)
+                assert len(attempts) == 1
+                assert attempts[0].usage_status == "known"
+                assert attempts[0].result_status == "success"
+            assert ledger.account_summary("provider-global").reserved_nano_usd == 0
+        finally:
+            engine.dispose()
 
 
 @pytest.mark.asyncio

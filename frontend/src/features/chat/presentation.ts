@@ -756,7 +756,7 @@ function projectActiveTurn(
     terminal &&
     (terminal.status === "failed" || terminal.status === "interrupted")
       ? terminal.error
-      : null
+      : state.durable.failure
   return {
     protocol: "v2",
     key: "v2-active:" + active.clientTurnId,

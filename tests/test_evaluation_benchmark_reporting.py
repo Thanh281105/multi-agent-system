@@ -9,12 +9,14 @@ from pathlib import Path
 import pytest
 
 from app.contracts import TaskStatus
+from app.evaluation.benchmark_judging import _build_heldout_record
 from app.evaluation.benchmark_reporting import (
     BenchmarkReportingValidationErrorV3,
     EvidenceBindingKeyV3,
     HeldOutReceiptAdmissionV3,
     JudgedObservationSetV3,
     Package8PartialExecutionReportV3,
+    ProvisionalObservationV3,
     ReceiptAccountingV3,
     ReceiptFailureTaxonomyEntryV3,
     ResolvedExactEvidenceV3,
@@ -29,6 +31,7 @@ from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_artifacts import (
     BlindedAnswerPacketV3,
     BlindedAnswerV3,
+    ClaimEvidenceV3,
     JudgmentRecordV3,
     RubricContextV3,
     UnblindingEntryV3,
@@ -52,6 +55,8 @@ from app.evaluation.v3_judge import (
     evaluator_configuration_sha256_v3,
     judge_prompt_sha256_v3,
     model_judge_output_schema_sha256_v3,
+    score_runtime_metrics_v3,
+    validate_model_judge_output_v3,
 )
 from app.evaluation.v3_models import (
     PACKAGE7_VARIANT_ORDER,
@@ -439,6 +444,88 @@ def test_complete_blind_key_and_model_judgment_join_is_exact() -> None:
     assert citationless_joined.observations[0].document_recall == 1.0
 
 
+@pytest.mark.parametrize("include_citation", [True, False])
+def test_successor_join_retains_claim_coverage_and_unmeasured_empty_claims(
+    include_citation: bool,
+) -> None:
+    provisional = _provisional(include_citation=include_citation)
+    packet, key, configuration, calibration = _blind_context(
+        provisional, successor=True
+    )
+    judgment = _successor_judgment(packet, configuration, calibration)
+    joined = join_model_judgments_to_observations_v3(
+        (provisional,),
+        blinded_packet=packet,
+        unblinding_key=key,
+        judgments=(judgment,),
+        judge_configuration=configuration,
+        calibration=calibration,
+    )
+    assert joined.observations[0].citation_coverage == (
+        1.0 if include_citation else None
+    )
+    assert joined.observations[0].document_recall is None
+    assert judgment.score_sources[EvaluationMetricV3.CITATION_COVERAGE] == "model_judge"
+
+
+@pytest.mark.parametrize("field", ["answer_sha256", "stale_output"])
+def test_successor_join_rejects_hash_valid_foreign_coverage_provenance(
+    field: str,
+) -> None:
+    provisional = _provisional()
+    packet, key, configuration, calibration = _blind_context(
+        provisional, successor=True
+    )
+    judgment = _successor_judgment(packet, configuration, calibration)
+    payload = judgment.model_dump(mode="json", exclude={"judgment_sha256"})
+    if field == "answer_sha256":
+        payload["claim_coverage"]["answer_sha256"] = "f" * 64
+    else:
+        # Ratio and count are internally valid, but disagree with the saved
+        # validated model verdicts. Rehashing the artifact cannot hide this.
+        payload["claim_coverage"]["verdicts"][0]["supported"] = False
+        payload["claim_coverage"]["supported_claim_count"] = 0
+        payload["claim_coverage"]["coverage"] = 0.0
+        payload["scores"]["citation_coverage"] = 0.0
+        payload["scores"]["claim_support"] = 0.0
+    tampered = JudgmentRecordV3(**payload, judgment_sha256=canonical_sha256(payload))
+    with pytest.raises(
+        BenchmarkReportingValidationErrorV3,
+        match="receipt-bound|validated judge output",
+    ):
+        join_model_judgments_to_observations_v3(
+            (provisional,),
+            blinded_packet=packet,
+            unblinding_key=key,
+            judgments=(tampered,),
+            judge_configuration=configuration,
+            calibration=calibration,
+        )
+
+
+def test_successor_join_rejects_legacy_freeze_missing_claim_calibration() -> None:
+    provisional = _provisional()
+    packet, key, configuration, calibration = _blind_context(
+        provisional, successor=True
+    )
+    legacy = _calibration(
+        protocol_sha256=calibration.protocol_sha256,
+        configuration_sha256=configuration.configuration_sha256,
+        marker="d",
+    )
+    with pytest.raises(
+        BenchmarkReportingValidationErrorV3, match="per-claim calibration"
+    ):
+        join_model_judgments_to_observations_v3(
+            (provisional,),
+            blinded_packet=packet,
+            unblinding_key=key,
+            judgments=(_successor_judgment(packet, configuration, legacy),),
+            judge_configuration=configuration,
+            calibration=legacy,
+        )
+
+
 def test_judgment_join_rejects_mismatched_calibration_model_and_scores() -> None:
     provisional = _provisional()
     packet, key, configuration, calibration = _blind_context(provisional)
@@ -457,6 +544,76 @@ def test_judgment_join_rejects_mismatched_calibration_model_and_scores() -> None
             calibration=calibration,
         )
 
+
+@pytest.mark.parametrize("field", ["claims", "runtime_evidence"])
+def test_join_rejects_hash_valid_packet_with_foreign_scored_metadata(
+    field: str,
+) -> None:
+    provisional = _provisional()
+    packet, key, configuration, calibration = _blind_context(provisional)
+    answer = packet.answers[0]
+    if field == "claims":
+        changed = answer.model_copy(
+            update={
+                "claims": (
+                    ClaimEvidenceV3(
+                        text="Fabricated unrelated assertion", citation_labels=("[C1]",)
+                    ),
+                )
+            }
+        )
+    else:
+        changed = answer.model_copy(
+            update={
+                "runtime_evidence": answer.runtime_evidence.model_copy(
+                    update={"plan_revision_count": 1}
+                )
+            }
+        )
+    packet_payload = packet.model_dump(mode="json", exclude={"packet_sha256"})
+    packet_payload["answers"] = [changed.model_dump(mode="json")]
+    packet = BlindedAnswerPacketV3.model_validate(
+        {**packet_payload, "packet_sha256": canonical_sha256(packet_payload)}
+    )
+    key_payload = key.model_dump(mode="json", exclude={"key_sha256"})
+    key_payload["blinded_packet_sha256"] = packet.packet_sha256
+    key = UnblindingKeyV3.model_validate(
+        {**key_payload, "key_sha256": canonical_sha256(key_payload)}
+    )
+    with pytest.raises(BenchmarkReportingValidationErrorV3, match="receipt-derived"):
+        join_model_judgments_to_observations_v3(
+            (provisional,),
+            blinded_packet=packet,
+            unblinding_key=key,
+            judgments=(_judgment(packet, configuration, calibration),),
+            judge_configuration=configuration,
+            calibration=calibration,
+        )
+
+
+@pytest.mark.parametrize("field", ["claims", "runtime_evidence"])
+def test_provisional_rederives_scored_metadata_from_final_result(field: str) -> None:
+    provisional = _provisional()
+    answer = provisional.answer_evidence
+    if field == "claims":
+        changed = answer.model_copy(update={"claims": ()})
+    else:
+        changed = answer.model_copy(
+            update={
+                "runtime_evidence": answer.runtime_evidence.model_copy(
+                    update={"plan_revision_count": 1}
+                )
+            }
+        )
+    payload = provisional.model_dump(mode="json")
+    payload["answer_evidence"] = changed.model_dump(mode="json")
+    with pytest.raises(ValueError, match="final TurnResult"):
+        ProvisionalObservationV3.model_validate(payload)
+
+
+def test_judgment_join_rejects_incomplete_scores_and_model() -> None:
+    provisional = _provisional()
+    packet, key, configuration, calibration = _blind_context(provisional)
     incomplete = build_judgment_record_v3(
         bindings=packet.bindings,
         blinded_packet_sha256=packet.packet_sha256,
@@ -788,8 +945,10 @@ def _provisional(*, include_citation: bool = True):
     )[0]
 
 
-def _blind_context(provisional):
-    bindings = _bindings(protocol_sha256=provisional.observation.protocol_sha256)
+def _blind_context(provisional, *, successor: bool = False):
+    bindings = _bindings(
+        protocol_sha256=provisional.observation.protocol_sha256, successor=successor
+    )
     configuration = build_model_judge_configuration_v3(
         bindings=bindings,
         model_binding=MODEL,
@@ -803,6 +962,7 @@ def _blind_context(provisional):
         claims=provisional.answer_evidence.claims,
         runtime_evidence=provisional.answer_evidence.runtime_evidence,
         rubric_context=RubricContextV3(
+            evaluator_contract="evidence_semantics_v2" if successor else None,
             answerability=AnswerabilityV3.ANSWERABLE,
             required_response_mode=RequiredResponseModeV3.DIRECT_ANSWER,
             required_facts=(),
@@ -853,13 +1013,14 @@ def _blind_context(provisional):
         protocol_sha256=bindings.protocol_sha256,
         configuration_sha256=configuration.configuration_sha256,
         marker="d",
+        successor=successor,
     )
     return packet, key, configuration, calibration
 
 
-def _bindings(*, protocol_sha256: str) -> ArtifactBindingsV3:
+def _bindings(*, protocol_sha256: str, successor: bool = False) -> ArtifactBindingsV3:
     prompt_sha = judge_prompt_sha256_v3(PROMPT)
-    schema_sha = model_judge_output_schema_sha256_v3()
+    schema_sha = model_judge_output_schema_sha256_v3(successor=successor)
     rubric_sha = "d" * 64
     return ArtifactBindingsV3(
         protocol_sha256=protocol_sha256,
@@ -885,7 +1046,13 @@ def _bindings(*, protocol_sha256: str) -> ArtifactBindingsV3:
     )
 
 
-def _calibration(*, protocol_sha256: str, configuration_sha256: str, marker: str):
+def _calibration(
+    *,
+    protocol_sha256: str,
+    configuration_sha256: str,
+    marker: str,
+    successor: bool = False,
+):
     payload = {
         "schema_version": "3.0",
         "protocol_sha256": protocol_sha256,
@@ -898,9 +1065,59 @@ def _calibration(*, protocol_sha256: str, configuration_sha256: str, marker: str
             metric: 0.0 for metric in SEMANTIC_JUDGE_METRICS_V3
         },
     }
+    if successor:
+        payload.update(
+            {
+                "claim_calibration_claim_count": 1,
+                "claim_calibration_disagreement_count": 0,
+                "claim_calibration_error": 0.0,
+                "claim_calibration_error_threshold": 0.25,
+            }
+        )
     return CalibrationFreezeV3(
         **payload,
         calibration_sha256=canonical_sha256(payload),
+    )
+
+
+def _successor_judgment(packet, configuration, calibration) -> JudgmentRecordV3:
+    answer = packet.answers[0]
+    scores = score_runtime_metrics_v3(answer)
+    scores[EvaluationMetricV3.CLAIM_SUPPORT] = 1.0
+    scores[EvaluationMetricV3.TASK_COMPLETION] = float(all(scores.values()))
+    output = validate_model_judge_output_v3(
+        {
+            "schema_version": "3.0",
+            "claim_coverage_contract": "receipt_claim_citation_coverage_v1",
+            "output_schema_sha256": configuration.bindings.judge_schema_sha256,
+            "opaque_answer_id": answer.opaque_answer_id,
+            "verdicts": [
+                {
+                    "metric": metric,
+                    "score": scores[metric],
+                    "citation_labels": [
+                        citation.label for citation in answer.citations
+                    ],
+                }
+                for metric in SEMANTIC_JUDGE_METRICS_V3
+            ],
+            "claim_verdicts": [
+                {
+                    "claim_index": index,
+                    "supported": True,
+                    "citation_labels": list(claim.citation_labels),
+                }
+                for index, claim in enumerate(answer.claims)
+            ],
+        },
+        answer,
+    )
+    return _build_heldout_record(
+        packet=packet,
+        configuration=configuration,
+        calibration=calibration,
+        answer=answer,
+        output=output,
     )
 
 

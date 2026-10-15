@@ -49,6 +49,7 @@ from app.shared.budget import (
     default_pricing_manifest_path,
 )
 from app.v2.planning import BoundedV2Planner, PlanningContext, RuntimeDataVersions
+from tests.test_v2_tools import seed_tool_catalog
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -63,6 +64,7 @@ def _loaded_and_protocol() -> tuple[Any, Any]:
         name: f"{index + 1:064x}"
         for index, name in enumerate(EvaluationAssetBindingsV3.model_fields)
     }
+    fields["sut_git_revision"] = "a" * 40
     fields["gold_sha256"] = loaded.gold_sha256
     fields["split_sha256"] = loaded.split_sha256
     protocol = build_evaluation_protocol_v3(
@@ -270,6 +272,8 @@ def test_executor_reset_uses_compact_owned_conversation_and_rejects_collision(
     engine = create_engine(f"sqlite+pysqlite:///{tmp_path / 'executor.db'}")
     Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine, expire_on_commit=False, class_=Session)
+    with sessions() as session:
+        seed_tool_catalog(session)
     context, case = _context_and_case()
     runtime = cast(
         Any,
@@ -351,6 +355,7 @@ def test_released_reservation_remains_ledger_only_evidence(tmp_path: Path) -> No
             request=request,
             outcome_payload={"status": "failed"},
             attempts=ledger.scope_attempt_snapshots("turn_released_unit"),
+            recorded_calls=(),
             elapsed_seconds=0.01,
         )
         assert result.model_calls == ()
@@ -402,7 +407,7 @@ def test_each_generation_attempt_enforces_its_own_token_bounds(
         _validate_attempt_rows((row,))
 
 
-def test_executor_passes_case_product_ids_to_the_planning_context(
+def test_executor_withholds_gold_product_ids_from_shopper_planning_context(
     tmp_path: Path,
 ) -> None:
     class CapturingTurnService:
@@ -415,6 +420,8 @@ def test_executor_passes_case_product_ids_to_the_planning_context(
     engine = create_engine(f"sqlite+pysqlite:///{tmp_path / 'context.db'}")
     Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine, expire_on_commit=False, class_=Session)
+    with sessions() as session:
+        seed_tool_catalog(session)
     ledger = SQLProviderBudgetLedger(
         sessions,
         PricingManifest.load(default_pricing_manifest_path()),
@@ -457,7 +464,7 @@ def test_executor_passes_case_product_ids_to_the_planning_context(
 
         captured = turn_service.planning_context
         assert captured is not None
-        assert captured.resolved_product_ids == (41, 42)
+        assert captured.resolved_product_ids == ()
         assert captured.access.binding.tenant_id == context.namespace.tenant_id
         assert captured.access.binding.principal_id == context.namespace.principal_id
         assert captured.access.binding.mode.value == case.principal_role

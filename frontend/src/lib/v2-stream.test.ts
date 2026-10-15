@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest"
 
 import {
   V2IncompleteStreamError,
+  V2_FIRST_EVENT_TIMEOUT_MS,
+  V2_STREAM_IDLE_TIMEOUT_MS,
   V2SseFrameDecoder,
   parseV2SseBlock,
   parseV2SseFrame,
@@ -52,6 +54,44 @@ describe("V2SseFrameDecoder", () => {
 })
 
 describe("v2 stream protocol", () => {
+  it("bounds the first event even when comment heartbeats keep arriving", async () => {
+    vi.useFakeTimers()
+    const cancel = vi.fn()
+    let source!: ReadableStreamDefaultController<Uint8Array>
+    const response = new Response(new ReadableStream<Uint8Array>({
+      start(controller) { source = controller }, cancel,
+    }), { headers: { "Content-Type": "text/event-stream" } })
+    const failure = readV2TurnStream(response).catch((error: unknown) => error)
+    source.enqueue(new TextEncoder().encode(": heartbeat\n\n"))
+    await vi.advanceTimersByTimeAsync(V2_FIRST_EVENT_TIMEOUT_MS)
+    expect(await failure).toMatchObject({ code: "v2.stream.first_event_timeout", recoverable: true })
+    expect(cancel).toHaveBeenCalledOnce()
+    vi.useRealTimers()
+  })
+
+  it("bounds idle reads after admission and preserves the durable turn id", async () => {
+    vi.useFakeTimers()
+    const response = new Response(new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(encodeV2SseEvent(v2ProgressEventsWire[0])))
+      },
+    }), { headers: { "Content-Type": "text/event-stream" } })
+    const failure = readV2TurnStream(response).catch((error: unknown) => error)
+    await vi.advanceTimersByTimeAsync(V2_STREAM_IDLE_TIMEOUT_MS)
+    expect(await failure).toMatchObject({ code: "v2.stream.idle_timeout", turnId: "turn_demo_001" })
+    vi.useRealTimers()
+  })
+
+  it("aborts an outstanding body read before the first event", async () => {
+    const controller = new AbortController()
+    const response = new Response(new ReadableStream<Uint8Array>(), {
+      headers: { "Content-Type": "text/event-stream" },
+    })
+    const failure = readV2TurnStream(response, {}, controller.signal).catch((error: unknown) => error)
+    controller.abort()
+    expect(await failure).toMatchObject({ name: "AbortError" })
+  })
+
   it("preserves Vietnamese text split inside a UTF-8 code point", async () => {
     const vietnamese = {
       ...v2TextDeltaEventWire,

@@ -40,6 +40,7 @@ from app.evaluation.v3_runner import (
 from app.evaluation.v3_variant_runtime import (
     EvaluationV3VariantComposer,
     EvaluationV3VariantRuntime,
+    FinalizedModelCallEvidenceV3,
 )
 from app.models.v2 import (
     V2ActionAudit,
@@ -61,6 +62,7 @@ from app.shared.budget import (
     DEFAULT_MAX_GENERATION_CALLS,
     DEFAULT_MAX_PROVIDER_ATTEMPTS,
     DEFAULT_MAX_RETRIES,
+    DEFAULT_SCOPE_DEADLINE_SECONDS,
     DEFAULT_TURN_LIMIT_NANO_USD,
     BudgetPurpose,
     ProviderAttemptSnapshot,
@@ -76,6 +78,7 @@ from app.v2.contracts import (
 )
 from app.v2.planning import PlanningContext, ResolvedMerchantTarget
 from app.v2.runtime import V2ServiceGraph
+from app.v2.sandbox_seed import seed_demo_offers
 
 _STORE_ID = "demo"
 
@@ -165,7 +168,18 @@ class EvaluationV3ObservationExecutorFactory:
         context: ObservationExecutionContextV3,
         case: EvaluationCaseV3,
     ) -> EvaluationV3ObservationExecutor:
-        runtime = self.composer.compose(context.identity.variant_id)
+        access = ResourceAuthorization(
+            binding=ResourceBinding(
+                tenant_id=context.namespace.tenant_id,
+                principal_id=context.namespace.principal_id,
+                mode=ConversationMode(case.principal_role),
+                store_id=_STORE_ID,
+            ),
+            scopes=frozenset(case.scopes),
+        )
+        runtime = self.composer.compose(
+            context.identity.variant_id, observation_access=access
+        )
         return EvaluationV3ObservationExecutor(
             runtime=runtime,
             context=context,
@@ -227,7 +241,11 @@ class EvaluationV3ObservationExecutor:
         planning_context = PlanningContext(
             access=access,
             versions=self.runtime.shared_services.versions,
-            resolved_product_ids=self.case.resolved_product_ids,
+            resolved_product_ids=(
+                self.case.resolved_product_ids
+                if self.case.principal_role == "merchant"
+                else ()
+            ),
             merchant_target=self._merchant_target(),
         )
         durable_turn_id = canonical_turn_id(
@@ -264,7 +282,7 @@ class EvaluationV3ObservationExecutor:
             or limits.provider_concurrency != DEFAULT_MAX_CONCURRENCY
             or limits.max_retries != DEFAULT_MAX_RETRIES
             or limits.attempt_timeout_seconds != DEFAULT_ATTEMPT_TIMEOUT_SECONDS
-            or limits.turn_deadline_seconds != 60.0
+            or limits.turn_deadline_seconds != DEFAULT_SCOPE_DEADLINE_SECONDS
             or limits.max_input_tokens_per_generation != 12_000
             or limits.max_output_tokens_per_generation != 1_200
         ):
@@ -307,6 +325,7 @@ class EvaluationV3ObservationExecutor:
                 }
             ),
             attempts=attempts,
+            recorded_calls=recorded_calls,
             elapsed_seconds=elapsed,
         )
         if execution_error_code is not None or outcome is None:
@@ -424,6 +443,13 @@ class EvaluationV3ObservationExecutor:
                     store_id=binding.store_id,
                     title=f"evaluation:{self.case.case_id}",
                 )
+            )
+
+        if fixture is None and binding.mode is ConversationMode.SHOPPER:
+            seed_demo_offers(
+                services.session_factory,
+                tenant_id=binding.tenant_id,
+                store_id=binding.store_id,
             )
 
     def _reset_fixture(
@@ -607,6 +633,7 @@ def _turn_result(
     request: UserTurnExecutionRequestV3,
     outcome_payload: dict[str, Any],
     attempts: Sequence[ProviderAttemptSnapshot],
+    recorded_calls: Sequence[FinalizedModelCallEvidenceV3],
     elapsed_seconds: float,
 ) -> UserTurnExecutionResultV3:
     _validate_attempt_rows(attempts)
@@ -616,6 +643,7 @@ def _turn_result(
     )
     for attempt in dispatched_attempts:
         grouped[attempt.call_id].append(attempt)
+    call_traces = {call.call_id: call for call in recorded_calls}
     model_calls: list[ModelCallEvidenceV3] = []
     embedding_calls: list[EmbeddingCallEvidenceV3] = []
     retry_events: list[RetryEvidenceV3] = []
@@ -636,11 +664,23 @@ def _turn_result(
                 )
             )
         if first.operation == "generation":
+            call_trace = call_traces.get(call_id)
             model_calls.append(
                 ModelCallEvidenceV3(
                     call_id=call_id,
                     attribution=request.attribution,
                     model=first.resolved_model,
+                    stage=call_trace.stage if call_trace is not None else None,
+                    actor_id=call_trace.actor_id if call_trace is not None else None,
+                    error_code=(
+                        call_trace.error_code if call_trace is not None else None
+                    ),
+                    fallback_reason=(
+                        call_trace.fallback_reason if call_trace is not None else None
+                    ),
+                    latency_ms=(
+                        call_trace.latency_ms if call_trace is not None else None
+                    ),
                     attempts=len(rows),
                     input_tokens=sum(row.input_tokens or 0 for row in rows),
                     cached_input_tokens=sum(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -121,6 +122,49 @@ def test_application_workloads_are_bounded_and_fail_closed() -> None:
     assert "automountServiceAccountToken: false" in service_account
     assert "PUBLIC_SNAPSHOT_DIR:" in configmap
     assert ".Values.config.snapshotDir" in configmap
+    for name in (
+        "V2_CATALOG_VERSION_ID",
+        "V2_CORPUS_VERSION_ID",
+        "V2_INDEX_MANIFEST_ID",
+        "V2_BUDGET_ACCOUNT_ID",
+    ):
+        assert f"{name}:" in configmap
+
+
+def test_helm_published_v2_pins_are_validated_together() -> None:
+    schema = json.loads((CHART_ROOT / "values.schema.json").read_text("utf-8"))
+    values = _yaml(CHART_ROOT / "values.yaml")
+    config = schema["properties"]["config"]
+    for name in (
+        "v2CatalogVersionId",
+        "v2CorpusVersionId",
+        "v2IndexManifestId",
+        "v2BudgetAccountId",
+    ):
+        assert name in config["required"]
+        definition = config["properties"][name]
+        pattern = definition.get("pattern") or definition["anyOf"][1]["pattern"]
+        assert re.fullmatch(pattern, "cor_published_demo")
+        assert not re.fullmatch(pattern, "../invalid")
+        assert not re.fullmatch(pattern, "invalid whitespace")
+    paired = schema["allOf"][-1]
+    assert paired["if"]["properties"]["config"]["properties"]["v2CorpusVersionId"] == {
+        "const": ""
+    }
+    assert paired["then"]["properties"]["config"]["properties"][
+        "v2IndexManifestId"
+    ] == {"const": ""}
+    assert (
+        paired["else"]["properties"]["config"]["properties"]["v2IndexManifestId"][
+            "pattern"
+        ]
+        == "^[a-z][a-z0-9_-]{2,127}$"
+    )
+    assert (
+        values["config"]["v2CorpusVersionId"]
+        == values["config"]["v2IndexManifestId"]
+        == ""
+    )
 
 
 def test_monitoring_reads_bearer_token_from_existing_secret() -> None:

@@ -22,6 +22,7 @@ from app.evaluation.benchmark_calibration import (
     Package8PilotCalibrationInputsV3,
     build_calibration_label_policy_v3,
     build_package8_pilot_calibration_inputs_v3,
+    build_pilot_reference_cases_v3,
 )
 from app.evaluation.benchmark_evidence import (
     ImmutableBenchmarkEvidenceResolverV3,
@@ -52,13 +53,14 @@ from app.evaluation.benchmark_v3 import (
     FrozenPackage7HeldoutInputsV3,
     HeldoutEvaluationV3ObservationRunner,
     HeldoutExecutionPlanV3,
+    SuccessorBindingV3,
     build_heldout_execution_plan_v3,
     build_heldout_schedule_v3,
     load_frozen_package7_heldout_inputs_v3,
     run_heldout_benchmark_v3,
     write_or_validate_execution_plan_v3,
 )
-from app.evaluation.protocol import canonical_json_bytes
+from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
 from app.evaluation.v3_checkpoint import (
     CheckpointErrorV3,
     canonical_run_id_v3,
@@ -67,16 +69,21 @@ from app.evaluation.v3_checkpoint import (
 from app.evaluation.v3_judge import (
     SEMANTIC_JUDGE_METRICS_V3,
     CalibrationFreezeV3,
+    CalibrationReferenceBundleV3,
+    CalibrationReferenceLabelsV3,
     ModelJudgeConfigurationV3,
     build_model_judge_configuration_v3,
     freeze_calibration_thresholds_v3,
+    judge_prompt_sha256_v3,
 )
-from app.evaluation.v3_models import ScheduledTurnV3
+from app.evaluation.v3_models import ScheduledTurnKindV3, ScheduledTurnV3
 from app.evaluation.v3_runner import (
     EvaluationCaseV3,
     EvaluationRunResultV3,
+    EvaluationV3ObservationRunner,
     ObservationExecutorFactoryV3,
     ObservationRunReceiptV3,
+    _run_result,
     execution_case_set_sha256_v3,
     execution_case_sha256_v3,
     execution_namespace_v3,
@@ -131,6 +138,7 @@ class _ReceiptEvidenceAuthority:
     reference: EvidenceReference
     authorization: ResourceAuthorization
     sandbox_evidence: SandboxResolvedEvidenceV3 | None = None
+    catalog_seeded_offer: bool = False
 
 
 class _ReceiptExactEvidenceResolver:
@@ -147,12 +155,14 @@ class _ReceiptExactEvidenceResolver:
             _ReceiptEvidenceAuthority | tuple[_ReceiptEvidenceAuthority, ...],
         ],
         catalog_review_source: ImmutableCatalogReviewSourceV3 | None = None,
+        shared_corpus_reads: bool = False,
     ) -> None:
         self._knowledge_service = knowledge_service
         self._corpus_version_id = corpus_version_id
         self._index_manifest_id = index_manifest_id
         self._authorities = dict(authorities)
         self._catalog_review_source = catalog_review_source
+        self._shared_corpus_reads = shared_corpus_reads
 
     def resolve(self, binding: EvidenceBindingKeyV3) -> ResolvedExactEvidenceV3:
         authorities = self._authorities.get(binding)
@@ -178,7 +188,7 @@ class _ReceiptExactEvidenceResolver:
         authority: _ReceiptEvidenceAuthority,
     ) -> ResolvedExactEvidenceV3:
         catalog_review_source = None
-        if authority.reference.kind in {
+        if authority.catalog_seeded_offer or authority.reference.kind in {
             EvidenceKind.CATALOG,
             EvidenceKind.REVIEW,
             EvidenceKind.TRUST,
@@ -191,11 +201,20 @@ class _ReceiptExactEvidenceResolver:
                     "exact authority",
                 )
             try:
-                catalog_review_source = {
-                    binding: self._catalog_review_source.reopen(
-                        authority.reference, authority.authorization
+                source = self._catalog_review_source.reopen(
+                    authority.reference,
+                    authority.authorization,
+                    **(
+                        {"catalog_seeded_offer": True}
+                        if authority.catalog_seeded_offer
+                        else {}
+                    ),
+                )
+                if authority.catalog_seeded_offer:
+                    return ResolvedExactEvidenceV3(
+                        binding=binding, exact_text=source.exact_text
                     )
-                }
+                catalog_review_source = {binding: source}
             except ValueError as exc:
                 raise BenchmarkCLIError(
                     getattr(exc, "code", "exact_evidence_resolution_failed"),
@@ -221,9 +240,21 @@ class _ReceiptExactEvidenceResolver:
                     "sandbox citation has no receipt-bound fixture authority",
                 )
             sandbox_source = {binding: authority.sandbox_evidence}
+        source_authorization = authority.authorization
+        if (
+            self._shared_corpus_reads
+            and authority.reference.kind is EvidenceKind.KNOWLEDGE
+        ):
+            source_authorization = source_authorization.model_copy(
+                update={
+                    "binding": source_authorization.binding.model_copy(
+                        update={"tenant_id": "default"}
+                    )
+                }
+            )
         resolver = ImmutableBenchmarkEvidenceResolverV3(
             self._knowledge_service,  # type: ignore[arg-type]
-            authorization=authority.authorization,
+            authorization=source_authorization,
             corpus_version_id=self._corpus_version_id,
             index_manifest_id=self._index_manifest_id,
             reference_source={binding: authority.reference},
@@ -375,8 +406,12 @@ def _prepare(arguments: argparse.Namespace) -> int:
             maximum_absolute_error={
                 metric: arguments.calibration_max_absolute_error
                 for metric in SEMANTIC_JUDGE_METRICS_V3
-            }
+            },
+            successor_protocol_sha256=frozen.protocol_sha256
+            if frozen.successor_binding
+            else None,
         ),
+        independent_references=_load_independent_references(arguments, frozen),
     )
     preparation = prepare_heldout_judging_v3(
         frozen=frozen,
@@ -456,18 +491,43 @@ def _operate(arguments: argparse.Namespace) -> int:
         database_url=arguments.database_url,
         expected_protocol=frozen.protocol,
         runtime_manifest_path=arguments.p7_runtime_manifest,
+        successor_binding=frozen.successor_binding,
     )
     evidence_resolver = _ReceiptExactEvidenceResolver(
         knowledge_service=resources.knowledge_service,
         corpus_version_id=resources.corpus_version_id,
         index_manifest_id=resources.index_manifest_id,
         authorities=authorities,
+        shared_corpus_reads=frozen.successor_binding is not None,
         catalog_review_source=ImmutableCatalogReviewSourceV3(
             project_root=frozen.project_root,
             bindings=frozen.loaded_gold.gold.source_assets,
             snapshot_version_id=resources.catalog_snapshot_version_id,
         ),
     )
+    if arguments.export_reference_cases is not None:
+        if frozen.successor_binding is None:
+            raise BenchmarkCLIError(
+                "successor_binding_required",
+                "reference case export requires an explicit successor binding",
+            )
+        packet = build_pilot_reference_cases_v3(
+            protocol=frozen.protocol,
+            loaded_gold=frozen.loaded_gold,
+            pilot_schedule=pilot_schedule,
+            pilot_receipts=pilot_receipts,
+            evidence_resolver=evidence_resolver,
+        )
+        _exclusive_write(arguments.export_reference_cases, canonical_json_bytes(packet))
+        _emit(
+            {
+                "status": "reference_cases_exported",
+                "case_count": len(packet.cases),
+                "packet_sha256": packet.packet_sha256,
+                "output": str(arguments.export_reference_cases.resolve()),
+            }
+        )
+        return 0
     calibration_inputs = build_package8_pilot_calibration_inputs_v3(
         protocol=frozen.protocol,
         loaded_gold=frozen.loaded_gold,
@@ -478,8 +538,12 @@ def _operate(arguments: argparse.Namespace) -> int:
             maximum_absolute_error={
                 metric: arguments.calibration_max_absolute_error
                 for metric in SEMANTIC_JUDGE_METRICS_V3
-            }
+            },
+            successor_protocol_sha256=frozen.protocol_sha256
+            if frozen.successor_binding
+            else None,
         ),
+        independent_references=_load_independent_references(arguments, frozen),
     )
     preparation = prepare_heldout_judging_v3(
         frozen=frozen,
@@ -512,6 +576,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         ledger=resources.ledger,  # type: ignore[arg-type]
         account_id=resources.account_id,
         journal_path=directory / _DEVELOPMENT_JOURNAL_NAME,
+        successor_binding=frozen.successor_binding,
         additive_source_manifest_sha256=(
             preparation.postprocessing_source_manifest_sha256
         ),
@@ -541,6 +606,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         calibration_inputs.thresholds,
         calibration_inputs.references,
         expected_calibration_ids=calibration_inputs.expected_calibration_ids,
+        development_cases=calibration_inputs.cases,
     )
     _write_or_validate_model_artifact(
         directory / _CALIBRATION_FREEZE_NAME,
@@ -558,6 +624,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         references=calibration_inputs.references,
         thresholds=calibration_inputs.thresholds,
         calibration=calibration,
+        successor_binding=frozen.successor_binding,
     )
     _write_or_validate_model_artifact(
         directory / _JUDGE_BINDINGS_NAME,
@@ -575,6 +642,7 @@ def _operate(arguments: argparse.Namespace) -> int:
         ledger=resources.ledger,  # type: ignore[arg-type]
         account_id=resources.account_id,
         journal_path=directory / _HELDOUT_JOURNAL_NAME,
+        successor_binding=frozen.successor_binding,
         additive_source_manifest_sha256=(
             preparation.postprocessing_source_manifest_sha256
         ),
@@ -685,6 +753,7 @@ def _execute(arguments: argparse.Namespace) -> int:
             database_url=arguments.database_url,
             expected_protocol=frozen.protocol,
             runtime_manifest_path=arguments.p7_runtime_manifest,
+            successor_binding=frozen.successor_binding,
         )
         result = asyncio.run(
             run_heldout_benchmark_v3(
@@ -738,7 +807,7 @@ def _partial_report(arguments: argparse.Namespace) -> int:
         checkpoint_path=paths.checkpoint,
         executor_factory=_ForbiddenFactory(),
     )
-    result = asyncio.run(runner.run())
+    result = _read_checkpoint_result(runner, protocol_sha256=frozen.protocol_sha256)
     if not result.summary.is_partial:
         raise BenchmarkCLIError(
             "partial_report_not_applicable",
@@ -769,6 +838,34 @@ def _partial_report(arguments: argparse.Namespace) -> int:
     return 3
 
 
+def _read_checkpoint_result(
+    runner: HeldoutEvaluationV3ObservationRunner | EvaluationV3ObservationRunner,
+    *,
+    protocol_sha256: str,
+) -> EvaluationRunResultV3:
+    """Validate existing receipts without writing or executing pending cells."""
+
+    state = load_checkpoint_v3(
+        runner.checkpoint_path,
+        run_id=runner.run_id,
+        protocol_sha256=protocol_sha256,
+        execution_case_set_sha256=runner.execution_case_set_sha256,
+        schedule_sha256=runner.schedule_sha256,
+        schedule=runner.schedule,
+    )
+    return _run_result(
+        state,
+        schedule=runner.schedule,
+        run_id=runner.run_id,
+        protocol_sha256=protocol_sha256,
+        execution_case_set_sha256=runner.execution_case_set_sha256,
+        schedule_sha256=runner.schedule_sha256,
+        cases=runner.cases,
+        execution_case_sha256_by_id=runner.execution_case_sha256_by_id,
+        limits=runner.limits,
+    )
+
+
 def _load_complete_heldout_receipts(
     *,
     frozen: FrozenPackage7HeldoutInputsV3,
@@ -783,7 +880,7 @@ def _load_complete_heldout_receipts(
         checkpoint_path=checkpoint,
         executor_factory=_ForbiddenFactory(),
     )
-    result = asyncio.run(runner.run())
+    result = _read_checkpoint_result(runner, protocol_sha256=frozen.protocol_sha256)
     _require_complete_result(
         result,
         expected_count=len(schedule),
@@ -799,10 +896,9 @@ def _load_complete_pilot_receipts(
     pilot_schedule_path: Path,
     runtime_manifest_path: Path | None = None,
 ) -> tuple[tuple[ScheduledTurnV3, ...], tuple[ObservationRunReceiptV3, ...]]:
-    """Read P7 pilot receipts only through its non-dispatch recovery path."""
+    """Validate P7 pilot receipts without dispatching or repairing its checkpoint."""
 
     from app.evaluation import v3_cli
-    from app.evaluation.v3_runner import run_observations_v3
 
     schedule = _read_schedule_file(pilot_schedule_path, label="pilot")
     if not schedule:
@@ -826,19 +922,21 @@ def _load_complete_pilot_receipts(
     argv = ["validate", "--project-root", str(frozen.project_root)]
     if runtime_manifest_path is not None:
         argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    _append_successor_input_arguments(
+        argv, frozen.project_root, frozen.successor_binding
+    )
     arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != frozen.protocol:
         raise FrozenPackage7DriftError("package7_pilot_protocol_binding_drift")
-    result = asyncio.run(
-        run_observations_v3(
-            protocol=inputs.protocol,
-            schedule=schedule,
-            checkpoint_path=pilot_checkpoint,
-            cases=inputs.cases,
-            executor_factory=_ForbiddenFactory(),
-        )
+    runner = EvaluationV3ObservationRunner(
+        protocol=inputs.protocol,
+        schedule=schedule,
+        checkpoint_path=pilot_checkpoint,
+        cases=inputs.cases,
+        executor_factory=_ForbiddenFactory(),
     )
+    result = _read_checkpoint_result(runner, protocol_sha256=frozen.protocol_sha256)
     _require_complete_result(result, expected_count=len(schedule), label="pilot")
     return schedule, result.receipts
 
@@ -1124,7 +1222,24 @@ def _load_frozen(arguments: argparse.Namespace) -> FrozenPackage7HeldoutInputsV3
         gold_path=arguments.gold,
         split_path=arguments.split,
         runtime_manifest_path=arguments.p7_runtime_manifest,
+        successor_binding_path=arguments.successor_binding,
     )
+
+
+def _load_independent_references(
+    arguments: argparse.Namespace, frozen: FrozenPackage7HeldoutInputsV3
+) -> tuple[CalibrationReferenceLabelsV3, ...]:
+    if arguments.independent_references is None:
+        return ()
+    bundle = CalibrationReferenceBundleV3.model_validate_json(
+        arguments.independent_references.read_text(encoding="utf-8")
+    )
+    if bundle.protocol_sha256 != frozen.protocol_sha256:
+        raise BenchmarkCLIError(
+            "independent_reference_protocol_drift",
+            "independent references bind a different protocol",
+        )
+    return bundle.references
 
 
 def _require_operator_guard(arguments: argparse.Namespace) -> None:
@@ -1154,6 +1269,9 @@ def _load_pilot_cases(
     argv = ["validate", "--project-root", str(frozen.project_root)]
     if runtime_manifest_path is not None:
         argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    _append_successor_input_arguments(
+        argv, frozen.project_root, frozen.successor_binding
+    )
     arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != frozen.protocol:
@@ -1225,6 +1343,9 @@ def _receipt_evidence_authorities(
                 ),
                 scopes=frozenset(case.scopes),
             )
+            # Warm-ups do not enter either the development or held-out packet.
+            if turn.identity.turn_kind is ScheduledTurnKindV3.WARMUP:
+                continue
             result = _receipt_final_result(receipt)
             cited_evidence_ids = {item.evidence_id for item in result.citations}
             for reference in result.evidence:
@@ -1238,18 +1359,43 @@ def _receipt_evidence_authorities(
                     span_id=reference.span_id,
                 )
                 sandbox_evidence = None
+                catalog_seeded_offer = False
                 if reference.kind is EvidenceKind.SANDBOX:
-                    sandbox_evidence = _sandbox_receipt_evidence(
-                        case=case,
-                        receipt=receipt,
-                        authorization=authorization,
-                        binding=binding,
-                        reference=reference,
-                    )
+                    if case.sandbox_fixture is None and re.fullmatch(
+                        r"sandbox_offer_[1-9][0-9]*", reference.source_id
+                    ):
+                        reset = receipt.initial_state_reset_receipt
+                        if (
+                            case.principal_role != ConversationMode.SHOPPER.value
+                            or reset is None
+                            or reset.namespace_id != receipt.namespace.namespace_id
+                            or reset.execution_case_sha256
+                            != receipt.execution_case_sha256
+                            or reset.initial_state_sha256
+                            != canonical_sha256(case.initial_state)
+                            or reset.sandbox_fixture_id is not None
+                        ):
+                            raise BenchmarkCLIError(
+                                "sandbox_fixture_authority_invalid",
+                                "seeded price lacks its original "
+                                "namespace reset authority",
+                            )
+                        # This executor seeds only eligible catalog prices here.
+                        # The immutable source still checks the full exact tool span.
+                        catalog_seeded_offer = True
+                    else:
+                        sandbox_evidence = _sandbox_receipt_evidence(
+                            case=case,
+                            receipt=receipt,
+                            authorization=authorization,
+                            binding=binding,
+                            reference=reference,
+                        )
                 candidate = _ReceiptEvidenceAuthority(
                     reference=reference,
                     authorization=authorization,
                     sandbox_evidence=sandbox_evidence,
+                    catalog_seeded_offer=catalog_seeded_offer,
                 )
                 existing = authorities.get(binding, ())
                 if candidate not in existing:
@@ -1564,7 +1710,10 @@ def _build_judge_configuration(
 ) -> ModelJudgeConfigurationV3:
     """Reuse P7's frozen judge model and prompt binding without operator overrides."""
 
-    from app.evaluation.v3_cli import PACKAGE7_JUDGE_PROMPT_V3
+    from app.evaluation.v3_cli import (
+        PACKAGE7_JUDGE_PROMPT_V3,
+        PACKAGE7_LEGACY_JUDGE_PROMPT_V3,
+    )
 
     policy = frozen.protocol.experiment.judgment_policy
     if policy.model_binding is None:
@@ -1575,7 +1724,10 @@ def _build_judge_configuration(
     return build_model_judge_configuration_v3(
         bindings=preparation.blinded.packet.bindings,
         model_binding=policy.model_binding,
-        judge_prompt=PACKAGE7_JUDGE_PROMPT_V3,
+        judge_prompt=PACKAGE7_JUDGE_PROMPT_V3
+        if frozen.protocol.assets.judge_prompt_sha256
+        == judge_prompt_sha256_v3(PACKAGE7_JUDGE_PROMPT_V3)
+        else PACKAGE7_LEGACY_JUDGE_PROMPT_V3,
     )
 
 
@@ -1585,6 +1737,7 @@ def _build_live_operator_resources(
     database_url: str,
     expected_protocol: object,
     runtime_manifest_path: Path | None = None,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> _LiveOperatorResources:
     """Reuse P7's guarded graph and shared ledger without exposing its settings."""
 
@@ -1593,6 +1746,7 @@ def _build_live_operator_resources(
         database_url=database_url,
         expected_protocol=expected_protocol,
         runtime_manifest_path=runtime_manifest_path,
+        successor_binding=successor_binding,
     )
     composer = getattr(factory, "composer", None)
     services = getattr(factory, "shared_services", None)
@@ -1641,6 +1795,7 @@ def _build_package7_live_executor_factory(
     database_url: str,
     expected_protocol: object,
     runtime_manifest_path: Path | None = None,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> ObservationExecutorFactoryV3:
     """Delegate live setup to P7's already validated factory without logging it."""
 
@@ -1649,6 +1804,7 @@ def _build_package7_live_executor_factory(
     argv = ["validate", "--project-root", str(project_root)]
     if runtime_manifest_path is not None:
         argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    _append_successor_input_arguments(argv, project_root, successor_binding)
     arguments = v3_cli._parser().parse_args(argv)
     inputs = v3_cli._load_inputs(arguments)
     if inputs.protocol != expected_protocol:
@@ -1659,6 +1815,20 @@ def _build_package7_live_executor_factory(
             database_url=_with_utc_session_timezone(database_url),
         )
     )
+
+
+def _append_successor_input_arguments(
+    argv: list[str], project_root: Path, binding: SuccessorBindingV3 | None
+) -> None:
+    if binding is None:
+        return
+    for option, name in (
+        ("--runtime-manifest", "runtime_manifest_path"),
+        ("--experiment", "experiment_path"),
+        ("--gold", "gold_path"),
+        ("--split", "split_path"),
+    ):
+        argv.extend((option, str(project_root / getattr(binding, name))))
 
 
 def _with_utc_session_timezone(database_url: str) -> str:
@@ -1893,6 +2063,11 @@ def _parser() -> argparse.ArgumentParser:
         if name in {"prepare", "operate"}:
             pilot_output = project_root / "output" / "evaluation-v3" / "pilot"
             command.add_argument(
+                "--independent-references",
+                type=Path,
+                help="independent reference bundle for successor calibration",
+            )
+            command.add_argument(
                 "--pilot-checkpoint",
                 type=Path,
                 default=pilot_output / "pilot-checkpoint.v3.jsonl",
@@ -1909,6 +2084,11 @@ def _parser() -> argparse.ArgumentParser:
                 help="frozen per-metric development judge tolerance in [0, 1]",
             )
         if name == "operate":
+            command.add_argument(
+                "--export-reference-cases",
+                type=Path,
+                help="export exact development cases before judge dispatch",
+            )
             command.add_argument(
                 "--allow-network",
                 action="store_true",
@@ -1967,6 +2147,7 @@ def _add_inputs(parser: argparse.ArgumentParser, project_root: Path) -> None:
         default=p7_output / "repeat-decision.v3.json",
     )
     parser.add_argument("--p7-runtime-manifest", type=Path)
+    parser.add_argument("--successor-binding", type=Path)
     parser.add_argument(
         "--gold",
         type=Path,

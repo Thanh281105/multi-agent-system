@@ -41,6 +41,23 @@ BOOK_MARKERS = (
     "tác giả",
     "nhà xuất bản",
     "nxb",
+    "tác phẩm",
+    "tiểu thuyết",
+    "truyện",
+    "truyện tranh",
+    "ấn bản",
+    "bản dịch",
+    "dịch giả",
+    "tập",
+    "nhan đề",
+    "tựa sách",
+    "hồi ký",
+    "văn học",
+    "bộ sách",
+    "bộ truyện",
+    "manga",
+    "comic",
+    "giáo trình",
 )
 OUT_OF_DOMAIN_PRODUCT_TERMS = (
     "tai nghe",
@@ -65,6 +82,12 @@ OUT_OF_DOMAIN_PRODUCT_TERMS = (
 )
 FOLLOW_UP_PREFIXES = ("còn ", "thế ", "vậy ", "nó ", "cuốn đó", "sách đó")
 QUESTION_SUFFIXES = (
+    "giá bao nhiêu",
+    "bao nhiêu tiền",
+    "bán bao nhiêu",
+    "bao nhiêu",
+    "nhiêu",
+    "giá sao",
     "ra sao",
     "thế nào",
     "như thế nào",
@@ -79,6 +102,13 @@ QUESTION_SUFFIXES = (
     "không",
     "nhỉ",
     "ạ",
+    "giúp tôi",
+    "giúp mình",
+    "cho tôi",
+    "cho mình",
+    "với nhé",
+    "nhé",
+    "với",
 )
 QUESTION_SUFFIX_PATTERN = re.compile(
     rf"\s+(?:{'|'.join(re.escape(s) for s in QUESTION_SUFFIXES)})\s*$",
@@ -509,8 +539,8 @@ class IntentRouter:
     def _extract_named_book_subject(message: str) -> str | None:
         patterns = (
             r"(?:review|đánh giá|nhận xét|phàn nàn).*?"
-            r"(?:sách|cuốn|quyển)\s+(.+?)(?:[?.!]|$)",
-            r"^\s*(?:sách|cuốn|quyển)\s+(.+?)"
+            r"(?:sách|cuốn|quyển|tác phẩm|tiểu thuyết|truyện|ấn bản|bản dịch|bộ sách|bộ truyện)\s+(.+?)(?:[?.!]|$)",
+            r"^\s*(?:sách|cuốn|quyển|tác phẩm|tiểu thuyết|truyện|ấn bản|bản dịch|bộ sách|bộ truyện)\s+(.+?)"
             r"(?=\s+(?:có vấn đề|bị phàn nàn)\b|[?.!]|$)",
         )
         for pattern in patterns:
@@ -543,7 +573,7 @@ class IntentRouter:
     @staticmethod
     def _extract_book_author(message: str) -> str | None:
         match = re.search(
-            r"(?:sách|cuốn|quyển)(?:\s+sách)?\s+của\s+(.+?)"
+            r"(?:sách|cuốn|quyển|tác phẩm|tiểu thuyết|truyện|ấn bản)(?:\s+sách)?\s+của\s+(.+?)"
             r"(?=\s+(?:dưới|trên|từ|tối đa|tối thiểu|ít nhất|giá|rating)\b|[,.?!]|$)",
             message,
             flags=re.IGNORECASE,
@@ -586,7 +616,14 @@ class IntentRouter:
             return None
         subject = match.group(1).strip(" ,.;:?!")
         subject = _clean_question_suffix(subject)
-        if subject.casefold() in {"sách", "cuốn sách", "quyển sách"}:
+        if subject.casefold() in {
+            "sách",
+            "cuốn sách",
+            "quyển sách",
+            "tác phẩm",
+            "truyện",
+            "tiểu thuyết",
+        }:
             return None
         return subject[:220] if subject else None
 

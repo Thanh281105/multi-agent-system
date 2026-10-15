@@ -1,0 +1,33 @@
+{
+  "answer_key_sha256": "4be1dbba705249db3729305ffcb18523fb5aa464419ef4d2903b4d0fb9453bf2",
+  "audit_script_sha256": "dc8df9e353247f23d38c0d8aa0166db8cbf8cfa37e87963415c219002c0b60dd",
+  "author_labels_on_multiple_tasks": 160,
+  "author_overlap_component_count": 263,
+  "candidate_manifest_sha256": "64a155f9390436e6376ab9b320eeb6a71cf8913b7b4f687a5fb21c23a2726acf",
+  "component_size_histogram": {
+    "1": 206,
+    "11": 1,
+    "14": 3,
+    "2": 27,
+    "202": 1,
+    "3": 10,
+    "4": 5,
+    "5": 4,
+    "6": 2,
+    "7": 2,
+    "8": 1,
+    "9": 1
+  },
+  "interpretation": "Components connect tasks that share a normalized non-placeholder author. This is a dependence warning, not an effective sample size or a proof that every connected task has correlated errors. Author strings may combine coauthors, and aliases or editions still need human review.",
+  "largest_component_share": 0.321656,
+  "largest_component_tasks": 202,
+  "normalized_author_labels": 865,
+  "placeholder_author_mentions_excluded": 27,
+  "schema_version": "catalog_pair_author_overlap_audit_v1",
+  "status": "dependency_screen_only",
+  "task_count": 628,
+  "tasks_linked_by_a_repeated_author": 422,
+  "unique_product_ids": 1256,
+  "unique_task_ids": 628,
+  "unique_work_groups": 1256
+}

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -29,6 +29,7 @@ from openai import (
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from app.shared.budget import (
+    AttemptReservation,
     BudgetCancelledError,
     BudgetDuplicateAttemptError,
     BudgetError,
@@ -55,6 +56,10 @@ ModelErrorCode = Literal[
     "model_response_incomplete",
     "model_response_contract_violation",
     "model_response_invalid",
+    "model_response_claim_count_invalid",
+    "model_response_claim_shape_invalid",
+    "model_response_selector_invalid",
+    "model_response_schema_invalid",
     "model_runtime_failed",
     "model_circuit_open",
 ]
@@ -152,6 +157,11 @@ class _ModelResponseError(ValueError):
         code: Literal[
             "model_response_incomplete",
             "model_response_contract_violation",
+            "model_response_invalid",
+            "model_response_claim_count_invalid",
+            "model_response_claim_shape_invalid",
+            "model_response_selector_invalid",
+            "model_response_schema_invalid",
         ],
     ) -> None:
         super().__init__(code)
@@ -179,7 +189,8 @@ class ModelRuntime(Protocol):
         input_text: str,
         schema: type[StructuredT],
         max_output_tokens: int | None = None,
-        reasoning_effort: ReasoningEffort = "low",
+        reasoning_effort: ReasoningEffort = "none",
+        validate_output: Callable[[StructuredT], None] | None = None,
     ) -> StructuredModelResult[StructuredT]: ...
 
 
@@ -283,7 +294,8 @@ class OpenAIModelRuntime:
         input_text: str,
         schema: type[StructuredT],
         max_output_tokens: int | None = None,
-        reasoning_effort: ReasoningEffort = "low",
+        reasoning_effort: ReasoningEffort = "none",
+        validate_output: Callable[[StructuredT], None] | None = None,
     ) -> StructuredModelResult[StructuredT]:
         budget = current_provider_budget()
         call_id = (
@@ -349,6 +361,7 @@ class OpenAIModelRuntime:
                             raise _ModelResponseError(
                                 "model_response_contract_violation"
                             )
+                        self._validate_structured_output(value, validate_output)
                     else:
                         assert budget_request is not None
                         response, value = await self._budgeted_generation_attempt(
@@ -357,6 +370,7 @@ class OpenAIModelRuntime:
                             attempt_number=attempts,
                             request=budget_request,
                             schema=schema,
+                            validate_output=validate_output,
                         )
                     metadata = self._metadata(
                         call_id=call_id,
@@ -411,7 +425,14 @@ class OpenAIModelRuntime:
         output_bound = (
             self._max_output_tokens if max_output_tokens is None else max_output_tokens
         )
-        if not 1 <= output_bound <= 1_200:
+        output_limit = (
+            3_600
+            if budget.purpose == "judge"
+            and stage == "evaluation.judge"
+            and agent_id == "model_judge"
+            else 1_200
+        )
+        if not 1 <= output_bound <= output_limit:
             raise BudgetLimitExceededError("generation_output_token_limit_exceeded")
         input_bound = structured_generation_payload_token_bound(
             instructions=instructions,
@@ -423,6 +444,7 @@ class OpenAIModelRuntime:
             operation="generation",
             input_token_bound=input_bound,
             output_token_bound=output_bound,
+            purpose=budget.purpose,
         )
         budget_client = self._retry_disabled_budget_client()
         self._assert_standard_endpoint(budget, budget_client)
@@ -455,7 +477,99 @@ class OpenAIModelRuntime:
         attempt_number: int,
         request: _BudgetedGenerationRequest,
         schema: type[StructuredT],
+        validate_output: Callable[[StructuredT], None] | None = None,
     ) -> tuple[Any, StructuredT]:
+        preparation = asyncio.create_task(
+            asyncio.to_thread(
+                self._prepare_generation_attempt,
+                budget=budget,
+                call_id=call_id,
+                attempt_number=attempt_number,
+                request=request,
+            )
+        )
+        try:
+            reservation = await asyncio.shield(preparation)
+        except asyncio.CancelledError:
+            try:
+                reservation = await preparation
+            except Exception:
+                pass
+            else:
+                await asyncio.to_thread(
+                    budget.ledger.settle_unknown_usage,
+                    scope_id=budget.scope_id,
+                    attempt_id=reservation.attempt_id,
+                    result_status="cancelled",
+                    error_code="provider_attempt_cancelled",
+                )
+            raise
+        model = str(request.provider_kwargs["model"])
+        remaining = seconds_until(reservation.deadline_at)
+        timeout_seconds = min(budget.attempt_timeout_seconds, remaining)
+        if timeout_seconds <= 0:
+            await asyncio.to_thread(
+                budget.ledger.settle_unknown_usage,
+                scope_id=budget.scope_id,
+                attempt_id=reservation.attempt_id,
+                result_status="timeout",
+                error_code="model_timeout",
+            )
+            raise TimeoutError
+        try:
+            async with asyncio.timeout(timeout_seconds):
+                budget_client = self._retry_disabled_budget_client()
+                response = await budget_client.responses.create(
+                    **request.provider_kwargs,
+                    timeout=timeout_seconds,
+                )
+        except asyncio.CancelledError:
+            await asyncio.to_thread(
+                budget.ledger.settle_unknown_usage,
+                scope_id=budget.scope_id,
+                attempt_id=reservation.attempt_id,
+                result_status="cancelled",
+                error_code="provider_attempt_cancelled",
+            )
+            raise
+        except BaseException as exc:
+            error_code = self._error_code(exc)
+            await asyncio.to_thread(
+                budget.ledger.settle_unknown_usage,
+                scope_id=budget.scope_id,
+                attempt_id=reservation.attempt_id,
+                result_status=("timeout" if error_code == "model_timeout" else "error"),
+                error_code=error_code,
+            )
+            raise
+        settlement = asyncio.create_task(
+            asyncio.to_thread(
+                self._finish_generation_attempt,
+                budget=budget,
+                model=model,
+                reservation=reservation,
+                response=response,
+                schema=schema,
+                validate_output=validate_output,
+            )
+        )
+        try:
+            return await asyncio.shield(settlement)
+        except asyncio.CancelledError:
+            try:
+                await settlement
+            except Exception:
+                pass
+            raise
+
+    def _prepare_generation_attempt(
+        self,
+        *,
+        budget: ProviderBudgetContext,
+        call_id: str,
+        attempt_number: int,
+        request: _BudgetedGenerationRequest,
+    ) -> AttemptReservation:
         if budget.cancelled():
             raise BudgetCancelledError("provider_dispatch_cancelled")
         model = str(request.provider_kwargs["model"])
@@ -485,41 +599,18 @@ class OpenAIModelRuntime:
             attempt_id=reservation.attempt_id,
         ):
             raise BudgetDuplicateAttemptError("provider_attempt_already_dispatched")
-        remaining = seconds_until(reservation.deadline_at)
-        timeout_seconds = min(budget.attempt_timeout_seconds, remaining)
-        if timeout_seconds <= 0:
-            budget.ledger.settle_unknown_usage(
-                scope_id=budget.scope_id,
-                attempt_id=reservation.attempt_id,
-                result_status="timeout",
-                error_code="model_timeout",
-            )
-            raise TimeoutError
-        try:
-            async with asyncio.timeout(timeout_seconds):
-                budget_client = self._retry_disabled_budget_client()
-                response = await budget_client.responses.create(
-                    **request.provider_kwargs,
-                    timeout=timeout_seconds,
-                )
-        except asyncio.CancelledError:
-            budget.ledger.settle_unknown_usage(
-                scope_id=budget.scope_id,
-                attempt_id=reservation.attempt_id,
-                result_status="cancelled",
-                error_code="provider_attempt_cancelled",
-            )
-            raise
-        except BaseException as exc:
-            error_code = self._error_code(exc)
-            budget.ledger.settle_unknown_usage(
-                scope_id=budget.scope_id,
-                attempt_id=reservation.attempt_id,
-                result_status=("timeout" if error_code == "model_timeout" else "error"),
-                error_code=error_code,
-            )
-            raise
+        return reservation
 
+    def _finish_generation_attempt(
+        self,
+        *,
+        budget: ProviderBudgetContext,
+        model: str,
+        reservation: AttemptReservation,
+        response: Any,
+        schema: type[StructuredT],
+        validate_output: Callable[[StructuredT], None] | None = None,
+    ) -> tuple[Any, StructuredT]:
         response_id = self._optional_response_text(response, "id")
         response_model = self._optional_response_text(response, "model")
         response_tier = self._optional_response_text(response, "service_tier")
@@ -562,6 +653,7 @@ class OpenAIModelRuntime:
 
         try:
             value = self._parse_budgeted_response(response, schema)
+            self._validate_structured_output(value, validate_output)
         except BaseException as exc:
             budget.ledger.record_attempt_result(
                 scope_id=budget.scope_id,
@@ -576,6 +668,16 @@ class OpenAIModelRuntime:
             result_status="success",
         )
         return response, value
+
+    @staticmethod
+    def _validate_structured_output(
+        value: StructuredT, validate_output: Callable[[StructuredT], None] | None
+    ) -> None:
+        if validate_output is not None:
+            try:
+                validate_output(value)
+            except ValueError:
+                raise _ModelResponseError("model_response_invalid") from None
 
     def _retry_disabled_budget_client(self) -> Any:
         if self._budget_client is not None:
@@ -631,7 +733,36 @@ class OpenAIModelRuntime:
         output_text = getattr(response, "output_text", None)
         if not isinstance(output_text, str) or not output_text:
             raise _ModelResponseError("model_response_contract_violation")
-        return schema.model_validate_json(output_text)
+        try:
+            return schema.model_validate_json(output_text)
+        except ValidationError as exc:
+            details = exc.errors(include_input=False)
+            if any(item.get("type") == "json_invalid" for item in details):
+                code = "model_response_invalid"
+            elif any(
+                item.get("type") in {"too_long", "too_short"}
+                and any(
+                    field in {"fact_ids", "evidence_ids"}
+                    for field in item.get("loc", ())
+                )
+                for item in details
+            ):
+                code = "model_response_selector_invalid"
+            elif any(
+                item.get("loc") == ("claims",)
+                and item.get("type") in {"too_long", "too_short"}
+                for item in details
+            ):
+                code = "model_response_claim_count_invalid"
+            elif any(
+                item.get("loc")
+                and item.get("loc", ())[0] == "claims"
+                for item in details
+            ):
+                code = "model_response_claim_shape_invalid"
+            else:
+                code = "model_response_schema_invalid"
+            raise _ModelResponseError(code) from None
 
     @staticmethod
     def _optional_response_text(response: Any, field: str) -> str | None:

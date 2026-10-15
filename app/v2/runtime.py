@@ -344,6 +344,15 @@ class V2RuntimeFactory:
 
         catalog_loader = self._catalog_snapshot_loader or load_catalog_snapshot
         catalog_snapshot = catalog_loader(session_factory)
+        configured_catalog = self._config.v2_catalog_version_id
+        if (
+            configured_catalog is not None
+            and catalog_snapshot.version_id != configured_catalog
+        ):
+            raise V2RuntimeConfigurationError(
+                "v2_catalog_snapshot_mismatch",
+                "resolved catalog snapshot does not match V2_CATALOG_VERSION_ID",
+            )
         store_factory = (
             self._knowledge_store_factory or _default_knowledge_store_factory
         )

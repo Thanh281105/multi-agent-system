@@ -1,0 +1,202 @@
+{
+  "schema_version": "p7_trace_archive_manifest_v1",
+  "purpose": "Development-only P7 trace archive; no semantic quality claim.",
+  "current_gold_sha256": "31bcb31c2cfaf1f009c8f036973cd057c6ab881bd8438b7e9c99b93ead7c1852",
+  "current_split_sha256": "49adf66bc53410246a24e7b7fcd8c5472f2915cf4694ace32978728dc5007455",
+  "sut_git_sha256": null,
+  "sut_git_sha_status": "NOT_VERIFIED: raw P7 checkpoints do not record the SUT Git SHA.",
+  "runs": {
+    "r5": {
+      "run_id": "run_p7_trace_20261013_r5",
+      "protocol_sha256": "6157a260f9ca0a28dbf9049d8a90158f65b1d632cd68aaa4eb2992b92f5ec43f",
+      "schedule_sha256": "8125de54017532376e8090b0d9e983760b0df1fdf144546548c88e1608795c79",
+      "protocol_gold_sha256": "f698841509a1cb95cc610af2830e6d5f91ba266dd72587c0e127793ccce9b59c",
+      "protocol_split_sha256": "d4af32e7aebf5144d43f443fbafe64ecd043df18eac2dcac4f062e6a7fb1381f",
+      "checkpoint_events": {
+        "started": 36,
+        "completed": 36
+      },
+      "completed_receipts": 36,
+      "measured_receipts": 32,
+      "warmup_receipts": 4,
+      "unique_measured_cases": 8,
+      "case_hash_matches_current": 8,
+      "case_hashes_match": true,
+      "checkout_case_by_variant": {
+        "ma_adaptive_no_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        },
+        "ma_fixed_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        },
+        "sa_shared_tools_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        },
+        "ma_adaptive_rag": {
+          "outcome": "needs_clarification",
+          "plan_intent": "action.clarification",
+          "warnings": [
+            "action_mode_mismatch"
+          ]
+        }
+      }
+    },
+    "r6": {
+      "run_id": "run_p7_trace_20261013_r6",
+      "protocol_sha256": "6dc1149d9f4e4837a6bc0ca2e031bcb51029b9a764a7921191d36a4acc93011b",
+      "schedule_sha256": "bd40e14391f62f8bf036a37c706f456640314abd44d53c92b1095f8a5741ec88",
+      "protocol_gold_sha256": "f698841509a1cb95cc610af2830e6d5f91ba266dd72587c0e127793ccce9b59c",
+      "protocol_split_sha256": "d4af32e7aebf5144d43f443fbafe64ecd043df18eac2dcac4f062e6a7fb1381f",
+      "checkpoint_events": {
+        "started": 36,
+        "completed": 36
+      },
+      "completed_receipts": 36,
+      "measured_receipts": 32,
+      "warmup_receipts": 4,
+      "unique_measured_cases": 8,
+      "case_hash_matches_current": 8,
+      "case_hashes_match": true,
+      "checkout_case_by_variant": {
+        "ma_adaptive_no_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        },
+        "ma_fixed_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        },
+        "sa_shared_tools_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        },
+        "ma_adaptive_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        }
+      }
+    },
+    "r7": {
+      "run_id": "run_p7_trace_20261013_r7",
+      "protocol_sha256": "342906ef4713edaef23fc0b829780ff7d70a3bc1f64fa58cd36cefe28f999a2a",
+      "schedule_sha256": "a3eb783bfd2b036f3a39572d0f9e42e3453e7c74d4e00866ac6659dfd0b61c95",
+      "protocol_gold_sha256": "f698841509a1cb95cc610af2830e6d5f91ba266dd72587c0e127793ccce9b59c",
+      "protocol_split_sha256": "d4af32e7aebf5144d43f443fbafe64ecd043df18eac2dcac4f062e6a7fb1381f",
+      "checkpoint_events": {
+        "started": 36,
+        "completed": 36
+      },
+      "completed_receipts": 36,
+      "measured_receipts": 32,
+      "warmup_receipts": 4,
+      "unique_measured_cases": 8,
+      "case_hash_matches_current": 8,
+      "case_hashes_match": true,
+      "checkout_case_by_variant": {
+        "ma_adaptive_no_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        },
+        "ma_fixed_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        },
+        "sa_shared_tools_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        },
+        "ma_adaptive_rag": {
+          "outcome": "awaiting_confirmation",
+          "plan_intent": "checkout.proposal",
+          "warnings": []
+        }
+      }
+    }
+  },
+  "r7_outcome_cost_latency": {
+    "ma_adaptive_no_rag": {
+      "n": 8,
+      "outcomes": {
+        "abstained": 5,
+        "answered": 1,
+        "needs_clarification": 1,
+        "awaiting_confirmation": 1
+      },
+      "generation_calls": 10,
+      "known_cost_usd": 0.015193,
+      "latency_p50_seconds": 1.867,
+      "answer_repair_warnings": 0
+    },
+    "ma_adaptive_rag": {
+      "n": 8,
+      "outcomes": {
+        "answered": 6,
+        "needs_clarification": 1,
+        "awaiting_confirmation": 1
+      },
+      "generation_calls": 40,
+      "known_cost_usd": 0.077554,
+      "latency_p50_seconds": 10.883,
+      "answer_repair_warnings": 3
+    },
+    "ma_fixed_rag": {
+      "n": 8,
+      "outcomes": {
+        "answered": 6,
+        "needs_clarification": 1,
+        "awaiting_confirmation": 1
+      },
+      "generation_calls": 27,
+      "known_cost_usd": 0.068282,
+      "latency_p50_seconds": 7.328,
+      "answer_repair_warnings": 2
+    },
+    "sa_shared_tools_rag": {
+      "n": 8,
+      "outcomes": {
+        "answered": 6,
+        "needs_clarification": 1,
+        "awaiting_confirmation": 1
+      },
+      "generation_calls": 35,
+      "known_cost_usd": 0.070811,
+      "latency_p50_seconds": 9.406,
+      "answer_repair_warnings": 3
+    }
+  },
+  "files": {
+    "r5/pilot-checkpoint.v3.jsonl": "af0ad500dc060bac1e3ea7789c900298c90f1663de8559e69f92479d346301d6",
+    "r5/pilot-schedule.v3.json": "8125de54017532376e8090b0d9e983760b0df1fdf144546548c88e1608795c79",
+    "r5/protocol.v3.json": "6157a260f9ca0a28dbf9049d8a90158f65b1d632cd68aaa4eb2992b92f5ec43f",
+    "r5/repeat-decision.v3.json": "3b84748d752a195ca91de785c1f66d546603527fd89c79eb4f81959110630b54",
+    "r5/run_p7_trace_r5.py": "329cfbd9d48bc51cb3d948d6cf32dd29346d9ce1ceaa5ec8357b05106f2f0afe",
+    "r5/successor-binding.v3.json": "490c22d4b482abedb7b1ff18084e7b56aa0887452f175ad0f4b99cff662b433c",
+    "r6/pilot-checkpoint.v3.jsonl": "a66424022a94c496960242a310e2542e8e3362cd1eee3e98f45007577c1fcdd3",
+    "r6/pilot-reference-cases.p8.json": "2e85031faa47fa0aa0b37044b3420a61671ac963b4d0f807aae2b1dda40c06af",
+    "r6/pilot-schedule.v3.json": "bd40e14391f62f8bf036a37c706f456640314abd44d53c92b1095f8a5741ec88",
+    "r6/protocol.v3.json": "6dc1149d9f4e4837a6bc0ca2e031bcb51029b9a764a7921191d36a4acc93011b",
+    "r6/repeat-decision.v3.json": "4978046d4c34e976ca0ca8c1fa6a911185ffa95024a2e650e6c77fb43ba1ab9a",
+    "r6/run_p7_trace_r6.py": "89fc521bc988a6a5ee6a46291d5bb2bba7286c8dbbfca20b9dc5c7379b413161",
+    "r6/successor-binding.v3.json": "600f52269136fec52c40c242044e80925a8b210042e964475e866e4cab1c67cd",
+    "r7/pilot-checkpoint.v3.jsonl": "c06704e7dcc0bb6f217937d3a79a126f3d6da91cd112c855dd6274ad7b131286",
+    "r7/pilot-schedule.v3.json": "a3eb783bfd2b036f3a39572d0f9e42e3453e7c74d4e00866ac6659dfd0b61c95",
+    "r7/protocol.v3.json": "342906ef4713edaef23fc0b829780ff7d70a3bc1f64fa58cd36cefe28f999a2a",
+    "r7/repeat-decision.v3.json": "dc13a2e03039be68dd5c344358d60935892c631ad9e11a5ee9da3f5080659bbb",
+    "r7/run_p7_trace_r7.py": "a6b2d67b987d78f39b5a2a74e87a32708abe25e0462d79203fd0ee21ebba4f3c",
+    "r7/successor-binding.v3.json": "9b57a461dccaef2dbd0e5f83bb4ed4ccdd4da9e013ca9adae42e453bf812394c",
+    "README.md": "443da9ba8b27f2f4af90818815740e01f4c3d6e67200c7abf4af7c4eb3888301"
+  }
+}

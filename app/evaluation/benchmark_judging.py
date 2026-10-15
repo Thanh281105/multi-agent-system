@@ -22,6 +22,7 @@ from typing import Any, Literal, Protocol, TypeAlias, cast
 
 from pydantic import BaseModel
 
+from app.evaluation.benchmark_v3 import SuccessorBindingV3
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
 from app.evaluation.v3_artifacts import (
     BlindedAnswerPacketV3,
@@ -31,7 +32,6 @@ from app.evaluation.v3_artifacts import (
 )
 from app.evaluation.v3_gold import EvaluationSplitV3
 from app.evaluation.v3_judge import (
-    SEMANTIC_JUDGE_METRICS_V3,
     CalibrationFreezeV3,
     CalibrationRecordV3,
     CalibrationReferenceBundleV3,
@@ -42,7 +42,18 @@ from app.evaluation.v3_judge import (
     ModelJudgeOutputV3,
     ModelJudgeRequestV3,
     blinded_answer_sha256_v3,
+    build_calibration_record_v3,
+    citation_supports_fact_v3,
+    claim_citation_coverage_from_output_v3,
+    is_vacuous_canonical_response_v3,
+    model_judge_output_schema_sha256_v3,
+    model_judge_output_type_v3,
     score_deterministic_metrics_v3,
+    score_runtime_metrics_v3,
+    validate_blinded_packet_judge_schema_v3,
+    validate_calibration_reference_v3,
+    validate_claim_calibration_freeze_v3,
+    validate_judgment_claim_coverage_v3,
     validate_model_judge_output_v3,
 )
 from app.evaluation.v3_models import EvaluationMetricV3, JudgmentModeV3
@@ -124,6 +135,7 @@ class JudgeRunKeyV3:
     blinded_packet_sha256: str | None
     development_inputs_sha256: str | None
     additive_source_manifest_sha256: str
+    successor_binding: SuccessorBindingV3 | None = None
 
     def __post_init__(self) -> None:
         _require_sha256(self.protocol_sha256, "protocol_sha256")
@@ -137,7 +149,11 @@ class JudgeRunKeyV3:
             self.additive_source_manifest_sha256,
             "additive_source_manifest_sha256",
         )
-        if self.protocol_sha256 != EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3:
+        binding = _normalize_successor_binding(self.successor_binding)
+        expected_protocol = (
+            binding.protocol_sha256 if binding else EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3
+        )
+        if self.protocol_sha256 != expected_protocol:
             raise FrozenJudgeRunError("package7_protocol_hash_drift")
         held_out = self.blinded_packet_sha256 is not None
         development = self.development_inputs_sha256 is not None
@@ -155,7 +171,7 @@ class JudgeRunKeyV3:
         )
 
     def payload(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "protocol_sha256": self.protocol_sha256,
             "configuration_sha256": self.configuration_sha256,
             "calibration_sha256": self.calibration_sha256,
@@ -163,6 +179,9 @@ class JudgeRunKeyV3:
             "development_inputs_sha256": self.development_inputs_sha256,
             "additive_source_manifest_sha256": self.additive_source_manifest_sha256,
         }
+        if self.successor_binding is not None:
+            payload["successor_binding_sha256"] = self.successor_binding.binding_sha256
+        return payload
 
     @property
     def run_key_sha256(self) -> str:
@@ -175,10 +194,13 @@ def build_development_judge_run_key_v3(
     references: CalibrationReferenceBundleV3,
     thresholds: CalibrationThresholdsV3,
     additive_source_manifest_sha256: str,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> JudgeRunKeyV3:
     """Build a key before calibration is frozen, using its frozen inputs."""
 
-    configuration = _normalize_configuration(configuration)
+    configuration = _normalize_configuration(
+        configuration, successor_binding=successor_binding
+    )
     references = CalibrationReferenceBundleV3.model_validate(
         references.model_dump(mode="json")
     )
@@ -200,6 +222,7 @@ def build_development_judge_run_key_v3(
         blinded_packet_sha256=None,
         development_inputs_sha256=development_inputs_sha256,
         additive_source_manifest_sha256=additive_source_manifest_sha256,
+        successor_binding=successor_binding,
     )
 
 
@@ -209,11 +232,15 @@ def build_heldout_judge_run_key_v3(
     configuration: ModelJudgeConfigurationV3,
     calibration: CalibrationFreezeV3,
     additive_source_manifest_sha256: str,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> JudgeRunKeyV3:
     """Validate held-out provenance and build its immutable journal key."""
 
     packet, configuration, calibration = _validate_heldout_inputs(
-        packet, configuration, calibration
+        packet,
+        configuration,
+        calibration,
+        successor_binding=successor_binding,
     )
     return JudgeRunKeyV3(
         protocol_sha256=packet.bindings.protocol_sha256,
@@ -222,6 +249,7 @@ def build_heldout_judge_run_key_v3(
         blinded_packet_sha256=packet.packet_sha256,
         development_inputs_sha256=None,
         additive_source_manifest_sha256=additive_source_manifest_sha256,
+        successor_binding=successor_binding,
     )
 
 
@@ -512,6 +540,7 @@ class DurableModelJudgeRunnerV3:
         additive_source_manifest_sha256: str,
         budget_policy: JudgeBudgetPolicyV3,
         scope_id_factory: Callable[[JudgeJobIdentityV3], str] | None = None,
+        successor_binding: SuccessorBindingV3 | None = None,
     ) -> None:
         _require_identifier(account_id, "account_id")
         _require_sha256(
@@ -529,6 +558,7 @@ class DurableModelJudgeRunnerV3:
         self._source_manifest_sha256 = additive_source_manifest_sha256
         self._budget_policy = budget_policy
         self._scope_id_factory = scope_id_factory or _default_scope_id
+        self._successor_binding = _normalize_successor_binding(successor_binding)
 
     async def run_development_calibration_cases(
         self,
@@ -540,7 +570,9 @@ class DurableModelJudgeRunnerV3:
     ) -> tuple[JudgeJobResultV3, ...]:
         """Run development cases under the frozen calibration inputs."""
 
-        configuration = _normalize_configuration(configuration)
+        configuration = _normalize_configuration(
+            configuration, successor_binding=self._successor_binding
+        )
         references = CalibrationReferenceBundleV3.model_validate(
             references.model_dump(mode="json")
         )
@@ -552,6 +584,7 @@ class DurableModelJudgeRunnerV3:
             references=references,
             thresholds=thresholds,
             additive_source_manifest_sha256=self._source_manifest_sha256,
+            successor_binding=self._successor_binding,
         )
         normalized_cases = tuple(
             DevelopmentCalibrationCaseV3.model_validate(case.model_dump(mode="json"))
@@ -566,6 +599,16 @@ class DurableModelJudgeRunnerV3:
             normalized_cases
         ):
             raise FrozenJudgeRunError("calibration_case_ids_not_unique")
+        for case in normalized_cases:
+            _validate_calibration_provenance(
+                configuration=configuration,
+                case=case,
+                reference=reference_by_id[case.calibration_id],
+                successor_binding=self._successor_binding,
+            )
+            validate_calibration_reference_v3(
+                configuration, case, reference_by_id[case.calibration_id]
+            )
 
         with JudgeJournalV3(self._journal_path, run_key=key) as journal:
             journal.seal_orphans(attempt_snapshots=self._attempt_snapshots_or_empty)
@@ -592,13 +635,17 @@ class DurableModelJudgeRunnerV3:
         """Score only the blinded packet; no unblinding key is accepted here."""
 
         packet, configuration, calibration = _validate_heldout_inputs(
-            packet, configuration, calibration
+            packet,
+            configuration,
+            calibration,
+            successor_binding=self._successor_binding,
         )
         key = build_heldout_judge_run_key_v3(
             packet=packet,
             configuration=configuration,
             calibration=calibration,
             additive_source_manifest_sha256=self._source_manifest_sha256,
+            successor_binding=self._successor_binding,
         )
         with JudgeJournalV3(self._journal_path, run_key=key) as journal:
             journal.seal_orphans(attempt_snapshots=self._attempt_snapshots_or_empty)
@@ -627,7 +674,10 @@ class DurableModelJudgeRunnerV3:
         """Score one answer selected only by its opaque blind identifier."""
 
         packet, configuration, calibration = _validate_heldout_inputs(
-            packet, configuration, calibration
+            packet,
+            configuration,
+            calibration,
+            successor_binding=self._successor_binding,
         )
         answer = next(
             (
@@ -644,6 +694,7 @@ class DurableModelJudgeRunnerV3:
             configuration=configuration,
             calibration=calibration,
             additive_source_manifest_sha256=self._source_manifest_sha256,
+            successor_binding=self._successor_binding,
         )
         with JudgeJournalV3(self._journal_path, run_key=key) as journal:
             journal.seal_orphans(attempt_snapshots=self._attempt_snapshots_or_empty)
@@ -670,6 +721,7 @@ class DurableModelJudgeRunnerV3:
             configuration=configuration,
             case=case,
             reference=reference,
+            successor_binding=self._successor_binding,
         )
         identity = JudgeJobIdentityV3(
             phase="development_calibration",
@@ -874,6 +926,10 @@ class DurableModelJudgeRunnerV3:
             attempt_timeout_seconds=self._budget_policy.attempt_timeout_seconds,
             call_id_factory=lambda operation: _call_id(identity, operation),
         )
+
+        def validate_receipt_output(output: ModelJudgeOutputV3) -> None:
+            validate_model_judge_output_v3(output, answer)
+
         with provider_budget_scope(context):
             result = await self._runtime.generate_structured(
                 stage="evaluation.judge",
@@ -881,9 +937,16 @@ class DurableModelJudgeRunnerV3:
                 model=configuration.model_binding.model,
                 instructions=configuration.judge_prompt,
                 input_text=_serialize_model_judge_input(request),
-                schema=ModelJudgeOutputV3,
-                max_output_tokens=1_200,
+                schema=model_judge_output_type_v3(
+                    configuration.bindings.judge_schema_sha256
+                ),
+                max_output_tokens=(
+                    3_600
+                    if answer.rubric_context.evaluator_contract is not None
+                    else 1_200
+                ),
                 reasoning_effort=configuration.model_binding.reasoning_effort,
+                validate_output=validate_receipt_output,
             )
         return validate_model_judge_output_v3(getattr(result, "value", result), answer)
 
@@ -911,27 +974,98 @@ def _serialize_model_judge_input(request: ModelJudgeRequestV3) -> str:
             "calibration_sha256",
         },
     )
+    if request.answer.rubric_context.evaluator_contract == "evidence_semantics_v2":
+        citations = {citation.label: citation for citation in request.answer.citations}
+        payload["receipt_constraints"] = {
+            "runtime_metric_scores": {
+                metric.value: score
+                for metric, score in score_runtime_metrics_v3(request.answer).items()
+            },
+            "claim_support_must_be_zero": bool(
+                request.answer.rubric_context.required_facts
+                and not request.answer.claims
+            ),
+            "claim_support_must_be_one": is_vacuous_canonical_response_v3(
+                request.answer
+            ),
+            "claim_fact_bindings": [
+                {
+                    "claim_index": claim_index,
+                    "citations": [
+                        {
+                            "label": label,
+                            "eligible_required_fact_indices": [
+                                fact_index
+                                for fact_index, fact in enumerate(
+                                    request.answer.rubric_context.required_facts
+                                )
+                                if label in citations
+                                and citation_supports_fact_v3(citations[label], fact)
+                            ],
+                        }
+                        for label in claim.citation_labels
+                    ],
+                }
+                for claim_index, claim in enumerate(request.answer.claims)
+            ],
+        }
     return canonical_json_bytes(payload).decode("utf-8")
 
 
 def _normalize_configuration(
     configuration: ModelJudgeConfigurationV3,
+    *,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> ModelJudgeConfigurationV3:
     normalized = ModelJudgeConfigurationV3.model_validate(
         configuration.model_dump(mode="json")
     )
-    if normalized.bindings.protocol_sha256 != EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3:
-        raise FrozenJudgeRunError("package7_protocol_hash_drift")
+    binding = _normalize_successor_binding(successor_binding)
+    if binding is None:
+        if normalized.bindings.protocol_sha256 != EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3:
+            raise FrozenJudgeRunError("package7_protocol_hash_drift")
+    else:
+        if (
+            normalized.bindings.protocol_sha256,
+            normalized.bindings.repeat_decision_sha256,
+            normalized.bindings.gold_sha256,
+            normalized.bindings.split_sha256,
+        ) != (
+            binding.protocol_sha256,
+            binding.repeat_decision_sha256,
+            binding.gold_sha256,
+            binding.split_sha256,
+        ):
+            raise FrozenJudgeRunError("successor_judge_bindings_mismatch")
+        if (
+            normalized.bindings.judge_schema_sha256
+            != model_judge_output_schema_sha256_v3(successor=True)
+        ):
+            raise FrozenJudgeRunError("successor_judge_schema_mismatch")
     return normalized
+
+
+def _normalize_successor_binding(
+    binding: SuccessorBindingV3 | None,
+) -> SuccessorBindingV3 | None:
+    return (
+        SuccessorBindingV3.model_validate(binding.model_dump(mode="json"))
+        if binding is not None
+        else None
+    )
 
 
 def _validate_heldout_inputs(
     packet: BlindedAnswerPacketV3,
     configuration: ModelJudgeConfigurationV3,
     calibration: CalibrationFreezeV3,
+    *,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> tuple[BlindedAnswerPacketV3, ModelJudgeConfigurationV3, CalibrationFreezeV3]:
     packet = BlindedAnswerPacketV3.model_validate(packet.model_dump(mode="json"))
-    configuration = _normalize_configuration(configuration)
+    configuration = _normalize_configuration(
+        configuration, successor_binding=successor_binding
+    )
     calibration = CalibrationFreezeV3.model_validate(
         calibration.model_dump(mode="json")
     )
@@ -939,10 +1073,18 @@ def _validate_heldout_inputs(
         raise FrozenJudgeRunError("heldout_judge_requires_blinded_heldout_packet")
     if packet.bindings != configuration.bindings:
         raise FrozenJudgeRunError("blind_packet_configuration_bindings_mismatch")
+    try:
+        validate_blinded_packet_judge_schema_v3(packet, configuration)
+    except ValueError as exc:
+        raise FrozenJudgeRunError("blind_answer_judge_schema_mismatch") from exc
     if calibration.protocol_sha256 != packet.bindings.protocol_sha256:
         raise FrozenJudgeRunError("calibration_protocol_mismatch")
     if calibration.configuration_sha256 != configuration.configuration_sha256:
         raise FrozenJudgeRunError("calibration_configuration_mismatch")
+    try:
+        validate_claim_calibration_freeze_v3(configuration, calibration)
+    except ValueError as exc:
+        raise FrozenJudgeRunError("calibration_claim_coverage_missing") from exc
     return packet, configuration, calibration
 
 
@@ -951,6 +1093,7 @@ def _validate_calibration_provenance(
     configuration: ModelJudgeConfigurationV3,
     case: DevelopmentCalibrationCaseV3,
     reference: CalibrationReferenceLabelsV3,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> None:
     if case.split != EvaluationSplitV3.DEVELOPMENT:
         raise FrozenJudgeRunError("development_calibration_split_mismatch")
@@ -960,8 +1103,7 @@ def _validate_calibration_provenance(
         raise FrozenJudgeRunError("calibration_reference_case_mismatch")
     if reference.answer_sha256 != blinded_answer_sha256_v3(case.answer):
         raise FrozenJudgeRunError("calibration_reference_answer_mismatch")
-    if configuration.bindings.protocol_sha256 != EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3:
-        raise FrozenJudgeRunError("package7_protocol_hash_drift")
+    _normalize_configuration(configuration, successor_binding=successor_binding)
 
 
 def _build_calibration_record(
@@ -972,40 +1114,12 @@ def _build_calibration_record(
     thresholds: CalibrationThresholdsV3,
     output: ModelJudgeOutputV3,
 ) -> CalibrationRecordV3:
-    observed: dict[EvaluationMetricV3, float] = {
-        item.metric: item.score for item in output.verdicts
-    }
-    references = dict(reference.scores)
-    errors = {
-        metric: abs(references[metric] - observed[metric])
-        for metric in SEMANTIC_JUDGE_METRICS_V3
-    }
-    payload = {
-        "schema_version": "3.0",
-        "split": EvaluationSplitV3.DEVELOPMENT,
-        "calibration_id": case.calibration_id,
-        "development_case_sha256": case.case_sha256,
-        "protocol_sha256": configuration.bindings.protocol_sha256,
-        "configuration_sha256": configuration.configuration_sha256,
-        "thresholds_sha256": thresholds.thresholds_sha256,
-        "reference_sha256": reference.reference_sha256,
-        "model_output_sha256": canonical_sha256(output),
-        "reference_scores": references,
-        "observed_scores": observed,
-        "absolute_errors": errors,
-    }
-    return CalibrationRecordV3(
-        calibration_id=case.calibration_id,
-        development_case_sha256=case.case_sha256,
-        protocol_sha256=configuration.bindings.protocol_sha256,
-        configuration_sha256=configuration.configuration_sha256,
-        thresholds_sha256=thresholds.thresholds_sha256,
-        reference_sha256=reference.reference_sha256,
-        model_output_sha256=canonical_sha256(output),
-        reference_scores=references,
-        observed_scores=observed,
-        absolute_errors=errors,
-        record_sha256=canonical_sha256(payload),
+    return build_calibration_record_v3(
+        configuration=configuration,
+        case=case,
+        reference=reference,
+        thresholds=thresholds,
+        output=output,
     )
 
 
@@ -1020,8 +1134,11 @@ def _build_heldout_record(
     model_scores: dict[EvaluationMetricV3, float] = {
         item.metric: item.score for item in output.verdicts
     }
-    deterministic_scores = score_deterministic_metrics_v3(answer)
-    scores: dict[EvaluationMetricV3, float] = {
+    claim_coverage = claim_citation_coverage_from_output_v3(answer, output)
+    deterministic_scores = score_deterministic_metrics_v3(
+        answer, claim_coverage=claim_coverage
+    )
+    scores: dict[EvaluationMetricV3, float | None] = {
         **model_scores,
         **deterministic_scores,
     }
@@ -1032,6 +1149,8 @@ def _build_heldout_record(
         **{metric: "model_judge" for metric in model_scores},
         **{metric: "deterministic" for metric in deterministic_scores},
     }
+    if claim_coverage is not None:
+        score_sources[EvaluationMetricV3.CITATION_COVERAGE] = "model_judge"
     return build_judgment_record_v3(
         bindings=packet.bindings,
         blinded_packet_sha256=packet.packet_sha256,
@@ -1043,6 +1162,10 @@ def _build_heldout_record(
         judge_configuration_sha256=configuration.configuration_sha256,
         calibration_sha256=calibration.calibration_sha256,
         judge_output_sha256=canonical_sha256(output),
+        claim_coverage=claim_coverage,
+        validated_judge_output=(
+            output.model_dump(mode="json") if claim_coverage is not None else None
+        ),
     )
 
 
@@ -1078,6 +1201,10 @@ def _terminal_result(
         if expected_phase == "held_out_scoring":
             if packet is None or calibration is None or answer is None:
                 raise FrozenJudgeRunError("heldout_replay_context_missing")
+            try:
+                validate_claim_calibration_freeze_v3(configuration, calibration)
+            except ValueError as exc:
+                raise FrozenJudgeRunError("calibration_claim_coverage_missing") from exc
             replayed = JudgmentRecordV3.model_validate(artifact)
             if (
                 replayed.bindings != packet.bindings
@@ -1092,6 +1219,12 @@ def _terminal_result(
                 raise FrozenJudgeRunError(
                     "heldout_journal_artifact_provenance_mismatch"
                 )
+            try:
+                validate_judgment_claim_coverage_v3(replayed, answer)
+            except ValueError as exc:
+                raise FrozenJudgeRunError(
+                    "heldout_journal_claim_coverage_mismatch"
+                ) from exc
             record = replayed
         else:
             if case is None or reference is None or thresholds is None:
@@ -1111,6 +1244,23 @@ def _terminal_result(
                 raise FrozenJudgeRunError(
                     "calibration_journal_artifact_provenance_mismatch"
                 )
+            if case.answer.rubric_context.evaluator_contract is not None:
+                try:
+                    rebuilt = build_calibration_record_v3(
+                        configuration=configuration,
+                        case=case,
+                        reference=reference,
+                        thresholds=thresholds,
+                        output=validate_model_judge_output_v3(
+                            replayed_calibration.validated_judge_output, case.answer
+                        ),
+                    )
+                    if rebuilt != replayed_calibration:
+                        raise ValueError("replayed per-claim calibration differs")
+                except ValueError as exc:
+                    raise FrozenJudgeRunError(
+                        "calibration_journal_claim_coverage_mismatch"
+                    ) from exc
             record = replayed_calibration
     error_code = terminal.get("error_code")
     if error_code is not None and not isinstance(error_code, str):
@@ -1150,7 +1300,37 @@ def _safe_error_code(exc: BaseException) -> str:
     if isinstance(code, str) and re.fullmatch(r"[a-z0-9_.-]{1,80}", code):
         return code
     if isinstance(exc, ValueError):
-        return "judge_output_contract_rejected"
+        return {
+            "model verdict differs from receipt-bound runtime predicates": (
+                "judge_runtime_predicate_mismatch"
+            ),
+            "task completion differs from component verdicts": (
+                "judge_task_completion_mismatch"
+            ),
+            "canonical empty response requires vacuous claim support": (
+                "judge_claim_vacuity_mismatch"
+            ),
+            "positive claim support lacks per-claim required facts": (
+                "judge_required_fact_support_missing"
+            ),
+            "model output schema hash mismatch": "judge_output_schema_hash_mismatch",
+            "supported claim lacks bound fact evidence": (
+                "judge_claim_fact_binding_mismatch"
+            ),
+            "supported claim violates exact fact matching": (
+                "judge_claim_exact_fact_mismatch"
+            ),
+            "claim verdict borrows another claim's cited evidence": (
+                "judge_claim_citation_ownership_mismatch"
+            ),
+            "claim verdict references an unknown citation": (
+                "judge_claim_citation_unknown"
+            ),
+            "claim verdict references an unknown rubric fact": "judge_fact_unknown",
+            "positive claim support lacks bound fact evidence": (
+                "judge_answer_fact_binding_mismatch"
+            ),
+        }.get(str(exc), "judge_output_contract_rejected")
     if isinstance(exc, FrozenJudgeRunError):
         return "judge_runner_invariant_error"
     return "judge_runtime_error"

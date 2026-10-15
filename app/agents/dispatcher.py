@@ -74,8 +74,8 @@ def build_default_dispatcher(
     enabled_agents: Iterable[str] | None = None,
     model_runtime: ModelRuntime | None = None,
     runtime_mode: ModelRuntimeMode = "off",
-    specialist_model: str = "gpt-5.4-nano",
-    reasoning_effort: ReasoningEffort = "low",
+    specialist_model: str = "gpt-6-luna",
+    reasoning_effort: ReasoningEffort = "none",
 ) -> AgentDispatcher:
     requested_agents = (
         tuple(enabled_agents) if enabled_agents is not None else DEFAULT_AGENT_IDS

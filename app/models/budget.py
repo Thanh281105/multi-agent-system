@@ -219,7 +219,7 @@ class ProviderAttempt(Base):
         CheckConstraint(
             "input_token_bound >= 0 AND output_token_bound >= 0 "
             "AND reserved_nano_usd >= 0 "
-            "AND attempt_timeout_ms BETWEEN 1 AND 18000",
+            "AND attempt_timeout_ms BETWEEN 1 AND 30000",
             name="ck_v2_provider_attempt_reservation",
         ),
         CheckConstraint(

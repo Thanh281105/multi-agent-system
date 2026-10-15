@@ -12,9 +12,17 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 from decimal import Decimal
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    ValidationError,
+    model_serializer,
+    model_validator,
+)
 
 from app.contracts import TaskStatus
 from app.evaluation.v3_artifacts import (
@@ -40,6 +48,10 @@ from app.evaluation.v3_judge import (
     SEMANTIC_JUDGE_METRICS_V3,
     CalibrationFreezeV3,
     ModelJudgeConfigurationV3,
+    model_judge_output_schema_sha256_v3,
+    score_deterministic_metrics_v3,
+    validate_claim_calibration_freeze_v3,
+    validate_judgment_claim_coverage_v3,
 )
 from app.evaluation.v3_models import (
     EvaluationMetricV3,
@@ -195,6 +207,14 @@ class ProvisionalObservationV3(FrozenBenchmarkReportingContractV3):
             raise ValueError("operational evidence does not match its observation")
         if len(self.authoritative_evidence) != len(set(self.authoritative_evidence)):
             raise ValueError("authoritative evidence bindings must be unique")
+        if (answer.answer, answer.claims, answer.runtime_evidence) != (
+            self.final_turn_result.answer,
+            claim_evidence_v3(self.final_turn_result),
+            runtime_rubric_evidence_v3(self.final_turn_result),
+        ):
+            raise ValueError(
+                "answer claims or runtime evidence differ from final TurnResult"
+            )
         return self
 
 
@@ -445,7 +465,26 @@ class Package8ResultsSummaryV3(FrozenBenchmarkReportingContractV3):
     total_retry_count: int = Field(ge=0)
     document_recall_authority: str = "resolved_turn_result_citations_only"
     document_recall_authority_count: int = Field(ge=0)
+    document_recall_unmeasured_count: int | None = Field(default=None, ge=0)
+    citation_coverage_authority: str | None = None
+    citation_coverage_measured_count: int | None = Field(default=None, ge=0)
+    citation_coverage_unmeasured_count: int | None = Field(default=None, ge=0)
     citationless_observation_count: int = Field(ge=0)
+
+    @model_serializer(mode="wrap")
+    def preserve_legacy_summary(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        payload = handler(self)
+        for name in (
+            "document_recall_unmeasured_count",
+            "citation_coverage_authority",
+            "citation_coverage_measured_count",
+            "citation_coverage_unmeasured_count",
+        ):
+            if payload.get(name) is None:
+                payload.pop(name, None)
+        return payload
 
     @model_validator(mode="after")
     def validate_summary(self) -> Package8ResultsSummaryV3:
@@ -488,12 +527,25 @@ class Package8ResultsSummaryV3(FrozenBenchmarkReportingContractV3):
         if self.total_retry_count != self.retry_count + judge.retry_count:
             raise ValueError("Package 8 total retries do not reconcile")
         if (
-            self.document_recall_authority_count + self.citationless_observation_count
+            self.document_recall_authority_count
+            + (
+                self.citationless_observation_count
+                if self.document_recall_unmeasured_count is None
+                else self.document_recall_unmeasured_count
+            )
             != self.accepted_observation_count
         ):
             raise ValueError(
                 "citation authority accounting does not cover accepted observations"
             )
+        if self.citation_coverage_authority is not None and (
+            self.citation_coverage_measured_count is None
+            or self.citation_coverage_unmeasured_count is None
+            or self.citation_coverage_measured_count
+            + self.citation_coverage_unmeasured_count
+            != self.accepted_observation_count
+        ):
+            raise ValueError("claim coverage accounting does not cover observations")
         return self
 
 
@@ -507,6 +559,7 @@ def convert_completed_receipts_to_provisionals_v3(
     *,
     admission: HeldOutReceiptAdmissionV3,
     evidence_resolver: ImmutableEvidenceResolverV3,
+    legacy: bool = False,
 ) -> tuple[ProvisionalObservationV3, ...]:
     """Convert an admitted, completed held-out receipt batch without scoring it.
 
@@ -554,6 +607,7 @@ def convert_completed_receipts_to_provisionals_v3(
             receipt,
             final_result=final_result,
             evidence_resolver=evidence_resolver,
+            legacy=legacy,
         )
         for receipt, final_result in sorted(
             checked,
@@ -671,6 +725,12 @@ def join_model_judgments_to_observations_v3(
         raise BenchmarkReportingValidationErrorV3(
             "calibration configuration binding differs from the model judge"
         )
+    try:
+        validate_claim_calibration_freeze_v3(configuration, frozen_calibration)
+    except ValueError as exc:
+        raise BenchmarkReportingValidationErrorV3(
+            "calibration lacks configured per-claim calibration evidence"
+        ) from exc
 
     normalized = tuple(_materialize_provisional(item) for item in provisionals)
     by_observation = {item.observation.observation_id: item for item in normalized}
@@ -707,6 +767,8 @@ def join_model_judgments_to_observations_v3(
             entry.repetition,
             answer.answer,
             answer.citations,
+            answer.claims,
+            answer.runtime_evidence,
         ) != (
             provisional.observation.variant_id,
             provisional.observation.case_id,
@@ -714,6 +776,8 @@ def join_model_judgments_to_observations_v3(
             provisional.observation.repetition,
             provisional.answer_evidence.answer,
             provisional.answer_evidence.citations,
+            provisional.answer_evidence.claims,
+            provisional.answer_evidence.runtime_evidence,
         ):
             raise BenchmarkReportingValidationErrorV3(
                 "blind packet or unblinding entry differs from receipt-derived evidence"
@@ -741,6 +805,20 @@ def join_model_judgments_to_observations_v3(
     authoritative_observation_ids: list[str] = []
     for opaque_id, entry in key_by_opaque.items():
         provisional = by_observation[entry.observation_id]
+        answer = packet_by_opaque[opaque_id]
+        try:
+            validate_judgment_claim_coverage_v3(by_judgment[opaque_id], answer)
+        except ValueError as exc:
+            raise BenchmarkReportingValidationErrorV3(str(exc)) from exc
+        if answer.rubric_context.evaluator_contract is not None and {
+            metric: by_judgment[opaque_id].scores[metric]
+            for metric in DETERMINISTIC_JUDGE_METRICS_V3
+        } != score_deterministic_metrics_v3(
+            answer, claim_coverage=by_judgment[opaque_id].claim_coverage
+        ):
+            raise BenchmarkReportingValidationErrorV3(
+                "deterministic judgment scores differ from receipt-derived evidence"
+            )
         if provisional.authoritative_evidence:
             authoritative_observation_ids.append(entry.observation_id)
         joined.append(_apply_judgment(provisional, by_judgment[opaque_id]))
@@ -827,6 +905,15 @@ def build_package8_results_summary_v3(
         raise BenchmarkReportingValidationErrorV3(
             "judged observations are not uniquely accountable"
         )
+    unmeasured_document_count = sum(
+        item.document_recall is None for item in normalized_judged.observations
+    )
+    claim_coverage_contract = normalized_judged.bindings.judge_schema_sha256 == (
+        model_judge_output_schema_sha256_v3(successor=True)
+    )
+    unmeasured_coverage_count = sum(
+        item.citation_coverage is None for item in normalized_judged.observations
+    )
     return Package8ResultsSummaryV3(
         run_id=normalized_analysis.run_id,
         completion_status=normalized_analysis.completion_status,
@@ -880,8 +967,31 @@ def build_package8_results_summary_v3(
         total_retry_count=(
             normalized_accounting.retry_count + normalized_judge.retry_count
         ),
-        document_recall_authority_count=len(
-            normalized_judged.authoritative_observation_ids
+        document_recall_authority=(
+            "not_measured_no_document_relevance_gold_or_retrieval_records"
+            if all(
+                item.document_recall is None for item in normalized_judged.observations
+            )
+            else "resolved_turn_result_citations_only"
+        ),
+        document_recall_authority_count=(
+            len(normalized_judged.observations) - unmeasured_document_count
+            if unmeasured_document_count
+            else len(normalized_judged.authoritative_observation_ids)
+        ),
+        document_recall_unmeasured_count=(unmeasured_document_count or None),
+        citation_coverage_authority=(
+            "receipt_claim_records_model_entailment_of_own_citations"
+            if claim_coverage_contract
+            else None
+        ),
+        citation_coverage_measured_count=(
+            len(normalized_judged.observations) - unmeasured_coverage_count
+            if claim_coverage_contract
+            else None
+        ),
+        citation_coverage_unmeasured_count=(
+            unmeasured_coverage_count if claim_coverage_contract else None
         ),
         citationless_observation_count=(
             len(normalized_judged.observations)
@@ -947,6 +1057,7 @@ def _provisional_from_receipt(
     *,
     final_result: TurnResult,
     evidence_resolver: ImmutableEvidenceResolverV3,
+    legacy: bool = False,
 ) -> ProvisionalObservationV3:
     assert receipt.observation_id is not None
     assert receipt.execution_order is not None
@@ -954,6 +1065,7 @@ def _provisional_from_receipt(
     citations, authoritative_evidence = _extract_citations(
         final_result,
         evidence_resolver=evidence_resolver,
+        legacy=legacy,
     )
     abstained = final_result.outcome is DialogueOutcome.ABSTAINED
     observation = EvaluationObservationV3(
@@ -1056,6 +1168,7 @@ def _extract_citations(
     result: TurnResult,
     *,
     evidence_resolver: ImmutableEvidenceResolverV3,
+    legacy: bool = False,
 ) -> tuple[tuple[CitationForReviewV3, ...], tuple[EvidenceBindingKeyV3, ...]]:
     evidence_by_id = {item.evidence_id: item for item in result.evidence}
     citations: list[CitationForReviewV3] = []
@@ -1112,6 +1225,8 @@ def _extract_citations(
             CitationForReviewV3(
                 label=citation.display_label,
                 evidence=resolved.exact_text,
+                source_id=None if legacy else binding.source_id,
+                source_version_id=None if legacy else binding.source_version_id,
             )
         )
         bindings.append(binding)
@@ -1157,6 +1272,10 @@ def _validate_model_judgment(
         **{metric: "model_judge" for metric in SEMANTIC_JUDGE_METRICS_V3},
         **{metric: "deterministic" for metric in DETERMINISTIC_JUDGE_METRICS_V3},
     }
+    if configuration.bindings.judge_schema_sha256 == (
+        model_judge_output_schema_sha256_v3(successor=True)
+    ):
+        expected_sources[EvaluationMetricV3.CITATION_COVERAGE] = "model_judge"
     if judgment.score_sources != expected_sources:
         raise BenchmarkReportingValidationErrorV3(
             "model judgment score sources do not match the frozen metric contract"
@@ -1206,7 +1325,7 @@ def _apply_judgment(
     return EvaluationObservationV3.model_validate(payload)
 
 
-def _as_bool(score: float) -> bool:
+def _as_bool(score: float | None) -> bool:
     if score not in {0.0, 1.0}:
         raise BenchmarkReportingValidationErrorV3(
             "a boolean metric score must be exactly zero or one"

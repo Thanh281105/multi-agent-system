@@ -80,13 +80,13 @@ _PRICE_ACTION_MARKER = re.compile(
 _EMBEDDED_PRICE_ACTION_MARKER = re.compile(
     r"\b(?:(?:đổi|cập nhật)\s+(?:mức\s+)?giá(?:\s+bán)?|"
     r"đặt\s+(?:mức\s+)?(?:giá|bán)|"
-    r"chuyển\s+(?:mức\s+)?giá(?:\s+bán)?|"
+    r"chuyển\s+(?:mức\s+)?(?:giá(?:\s+bán)?|niêm\s+yết)|"
     r"(?:set|change|update)\s+(?:the\s+)?price)\b",
     re.IGNORECASE,
 )
 _EMBEDDED_PRICE_ACTION_PATTERN = re.compile(
     _EMBEDDED_PRICE_ACTION_MARKER.pattern
-    + r".{0,300}?\s+(?:thành|sang|lên|xuống|ở|to|at|=)\s*"
+    + r".{0,300}?\s+(?:thành|sang|lên|xuống|ở|về|to|at|=)\s*"
     r"(?P<amount>[0-9][0-9.,]*)\s*"
     r"(?P<unit>k|nghìn|triệu|tr|đ|đồng|vnd)?(?=\s*(?:[.!?]|$))",
     re.IGNORECASE,
@@ -131,18 +131,56 @@ _STOCK_SIGNED_PATTERN = re.compile(
     r"\s+(?:by\s+)?(?P<amount>[+-][0-9]+)[.!?]*$",
     re.IGNORECASE,
 )
+_VERBAL_COUNTS = {
+    "một": 1,
+    "hai": 2,
+    "ba": 3,
+    "bốn": 4,
+    "năm": 5,
+    "sáu": 6,
+    "bảy": 7,
+    "tám": 8,
+    "chín": 9,
+    "mười": 10,
+}
+_COUNT_VALUE_PATTERN = r"[0-9]{1,3}|" + "|".join(_VERBAL_COUNTS)
 _COUNT_PATTERN = re.compile(
-    r"\b(?P<count>[0-9]{1,3})\s*(?:cuốn|quyển|sách|books?)\b",
+    rf"\b(?P<count>{_COUNT_VALUE_PATTERN})\s*(?:cuốn|quyển|sách|books?)\b",
     re.IGNORECASE,
 )
 _MAX_PRICE_PATTERN = re.compile(
-    r"(?:dưới|không quá|tối đa|under|maximum|max)\s*"
-    r"(?P<amount>[0-9][0-9.,]*)\s*(?P<unit>k|nghìn|triệu|tr|đ|vnd)?",
+    r"(?:dưới|không vượt quá|không quá|tối đa|under|maximum|max)\s*"
+    r"(?P<amount>[0-9][0-9.,]*)\s*(?P<unit>k|nghìn|triệu|tr|đồng|đ|vnd)?\b",
     re.IGNORECASE,
 )
 _MIN_PRICE_PATTERN = re.compile(
-    r"(?:trên|ít nhất|từ|over|minimum|min)\s*"
-    r"(?P<amount>[0-9][0-9.,]*)\s*(?P<unit>k|nghìn|triệu|tr|đ|vnd)?",
+    r"(?:bắt buộc chi ít nhất|không được dưới|không dưới|tối thiểu|trên|ít nhất|từ|over|minimum|min)\s*"
+    r"(?P<amount>[0-9][0-9.,]*)\s*(?P<unit>k|nghìn|triệu|tr|đồng|đ|vnd)?\b",
+    re.IGNORECASE,
+)
+_BOUND_OPERATOR = (
+    r"ít nhất|tối thiểu|không dưới|trên|từ|>=|≥|at least|minimum|min|"
+    r"không vượt quá|không quá|tối đa|dưới|<=|≤|under|maximum|max"
+)
+_FIELD_BOUND_PATTERN = re.compile(
+    rf"(?:(?P<field>rating|điểm(?:\s+đánh giá)?|đánh giá|số trang|page count)\s*"
+    rf"(?:(?P<operator>{_BOUND_OPERATOR})\s+)?(?P<amount>[0-9]+(?:[.,][0-9]+)?)"
+    rf"(?:\s*(?:sao|trang|pages?))?(?:\s+trở (?:lên|xuống))?|"
+    rf"(?P<suffix_operator>{_BOUND_OPERATOR}|được)\s*"
+    rf"(?P<suffix_amount>[0-9]+(?:[.,][0-9]+)?)\s*(?P<suffix_field>sao|trang|pages?)"
+    rf"(?:\s+trở (?:lên|xuống))?)\b",
+    re.IGNORECASE,
+)
+_PRICE_RANGE_PATTERN = re.compile(
+    r"(?P<field>giá|ngân sách)?\s*(?:từ|trong khoảng|khoảng)?\s*"
+    r"(?P<minimum>[0-9][0-9.,]*)\s*(?P<min_unit>k|nghìn|triệu|tr|đồng|đ|vnd)?"
+    r"\s*(?:đến|tới|[-–—])\s*(?P<maximum>[0-9][0-9.,]*)\s*"
+    r"(?P<max_unit>k|nghìn|triệu|tr|đồng|đ|vnd)?\b",
+    re.IGNORECASE,
+)
+_UNSUPPORTED_PRODUCT_PATTERN = re.compile(
+    r"\b(?:điện thoại|smartphone|laptop|máy tính bảng|tai nghe|tivi|"
+    r"tủ lạnh|máy giặt|sữa)\b",
     re.IGNORECASE,
 )
 _PRODUCT_INPUT_CAPABILITIES = frozenset(
@@ -175,12 +213,22 @@ _P4_IMPLEMENTED_READ_CAPABILITIES = frozenset(
     }
 )
 _QUOTED_QUERY_PATTERN = re.compile(r"[\"“”'](?P<query>[^\"“”']{2,160})[\"“”']")
+_MEMORY_ACKNOWLEDGMENT_PATTERN = re.compile(
+    r"(?:(?:hãy|vui lòng)\s+)?(?:nhớ|ghi nhớ)\s+(?:đúng\s+)?"
+    r"(?:cuốn|sách|quyển)\s+vừa\s+(?:nêu|nói|nhắc)[.!?]*",
+    re.IGNORECASE,
+)
 _QUERY_PREFIX_PATTERN = re.compile(
-    r"^(?:(?:hãy|vui lòng|giúp|cho tôi|mình muốn)\s+)*"
-    r"(?:tìm|kiếm|gợi ý|đề xuất|recommend|find|search|so sánh|compare)\s+"
-    r"(?:(?:cho tôi|giúp tôi)\s+)?"
-    r"(?:[0-9]{1,3}\s*(?:cuốn|quyển|sách|books?)\s+)?"
-    r"(?:(?:cuốn|quyển)\s+)?(?:sách|books?)?\s*",
+    r"^(?:(?:hãy|vui lòng|giúp(?:\s+(?:mình|tôi))?|cho tôi|cho mình|"
+    r"mình muốn|tôi muốn)\s+)*"
+    r"(?:tìm|kiếm|xem|gợi ý|đề xuất|recommend|find|search|so sánh|compare|"
+    r"(?:khách hàng|người mua)\s+(?:review|đánh giá|nhận xét)|"
+    r"phân tích\s+(?:review|đánh giá|nhận xét)|"
+    r"(?:xem\s+)?(?:review|đánh giá|nhận xét))\s+"
+    r"(?:(?:cho tôi|giúp tôi|cho mình|giúp mình)\s+)?"
+    rf"(?:(?:tối đa\s+)?(?:{_COUNT_VALUE_PATTERN})\s*"
+    r"(?:cuốn|quyển|sách|books?)\s+)?"
+    r"(?:(?:cuốn|quyển)\s+)?(?:cuốn sách|quyển sách|sách|books?)?\s*(?:của\s+)?",
     re.IGNORECASE,
 )
 _QUERY_TRAILING_CLAUSE_PATTERN = re.compile(
@@ -344,6 +392,11 @@ class PlannedTurn:
     model_selected_template_id: str | None = None
     fallback_reason: str | None = None
     proposal: PlannedProposal | None = None
+    min_rating: float | None = None
+    max_rating: float | None = None
+    min_page_count: int | None = None
+    max_page_count: int | None = None
+    entity_queries: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -360,6 +413,11 @@ class _DeterministicRequest:
     max_price_vnd: int | None
     clarification_code: str | None
     proposal: PlannedProposal | None = None
+    min_rating: float | None = None
+    max_rating: float | None = None
+    min_page_count: int | None = None
+    max_page_count: int | None = None
+    entity_queries: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -372,6 +430,11 @@ class _ParsedRequestContext:
     max_price_vnd: int | None
     price_error: str | None
     catalog_query: str | None
+    min_rating: float | None = None
+    max_rating: float | None = None
+    min_page_count: int | None = None
+    max_page_count: int | None = None
+    entity_queries: tuple[str, ...] = ()
 
 
 class BoundedV2Planner:
@@ -383,8 +446,8 @@ class BoundedV2Planner:
         registry: V2CapabilityRegistry = default_v2_registry,
         model_runtime: ModelRuntime | None = None,
         runtime_mode: ModelRuntimeMode = "off",
-        model: str = "gpt-5.4-mini",
-        reasoning_effort: ReasoningEffort = "low",
+        model: str = "gpt-6-luna",
+        reasoning_effort: ReasoningEffort = "none",
         rag_enabled: bool = True,
     ) -> None:
         if type(rag_enabled) is not bool:
@@ -420,6 +483,11 @@ class BoundedV2Planner:
                 max_price_vnd=request.max_price_vnd,
                 clarification_code=request.clarification_code,
                 proposal=request.proposal,
+                min_rating=request.min_rating,
+                max_rating=request.max_rating,
+                min_page_count=request.min_page_count,
+                max_page_count=request.max_page_count,
+                entity_queries=request.entity_queries,
             )
 
         if request.proposal is not None:
@@ -438,6 +506,7 @@ class BoundedV2Planner:
             if (
                 self.runtime_mode == "required"
                 and fallback_reason == "model_plan_not_authorized"
+                and context.access.binding.mode != ConversationMode.SHOPPER
             ):
                 clarification = _action_clarification_request(
                     message,
@@ -501,6 +570,11 @@ class BoundedV2Planner:
             model_selected_template_id=selected_template,
             fallback_reason=fallback_reason,
             proposal=request.proposal,
+            min_rating=request.min_rating,
+            max_rating=request.max_rating,
+            min_page_count=request.min_page_count,
+            max_page_count=request.max_page_count,
+            entity_queries=request.entity_queries,
         )
 
     def _apply_rag_policy(
@@ -544,10 +618,7 @@ class BoundedV2Planner:
             return ()
         if len(candidate_product_ids) > min(planned.candidate_limit, MAX_CANDIDATES):
             raise PlanningError("resolved_candidate_limit_exceeded")
-        context_product_ids = _context_product_ids(
-            context,
-            candidate_limit=planned.candidate_limit,
-        )
+        context_product_ids = _request_product_ids(_request_from_plan(planned), context)
         if not set(context_product_ids) <= set(candidate_product_ids):
             raise PlanningError("resolved_context_product_missing")
         bound_context = context.model_copy(
@@ -816,10 +887,7 @@ class BoundedV2Planner:
             capability in _CANDIDATE_SOURCE_CAPABILITIES
             for capability in request.capabilities
         )
-        context_product_ids = _context_product_ids(
-            context,
-            candidate_limit=request.candidate_limit,
-        )
+        context_product_ids = _request_product_ids(request, context)
         for capability in request.capabilities:
             if (
                 capability in _PRODUCT_INPUT_CAPABILITIES
@@ -911,9 +979,66 @@ def _parse_request_context(message: str) -> _ParsedRequestContext:
     lowered = cleaned.casefold()
     candidate_limit, candidate_explicit, count_error = _candidate_limit(lowered)
     price_error: str | None = None
+    bounds: dict[str, float | int] = {}
+    for match in _FIELD_BOUND_PATTERN.finditer(lowered):
+        field = match.group("field") or match.group("suffix_field")
+        operator = match.group("operator") or match.group("suffix_operator")
+        raw = match.group("amount") or match.group("suffix_amount")
+        value = Decimal(raw.replace(",", "."))
+        is_page = field in {"số trang", "page count", "trang", "page", "pages"}
+        if (is_page and (value != int(value) or not 1 <= value <= 20_000)) or (
+            not is_page and not 0 <= value <= 5
+        ):
+            price_error = "catalog_constraint_invalid"
+            continue
+        is_max = operator in {
+            "không vượt quá",
+            "không quá",
+            "tối đa",
+            "dưới",
+            "<=",
+            "≤",
+            "under",
+            "maximum",
+            "max",
+        }
+        key = ("max_" if is_max else "min_") + ("page_count" if is_page else "rating")
+        parsed_value = int(value) if is_page else float(value)
+        if key in bounds:
+            parsed_value = (
+                min(bounds[key], parsed_value)
+                if is_max
+                else max(bounds[key], parsed_value)
+            )
+        bounds[key] = parsed_value
+    price_message = _FIELD_BOUND_PATTERN.sub(" ", lowered)
     try:
-        min_price = _price_constraint(_MIN_PRICE_PATTERN, lowered)
-        max_price = _price_constraint(_MAX_PRICE_PATTERN, lowered)
+        range_match = next(
+            (
+                match
+                for match in _PRICE_RANGE_PATTERN.finditer(price_message)
+                if match.group("field")
+                or match.group("min_unit")
+                or match.group("max_unit")
+            ),
+            None,
+        )
+        if range_match is not None:
+            min_unit = (
+                range_match.group("min_unit") or range_match.group("max_unit") or ""
+            )
+            max_unit = (
+                range_match.group("max_unit") or range_match.group("min_unit") or ""
+            )
+            min_price = _price_constraint(
+                _MIN_PRICE_PATTERN, f"từ {range_match.group('minimum')}{min_unit}"
+            )
+            max_price = _price_constraint(
+                _MAX_PRICE_PATTERN, f"tối đa {range_match.group('maximum')}{max_unit}"
+            )
+        else:
+            min_price = _price_constraint(_MIN_PRICE_PATTERN, price_message)
+            max_price = _price_constraint(_MAX_PRICE_PATTERN, price_message)
     except PlanningError as exc:
         if exc.code not in {
             "price_constraint_ambiguous",
@@ -930,6 +1055,10 @@ def _parse_request_context(message: str) -> _ParsedRequestContext:
         and min_price > max_price
     ):
         price_error = "price_range_invalid"
+    for field in ("rating", "page_count"):
+        minimum, maximum = bounds.get(f"min_{field}"), bounds.get(f"max_{field}")
+        if minimum is not None and maximum is not None and minimum > maximum:
+            price_error = "catalog_constraint_invalid"
     return _ParsedRequestContext(
         cleaned=cleaned,
         candidate_limit=candidate_limit,
@@ -939,6 +1068,15 @@ def _parse_request_context(message: str) -> _ParsedRequestContext:
         max_price_vnd=max_price,
         price_error=price_error,
         catalog_query=_extract_catalog_query(cleaned),
+        min_rating=float(bounds["min_rating"]) if "min_rating" in bounds else None,
+        max_rating=float(bounds["max_rating"]) if "max_rating" in bounds else None,
+        min_page_count=int(bounds["min_page_count"])
+        if "min_page_count" in bounds
+        else None,
+        max_page_count=int(bounds["max_page_count"])
+        if "max_page_count" in bounds
+        else None,
+        entity_queries=_extract_entity_queries(cleaned),
     )
 
 
@@ -946,11 +1084,12 @@ def context_constraints_from_message(message: str) -> tuple[ContextConstraint, .
     """Project only deterministically parsed request filters into history context."""
 
     cleaned = message.strip()
+    price_text = _QUOTED_QUERY_PATTERN.sub(" ", cleaned)
     if (
         _is_confirmation_only(cleaned)
         or _CHECKOUT_ACTION_PATTERN.fullmatch(cleaned) is not None
-        or _PRICE_ACTION_MARKER.search(cleaned) is not None
-        or _EMBEDDED_PRICE_ACTION_MARKER.search(cleaned) is not None
+        or _PRICE_ACTION_MARKER.search(price_text) is not None
+        or _EMBEDDED_PRICE_ACTION_MARKER.search(price_text) is not None
         or _STOCK_ACTION_MARKER.search(cleaned) is not None
         or _EMBEDDED_STOCK_ACTION_MARKER.search(cleaned) is not None
         or _IMMEDIATE_OFFER_ACTION_MARKER.search(cleaned) is not None
@@ -985,16 +1124,53 @@ def _deterministic_request(
     action_request = _deterministic_action_request(message, context)
     if action_request is not None:
         return action_request
+    if _is_memory_acknowledgment(message):
+        return _DeterministicRequest(
+            intent="conversation.acknowledgment",
+            template_id="memory_acknowledgment",
+            obligations=(),
+            capabilities=(),
+            candidate_limit=MAX_CANDIDATES,
+            candidate_limit_explicit=False,
+            query=message[:500],
+            catalog_query=None,
+            min_price_vnd=None,
+            max_price_vnd=None,
+            clarification_code=None,
+        )
     parsed_context = _parse_request_context(message)
     cleaned = parsed_context.cleaned
     lowered = cleaned.casefold()
     candidate_limit = parsed_context.candidate_limit
     candidate_explicit = parsed_context.candidate_limit_explicit
     count_error = parsed_context.count_error
+    if len(parsed_context.entity_queries) > candidate_limit or len(
+        {query.casefold() for query in parsed_context.entity_queries}
+    ) != len(parsed_context.entity_queries):
+        count_error = count_error or "catalog_entities_invalid"
     min_price = parsed_context.min_price_vnd
     max_price = parsed_context.max_price_vnd
     price_error = parsed_context.price_error
     catalog_query = parsed_context.catalog_query
+    _INJECTION_PATTERN = re.compile(
+        r"\b(?:bỏ qua\s+(?:nguồn|dữ liệu(?: thật)?(?: và nguồn)?)|tự bịa|hãy bịa|bịa rằng)\b",
+        re.IGNORECASE,
+    )
+    if _INJECTION_PATTERN.search(cleaned) is not None:
+        return replace(
+            _action_clarification_request(cleaned, "prompt_injection_rejected"),
+            intent="general.unsupported",
+            template_id="prompt_injection_rejected",
+        )
+    unquoted = _QUOTED_QUERY_PATTERN.sub("", cleaned)
+    if _UNSUPPORTED_PRODUCT_PATTERN.search(unquoted) is not None and not _contains(
+        unquoted.casefold(), "sách", "truyện", "book"
+    ):
+        return replace(
+            _action_clarification_request(cleaned, "book_domain_unsupported"),
+            intent="general.unsupported",
+            template_id="book_domain_unsupported",
+        )
     historical = {
         constraint.key: constraint.value
         for constraint in context.model_context.active_constraints
@@ -1016,6 +1192,16 @@ def _deterministic_request(
         historical_query = historical.get("catalog_query")
         if isinstance(historical_query, str) and historical_query:
             catalog_query = historical_query[:300]
+    intent_text = _QUOTED_QUERY_PATTERN.sub(" ", lowered)
+    for entity_query in parsed_context.entity_queries:
+        if entity_query.casefold() != cleaned.strip(" ,.;:?!-").casefold():
+            intent_text = intent_text.replace(entity_query.casefold(), " ")
+    review_text = re.sub(
+        r"\bđiểm\s+đánh giá\b|\b(?:đừng|không)\s+(?:suy|dựa|dùng)"
+        r"[^.!?;]*?\b(?:review|đánh giá|nhận xét)\b",
+        " ",
+        _FIELD_BOUND_PATTERN.sub(" ", intent_text),
+    )
     write_requested = any(word in lowered for word in _WRITE_WORDS)
     has_compare = _contains(lowered, "so sánh", "compare", "khác nhau")
     has_recommendation = _contains(
@@ -1025,22 +1211,39 @@ def _deterministic_request(
         "recommend",
         "nên đọc",
     )
-    has_review = _contains(lowered, "review", "đánh giá", "nhận xét")
+    has_review = _contains(review_text, "review", "đánh giá", "nhận xét")
     has_trust = _contains(lowered, "complaint", "phàn nàn", "khiếu nại")
     has_knowledge = _contains(
-        lowered,
+        intent_text,
         "chủ đề",
         "nội dung",
         "nói về",
         "kiến thức",
         "tiểu sử",
         "knowledge",
+        "do ai",
+        "của ai",
+        "ai viết",
+        "bàn về",
+        "viết về",
+        "kể về",
+        "tác giả",
+        "tác phẩm",
+        "người dịch",
+        "theo nguồn",
+        "nguồn nói",
+        "nguồn xác nhận",
+        "mục đích",
+        "ý nghĩa",
+        "phạm vi",
+        "hướng tới",
+        "trọng tâm",
     )
     has_market = _contains(lowered, "thị trường", "market", "thống kê")
     has_inventory = _contains(lowered, "tồn kho", "inventory", "còn hàng")
     has_price = (
         _contains(
-            lowered,
+            re.sub(r"\bđánh giá\b", " ", intent_text),
             "giá",
             "price",
             "ngân sách",
@@ -1058,9 +1261,13 @@ def _deterministic_request(
     if has_inventory and mode != ConversationMode.MERCHANT:
         clarification = clarification or "inventory_requires_merchant_mode"
 
-    context_product_ids = _context_product_ids(
-        context,
-        candidate_limit=candidate_limit,
+    context_product_ids = (
+        ()
+        if parsed_context.entity_queries
+        else _context_product_ids(
+            context,
+            candidate_limit=candidate_limit,
+        )
     )
     candidate_scope = (
         len(context_product_ids) if context_product_ids else candidate_limit
@@ -1083,6 +1290,9 @@ def _deterministic_request(
     ):
         intent = "catalog_knowledge"
         template_id = f"{mode.value}_catalog_knowledge"
+    elif has_compare and has_knowledge:
+        intent = "compare"
+        template_id = f"{mode.value}_compare"
     elif has_knowledge:
         intent = "knowledge"
         template_id = f"{mode.value}_knowledge"
@@ -1105,19 +1315,30 @@ def _deterministic_request(
             or has_trust
             or has_price
         )
-        if needs_candidates:
-            capabilities_list.append(
-                "product.rank" if has_recommendation else "product.catalog.search"
+        is_multi_constraint = (
+            has_price
+            and (
+                parsed_context.min_rating is not None
+                or parsed_context.max_rating is not None
+                or parsed_context.min_page_count is not None
+                or parsed_context.max_page_count is not None
             )
-        if has_compare or (
-            comparison_required and "product.rank" not in capabilities_list
-        ):
+        )
+        if needs_candidates:
+            if is_multi_constraint:
+                capabilities_list.append("product.catalog.search")
+                capabilities_list.append("product.rank")
+            elif has_recommendation and not has_compare:
+                capabilities_list.append("product.rank")
+            else:
+                capabilities_list.append("product.catalog.search")
+        if has_compare:
             capabilities_list.append("product.compare")
-        if has_review or has_recommendation:
+        if has_review or (has_recommendation and not has_compare and not is_multi_constraint):
             capabilities_list.append(
                 "review.compare" if candidate_scope >= 2 else "review.retrieve"
             )
-        if has_trust or has_recommendation:
+        if has_trust or (has_recommendation and not has_compare and not is_multi_constraint):
             capabilities_list.append(
                 "trust.compare" if candidate_scope >= 2 else "trust.analyze"
             )
@@ -1137,7 +1358,7 @@ def _deterministic_request(
             )
         if has_knowledge:
             capabilities_list.append("knowledge.retrieve")
-    capabilities = tuple(dict.fromkeys(capabilities_list))
+    capabilities = () if clarification is not None else tuple(dict.fromkeys(capabilities_list))
 
     obligation_specs: list[tuple[EvidenceObligationKind, bool, str]] = []
     if intent in {"catalog", "compare", "recommendation", "catalog_knowledge"}:
@@ -1150,7 +1371,10 @@ def _deterministic_request(
         )
     if has_price:
         obligation_specs.append((EvidenceObligationKind.PRICE, True, "price"))
-    if has_review or has_recommendation:
+    if has_review or any(
+        capability in {"review.retrieve", "review.compare"}
+        for capability in capabilities
+    ):
         obligation_specs.append(
             (
                 EvidenceObligationKind.REVIEW,
@@ -1158,7 +1382,10 @@ def _deterministic_request(
                 "snapshot review evidence",
             )
         )
-    if has_trust or has_recommendation:
+    if has_trust or any(
+        capability in {"trust.analyze", "trust.compare"}
+        for capability in capabilities
+    ):
         obligation_specs.append(
             (
                 EvidenceObligationKind.TRUST,
@@ -1200,6 +1427,10 @@ def _deterministic_request(
         and catalog_query is None
         and min_price is None
         and max_price is None
+        and parsed_context.min_rating is None
+        and parsed_context.max_rating is None
+        and parsed_context.min_page_count is None
+        and parsed_context.max_page_count is None
     ):
         catalog_query = "sách"
     return _DeterministicRequest(
@@ -1214,6 +1445,11 @@ def _deterministic_request(
         min_price_vnd=min_price,
         max_price_vnd=max_price,
         clarification_code=clarification,
+        min_rating=parsed_context.min_rating,
+        max_rating=parsed_context.max_rating,
+        min_page_count=parsed_context.min_page_count,
+        max_page_count=parsed_context.max_page_count,
+        entity_queries=parsed_context.entity_queries,
     )
 
 
@@ -1228,10 +1464,17 @@ def _deterministic_action_request(
             "action_confirmation_endpoint_required",
         )
 
-    checkout = _CHECKOUT_ACTION_PATTERN.fullmatch(cleaned) is not None
+    checkout = (
+        _CHECKOUT_ACTION_PATTERN.search(cleaned) is not None
+        or (
+            _contains(cleaned.casefold(), "thanh toán", "đặt hàng", "checkout")
+            and _contains(cleaned.casefold(), "giỏ", "đơn", "cart")
+        )
+    )
+    price_text = _QUOTED_QUERY_PATTERN.sub(" ", cleaned)
     price_marker = (
-        _PRICE_ACTION_MARKER.search(cleaned) is not None
-        or _EMBEDDED_PRICE_ACTION_MARKER.search(cleaned) is not None
+        _PRICE_ACTION_MARKER.search(price_text) is not None
+        or _EMBEDDED_PRICE_ACTION_MARKER.search(price_text) is not None
     )
     stock_marker = (
         _STOCK_ACTION_MARKER.search(cleaned) is not None
@@ -1245,6 +1488,19 @@ def _deterministic_action_request(
 
     mode = context.access.binding.mode
     if checkout:
+        immediate_checkout = (
+            re.search(
+                r"\b(?:hoàn tất ngay|thực hiện ngay|tiến hành ngay)\s+(?:thanh toán|đặt hàng)\b",
+                cleaned,
+                re.IGNORECASE,
+            )
+            is not None
+        )
+        if immediate_checkout:
+            return _action_clarification_request(
+                cleaned,
+                "checkout_execution_requires_confirmed_proposal",
+            )
         if mode != ConversationMode.SHOPPER:
             return _action_clarification_request(cleaned, "action_mode_mismatch")
         if (
@@ -1312,14 +1568,14 @@ def _deterministic_action_request(
         else product_ids[0]
     )
     combined_read = len(product_ids) > 1 or (
-        price_marker and _PRICE_ACTION_MARKER.search(cleaned) is None
+        price_marker and _PRICE_ACTION_MARKER.search(price_text) is None
     )
 
     proposal: PlannedProposal
     if price_marker:
-        match = _PRICE_ACTION_PATTERN.fullmatch(cleaned)
+        match = _PRICE_ACTION_PATTERN.fullmatch(price_text)
         if match is None:
-            match = _EMBEDDED_PRICE_ACTION_PATTERN.search(cleaned)
+            match = _EMBEDDED_PRICE_ACTION_PATTERN.search(price_text)
         if match is None:
             return _action_clarification_request(
                 cleaned,
@@ -1458,6 +1714,11 @@ def _request_from_plan(planned: PlannedTurn) -> _DeterministicRequest:
         max_price_vnd=planned.max_price_vnd,
         clarification_code=planned.clarification_code,
         proposal=planned.proposal,
+        min_rating=planned.min_rating,
+        max_rating=planned.max_rating,
+        min_page_count=planned.min_page_count,
+        max_page_count=planned.max_page_count,
+        entity_queries=planned.entity_queries,
     )
 
 
@@ -1472,8 +1733,13 @@ def _operation_payload(
     if capability in {"product.catalog.search", "product.rank"}:
         return {
             "query": request.catalog_query,
+            "entity_queries": request.entity_queries,
             "min_price_vnd": request.min_price_vnd,
             "max_price_vnd": request.max_price_vnd,
+            "min_rating": request.min_rating,
+            "max_rating": request.max_rating,
+            "min_page_count": request.min_page_count,
+            "max_page_count": request.max_page_count,
             "candidate_limit": request.candidate_limit,
         }
     if capability in _PRODUCT_INPUT_CAPABILITIES:
@@ -1549,6 +1815,8 @@ def _validate_model_choice(
         raise ValueError("model cannot expand the candidate limit")
     if choice.candidate_limit < len(context_product_ids):
         raise ValueError("model cannot drop resolved products")
+    if choice.candidate_limit < len(request.entity_queries):
+        raise ValueError("model cannot drop explicitly named titles")
     if (request.proposal is not None or request.candidate_limit_explicit) and (
         choice.candidate_limit != request.candidate_limit
     ):
@@ -1606,6 +1874,9 @@ def _authorized_plan_options(
 
     authorized: list[tuple[str, tuple[str, ...]]] = []
     templates = registry.templates_for_mode(context.access.binding.mode)
+    requested_capabilities = set(
+        _normalize_capability_sequence(list(request.capabilities))
+    )
     candidates = [
         (
             template.template_id,
@@ -1640,7 +1911,12 @@ def _authorized_plan_options(
                 break
             capabilities.append(required)
         normalized = _normalize_capability_sequence(capabilities)
-        if not normalized or len(normalized) > MAX_EXPERT_STEPS:
+        # The model may choose a template, but cannot expand request-derived tool scope.
+        if (
+            not normalized
+            or len(normalized) > MAX_EXPERT_STEPS
+            or set(normalized) != requested_capabilities
+        ):
             continue
         valid = True
         for capability in normalized:
@@ -1665,6 +1941,33 @@ def _authorized_plan_options(
         option = (template_id, normalized)
         if option not in authorized:
             authorized.append(option)
+    requested_seq = _normalize_capability_sequence(list(request.capabilities))
+    if requested_seq and len(requested_seq) <= MAX_EXPERT_STEPS:
+        valid_req = True
+        for cap in requested_seq:
+            try:
+                definition = registry.capability(cap)
+                if (
+                    definition.effect != CapabilityEffect.READ
+                    or context.access.binding.mode not in definition.allowed_modes
+                    or not definition.required_permissions <= context.access.scopes
+                ):
+                    valid_req = False
+                    break
+            except Exception:
+                valid_req = False
+                break
+        if valid_req and all(
+            any(_capability_satisfies(capability, obligation.kind) for capability in requested_seq)
+            for obligation in request.obligations
+        ):
+            matching_template = next(
+                (tid for tid, _ in candidates if tid == request.template_id),
+                candidates[0][0] if candidates else f"{context.access.binding.mode.value}_catalog",
+            )
+            req_option = (matching_template, requested_seq)
+            if req_option not in authorized:
+                authorized.insert(0, req_option)
     if not authorized:
         raise PlanningError("no_authorized_read_plan")
     return tuple(authorized)
@@ -1759,10 +2062,11 @@ def _capability_needed(
 
 
 def _candidate_limit(message: str) -> tuple[int, bool, str | None]:
-    match = _COUNT_PATTERN.search(message)
+    match = _COUNT_PATTERN.search(_QUOTED_QUERY_PATTERN.sub(" ", message))
     if match is None:
         return MAX_CANDIDATES, False, None
-    value = int(match.group("count"))
+    raw = match.group("count").casefold()
+    value = _VERBAL_COUNTS[raw] if raw in _VERBAL_COUNTS else int(raw)
     if not 1 <= value <= MAX_CANDIDATES:
         return MAX_CANDIDATES, True, "candidate_limit_exceeds_five"
     return value, True, None
@@ -1833,7 +2137,47 @@ def _extract_catalog_query(message: str) -> str | None:
     if quoted is not None:
         return quoted.group("query").strip()[:300]
 
-    candidate = _QUERY_PREFIX_PATTERN.sub("", message.strip(), count=1)
+    if _is_memory_acknowledgment(message):
+        return None
+
+    candidate = re.sub(
+        r"^(?:bây giờ)\s+",
+        "",
+        message.strip(),
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    candidate = re.sub(
+        r"^(?:(?:giữ nguyên|về|còn)\s+)?(?:cuốn|sách|quyển)\s+"
+        r"(?:vừa\s+(?:nêu|nói|nhắc)|này|đó|ấy)\s*[:,;]?\s*",
+        "",
+        candidate,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    candidate = _QUERY_PREFIX_PATTERN.sub("", candidate, count=1)
+    candidate = re.sub(
+        r"^(?:(?:mình|tôi)\s+(?:cần|đang cân nhắc)|"
+        r"(?:cho|giúp)\s+(?:mình|tôi)|có)\s+",
+        "",
+        candidate,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    candidate = re.split(
+        r"[.!?]\s+(?=(?:mình|tôi|bạn|hãy|cho|review|đánh giá|nhận xét|chỉ|nêu)\b)",
+        candidate,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    candidate = re.sub(
+        r"\s+(?:trong\s+(?:danh mục|catalog|kho|hệ thống)(?:\s+có\s+bản)?|"
+        r"(?:cho|giúp)\s+(?:mình|tôi))\b.*$",
+        "",
+        candidate,
+        count=1,
+        flags=re.IGNORECASE,
+    )
     candidate = re.sub(
         r"^(?:chủ đề|nội dung)\s+(?:của\s+)?",
         "",
@@ -1849,11 +2193,14 @@ def _extract_catalog_query(message: str) -> str | None:
         flags=re.IGNORECASE,
     )
     candidate = _QUERY_TRAILING_CLAUSE_PATTERN.sub("", candidate, count=1)
-    candidate = _MIN_PRICE_PATTERN.sub("", candidate)
-    candidate = _MAX_PRICE_PATTERN.sub("", candidate)
-    candidate = _COUNT_PATTERN.sub("", candidate)
     candidate = re.sub(
-        r"\b(?:của|by)\s+",
+        r"\s+(?:như thế nào|thế nào|ra sao|là gì)\s*[?.!]*$",
+        "",
+        candidate,
+        flags=re.IGNORECASE,
+    )
+    candidate = re.sub(
+        r"(?:^|\s+)(?:dựa trên|theo)\s+(?:review|đánh giá|độ tin cậy|giá|rating|phạm vi|chủ đề|mục đích|nội dung|khác biệt)\b.*$",
         "",
         candidate,
         count=1,
@@ -1866,10 +2213,94 @@ def _extract_catalog_query(message: str) -> str | None:
         count=1,
         flags=re.IGNORECASE,
     )
+    candidate = _FIELD_BOUND_PATTERN.sub("", candidate)
+    candidate = _PRICE_RANGE_PATTERN.sub(
+        lambda match: (
+            ""
+            if match.group("field")
+            or match.group("min_unit")
+            or match.group("max_unit")
+            else match.group()
+        ),
+        candidate,
+    )
+    candidate = _MIN_PRICE_PATTERN.sub("", candidate)
+    candidate = _MAX_PRICE_PATTERN.sub("", candidate)
+    candidate = _COUNT_PATTERN.sub("", candidate)
+    candidate = re.sub(
+        r"\b(?:của|by)\s+",
+        "",
+        candidate,
+        count=1,
+        flags=re.IGNORECASE,
+    )
     cleaned = candidate.strip(" ,.;:?!-")
+    _trailing_conn = re.compile(
+        r"\s+(?:với|theo|về|có|ở|thuộc|mức|tầm|khoảng|được|đang|cho|trong|và|or|and)\s*$",
+        re.IGNORECASE,
+    )
+    while True:
+        stripped = _trailing_conn.sub("", cleaned).strip(" ,.;:?!-")
+        if stripped == cleaned:
+            break
+        cleaned = stripped
+    if re.match(r"^(?:(?:sách|cuốn|quyển)\s+)?(?:này|đó|kia|trên)\b", cleaned, re.IGNORECASE):
+        return None
     if cleaned.casefold() in _GENERIC_QUERY_TERMS:
         return None
     return cleaned[:300] or None
+
+
+def _is_memory_acknowledgment(message: str) -> bool:
+    return _MEMORY_ACKNOWLEDGMENT_PATTERN.fullmatch(message.strip()) is not None
+
+
+def _extract_entity_queries(message: str) -> tuple[str, ...]:
+    """Separate explicitly named titles before any repository lookup."""
+    is_comparison = _contains(message.casefold(), "so sánh", "compare", "khác nhau")
+    quoted = tuple(
+        match.group("query").strip()
+        for match in _QUOTED_QUERY_PATTERN.finditer(message)
+    )
+    if is_comparison and len(quoted) >= 2:
+        return quoted
+    if not is_comparison:
+        if _contains(
+            _FIELD_BOUND_PATTERN.sub(" ", message.casefold()),
+            "review",
+            "đánh giá",
+            "nhận xét",
+        ):
+            query = _extract_catalog_query(message)
+            if not quoted and re.match(
+                r"^(?:(?:sách|cuốn|quyển)\s+)?(?:này|đó)\b", query or "", re.IGNORECASE
+            ):
+                return ()
+            return (query,) if query is not None else ()
+        return ()
+    candidate = _extract_catalog_query(message)
+    if candidate is None:
+        return ()
+    parts = re.split(
+        r"\s+(?:và|với|(?i:and|versus|vs\.?))\s+", candidate
+    )
+    if len(parts) < 2:
+        return ()
+    _trailing_conn = re.compile(
+        r"\s+(?:theo|về|với|có|ở|thuộc|mức|tầm|khoảng|được|nào|đang|cho|trong|và)\s*$",
+        re.IGNORECASE,
+    )
+    results: list[str] = []
+    for part in parts:
+        p = re.sub(r"^(?:sách|cuốn|quyển)\s+", "", part, flags=re.IGNORECASE).strip(" ,.;:?!-")
+        while True:
+            stripped = _trailing_conn.sub("", p).strip(" ,.;:?!-")
+            if stripped == p:
+                break
+            p = stripped
+        if p:
+            results.append(p)
+    return tuple(results)
 
 
 def _contains(message: str, *needles: str) -> bool:
@@ -1892,6 +2323,8 @@ def _request_product_ids(
     request: _DeterministicRequest,
     context: PlanningContext,
 ) -> tuple[ProductId, ...]:
+    if request.entity_queries:
+        return ()
     if request.proposal is None or request.obligations:
         return _context_product_ids(
             context,

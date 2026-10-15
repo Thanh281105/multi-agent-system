@@ -531,9 +531,9 @@ def _context(
     return configuration, answer, _packet(bindings, answers)
 
 
-def _bindings() -> ArtifactBindingsV3:
+def _bindings(*, successor: bool = False) -> ArtifactBindingsV3:
     judge_prompt_sha256 = judge_prompt_sha256_v3(PROMPT)
-    judge_schema_sha256 = model_judge_output_schema_sha256_v3()
+    judge_schema_sha256 = model_judge_output_schema_sha256_v3(successor=successor)
     rubric_sha256 = "d" * 64
     evaluator_sha256 = evaluator_configuration_sha256_v3(
         model_binding=MODEL,

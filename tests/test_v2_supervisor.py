@@ -53,6 +53,7 @@ from app.v2.planning import (
     BoundedV2Planner,
     PlanningContext,
     PlanningError,
+    ResolvedMerchantTarget,
     RuntimeDataVersions,
     context_constraints_from_message,
 )
@@ -501,25 +502,28 @@ async def test_model_cannot_select_an_unimplemented_registry_template() -> None:
             model_runtime=_ChoiceRuntime(unavailable),
             runtime_mode="required",
         ).plan("Tìm sách Sapiens", _context())
-    assert required.clarification_code == "action_mode_mismatch"
-    assert required.desired_capabilities == ()
-    assert required.initial_operations == ()
+    assert required.template_id == "shopper_catalog"
+    assert required.desired_capabilities == ("product.catalog.search",)
+    assert [item.capability for item in required.initial_operations] == [
+        "product.catalog.search"
+    ]
+    assert required.fallback_reason == "model_plan_not_authorized"
 
 
 @pytest.mark.asyncio
-async def test_required_shopper_unauthorized_merchant_plan_clarifies() -> None:
-    message = "Chuyển mức niêm yết Economix về 109.000 đồng."
-    runtime = _ChoiceRuntime(
-        {
-            "template_id": "merchant_proposal",
-            "capabilities": [
-                "merchant.inventory.read",
-                "merchant.offer.propose",
-            ],
-            "selected_product_ids": [141, 158],
-            "candidate_limit": 5,
-        }
+@pytest.mark.parametrize("write", [False, True])
+@pytest.mark.parametrize("marker", ["Chuyển mức niêm yết", "Chuyển niêm yết"])
+async def test_required_shopper_unauthorized_merchant_plan_clarifies(
+    write: bool,
+    marker: str,
+) -> None:
+    message = (
+        "“Economix - Các Nền Kinh Tế Vận Hành (Và Không Vận Hành) Thế Nào Và "
+        "Tại Sao?” và “Tiểu Sử Steve Jobs (Tái Bản 2020)” đang xuất hiện trong "
+        f"danh mục. {marker} của “Economix - Các Nền Kinh Tế Vận Hành "
+        "(Và Không Vận Hành) Thế Nào Và Tại Sao?” về 109.000 đồng."
     )
+    runtime = _ChoiceRuntime(error=AssertionError("model must not run"))
     with provider_budget_scope(_budget_context()):
         planned = await BoundedV2Planner(
             model_runtime=runtime,
@@ -529,11 +533,11 @@ async def test_required_shopper_unauthorized_merchant_plan_clarifies() -> None:
             _context(
                 mode=ConversationMode.SHOPPER,
                 resolved_product_ids=(141, 158),
-                write=True,
+                write=write,
             ),
         )
 
-    assert runtime.calls == 1
+    assert runtime.calls == 0
     assert planned.clarification_code == "action_mode_mismatch"
     assert planned.desired_capabilities == ()
     assert planned.initial_operations == ()
@@ -788,6 +792,85 @@ async def test_embedded_single_product_price_mutation_is_a_proposal() -> None:
         "merchant.inventory.read",
     )
     assert planned.initial_operations[0].parameters == {"product_ids": [7]}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("marker", ["Chuyển mức niêm yết", "Chuyển niêm yết"])
+@pytest.mark.parametrize("quoted_price_title", [False, True])
+async def test_listed_price_alias_proposes_only_for_resolved_merchant_target(
+    marker: str,
+    quoted_price_title: bool,
+) -> None:
+    message = (
+        "“Economix” và “Tiểu Sử Steve Jobs” đang xuất hiện trong danh mục. "
+        f"{marker} của “Economix” về 109.000 đồng."
+    )
+    if quoted_price_title:
+        message = "“Chuyển mức niêm yết về 1 đồng.” " + message
+    context = _context(
+        mode=ConversationMode.MERCHANT,
+        resolved_product_ids=(141, 158),
+        write=True,
+    ).model_copy(
+        update={
+            "merchant_target": ResolvedMerchantTarget(
+                product_id=141,
+                offer_id="offer_product_141",
+                expected_version=1,
+            )
+        }
+    )
+    planned = await BoundedV2Planner(runtime_mode="off").plan(message, context)
+
+    assert planned.clarification_code is None
+    assert planned.proposal is not None
+    assert planned.proposal.kind == "merchant_price"
+    assert planned.proposal.product_id == 141
+    assert planned.proposal.new_price_vnd == 109_000
+    assert planned.proposal.quantity_delta is None
+    assert planned.desired_capabilities == (
+        "merchant.inventory.read",
+        "merchant.offer.propose",
+    )
+    assert tuple(op.capability for op in planned.initial_operations) == (
+        "merchant.inventory.read",
+    )
+    assert planned.initial_operations[0].parameters == {"product_ids": [141, 158]}
+    assert context_constraints_from_message(message) == ()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", [ConversationMode.SHOPPER, ConversationMode.MERCHANT])
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Cho biết giá niêm yết hiện tại của sản phẩm đang ở 109.000 đồng.",
+        "Tìm sách “Niêm yết giá: Nghệ thuật đổi mới”.",
+        "Tìm sách “Chuyển mức niêm yết về 109.000 đồng.”.",
+        "Giá niêm yết của “Chuyển mức niêm yết về 109.000 đồng.” là bao nhiêu?",
+    ],
+)
+async def test_listed_price_inquiry_and_quoted_title_remain_reads(
+    message: str,
+    mode: ConversationMode,
+) -> None:
+    planned = await BoundedV2Planner(runtime_mode="off").plan(
+        message,
+        _context(
+            mode=mode,
+            resolved_product_ids=(141,),
+            write=True,
+        ),
+    )
+
+    assert planned.clarification_code is None
+    assert planned.proposal is None
+    assert planned.initial_operations
+    if "Chuyển mức niêm yết" in message:
+        assert any(
+            constraint.key == "catalog_query"
+            for constraint in context_constraints_from_message(message)
+        )
 
 
 @pytest.mark.asyncio
@@ -1655,7 +1738,7 @@ async def test_single_book_recommendation_does_not_require_two_candidates() -> N
 
 
 @pytest.mark.asyncio
-async def test_hybrid_rejects_invented_ids_and_required_keeps_failure_visible() -> None:
+async def test_invalid_required_shopper_plan_uses_only_server_resolved_ids() -> None:
     malicious = {
         "template_id": "shopper_compare",
         "capabilities": ["product.catalog.search", "product.compare"],
@@ -1681,8 +1764,13 @@ async def test_hybrid_rejects_invented_ids_and_required_keeps_failure_visible() 
             model_runtime=_ChoiceRuntime(malicious),
             runtime_mode="required",
         ).plan("So sánh hai sách", context)
-    assert required.clarification_code == "action_mode_mismatch"
-    assert required.initial_operations == ()
+    assert required.fallback_reason == "model_plan_not_authorized"
+    comparison = next(
+        operation
+        for operation in required.initial_operations
+        if operation.capability == "product.compare"
+    )
+    assert comparison.parameters["product_ids"] == [1, 2]
 
 
 @pytest.mark.asyncio
@@ -1950,6 +2038,42 @@ async def test_no_candidates_returns_clarification_without_drafting() -> None:
     assert computation.result.outcome == DialogueOutcome.NEEDS_CLARIFICATION
     assert producer.calls == 0
     assert executor.calls == [("product.catalog.search",)]
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_title_requests_an_edition_without_drafting() -> None:
+    class AmbiguousCatalogExecutor(_FakeOperationExecutor):
+        def _result(self, operation: RuntimeOperation) -> ExpertResult:
+            result = super()._result(operation)
+            return result.model_copy(
+                update={
+                    "error": SafeExecutionError(
+                        code="catalog_entity_ambiguous",
+                        message="Ambiguous fixture title.",
+                    )
+                }
+            )
+
+    executor = AmbiguousCatalogExecutor(fail_capability="product.catalog.search")
+    producer = _AnswerProducer()
+    supervisor = V2ReadSupervisor(
+        _unused_session_factory,
+        planner=BoundedV2Planner(runtime_mode="off"),
+        operation_executor=executor,  # type: ignore[arg-type]
+        answer_producer=producer,
+    )
+    computation = await supervisor.run_claimed(
+        conversation_id="conversation_ambiguous",
+        turn_id="turn_ambiguous",
+        lease_owner="worker_test",
+        message='So sánh "Sapiens" và "Steve Jobs"',
+        context=_context(),
+        deadline_monotonic=10**12,
+    )
+    assert computation.result.outcome == DialogueOutcome.NEEDS_CLARIFICATION
+    assert "nhiều ấn bản" in computation.result.answer
+    assert "năm tái bản" in computation.result.answer
+    assert producer.calls == 0
 
 
 @pytest.mark.asyncio

@@ -87,7 +87,8 @@ class V2TurnService:
                 current = asyncio.current_task()
                 if current is not None and current.cancelling():
                     raise
-                outcome = self.query(
+                outcome = await asyncio.to_thread(
+                    self.query,
                     turn_id,
                     context.access,
                     provider_budget=provider_budget,
@@ -139,10 +140,10 @@ class V2TurnService:
     ) -> DurableTurnOutcome:
         """Persist cancellation first, then stop this process's claimed task."""
 
-        with self.session_factory() as session:
-            turn = V2Repository(session).cancel_turn(_authorization(access), turn_id)
-            status = TurnStatus(str(turn.execution_state))
-        outcome = self.query(turn_id, access, provider_budget=provider_budget)
+        status = await asyncio.to_thread(self._cancel_turn, turn_id, access)
+        outcome = await asyncio.to_thread(
+            self.query, turn_id, access, provider_budget=provider_budget
+        )
         if status is TurnStatus.CANCELLED:
             active = await self._active_run(turn_id)
             if active is not None:
@@ -157,6 +158,11 @@ class V2TurnService:
                 )
             )
         return outcome
+
+    def _cancel_turn(self, turn_id: str, access: ResourceAuthorization) -> TurnStatus:
+        with self.session_factory() as session:
+            turn = V2Repository(session).cancel_turn(_authorization(access), turn_id)
+            return TurnStatus(str(turn.execution_state))
 
     async def _active_run(self, turn_id: str) -> _ActiveRun | None:
         async with self._active_lock:

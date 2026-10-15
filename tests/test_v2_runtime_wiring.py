@@ -95,6 +95,7 @@ def _snapshot() -> PublishedKnowledgeSnapshot:
 def _injected_factory(
     *,
     session_factory_builder: Any | None = None,
+    catalog_version_id: str | None = None,
 ) -> tuple[V2RuntimeFactory, _KnowledgeStore, list[str]]:
     snapshot = _snapshot()
     store = _KnowledgeStore(snapshot)
@@ -114,6 +115,7 @@ def _injected_factory(
 
     factory = V2RuntimeFactory(
         _settings(
+            v2_catalog_version_id=catalog_version_id,
             v2_corpus_version_id=CORPUS_ID,
             v2_index_manifest_id=INDEX_ID,
             v2_budget_account_id="runtime-budget",
@@ -233,6 +235,52 @@ def test_injected_dependencies_build_one_pinned_service_graph() -> None:
     assert first.access.binding.store_id == "demo"
     assert first.model_snapshot.planning_model == "gpt-5.4-mini"
     assert first.model_snapshot.embedding_model == "hashed_token_cosine_v1"
+
+
+def test_optional_catalog_pin_matches_before_building_services() -> None:
+    factory, store, catalog_calls = _injected_factory(
+        catalog_version_id="catalog_runtime_v1"
+    )
+    resolved = factory.resolve_for_request(
+        AuthorizationContext(
+            tenant_id="tenant_catalog",
+            principal_id="catalog-owner",
+            scopes=frozenset({"ecommerce.read"}),
+        ),
+        mode=ConversationMode.SHOPPER,
+    )
+    assert resolved.versions.catalog_version_id == "catalog_runtime_v1"
+    assert catalog_calls == ["catalog"]
+    assert store.resolve_calls == [(CORPUS_ID, INDEX_ID)]
+
+
+def test_catalog_pin_mismatch_fails_before_knowledge_or_tools_resolve() -> None:
+    factory, store, catalog_calls = _injected_factory(
+        catalog_version_id="catalog_other_v1"
+    )
+    with pytest.raises(V2RuntimeConfigurationError) as error:
+        factory.resolve_for_request(
+            AuthorizationContext(
+                tenant_id="tenant_catalog",
+                principal_id="catalog-owner",
+                scopes=frozenset({"ecommerce.read"}),
+            ),
+            mode=ConversationMode.SHOPPER,
+        )
+    assert error.value.code == "v2_catalog_snapshot_mismatch"
+    assert not factory.initialized
+    assert catalog_calls == ["catalog"]
+    assert store.resolve_calls == []
+
+
+def test_catalog_pin_validates_environment_identifier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("V2_CATALOG_VERSION_ID", "catalog_runtime_v1")
+    assert _settings().v2_catalog_version_id == "catalog_runtime_v1"
+    monkeypatch.setenv("V2_CATALOG_VERSION_ID", "../invalid pin")
+    with pytest.raises(ValidationError):
+        _settings()
 
 
 def test_public_input_cannot_override_server_authority_or_snapshots() -> None:

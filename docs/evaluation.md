@@ -2,7 +2,16 @@
 
 ## 1. Câu hỏi nghiên cứu và giới hạn
 
-Evaluation hiện tại kiểm tra:
+**Câu hỏi chính hiện tại (đang là draft):** trên cùng task, snapshot, nguồn,
+model và ngân sách, `Adaptive MA + RAG` của `app/v2` có tăng tỷ lệ câu trả lời
+vừa đúng vừa được nguồn hỗ trợ so với `Single-Agent + RAG` hay không? Đóng góp
+được kiểm tra là gói điều phối adaptive có giới hạn; không tách riêng và tuyên
+bố đã chứng minh từng specialist hoặc từng stage.
+
+Các đối chiếu phụ là `Fixed MA + RAG` so với SA, `Adaptive MA + RAG` so với
+Fixed MA để ablate gói adaptive planning/continuation, và Adaptive MA có/không
+RAG. Câu hỏi dưới đây là lịch sử của evaluation cũ; chúng không được xem như
+các giả thuyết đã được P8 kiểm định:
 
 1. Bốn specialist book agents có cải thiện frozen task rubric so với trợ lý
    product-only trên cùng case/repetition không?
@@ -23,7 +32,7 @@ Repository có ba lane cần giữ tách biệt:
 | --- | --- | --- |
 | v1 scripted/reference | Compatibility regression trên catalog/review snapshot | Đã có evidence lịch sử |
 | v2 paired | Historical deterministic/model-assisted comparison với `tiki_books_vi_28_v1` | Đã có protocol/capture lịch sử; không dùng làm P7/P8 result |
-| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7 v18 is frozen with 3 repeats. P8 v23 completed 720/720 SUT cells, calibration and blind judging; report and paired metrics are published locally. See §8 and §9. |
+| v3 Package 7/8 | Frozen corpus/evaluation split, pilot và held-out benchmark | P7/P8 r7 đạt 36/36 và 720/720 trên `app/v2`, nhưng chỉ là development trace; chưa có judge/operate. Các P8 judge runs cũ là historical. Xem §12.3–12.5. |
 
 ## 2. Frozen inputs và provenance
 
@@ -183,7 +192,106 @@ wiring generic lịch sử, không được dùng cho current Tiki Books claim. 
 `experiment.live-pilot.v2.json` chỉ là cấu hình có thể tái chạy, không phải kết
 quả.
 
-## 8. Package 7 historical protocol và successor pilot
+## 8. Source-current successor và kết quả review lịch sử
+
+### Successor trên source đã remediation — 2026-10-05
+
+Source `74149c8bc395852772e8b9ef92853e0b914ed816` hoàn tất P7 v15 `36/36` và P8
+v16 `720/720`. Validation độc lập đọc lại native publication và xác nhận report
+SHA-256 `97cf42490819abdb55f61173d178701760b826f26ace7f74e4a3cc3a9b042df9`;
+artifact local là
+[`current-publication-validation.v8.json`](../output/review-remediation/current-publication-validation.v8.json).
+P8 gồm 60 conversations, bốn variants × 180 cells, ba repeats và 27 work groups;
+752 lượt chấm tự động (32 calibration, 720 held-out) hoàn tất, 0 lỗi và 0 job mơ hồ.
+720 cells là coverage của execution, không phải 720 mẫu độc lập hay 720 câu đúng.
+
+| Variant | Task completion / 180 | Mean latency / cell | SUT cost / 1.000 cells |
+| --- | ---: | ---: | ---: |
+| SA + RAG | 42 (23,3%) | 3657 ms | `$2,00` |
+| Fixed MA + RAG | 41 (22,8%) | 2346 ms | `$1,21` |
+| Adaptive MA + RAG | 41 (22,8%) | 5053 ms | `$2,89` |
+| Adaptive MA, no RAG | 9 (5,0%) | 1715 ms | `$1,09` |
+
+Task completion theo category, vẫn là kết quả của automated judge:
+
+| Category | SA + RAG | Fixed MA + RAG | Adaptive MA + RAG | Adaptive MA, no RAG |
+| --- | ---: | ---: | ---: | ---: |
+| Multi-constraint | 0/36 | 0/36 | 0/36 | 0/36 |
+| Knowledge/source | 33/36 | 32/36 | 33/36 | 0/36 |
+| Multi-expert compare/recommendation | 0/36 | 0/36 | 0/36 | 0/36 |
+| Multi-turn memory | 0/24 | 0/24 | 0/24 | 0/24 |
+| Insufficient/conflict/injection | 9/24 | 9/24 | 8/24 | 9/24 |
+| Shopping/merchant | 0/24 | 0/24 | 0/24 | 0/24 |
+
+Paired estimates use a 10.000-resample percentile bootstrap over 27 work groups;
+cell-weighted rates and work-group-weighted effects therefore differ:
+
+- Adaptive MA + RAG vs SA + RAG: `−0,31` percentage points, 95% CI
+  `−0,93` to `0,00`. The run shows no task-completion gain for MA; it does not
+  establish equivalence on other quality measures.
+- Adaptive MA + RAG vs adaptive MA without RAG: `+15,43` points, 95% CI
+  `+7,41` to `+24,69`.
+
+P8 accounting records `$4.64562124` known cost plus `$0.052923` unresolved
+reservation estimate, for `$4.69854424` effective report cost. This is ledger
+accounting, not provider invoice verification. Document recall is unmeasured in
+all 720 cells. Human-author and human-judge IDs are empty; there is no human
+adjudication. Held-out cases were reused during engineering, so this is not an
+untouched challenge set. The paired confidence intervals do not remove these
+limitations.
+
+The source gate separately reports 610 unique test cases across 32 modules, with
+Ruff, format and mypy passing. This is source evidence, not live answer-quality
+or deployment evidence. The current strict HTTP/JSON/SSE/cancel demo plan remains
+`prepared_only_not_executed`; do not present it as a passed rehearsal.
+
+### Review 03/10/2026: historical P8 v23 results
+
+P7 v18/P8 v23 below are **historical evidence** and do not validate source
+remediation. Their artifacts and old scores are retained for provenance. The
+current successor above must be used for source-current claims.
+
+Đã đối chiếu `judgments.json`, `unblinding_key.json`, `preparation.json` và
+`analysis.json` của v23. **720/720 là receipt coverage, không phải accuracy.**
+Scorer lịch sử có lỗi fact matching và citation representation; các điểm dưới
+đây mô tả artifact cũ, chưa là semantic correctness đã được xác nhận.
+
+| Variant | Task successes / cells | Cell rate | Work-cluster mean |
+| --- | ---: | ---: | ---: |
+| `sa_shared_tools_rag` | 9/180 | 5,00% | 3,0864% |
+| `ma_fixed_rag` | 9/180 | 5,00% | 3,0864% |
+| `ma_adaptive_rag` | 9/180 | 5,00% | 3,0864% |
+| `ma_adaptive_no_rag` | 12/180 | 6,67% | 4,9383% |
+
+| Category | SA RAG | Fixed MA RAG | Adaptive MA RAG | Adaptive MA no-RAG |
+| --- | ---: | ---: | ---: | ---: |
+| Multi-constraint | 0/36 | 0/36 | 0/36 | 0/36 |
+| Knowledge/source | 0/36 | 0/36 | 0/36 | 0/36 |
+| Multi-expert compare/recommendation | 0/36 | 0/36 | 0/36 | 0/36 |
+| Multi-turn memory | 0/24 | 0/24 | 0/24 | 0/24 |
+| Insufficient/conflict/injection | 9/24 | 9/24 | 9/24 | 9/24 |
+| Shopping/merchant | 0/24 | 0/24 | 0/24 | 3/24 |
+
+Cell means và work-cluster means dùng weighting khác nhau. Có 60 conversations,
+27 work groups, ba repeats; 720 cells không là 720 independent samples.
+Adaptive RAG so SA có task delta 0 với 95% CI [0; 0], latency delta
+2.509,97 ms với CI [1.301,33; 3.822,61]. Chưa chứng minh quality gain của MA/RAG;
+CI task delta 0 không chứng minh tương đương về mọi khía cạnh chất lượng.
+
+Judges là automated model judges; human author/judge IDs rỗng. Calibration
+32 measurements từ tám pilot conversations × bốn variants không là 32 tác vụ
+độc lập hay human validity. Held-out đã được dùng trong successor/debug, cần
+công bố engineering reuse và một challenge set mới khóa sau source freeze.
+Human stratified audit và second-judge sensitivity là các evidence gates riêng,
+không được tự gắn nhãn human cho kết quả tự động.
+
+V23 có 345 successful knowledge calls trên 267 observations nhưng knowledge
+chưa đi vào final evidence/citations của các observation đó. Calls/enabled flag
+không chứng minh RAG contribution; phải trace persisted tool results, retrieval
+và final grounding. `document_recall_authority=resolved_turn_result_citations_only`
+trong report cũ chỉ đo citation proxy, chưa là retrieved-document recall.
+
+## 9. Package 7 historical protocol và successor pilot
 
 **Cập nhật sau P02:** xem [handoff hiện hành](thanh-v2/p02-successor-handoff.md).
 Protocol `c8a4…` và v4 artifacts bên dưới là lịch sử trước sửa P02. P7 v5
@@ -191,9 +299,9 @@ Protocol `c8a4…` và v4 artifacts bên dưới là lịch sử trước sửa 
 thấy JSON schema cho phép cả chín evaluation metric trong khi semantic validator
 chỉ nhận sáu. Commit `d030f9a` giới hạn metric enum; protocol
 `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c` gắn với
-P7 v10 và là lịch sử. P7 v18 bên dưới bind protocol hiện hành sau các thay đổi
+P7 v10 và là lịch sử. P7 v18 bên dưới bind protocol tại ngày 02/10/2026 sau các thay đổi
 retry và giới hạn expert ID.
-Current P7 successor `run_p7_successor_v18` completed 36/36 cells with zero
+Historical P7 successor `run_p7_successor_v18` completed 36/36 cells with zero
 failures and froze 3 repeats. Protocol SHA-256 is
 `2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23`; its
 repeat-decision SHA-256 is
@@ -201,7 +309,7 @@ repeat-decision SHA-256 is
 cost is `$0.05163060`. P7 v9/v10 and the old
 `aaa7026…`/`0b218d30…` preflights are historical.
 
-Current P8 successor `run_p8_successor_v23` completed all 720/720 SUT cells,
+Historical P8 successor `run_p8_successor_v23` completed all 720/720 SUT cells,
 exact evidence resolution, 32/32 calibration records, judge freeze, 720 blind
 judgments, result join, report and paired metrics. Schedule SHA-256 is
 `f46949cdae870718dd8d2411a343522842eb34c466554e5350ae960ea7e8892e`; calibration
@@ -260,9 +368,17 @@ P7/P8 phải ghi nhận kết quả thực tế theo gold contract; không suy d
 hay fabricate citation để đạt một trạng thái gold dự kiến.
 
 Semantic scoring được khai báo là automated model judge (`model_judge`) theo
-judge configuration/schema đã hash; không có human semantic judge. Deterministic
-metrics (citation precision/coverage và document recall) vẫn phải lấy từ
-receipt/evidence contracts. Calibration phải được freeze trước held-out scoring.
+judge configuration/schema đã hash; không có human semantic judge. Successor
+citation precision đối chiếu citation với required-fact bindings. Citation
+coverage dùng semantic verdict của từng receipt claim với chính citation của
+claim; chỉ bước tổng hợp là deterministic, không suy ra support từ receipt
+alone. Không có claim thì coverage là `null`.
+
+Successor `document_recall` giữ `null` / `not_measured`: chưa có independent
+exhaustive document-relevance gold và toàn bộ retrieved-document set trong
+receipt. Required gold source IDs và final citations không thay thế hai đầu
+vào này. Calibration phải được freeze trước held-out scoring. V18/v23 giữ
+nguyên metric semantics lịch sử; xem caveat citation proxy ở §8.
 
 ## 9. Package 8 additive held-out driver
 
@@ -407,7 +523,7 @@ run. At the time, the source protocol was
 `36ac8fec094b201345d74a324aa569057cb1dae5c506cd78763ee327ad5f983c`. Responses
 API payloads were approved. Embeddings API authorization was then pending; the
 user approved it on 2026-10-01. That earlier continuation snapshot named P7 v10
-and P8 v16; it is superseded by the current P7 v18/P8 v23 results in §8.
+and P8 v16; it was superseded by P7 v18/P8 v23 on 02/10/2026, now historical in §8.
 
 ### Diagnostic-only replay attempts — 2026-09-23
 
@@ -446,11 +562,11 @@ diagnostic artifacts are local-only and excluded from Git. The successful
 diagnostic receipts do not repair v9's terminal failures or qualify as official
 P8 evidence because the schedule uses pilot aliases. P7 v9 and P8 v12 are
 historical. The v10/v16 status described in the earlier ledger snapshot is also
-historical; P7 v18 and P8 v23 are the current official successors. No benchmark
+historical; P7 v18 and P8 v23 were the official successors on 02/10/2026. No benchmark
 conclusion is drawn from the diagnostic runs.
 
-The checkout `.env` still points to SQLite; successor runs use the isolated
-PostgreSQL ledger. The final `codex-p7-p8-ledger` snapshot is `$41.57320211`
+The checkout `.env` points to SQLite in that snapshot; successor runs use the isolated
+PostgreSQL ledger. The 02/10/2026 `codex-p7-p8-ledger` snapshot was `$41.57320211`
 known, `$0.47555784` unknown, `$0` reserved/active, and `$57.95124005` remaining
 under the `$100` cap. Current SQL scopes account for `$0.40455225` unknown; the
 remaining `$0.07100559` is account-level carry-forward without original scope
@@ -467,10 +583,11 @@ The earlier 2026-10-01 and 2026-10-02 02:07 UTC snapshots remain historical.
 Credentials are local-only and excluded from Git.
 
 P7 v9 is a historical partial at `13/36`; P7 v10 and P8 v14-v16 are superseded
-successors. Current P7 v18 is frozen and P8 v23 completed calibration, blind
+successors. Historical P7 v18 froze repeats and P8 v23 completed calibration, blind
 judging, report publication and paired metrics.
 
-Các benchmark gates Package 8 đã hoàn tất với P8 v23:
+Các benchmark gates Package 8 đã hoàn tất với P8 v23 tại ngày 02/10/2026;
+đây không phải evidence trên source đã sửa sau review:
 
 1. Calibrated automated judge và frozen calibration/configuration bindings.
 2. Exact immutable evidence resolver mở lại đúng source/version/chunk/span từ
@@ -536,3 +653,262 @@ sử với source checkout hiện tại.
    và estimated/billed cost tách biệt.
 5. Thêm load/soak, chaos, drift, fairness, PII/security evaluation trước mọi
    production hoặc marketplace claim.
+
+## 12. Trạng thái Đánh giá Thực nghiệm Hệ thống Lõi
+
+Để đảm bảo tính trung thực khoa học và khả năng kiểm toán của Khóa luận tốt nghiệp (ĐACNTT), các làn đánh giá (evaluation lanes) trong repository được phân định rõ ràng như sau:
+
+### 12.1. Làn Đánh Giá Toàn Trình: Paired v2 Benchmark (Đã Kiểm Toán tại commit `7ae2e18`)
+Đây là làn benchmark toàn trình duy nhất có artifact và manifest được ghi nhận chính thức trên source code hiện tại:
+* **Bundle Manifest:** [`output/evaluation-v2/run_books_deterministic_v2/manifest.json`](file:///C:/Users/Thanh/Desktop/DACNTT/multi-agent-system/output/evaluation-v2/run_books_deterministic_v2/manifest.json)
+* **Quy mô:** 44 cases sách × 3 repeats = 132 cặp quan sát (334 observations tổng cộng).
+* **Phạm vi thực thi:** Toàn bộ chu trình từ Router $\rightarrow$ Planner $\rightarrow$ SQL Tools (Database / Catalog / Review / Ranking) $\rightarrow$ Structured Answer Assertions.
+* **Kết quả đo đạc:**
+  - **`task_success`**: Baseline (Single-Agent Catalog): **56.82%** $\rightarrow$ Candidate (Multi-Agent System): **77.27%**
+  - **Mức tăng trưởng:** $\Delta = \mathbf{+20.45\%}$ (Khoảng tin cậy 95% Bootstrap: $[+9.1\%, +34.1\%]$, $p = 0.0039$, **9 thắng, 35 hòa, 0 thua**).
+  - **`answer_assertion_accuracy`**: Baseline: **79.28%** $\rightarrow$ Multi-Agent: **84.17%** ($\Delta = \mathbf{+4.89\%}$, **3 thắng, 41 hòa, 0 thua**).
+
+> [!NOTE]
+> Kết quả Paired-v2 là bằng chứng thực nghiệm đã được kiểm toán đầu tiên chứng minh kiến trúc Multi-Agent vượt trội Single-Agent trên môi trường đánh giá cục bộ.
+
+### 12.2. Làn Package 7 / Package 8: Kiểm Tra Tính Hợp Lệ Của Kế Hoạch (Plan Admissibility)
+Lớp logic lập kế hoạch của hệ thống lõi tại [`app/v2/planning.py`](file:///C:/Users/Thanh/Desktop/DACNTT/multi-agent-system/app/v2/planning.py) đã được nâng cấp (hỗ trợ composite planning, chuẩn hóa chuỗi tiếng Việt, phân giải anaphora, bắt lỗi mâu thuẫn khoảng giá và phòng thủ prompt injection).
+
+Script kiểm tra tính hợp lệ của kế hoạch:
+```powershell
+python scripts/run_full_p7_p8_benchmark.py
+```
+* **Phạm vi kiểm tra:** Đo lường **Plan Admissibility** — kiểm tra xem `desired_capabilities` sinh ra từ Planner có thỏa mãn hoàn toàn `action_capability_blueprint` (required, allowed, forbidden) của 80 gold cases (20 Dev + 60 Held-out) và 756 ô lịch trình (P7: 36 ô, P8: 720 ô) hay không.
+* **Kết quả Plan Admissibility:** Đạt **100.0% độ hợp lệ kế hoạch** trên cả 3 biến thể có RAG, giải quyết triệt để 4 nhóm lỗi từng đạt 0.0% plan validity trong lịch sử (`multi_constraint`, `multi_expert_compare_recommendation`, `multi_turn_memory`, `shopping_merchant`).
+* **Giới hạn học thuật:** Đây là phép đo kiểm tra tính đúng đắn của pha Lập Kế Hoạch (Planning Stage), **chưa phải là phép đo Task Completion toàn trình có Model Judge** của Package 8, do chưa thực thi trọn vẹn specialist execution, live RAG retrieval và automated LLM judging.
+
+### 12.3. Kết Quả Lịch Sử P8 `run_p8_live_v3` (720/720, 2026-10-10)
+
+> **Trạng thái diễn giải cập nhật ngày 12/10/2026:** Đây là kết quả lịch sử của
+> `run_p8_live_v3`. Sau run đó, các trace của cùng bộ ca đã được dùng để sửa
+> `app/v2/answers.py` và `app/v2/planning.py`; vì vậy số liệu không phải xác nhận
+> độc lập cho source hiện tại. Git SHA của SUT ở run lịch sử không được ghi lại.
+> Giữ các số judge bên dưới làm chẩn đoán của run cũ, không dùng để khẳng định
+> source sau remediation tốt hơn hay kém hơn.
+
+Thực nghiệm toàn trình **Package 8 (P8 Held-out Live v3)** chạy trên 60 ca thuộc split held-out tại thời điểm đó và được tự động chấm bằng **Durable Model Judge V3** với `gpt-5.4-mini`, ghi vào sổ cái PostgreSQL (`codex-p7-p8-ledger`). Sau đó các trace của cùng split được dùng để sửa SUT; trạng thái độc lập đã bị rút lại cho mọi kết luận về source hiện tại.
+
+* **Mã định danh thực thi (Run ID):** `run_p8_live_v3`
+* **Quy mô ma trận kiểm thử:** $60 \text{ cases} \times 4 \text{ variants} \times 3 \text{ repeats} = 720$ ô thực nghiệm toàn trình.
+* **Tổng số lượt tương tác mô hình (Total Provider Attempts):** 3,530 lượt (2,770 lượt sinh tác tử SUT + 760 lượt thẩm định Model Judge).
+* **Độ phủ thực thi chấp nhận kiểm định (Accepted Observations):** **720 / 720 ô (100.0% execution coverage)** — Toàn bộ 720 ô quan sát đều được thu thập đầy đủ vào sổ cái, không có ô nào bị thiếu, hủy bỏ hoặc lỗi mồ côi (lưu ý: đây là độ phủ thu thập dữ liệu thực nghiệm, không phải tỷ lệ hoàn thành tác vụ hay độ chính xác).
+* **Chi phí thực thi thực tế (Total Effective Cost):** 9.534 USD.
+* **Gói xuất bản kết quả (Publication Artifacts):** [`output/evaluation-v3/heldout-live-v3/p8-publication/p8-report/`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/output/evaluation-v3/heldout-live-v3/p8-publication/p8-report)
+  - `report_sha256`: `15a7452b5965e54a80ba47f2b4ecf2eb66b98c20f6ca97fc0cdaa445a523230f`
+  - `analysis_sha256`: `97210098587367e1f5661c92b230dcad1be022b2ffad3284b5a29b1ab5bf0fef`
+  - `preparation_sha256`: `9e5278559debb684e4b41697221621cf7e3f429ff1fa2547d369bd17b1593ebd`
+
+#### 1. Bảng Chỉ Số Thực Nghiệm Tổng Thể Theo Biến Thể ($N = 180$ ô mỗi biến thể)
+
+| Biến Thể Hệ Thống (Variant) | Task Completion | Claim Support | Valid Plan | Authorization | Mean Repeat StdDev |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **`ma_adaptive_no_rag`** (Baseline No-RAG) | 3.89% (7/180) | 8.89% (16/180) | 23.33% (42/180) | 99.44% (179/180) | 0.008 |
+| **`ma_fixed_rag`** (Multi-Agent Fixed RAG) | 33.89% (61/180) | 38.89% (70/180) | **90.00%** (162/180) | **100.00%** (180/180) | 0.094 |
+| **`ma_adaptive_rag`** (Multi-Agent Adaptive RAG) | 35.56% (64/180) | **42.78%** (77/180) | 75.56% (136/180) | 86.67% (156/180) | 0.110 |
+| **`sa_shared_tools_rag`** (Single-Agent RAG Baseline) | **36.11%** (65/180) | 41.67% (75/180) | 75.00% (135/180) | 87.78% (158/180) | 0.110 |
+
+#### 2. Đối Chiếu Cặp Khoa Học Giữa Các Biến Thể Lõi (Paired Comparative Analysis)
+
+Dựa trên 180 cặp quan sát trực tiếp đối chiếu qua bootstrap clustered analysis:
+
+1. **Hiệu quả sống còn của Retrieval-Augmented Generation (RAG vs. No-RAG):**
+   - So với biến thể `ma_adaptive_no_rag`, việc kích hoạt cơ chế RAG giúp **Task Completion tăng vọt từ 3.89% lên 35.56%** ($\Delta = +31.67\%$, $p < 0.001$).
+   - Tỷ lệ có căn cứ trích dẫn (**Claim Support**) tăng từ 8.89% lên 42.78% ($\Delta = +33.89\%$).
+   - Độ hợp lệ kế hoạch (**Valid Plan**) tăng từ 23.33% lên 75.56% ($\Delta = +52.23\%$).
+   - *Kết luận khoa học:* Trong miền nghiệp vụ tư vấn sách đa chuyên gia, mô hình ngôn ngữ không thể giải quyết nhiệm vụ nếu không có tri thức tăng cường từ kho dữ liệu; thiếu RAG dẫn đến sụp đổ gần như toàn bộ (failure rate 96.1%).
+
+2. **Adaptive RAG so với Fixed RAG (`ma_adaptive_rag` vs. `ma_fixed_rag`):**
+   - **Task Completion:** `ma_adaptive_rag` đạt 35.56% so với 33.89% của `ma_fixed_rag` ($\Delta = +1.23\%$, 95% CI: $[-1.65\%, +4.32\%]$, 5 thắng, 18 hòa, 4 thua).
+   - **Chất lượng Grounding và Bằng chứng Trích dẫn:** `ma_adaptive_rag` vượt trội rõ rệt:
+     - **Claim Support:** Tăng trưởng có ý nghĩa thống kê với $\Delta = \mathbf{+4.12\%}$ (95% CI: $[+0.51\%, +8.13\%]$, **8 thắng, 16 hòa, 3 thua**).
+     - **Citation Precision:** Vượt trội hơn với $\Delta = \mathbf{+9.34\%}$ (95% CI: $[+3.05\%, +16.80\%]$, **10 thắng, 13 hòa, 4 thua**).
+     - **Answerability Abstention & Useful Continuation:** Tăng $\Delta = \mathbf{+18.72\%}$ (95% CI: $[+7.41\%, +31.48\%]$, **8 thắng, 18 hòa, 1 thua**). Cơ chế thích ứng biết chủ động nhận diện ranh giới thông tin để bổ sung dẫn giải hữu ích thay vì từ chối cứng nhắc.
+   - **Đánh đổi (Trade-off):** `ma_fixed_rag` duy trì 100% Authorization và 90% Valid Plan nhờ luồng tĩnh nghiêm ngặt, trong khi `ma_adaptive_rag` có độ trễ cao hơn trung bình ~3.8 giây do các bước dynamic re-routing và adaptive query expansion.
+
+3. **Multi-Agent Adaptive RAG so với Single-Agent Shared Tools (`ma_adaptive_rag` vs. `sa_shared_tools_rag`):**
+   - **Task Completion:** Tương đương nhau (35.56% vs. 36.11%, $\Delta = -0.55\%$, 95% CI: $[-4.12\%, +3.70\%]$, 3 thắng, 20 hòa, 4 thua).
+   - **Chất lượng căn cứ:** Multi-Agent nhỉnh hơn về Claim Support (42.78% vs. 41.67%) và Citation Precision (+0.71%).
+   - **Chi phí & Độ trễ:** Single-Agent tiết kiệm hơn (chi phí trung bình thấp hơn 0.0035 USD/cell, độ trễ nhanh hơn 4.0 giây) do không phải chịu chi phí trao đổi và tổng hợp hội thoại liên tác tử (inter-agent synthesis overhead).
+
+#### 3. Phân Tích Độ Bất Định và Tính Nhất Quán Lặp Lại (Repeat Uncertainty)
+
+Đánh giá trên 3 lần lặp lại độc lập cho từng trường hợp trong số 60 held-out cases:
+- `ma_fixed_rag`: Đạt **80.0% tỷ lệ đồng thuận tuyệt đối (Perfect Agreement: 48/60 cases)** giữa 3 lần chạy; độ lệch chuẩn trung bình chỉ $\sigma = 0.094$.
+- `ma_adaptive_rag`: Đạt **76.7% tỷ lệ đồng thuận tuyệt đối (46/60 cases)**; độ lệch chuẩn trung bình $\sigma = 0.110$.
+- `sa_shared_tools_rag`: Đạt **76.7% tỷ lệ đồng thuận tuyệt đối (46/60 cases)**; độ lệch chuẩn trung bình $\sigma = 0.110$.
+- Biên độ dao động ngẫu nhiên quanh mức $\sim 0.10$ phản ánh tính ổn định cao của pipeline, loại trừ khả năng kết quả đo đạc bị chi phối bởi tính ngẫu nhiên (temperature noise) của mô hình.
+
+#### 4. Phân Tích Nguyên Nhân Thất Bại (Failure Mode Breakdown)
+
+Trong số các trường hợp Task Completion bằng 0:
+- **Claim Support bằng 0:** Xuất hiện ở 103/116 ô task-completion thất bại của `ma_adaptive_rag` (88,8%), 92,4% ở `ma_fixed_rag` và 91,3% ở `sa_shared_tools_rag`. Đây là đồng xuất hiện trong điểm judge, chưa chứng minh nguyên nhân là retrieval thiếu dữ liệu. Trace `held_multi_constraint_02`, repetition 0 cho thấy catalog và knowledge calls đều thành công, citation chứa nguồn Hachette nêu tác giả/chủ đề, nhưng câu trả lời chỉ gọi đó là “work metadata note”; judge chấm task completion và claim support bằng 0. Ít nhất một nhóm lỗi vì vậy nằm ở khâu tổng hợp hoặc trả lời thiếu ý, không phải thiếu tài liệu truy xuất.
+- **Từ chối sai mục tiêu (Bad Abstention):** Xuất hiện ở 91.9% số ca thất bại của `ma_adaptive_no_rag`, 63.0% ở `ma_fixed_rag` nhưng giảm xuống chỉ còn 45.7% ở `ma_adaptive_rag`.
+- **Plan và authorization theo whitelist của từng case:** `ma_adaptive_rag` có 24/180 ô không đạt metric này (13,3%; bằng 20,7% trong 116 ô task-completion thất bại). Trong 23 ô, trace ghi `product.rank`, `review.compare`, `trust.compare` thay cho các capability bắt buộc `product.catalog.search` và `product.compare`; cùng mẫu này xuất hiện ở 22 ô `sa_shared_tools_rag`. Đây là dấu hiệu planner cho phép chọn template rộng hơn capability scope của case, không phải bằng chứng về lỗi phân quyền tài nguyên hay một lỗi riêng của MA.
+
+##### Ghi chú hậu kiểm trace — 2026-10-12
+
+Các trace của publication `run_p8_live_v3` đã được dùng để xác định remediation trong
+`app/v2/answers.py` và `app/v2/planning.py`. Do đó, bộ này không còn là held-out
+độc lập cho các thay đổi đó. Các kết quả P8 phía trên vẫn là số liệu lịch sử của
+run cũ; source sau remediation **chưa được đánh giá lại**. Cần khóa một challenge
+set mới chưa dùng trong phát triển và thẩm định mù trước khi đưa ra kết luận xác
+nhận. Artifact không ghi SUT Git SHA, nên source revision đã tạo run cũ vẫn
+**NOT VERIFIED**.
+
+#### 5. Ranh Giới Khoa Học & Định Hướng Đánh Giá Cốt Lõi
+
+> [!IMPORTANT]
+> **Ý NGHĨA THỰC CỦA CHỈ SỐ 720/720 Ô QUAN SÁT:**
+> - **720/720 là độ phủ thực thi (Execution Coverage / Observation Completeness):** Con số này xác nhận toàn bộ ma trận kiểm thử ($60 \text{ cases} \times 4 \text{ biến thể} \times 3 \text{ repeats} = 720$ ô) đã hoàn tất chạy và thu thập dữ liệu đầy đủ vào sổ cái PostgreSQL (`codex-p7-p8-ledger`), không có ô nào bị thiếu, hủy bỏ hoặc lỗi mồ côi.
+> - **720/720 KHÔNG PHẢI là độ chính xác hay tỷ lệ thành công tác vụ:** Con số này hoàn toàn không đồng nghĩa với việc 720 lượt đều thành công hay chứng minh Multi-Agent tốt hơn Single-Agent. Trên thực tế, Task Completion của các biến thể chỉ đạt trong khoảng **33% – 36%** (`ma_adaptive_rag`: 35.56%, `sa_shared_tools_rag`: 36.11%).
+
+##### Giả thuyết nghiên cứu hẹp cho phần cốt lõi (Adaptive RAG):
+1. **Dữ liệu ủng hộ cải thiện chất lượng căn cứ (Grounding) cục bộ:** So với Fixed RAG, cơ chế Adaptive RAG đem lại cải thiện có ý nghĩa thống kê về **Claim Support** ($\Delta = +4.12\%$, 95% CI: $[+0.51\%, +8.13\%]$), **Citation Precision** ($\Delta = +9.34\%$, 95% CI: $[+3.05\%, +16.80\%]$) và khả năng dẫn giải hữu ích (`useful_continuation` $\Delta = +18.72\%$).
+2. **Chưa có bằng chứng tăng Task Completion tổng thể:** Khi đối chiếu với Single-Agent baseline (`sa_shared_tools_rag`), `ma_adaptive_rag` đạt 35.56% so với 36.11% ($\Delta = -0.55\%$, 95% CI: $[-4.12\%, +3.70\%]$, 3 thắng, 20 hòa, 4 thua). Sự khác biệt này không có ý nghĩa thống kê; kiến trúc Multi-Agent chưa thể hiện ưu thế vượt trội về độ hoàn thành nhiệm vụ chung cuộc.
+3. **Đánh đổi vận hành & Rủi ro phân quyền:** Adaptive RAG làm tăng độ trễ trung bình ~3.8s – 4.0s và khiến tỷ lệ tuân thủ phân quyền (**Authorization**) giảm xuống **86.67%** (do cơ chế thích ứng tự động kích hoạt công cụ vượt blueprint cho phép trong 20.7% số ca thất bại, trong khi Fixed RAG đạt 100.00%).
+
+##### Nguyên tắc cho các đợt đánh giá tiếp theo:
+- **Dừng mở rộng benchmark thăm dò ad-hoc:** Không tiếp tục tạo các kịch bản benchmark thăm dò đơn lẻ.
+- **Khóa tiêu chí thẩm định trên runtime chính:** Mọi đợt đo đạc mới chỉ được tiến hành khi đã khóa phương pháp thẩm định trực tiếp trên runtime sản phẩm chuẩn ([`app/v2`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/app/v2)), kết hợp đối chiếu nguồn snapshot (source-grounding) và một phần thẩm định mù bởi con người (blind human audit) thay vì chỉ phụ thuộc vào automated LLM Judge.
+
+### 12.4. P7/P8 r3 sau sửa parser — 2026-10-12 (development regression)
+
+Run này bám đúng source commit `e99f186eb6662a99cd8397da1ea633473a6b3a54`.
+P7 hoàn tất `36/36`; P8 hoàn tất đủ `720/720` ô trên 60 ca × 4 nhánh × 3 lần
+lặp, không thiếu hay lỗi. Vì bộ held-out đã được xem khi remediation, đây là
+**development regression**, không phải tập xác nhận độc lập. Chưa có semantic
+judge, đánh giá người, khoảng tin cậy cho correctness, hoặc kết quả operate.
+
+#### Kết quả vận hành thô
+
+`answered` là outcome của ứng dụng ở lượt cuối, không đồng nghĩa câu trả lời đúng
+hoặc có nguồn hỗ trợ. Latency E2E mỗi ca là tổng `elapsed_seconds` qua các lượt;
+p50 là median, p95 là nearest-rank. Chi phí là known ledger cost, không phải hóa
+đơn provider.
+
+| Nhánh | `answered` / 180 | p50 / p95 (giây) | Known cost (USD) | Input + output tokens |
+| --- | ---: | ---: | ---: | ---: |
+| `sa_shared_tools_rag` | 120 | 11,484 / 25,562 | 1,28674557 | 908.330 |
+| `ma_fixed_rag` | 120 | 9,508 / 28,500 | 1,30889818 | 965.040 |
+| `ma_adaptive_rag` | 119 | 10,820 / 28,000 | 1,36081138 | 989.113 |
+| `ma_adaptive_no_rag` | 0 | 1,649 / 8,047 | 0,32210475 | 246.388 |
+
+Tổng P8 là `$4.27855988`, 3.108.871 input+output tokens, reservation chưa quyết
+toán `$0`. Ở lượt cuối, `answer_repair_not_grounded` xuất hiện 51/180 lần ở
+Adaptive RAG, 51/180 Fixed RAG, 57/180 Single-Agent RAG; `evidence_incomplete`
+xuất hiện 21/180 ở mỗi nhánh RAG và 140/180 ở No-RAG. Đây là cảnh báo pipeline,
+không thay thế chấm semantic.
+
+#### Lỗi được sửa và giới hạn kết luận
+
+Trace cho thấy parser entity queries trước đây tách liên từ `Và` viết hoa bên
+trong tên sách, làm truy vấn catalog trở nên mơ hồ. Regex trong
+`app/v2/planning.py` hiện chỉ tách `và`/`với` viết thường và vẫn tách các liên từ
+tiếng Anh không phân biệt hoa thường. Trên các ca `held_multi_expert_03`, `_04`,
+`_10`, `_11`, cả Fixed MA và SA + RAG đều `answered` 3/3 lần; Adaptive MA + RAG
+đạt 3/3 ở ba ca, 2/3 ở `_10`; No-RAG abstain 3/3 ở cả bốn ca. Đây xác nhận lỗi
+phân tích tên sách đã được xử lý trong các trace mục tiêu, không chứng minh chất
+lượng ngữ nghĩa hay lợi thế kiến trúc MA.
+
+Trace còn cho thấy giới hạn thiết kế benchmark: cấu hình Adaptive cho phép tối đa
+một continuation, nhưng **0/216** lượt người dùng Adaptive có revision kế hoạch
+sau lượt thực thi đầu. Vì vậy workload này chưa kiểm tra được giá trị của
+continuation; chỉ có thể đánh giá kế hoạch ban đầu. Qua toàn bộ 216 lượt mỗi
+nhánh, fallback `answer_repair_missing_required_knowledge` xuất hiện 49 lần ở
+Adaptive MA, 47 ở Fixed MA và 54 ở SA. Checkpoint không lưu văn bản draft/repair
+trung gian, nên trace hiện tại không phân biệt được model bỏ selector bằng chứng
+hay verifier bác một paraphrase. Cần lưu rejection code và candidate/claim ID
+đủ để chẩn đoán trong các đợt development tiếp theo; không suy ra các câu trả
+lời đó sai chỉ từ warning.
+
+Gói raw đầy đủ, manifest, hash và summary nằm tại
+[`evaluation/v3/results/p8-trace-20261012-r3`](../evaluation/v3/results/p8-trace-20261012-r3/README.md).
+Gói này không chứa `.env` hoặc credential; cần dựng lại PostgreSQL/vector index
+từ source snapshot đã pin để chạy lại live. Bộ reference 32 ca trong gói chỉ là
+development calibration. LLM judge/operate chưa chạy; kết quả r3 không được dùng
+như xác nhận độc lập.
+
+### 12.5. P7/P8 r7 — 2026-10-13 (development trace, chưa chấm)
+
+Run này gắn với source commit
+`4238394ee932dbf79a53aaa1a565c5203f857263`; protocol SHA-256
+`342906ef4713edaef23fc0b829780ff7d70a3bc1f64fa58cd36cefe28f999a2a`. P7 có
+`36/36`; P8 có `720/720` trên 60 ca × 4 nhánh × 3 repeats, không thiếu/lỗi ô.
+Held-out đã được dùng trong remediation, nên đây là **development regression**.
+Chưa có semantic judge, người chấm, correctness CI hay operate.
+
+| Nhánh | Calls | Known cost (USD) | p50 / p95 observation (giây) | `answered` / 216 user turns |
+| --- | ---: | ---: | ---: | ---: |
+| Adaptive MA + RAG | 874 | 1.601708 | 11.172 / 27.006 | 168 |
+| Single-Agent + RAG | 773 | 1.432035 | 11.125 / 24.429 | 168 |
+| Fixed MA + RAG | 700 | 1.457079 | 9.438 / 24.664 | 168 |
+| Adaptive MA không RAG | 234 | 0.339016 | 1.640 / 7.193 | 33 |
+
+Mỗi nhánh có 180 observations và 27 work groups; outcome có 216 user turns do
+một số case nhiều lượt. Adaptive MA + RAG dùng 13,1% thêm generation calls,
+11,85% thêm known cost và p95 cao hơn 10,55% so với SA + RAG. Với các case có
+8 required fact blueprints, fallback `answer_repair_missing_required_knowledge`
+xuất hiện ở 32/36 Adaptive, 30/36 Fixed và 33/36 SA observations; mỗi nhánh chỉ
+có 12 case trong strata này, lặp ba lần.
+
+Code path cho thấy warning xuất hiện sau khi repaired draft vẫn thiếu yêu cầu;
+sau đó answer producer dùng deterministic path trên cùng evidence. Đây là dấu
+hiệu đường answer/grounding recovery dùng chung, không chứng minh retrieval miss
+hay câu trả lời sai. Checkpoint chỉ lưu retrieval count và final cited evidence,
+không lưu toàn bộ retrieval hits; document recall vì vậy chưa đo được. Citation
+IDs nối đúng trong JSON không phải kiểm định semantic citation support.
+
+Checkpoint SHA-256
+`cd9f7c0de094e1c7935880f3adc3c210604ac24c66f8cd9caede58f804e53261`; schedule
+SHA-256 `e07a5e9996f12a57093a66f17de7585f63c0c1f0120cabf17aa2866fea495cef`.
+Raw trace audit, script tái tạo và toàn bộ số đếm nằm tại
+[`evaluation/v3/results/p8-trace-20261013-r7`](../evaluation/v3/results/p8-trace-20261013-r7/README.md).
+Đây không phải tập xác nhận mới; protocol xác nhận vẫn là draft.
+
+### 12.6. LLM reference calibration — 2026-10-13 (development only)
+
+Đã tạo 32 nhãn tham chiếu bằng `gpt-6-luna` với `store=false` cho 32
+observation đo của pilot P7 (`pilot-live-v3`: 8 ca development × 4 nhánh); đây
+là nhãn tham chiếu để hiệu chuẩn judge P8 trong tương lai, không phải kết quả
+chấm câu trả lời P8. Tổng chi phí ước tính `$0.0064505`, dưới cap `$0.25`.
+Packet, output đầy đủ, request manifest và đúng bản script đã chạy được lưu tại
+[`evaluation/v3/thesis-validation-v1/dev-judge-calibration-20261013`](../evaluation/v3/thesis-validation-v1/dev-judge-calibration-20261013/README.md).
+
+Các nhãn này đã được ghép với receipt P7 bằng hash JSON canonical, nhưng vẫn là
+reference do LLM tạo trên dữ liệu development, không phải ground truth của
+người chấm. Chúng chưa được dùng để đối chiếu judge
+`gpt-5.4-mini-2026-03-17`; 752 lượt P8 judge đã duyệt chưa được chạy, và chúng
+không chấm P8 r7 ở mục 12.5. Vì vậy vẫn chưa có kết luận semantic về MA so với
+SA.
+
+Trace P7 r5 ghi `ma_adaptive_rag` trả `action_mode_mismatch` ở ca
+`dev_shopping_merchant_01`; r6 và r7 ghi nhánh này trả thẻ checkout chờ xác
+nhận. Code hiện tại có thay đổi planner tại commit `e2d1f8b` xử lý an toàn
+trường hợp model plan không được phép trong shopper mode; chuỗi trace phù hợp
+với một fix có ích. Đây chưa phải kiểm định nhân quả: protocol assets đổi giữa
+r5/r6/r7, cả ba dùng gold `f6988415…` và split `d4af32e7…`, khác hash hiện tại
+`31bcb31c…` và `49adf66b…`, đồng thời checkpoint không bind Git SHA của SUT.
+Ở cấp từng case, cả 8 execution-case hash trong mỗi run r5/r6/r7 đều khớp 8
+case pilot hiện tại; sai khác gold/split tổng thể nằm ở protocol/roster đầy đủ.
+Raw checkpoint, schedule, protocol, script và manifest đã được lưu tại
+[`P7 trace archive`](../evaluation/v3/results/p7-trace-20261013/README.md).
+
+Trong 32 lượt đo P7 r7, Adaptive RAG và SA đều có 6 `answered`, 1
+`needs_clarification`, 1 `awaiting_confirmation`. Adaptive RAG dùng 40 generation
+calls, `$0.077554`, p50 `10.883s`; SA dùng 35 calls, `$0.070811`, p50 `9.406s`.
+Đây là outcome/chi phí/latency mô tả trên 8 ca development, không phải điểm đúng
+ngữ nghĩa, CI hay xác nhận kiến trúc. Pilot chưa cho thấy lợi ích outcome quan
+sát được của MA để bù chi phí tăng.
+
+Ở `dev_multi_expert_01`, cả hai nhánh Adaptive RAG và SA trả bản liệt kê
+evidence dài 1.803 ký tự, không có câu so sánh hay khuyến nghị trực tiếp dù
+prompt yêu cầu; cả hai có cảnh báo `answer_repair_not_grounded`. Đây là điểm yếu
+tổng hợp câu trả lời dùng chung: verifier hiện từ chối claim có phép so sánh.
+Nó là ứng viên sửa trên development, nhưng phải được áp dụng công bằng cho các
+arm và kiểm tra lại bằng P7/P8 trước khi dùng làm kết quả luận văn.
+

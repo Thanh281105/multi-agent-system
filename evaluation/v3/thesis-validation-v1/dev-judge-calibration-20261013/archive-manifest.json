@@ -1,0 +1,22 @@
+{
+  "api_store": false,
+  "archive_manifest_sha256": "50e5e62c8e4ff219b5e55aa36d53c788dd70bf1b9414b5cfd6c5c4c29976b2fb",
+  "calls": 32,
+  "estimated_cost_usd": "0.0064505000",
+  "files": {
+    "build_llm_reference_bundle.py": "86a42ae7a7912c9ba0fba53b5e66cd940e4c38d227ee8d6497b5e598264467e3",
+    "input-cases.json": "d60c62394ae373d63ab34b02ff3dd45abfae4bfdcfe389dec69f1b9b9d306e07",
+    "reference-labels.p8.json": "8cd8607998e3a42b365607853fe779eb89487c8a064e6a81739b035c9da6c4dd",
+    "run-manifest.json": "eb29ecc9f836eac562936c2d9f99d702525391a05bd4d84eca6724e5ea5c4cb6"
+  },
+  "model_snapshot": "gpt-6-luna",
+  "protocol_sha256": "dddfa274629519feb87d38215dedc2295fabdf681d51e4d5d14a5d012da81a69",
+  "raw_capture_archive": "raw-calibration-capture-20261013.zip",
+  "raw_capture_archive_bytes": 28521,
+  "raw_capture_archive_sha256": "3f466b36acbe2ad63a46900100eb9d712549506706a936d753d754435501fd07",
+  "raw_capture_preserves_original_provider_hash_bindings": true,
+  "reference_bundle_sha256": "4a5c0b8457d530de662d3e4e1dec78268f76fc95f56cef6631286425b9b65022",
+  "reserved_cost_cap_usd": "0.25",
+  "schema_version": "development_llm_reference_archive_v1",
+  "status": "development_model_reference_not_human_gold"
+}

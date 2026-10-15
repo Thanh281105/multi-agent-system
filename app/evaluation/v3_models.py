@@ -4,9 +4,16 @@ from __future__ import annotations
 
 from decimal import Decimal
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Any, Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from app.contracts import TaskStatus
 from app.evaluation.protocol import canonical_sha256
@@ -105,8 +112,8 @@ class ScheduledTurnKindV3(StrEnum):
 
 class GenerationBindingV3(FrozenContractV3):
     provider: Literal["openai"] = "openai"
-    model: Literal["gpt-5.4-mini-2026-03-17"]
-    reasoning_effort: Literal["low", "medium"] = "low"
+    model: Literal["gpt-5.4-mini-2026-03-17", "gpt-6-luna"]
+    reasoning_effort: Literal["none"] = "none"
 
 
 class GoldPolicyV3(FrozenContractV3):
@@ -205,8 +212,8 @@ class BudgetPolicyV3(FrozenContractV3):
     max_provider_attempts_per_turn: int = Field(default=16, ge=1)
     provider_concurrency: int = Field(default=2, ge=1)
     max_retries: int = Field(default=1, ge=0)
-    attempt_timeout_seconds: float = Field(default=18.0, gt=0)
-    turn_deadline_seconds: float = Field(default=60.0, gt=0)
+    attempt_timeout_seconds: float = Field(default=30.0, gt=0)
+    turn_deadline_seconds: float = Field(default=90.0, gt=0)
     max_input_tokens_per_generation: int = Field(default=12_000, ge=1)
     max_output_tokens_per_generation: int = Field(default=1_200, ge=1)
 
@@ -236,7 +243,7 @@ class BudgetPolicyV3(FrozenContractV3):
             self.max_input_tokens_per_generation,
             self.max_output_tokens_per_generation,
         )
-        if controls != (10, 16, 2, 1, 18.0, 60.0, 12_000, 1_200):
+        if controls != (10, 16, 2, 1, 30.0, 90.0, 12_000, 1_200):
             raise ValueError("Package 7 provider resource limits are frozen")
         if sum(monetary[:4], Decimal("0")) != self.reservation_cap_usd:
             raise ValueError("evaluation allocations must equal the reservation cap")
@@ -302,9 +309,11 @@ class EvaluationExperimentConfigV3(FrozenContractV3):
             self.judgment_policy.model_binding.provider
             != self.variants[0].generation_binding.provider
             or self.judgment_policy.model_binding.model
-            != self.variants[0].generation_binding.model
+            == self.variants[0].generation_binding.model
         ):
-            raise ValueError("model judge must use the frozen model snapshot")
+            raise ValueError(
+                "model judge must be frozen separately from the generation snapshot"
+            )
         adaptive = self.variants[2].model_dump(
             exclude={"variant_id", "description", "rag_enabled"}
         )
@@ -337,6 +346,16 @@ class EvaluationAssetBindingsV3(FrozenContractV3):
     pricing_manifest_sha256: Sha256V3
     usage_ledger_sha256: Sha256V3
     rubric_sha256: Sha256V3
+    sut_git_revision: Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")] | None = None
+
+    @model_serializer(mode="wrap")
+    def omit_absent_sut_revision(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        payload = handler(self)
+        if payload.get("sut_git_revision") is None:
+            payload.pop("sut_git_revision", None)
+        return payload
 
     @model_validator(mode="before")
     @classmethod

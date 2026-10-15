@@ -116,6 +116,41 @@ class FrozenContractP8(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
 
+class SuccessorBindingV3(FrozenContractP8):
+    """Explicit additive authority for a new freeze; historical pins stay default."""
+
+    schema_version: Literal["3.1"] = "3.1"
+    binding_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{2,127}$")
+    evaluator_contract: Literal["evidence_semantics_v2"] = "evidence_semantics_v2"
+    protocol_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    repeat_decision_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    gold_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    split_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    experiment_path: str
+    gold_path: str
+    split_path: str
+    runtime_manifest_path: str
+    runtime_manifest_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    binding_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+    @model_validator(mode="after")
+    def validate_hash_and_paths(self) -> SuccessorBindingV3:
+        for name in (
+            "experiment_path",
+            "gold_path",
+            "split_path",
+            "runtime_manifest_path",
+        ):
+            path = Path(getattr(self, name))
+            if path.is_absolute() or ".." in path.parts or not path.parts:
+                raise ValueError("successor paths must stay within the project root")
+        if self.binding_sha256 != canonical_sha256(
+            self.model_dump(mode="json", exclude={"binding_sha256"})
+        ):
+            raise ValueError("successor binding canonical hash mismatch")
+        return self
+
+
 class HeldoutExecutionPlanV3(FrozenContractP8):
     """The P8 manifest that binds every held-out execution input."""
 
@@ -163,6 +198,7 @@ class FrozenPackage7HeldoutInputsV3:
     repeat_decision_sha256: str
     loaded_gold: LoadedEvaluationGoldV3
     heldout_cases: Mapping[str, EvaluationCaseV3]
+    successor_binding: SuccessorBindingV3 | None = None
 
 
 def package8_heldout_descriptor_sha256_v3() -> str:
@@ -194,18 +230,43 @@ def load_frozen_package7_heldout_inputs_v3(
     gold_path: Path,
     split_path: Path,
     runtime_manifest_path: Path | None = None,
+    successor_binding_path: Path | None = None,
 ) -> FrozenPackage7HeldoutInputsV3:
     """Load P7 artifacts, reject drift, and adapt all and only held-out cases."""
 
     root = project_root.resolve()
+    successor = (
+        _load_model(successor_binding_path, SuccessorBindingV3, "successor_binding")
+        if successor_binding_path is not None
+        else None
+    )
+    if successor is not None:
+        gold_path = _successor_path(root, successor.gold_path)
+        split_path = _successor_path(root, successor.split_path)
+        pinned_runtime_path = _successor_path(root, successor.runtime_manifest_path)
+        if (
+            runtime_manifest_path is not None
+            and runtime_manifest_path.resolve() != pinned_runtime_path
+        ):
+            raise FrozenPackage7DriftError("successor_runtime_manifest_path_drift")
+        runtime_manifest_path = pinned_runtime_path
+        if (
+            hashlib.sha256(runtime_manifest_path.read_bytes()).hexdigest()
+            != successor.runtime_manifest_sha256
+        ):
+            raise FrozenPackage7DriftError("successor_runtime_manifest_hash_drift")
     protocol = _load_model(protocol_path, EvaluationProtocolV3, "protocol")
     validate_evaluation_protocol_v3(protocol)
     protocol_sha256 = evaluation_protocol_sha256_v3(protocol)
-    if protocol_sha256 != EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3:
+    if protocol_sha256 != (
+        successor.protocol_sha256 if successor else EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3
+    ):
         raise FrozenPackage7DriftError("package7_protocol_hash_drift")
 
     decision = _load_model(repeat_decision_path, RepeatDecisionV3, "repeat_decision")
     decision_sha256 = canonical_sha256(decision)
+    if successor is not None and decision_sha256 != successor.repeat_decision_sha256:
+        raise FrozenPackage7DriftError("successor_repeat_decision_hash_drift")
     if (
         decision.protocol_sha256 != protocol_sha256
         or decision.repeat_rule_sha256 != protocol.repeat_rule_sha256
@@ -223,10 +284,16 @@ def load_frozen_package7_heldout_inputs_v3(
         or protocol.assets.split_sha256 != loaded_gold.split_sha256
     ):
         raise FrozenPackage7DriftError("package7_gold_split_binding_drift")
+    if successor is not None and (
+        loaded_gold.gold_sha256,
+        loaded_gold.split_sha256,
+    ) != (successor.gold_sha256, successor.split_sha256):
+        raise FrozenPackage7DriftError("successor_gold_split_hash_drift")
     _validate_live_package7_binding(
         root,
         protocol,
         runtime_manifest_path=runtime_manifest_path,
+        successor_binding=successor,
     )
     heldout_cases = build_heldout_cases_v3(loaded_gold)
     return FrozenPackage7HeldoutInputsV3(
@@ -237,6 +304,7 @@ def load_frozen_package7_heldout_inputs_v3(
         repeat_decision_sha256=decision_sha256,
         loaded_gold=loaded_gold,
         heldout_cases=heldout_cases,
+        successor_binding=successor,
     )
 
 
@@ -457,7 +525,12 @@ class HeldoutEvaluationV3ObservationRunner:
     ) -> None:
         self.frozen = frozen
         if (
-            frozen.protocol_sha256 != EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3
+            frozen.protocol_sha256
+            != (
+                frozen.successor_binding.protocol_sha256
+                if frozen.successor_binding
+                else EXPECTED_PACKAGE7_PROTOCOL_SHA256_V3
+            )
             or evaluation_protocol_sha256_v3(frozen.protocol) != frozen.protocol_sha256
             or frozen.repeat_decision.protocol_sha256 != frozen.protocol_sha256
             or frozen.repeat_decision.repeat_rule_sha256
@@ -768,6 +841,7 @@ def _validate_live_package7_binding(
     protocol: EvaluationProtocolV3,
     *,
     runtime_manifest_path: Path | None = None,
+    successor_binding: SuccessorBindingV3 | None = None,
 ) -> None:
     """Use P7's own local loader to detect frozen-source or asset drift."""
 
@@ -776,10 +850,31 @@ def _validate_live_package7_binding(
     argv = ["validate", "--project-root", str(project_root)]
     if runtime_manifest_path is not None:
         argv.extend(("--runtime-manifest", str(runtime_manifest_path)))
+    if successor_binding is not None:
+        for option, name in (
+            ("--experiment", "experiment_path"),
+            ("--gold", "gold_path"),
+            ("--split", "split_path"),
+        ):
+            argv.extend(
+                (
+                    option,
+                    str(
+                        _successor_path(project_root, getattr(successor_binding, name))
+                    ),
+                )
+            )
     arguments = v3_cli._parser().parse_args(argv)
     current = v3_cli._load_inputs(arguments).protocol
     if current != protocol:
         raise FrozenPackage7DriftError("package7_live_protocol_binding_drift")
+
+
+def _successor_path(root: Path, relative: str) -> Path:
+    path = root / relative
+    if path.is_symlink() or not path.resolve().is_relative_to(root.resolve()):
+        raise FrozenPackage7DriftError("successor_path_unsafe")
+    return path.resolve()
 
 
 def _schedule_run_id(schedule: Sequence[ScheduledTurnV3]) -> str:

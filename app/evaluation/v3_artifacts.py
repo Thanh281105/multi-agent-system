@@ -10,9 +10,16 @@ import shutil
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from app.contracts import TaskStatus
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
@@ -57,10 +64,32 @@ ScalarV3 = str | int | float | bool | None
 class FrozenArtifactContractV3(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
+    @model_serializer(mode="wrap")
+    def omit_absent_successor_fields(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        # Absent extension fields must not change the hashes of historical freezes.
+        payload = handler(self)
+        for name in (
+            "source_id",
+            "source_version_id",
+            "match_mode",
+            "support_record_id",
+            "support_json_pointer",
+            "evaluator_contract",
+            "claim_coverage",
+            "validated_judge_output",
+        ):
+            if payload.get(name) is None:
+                payload.pop(name, None)
+        return payload
+
 
 class CitationForReviewV3(FrozenArtifactContractV3):
     label: str = Field(min_length=1, max_length=300)
     evidence: str = Field(min_length=1, max_length=4_000)
+    source_id: str | None = None
+    source_version_id: str | None = None
 
 
 class ClaimEvidenceV3(FrozenArtifactContractV3):
@@ -111,9 +140,15 @@ class RubricFactV3(FrozenArtifactContractV3):
     expected_value: ScalarV3
     evidence: str
     support_kind: Literal["source_excerpt", "catalog_pointer"] = "source_excerpt"
+    match_mode: (
+        Literal["fact_semantics", "normalized_exact", "numeric_exact"] | None
+    ) = None
+    support_record_id: str | None = None
+    support_json_pointer: str | None = None
 
 
 class RubricContextV3(FrozenArtifactContractV3):
+    evaluator_contract: Literal["evidence_semantics_v2"] | None = None
     answerability: AnswerabilityV3
     required_response_mode: RequiredResponseModeV3
     required_facts: tuple[RubricFactV3, ...]
@@ -123,6 +158,19 @@ class RubricContextV3(FrozenArtifactContractV3):
     allowed_capabilities: tuple[str, ...]
     required_capabilities: tuple[str, ...]
     forbidden_capabilities: tuple[str, ...]
+
+    @model_validator(mode="after")
+    def validate_successor_fact_contract(self) -> RubricContextV3:
+        if self.evaluator_contract is not None and any(
+            fact.match_mode is None
+            or not fact.support_record_id
+            or not fact.support_json_pointer
+            for fact in self.required_facts
+        ):
+            raise ValueError(
+                "successor facts require match mode and record/field bindings"
+            )
+        return self
 
 
 class BlindedAnswerV3(FrozenArtifactContractV3):
@@ -220,6 +268,46 @@ class BlindedAnswerArtifactsV3(FrozenArtifactContractV3):
         return self
 
 
+class ClaimCitationVerdictV3(FrozenArtifactContractV3):
+    claim_index: int = Field(ge=0)
+    supported: bool = Field(strict=True)
+    citation_labels: tuple[str, ...] = ()
+    rubric_fact_indices: tuple[int, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_references(self) -> ClaimCitationVerdictV3:
+        if len(self.citation_labels) != len(set(self.citation_labels)) or (
+            len(self.rubric_fact_indices) != len(set(self.rubric_fact_indices))
+        ):
+            raise ValueError("claim verdict references must be unique")
+        if any(index < 0 for index in self.rubric_fact_indices):
+            raise ValueError("claim verdict fact indices must be non-negative")
+        return self
+
+
+class ClaimCitationCoverageV3(FrozenArtifactContractV3):
+    contract: Literal["receipt_claim_citation_coverage_v1"] = (
+        "receipt_claim_citation_coverage_v1"
+    )
+    answer_sha256: str = Field(pattern=_SHA256)
+    claim_count: int = Field(ge=0)
+    supported_claim_count: int = Field(ge=0)
+    verdicts: tuple[ClaimCitationVerdictV3, ...]
+    coverage: float | None = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_aggregation(self) -> ClaimCitationCoverageV3:
+        if tuple(item.claim_index for item in self.verdicts) != tuple(
+            range(self.claim_count)
+        ):
+            raise ValueError("claim verdicts must cover every claim in order")
+        supported = sum(item.supported for item in self.verdicts)
+        expected = supported / self.claim_count if self.claim_count else None
+        if self.supported_claim_count != supported or self.coverage != expected:
+            raise ValueError("claim coverage differs from per-claim verdicts")
+        return self
+
+
 class JudgmentRecordV3(FrozenArtifactContractV3):
     schema_version: Literal["3.0"] = "3.0"
     bindings: ArtifactBindingsV3
@@ -228,7 +316,7 @@ class JudgmentRecordV3(FrozenArtifactContractV3):
     judgment_mode: Literal[JudgmentModeV3.MODEL_JUDGE, JudgmentModeV3.HUMAN_REVIEW]
     reviewer_id: str | None = Field(default=None, pattern=_IDENTIFIER)
     model_binding: GenerationBindingV3 | None = None
-    scores: dict[EvaluationMetricV3, float] = Field(min_length=1)
+    scores: dict[EvaluationMetricV3, float | None] = Field(min_length=1)
     score_sources: dict[
         EvaluationMetricV3,
         Literal["deterministic", "model_judge", "human_review"],
@@ -237,6 +325,8 @@ class JudgmentRecordV3(FrozenArtifactContractV3):
     calibration_sha256: str | None = Field(default=None, pattern=_SHA256)
     judge_output_sha256: str | None = Field(default=None, pattern=_SHA256)
     notes: str | None = Field(default=None, max_length=4_000)
+    claim_coverage: ClaimCitationCoverageV3 | None = None
+    validated_judge_output: dict[str, Any] | None = None
     judgment_sha256: str = Field(pattern=_SHA256)
 
     @model_validator(mode="after")
@@ -251,8 +341,36 @@ class JudgmentRecordV3(FrozenArtifactContractV3):
             raise ValueError(
                 "model_judge requires a model binding and forbids a reviewer ID"
             )
-        if any(value < 0 or value > 1 for value in self.scores.values()):
+        if any(
+            value is not None and (value < 0 or value > 1)
+            for value in self.scores.values()
+        ):
             raise ValueError("judgment scores must be between zero and one")
+        if any(
+            value is None
+            and metric is not EvaluationMetricV3.DOCUMENT_RECALL
+            and not (
+                metric is EvaluationMetricV3.CITATION_COVERAGE
+                and self.claim_coverage is not None
+                and self.claim_coverage.claim_count == 0
+            )
+            for metric, value in self.scores.items()
+        ):
+            raise ValueError(
+                "only unmeasured recall or zero-claim coverage may be null"
+            )
+        if (
+            self.claim_coverage is not None
+            and self.scores.get(EvaluationMetricV3.CITATION_COVERAGE)
+            != self.claim_coverage.coverage
+        ):
+            raise ValueError("judgment coverage differs from claim verdict evidence")
+        if (
+            self.claim_coverage is not None
+            and self.scores.get(EvaluationMetricV3.CLAIM_SUPPORT) == 1.0
+            and any(not item.supported for item in self.claim_coverage.verdicts)
+        ):
+            raise ValueError("positive claim support conflicts with per-claim verdicts")
         if self.score_sources and set(self.score_sources) != set(self.scores):
             raise ValueError("judgment score sources must cover every score exactly")
         structured_model_hashes = (
@@ -387,6 +505,7 @@ def build_blinded_answer_packet_v3(
     answers: Sequence[AnswerEvidenceInputV3],
     *,
     random_seed: int,
+    legacy: bool = False,
 ) -> BlindedAnswerArtifactsV3:
     """Randomize answer presentation and keep execution identities in a separate key."""
 
@@ -475,7 +594,7 @@ def build_blinded_answer_packet_v3(
                 citations=answer.citations,
                 claims=answer.claims,
                 runtime_evidence=answer.runtime_evidence,
-                rubric_context=build_rubric_context_v3(case),
+                rubric_context=build_rubric_context_v3(case, legacy=legacy),
             )
         )
         key_entries.append(
@@ -532,7 +651,7 @@ def build_judgment_record_v3(
         JudgmentModeV3.MODEL_JUDGE,
         JudgmentModeV3.HUMAN_REVIEW,
     ],
-    scores: dict[EvaluationMetricV3, float],
+    scores: dict[EvaluationMetricV3, float | None],
     reviewer_id: str | None = None,
     model_binding: GenerationBindingV3 | None = None,
     score_sources: dict[
@@ -544,6 +663,8 @@ def build_judgment_record_v3(
     calibration_sha256: str | None = None,
     judge_output_sha256: str | None = None,
     notes: str | None = None,
+    claim_coverage: ClaimCitationCoverageV3 | None = None,
+    validated_judge_output: dict[str, Any] | None = None,
 ) -> JudgmentRecordV3:
     normalized_score_sources = score_sources or {}
     payload = {
@@ -563,6 +684,10 @@ def build_judgment_record_v3(
         "judge_output_sha256": judge_output_sha256,
         "notes": notes,
     }
+    if claim_coverage is not None:
+        payload["claim_coverage"] = claim_coverage.model_dump(mode="json")
+    if validated_judge_output is not None:
+        payload["validated_judge_output"] = validated_judge_output
     return JudgmentRecordV3(
         bindings=bindings,
         blinded_packet_sha256=blinded_packet_sha256,
@@ -576,6 +701,8 @@ def build_judgment_record_v3(
         calibration_sha256=calibration_sha256,
         judge_output_sha256=judge_output_sha256,
         notes=notes,
+        claim_coverage=claim_coverage,
+        validated_judge_output=validated_judge_output,
         judgment_sha256=canonical_sha256(payload),
     )
 
@@ -752,7 +879,9 @@ def expected_dialogue_outcome_v3(case: GoldConversationV3) -> DialogueOutcome:
     }[case.answerability]
 
 
-def build_rubric_context_v3(case: GoldConversationV3) -> RubricContextV3:
+def build_rubric_context_v3(
+    case: GoldConversationV3, *, legacy: bool = False
+) -> RubricContextV3:
     required_facts = []
     for fact in case.required_fact_blueprints:
         support = fact.support
@@ -775,9 +904,13 @@ def build_rubric_context_v3(case: GoldConversationV3) -> RubricContextV3:
                 expected_value=fact.expected_value,
                 evidence=evidence,
                 support_kind=support_kind,
+                match_mode=None if legacy else fact.match_mode,
+                support_record_id=None if legacy else support.record_id,
+                support_json_pointer=None if legacy else support.json_pointer,
             )
         )
     return RubricContextV3(
+        evaluator_contract=None if legacy else "evidence_semantics_v2",
         answerability=case.answerability,
         required_response_mode=case.required_response_mode,
         required_facts=tuple(required_facts),

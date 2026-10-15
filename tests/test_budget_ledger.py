@@ -130,6 +130,25 @@ def test_manifest_uses_exact_prices_and_canonical_cross_platform_hash(
         manifest.resolve("unknown-model", "generation")
 
 
+def test_default_output_and_judge_input_quote_limits_remain_bounded() -> None:
+    manifest = PricingManifest.load(default_pricing_manifest_path())
+    with pytest.raises(BudgetLimitExceededError, match="generation_payload_limit"):
+        manifest.quote(
+            model="gpt-5.4-mini",
+            operation="generation",
+            input_token_bound=100,
+            output_token_bound=3_600,
+        )
+    with pytest.raises(BudgetLimitExceededError, match="generation_payload_limit"):
+        manifest.quote(
+            model="gpt-5.4-mini",
+            operation="generation",
+            input_token_bound=GENERATION_INPUT_TOKEN_LIMIT + 1,
+            output_token_bound=3_600,
+            purpose="judge",
+        )
+
+
 def test_known_settlement_moves_exact_cost_and_keeps_retry_usage(
     ledger_store: tuple[SQLProviderBudgetLedger, sessionmaker[Session]],
 ) -> None:
@@ -181,6 +200,32 @@ def test_known_settlement_moves_exact_cost_and_keeps_retry_usage(
         attempts[0].result_status = "error"  # type: ignore[misc]
     with pytest.raises(BudgetConflictError, match="known_settlement_conflict"):
         ledger.settle_known_usage(**{**settlement, "response_id": "resp_different"})
+
+
+@pytest.mark.parametrize(
+    ("purpose", "output_bound"),
+    [
+        (purpose, 1_201)
+        for purpose in ("chat", "benchmark", "ingestion", "warmup", "embedding")
+    ]
+    + [("judge", 3_601)],
+)
+def test_scope_specific_generation_output_limits_fail_before_reservation(
+    ledger_store: tuple[SQLProviderBudgetLedger, sessionmaker[Session]],
+    purpose: str,
+    output_bound: int,
+) -> None:
+    ledger, factory = ledger_store
+    _create_scope(ledger, purpose=purpose)
+    with pytest.raises(BudgetLimitExceededError, match="generation_payload_limit"):
+        _reserve(ledger, purpose=purpose, output_bound=output_bound)
+    assert not ledger.scope_attempt_snapshots("turn-1")
+    assert ledger.account_summary("shared").reserved_nano_usd == 0
+    with factory() as session:
+        scope = session.get(ProviderBudgetScope, "turn-1")
+        assert (
+            scope is not None and scope.generation_calls == scope.active_attempts == 0
+        )
 
 
 def test_unknown_settlement_retains_capacity_and_duplicate_never_dispatches(

@@ -31,6 +31,7 @@ const conversationModeSchema = z.enum(["shopper", "merchant"])
 const pendingRecoverySchema = z.strictObject({
   conversationId: durableIdentifierSchema,
   clientTurnId: clientTurnIdSchema,
+  cancelRequested: z.optional(z.literal(true)),
   message: z
     .string()
     .check(
@@ -66,6 +67,7 @@ export interface PendingTurnRecovery {
   conversationId: string
   clientTurnId: string
   message: string
+  cancelRequested?: true
 }
 
 export interface DurableChatMetadata {
@@ -203,6 +205,7 @@ export function writeDurableChatMetadata(
           conversationId: metadata.pendingRecovery.conversationId,
           clientTurnId: metadata.pendingRecovery.clientTurnId,
           message: metadata.pendingRecovery.message,
+          ...(metadata.pendingRecovery.cancelRequested ? { cancelRequested: true } : {}),
         }
       : null,
   }

@@ -59,6 +59,10 @@
       "type": "object",
       "required": [
         "snapshotDir",
+        "v2CatalogVersionId",
+        "v2CorpusVersionId",
+        "v2IndexManifestId",
+        "v2BudgetAccountId",
         "knowledgeBackend",
         "qdrantUrl",
         "qdrantCollection",
@@ -73,6 +77,10 @@
       ],
       "properties": {
         "snapshotDir": {"type": "string", "pattern": "^/app/data/snapshots/[A-Za-z0-9._-]+$"},
+        "v2CatalogVersionId": {"type": "string", "anyOf": [{"const": ""}, {"pattern": "^[a-z][a-z0-9_-]{2,127}$"}]},
+        "v2CorpusVersionId": {"type": "string", "anyOf": [{"const": ""}, {"pattern": "^[a-z][a-z0-9_-]{2,127}$"}]},
+        "v2IndexManifestId": {"type": "string", "anyOf": [{"const": ""}, {"pattern": "^[a-z][a-z0-9_-]{2,127}$"}]},
+        "v2BudgetAccountId": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{2,127}$"},
         "knowledgeBackend": {"enum": ["disabled", "qdrant"]},
         "qdrantUrl": {
           "type": "string",
@@ -258,6 +266,11 @@
           }
         }
       }
+    },
+    {
+      "if": {"properties": {"config": {"properties": {"v2CorpusVersionId": {"const": ""}}}}},
+      "then": {"properties": {"config": {"properties": {"v2IndexManifestId": {"const": ""}}}}},
+      "else": {"properties": {"config": {"properties": {"v2IndexManifestId": {"pattern": "^[a-z][a-z0-9_-]{2,127}$"}}}}}
     }
   ],
   "definitions": {

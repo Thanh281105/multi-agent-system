@@ -50,7 +50,8 @@ def test_thesis_claims_keep_sample_and_evaluation_limits_visible() -> None:
 
     assert "production-oriented" in readme
     assert "snapshot lịch sử Tiki Books" in readme
-    assert "200 sách" in readme and "1.773 review" in readme
+    assert "200 bản ghi" in readme and "1.773 review" in readme
+    assert "199 sách hợp lệ trong v2" in readme
     assert "data/snapshots/tiki-books-v4-sample" not in readme
     assert "KNOWLEDGE_BACKEND=static" not in readme
     assert "chưa đưa vào routing hay aggregation" in architecture

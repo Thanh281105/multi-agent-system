@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import cast
 
+import pytest
+from fastapi import Request, Response
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -16,6 +19,8 @@ from app.core.config import Settings
 from app.db import session as db_session
 from app.db.migrate import upgrade_database
 from app.db.v2_repository import V2Repository
+from app.gateway import v2_routes
+from app.gateway.dependencies import PrincipalContext
 from app.main import create_app
 from app.models.v2 import V2Turn
 from app.v2.actions import ActionIdempotencyConflictError, StoredAction
@@ -409,6 +414,124 @@ def test_chat_projects_http_status_and_body_from_one_outcome_during_race() -> No
     assert raced.json()["error"] is None
     assert queried.status_code == 200
     assert queried.json()["turn"]["status"] == "completed"
+
+
+def test_chat_returns_durable_cancelled_result_when_worker_is_cancelled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    factory, turns, ledger = _surface_factory()
+    client = TestClient(create_app(_settings(), v2_runtime_factory=factory))
+    created = client.post(
+        "/api/v2/conversations",
+        headers=ALICE_HEADERS,
+        json={"mode": "shopper"},
+    )
+    payload = {
+        "conversation_id": created.json()["conversation"]["conversation_id"],
+        "client_turn_id": "client-cancel-worker-1",
+        "message": "Gợi ý sách lịch sử",
+    }
+    execute = turns.execute
+    cancelled: list[DurableTurnOutcome] = []
+
+    async def cancel_execution(
+        request: ChatRequest, context: PlanningContext, **kwargs: object
+    ) -> DurableTurnOutcome:
+        admitted = await execute(request, context, **kwargs)
+        with turns.sessions() as session:
+            row = session.get(V2Turn, admitted.turn_id)
+            assert row is not None
+            row.execution_state = TurnStatus.CANCELLED.value
+            row.dialogue_outcome = None
+            row.result = None
+            session.commit()
+        cancelled.append(
+            DurableTurnOutcome(
+                turn_id=admitted.turn_id,
+                status=TurnStatus.CANCELLED,
+                reused=True,
+            )
+        )
+        task = asyncio.current_task()
+        assert task is not None
+        task.cancel()
+        await asyncio.sleep(0)
+        raise AssertionError("the worker must be interrupted")
+
+    def query(turn_id: str, access: object) -> DurableTurnOutcome:
+        assert turn_id == cancelled[0].turn_id
+        assert access.binding.principal_id == "alice"  # type: ignore[attr-defined]
+        return cancelled[0]
+
+    monkeypatch.setattr(turns, "execute", cancel_execution)
+    monkeypatch.setattr(turns, "query", query)
+    response = client.post("/api/v2/chat", headers=ALICE_HEADERS, json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["turn"]["status"] == "cancelled"
+    assert response.json()["result"] is None
+    queried = client.get(f"/api/v2/turns/{cancelled[0].turn_id}", headers=ALICE_HEADERS)
+    assert queried.status_code == 200
+    assert queried.json()["result"] == response.json()["result"]
+    assert len(ledger.scope_ids) == 1
+
+
+@pytest.mark.parametrize(
+    "stored_status", [None, TurnStatus.RUNNING, TurnStatus.COMPLETED]
+)
+def test_chat_preserves_cancellation_without_a_durable_cancelled_turn(
+    monkeypatch: pytest.MonkeyPatch, stored_status: TurnStatus | None
+) -> None:
+    from app.db.v2_repository import canonical_turn_id
+
+    payload = ChatRequest(
+        conversation_id="conversation-cancel",
+        client_turn_id="client-cancel-1",
+        message="Tìm sách",
+    )
+    interruption = asyncio.CancelledError()
+    access = object()
+
+    async def execute(*_args: object, **_kwargs: object) -> DurableTurnOutcome:
+        raise interruption
+
+    def query(turn_id: str, authorized: object) -> DurableTurnOutcome:
+        assert turn_id == canonical_turn_id(
+            payload.conversation_id, payload.client_turn_id
+        )
+        assert authorized is access
+        if stored_status is None:
+            raise ResourceNotFoundError
+        result = (
+            TurnResult(outcome=DialogueOutcome.ANSWERED, answer="Đã hoàn tất.")
+            if stored_status is TurnStatus.COMPLETED
+            else None
+        )
+        return DurableTurnOutcome(
+            turn_id=turn_id,
+            status=stored_status,
+            outcome=result.outcome if result is not None else None,
+            result=result,
+            reused=True,
+        )
+
+    runtime = SimpleNamespace(
+        services=SimpleNamespace(
+            turn_service=SimpleNamespace(execute=execute, query=query)
+        ),
+        planning_context=object(),
+        access=access,
+    )
+    factory = SimpleNamespace(resolve_for_conversation=lambda *_args: runtime)
+    monkeypatch.setattr(v2_routes, "get_v2_runtime_factory", lambda _request: factory)
+    monkeypatch.setattr(v2_routes, "_provider_budget", lambda *_args: None)
+    principal = cast(PrincipalContext, SimpleNamespace(authorization=object()))
+
+    with pytest.raises(asyncio.CancelledError) as caught:
+        asyncio.run(
+            v2_routes.chat(payload, Request({"type": "http"}), Response(), principal)
+        )
+    assert caught.value is interruption
 
 
 def test_action_read_confirm_header_and_reject_projection() -> None:

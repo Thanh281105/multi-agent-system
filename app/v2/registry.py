@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
 from types import MappingProxyType
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
 
@@ -53,11 +53,18 @@ class ServiceId(StrEnum):
 
 class CatalogSearchInput(V2Contract):
     query: str | None = Field(default=None, min_length=1, max_length=300)
+    entity_queries: tuple[Annotated[str, Field(min_length=1, max_length=160)], ...] = (
+        Field(default=(), max_length=MAX_CANDIDATES)
+    )
     author: str | None = Field(default=None, min_length=1, max_length=160)
     category: str | None = Field(default=None, min_length=1, max_length=120)
     publisher: str | None = Field(default=None, min_length=1, max_length=160)
     min_price_vnd: PriceVnd | None = None
     max_price_vnd: PriceVnd | None = None
+    min_rating: float | None = Field(default=None, ge=0, le=5)
+    max_rating: float | None = Field(default=None, ge=0, le=5)
+    min_page_count: int | None = Field(default=None, strict=True, ge=1, le=20_000)
+    max_page_count: int | None = Field(default=None, strict=True, ge=1, le=20_000)
     candidate_limit: int = Field(
         default=MAX_CANDIDATES,
         strict=True,
@@ -70,11 +77,16 @@ class CatalogSearchInput(V2Contract):
         if not any(
             (
                 self.query,
+                self.entity_queries,
                 self.author,
                 self.category,
                 self.publisher,
                 self.min_price_vnd is not None,
                 self.max_price_vnd is not None,
+                self.min_rating is not None,
+                self.max_rating is not None,
+                self.min_page_count is not None,
+                self.max_page_count is not None,
             )
         ):
             raise ValueError("catalog search requires a query or catalog filter")
@@ -84,6 +96,18 @@ class CatalogSearchInput(V2Contract):
             and self.min_price_vnd > self.max_price_vnd
         ):
             raise ValueError("minimum price cannot exceed maximum price")
+        if len(self.entity_queries) > self.candidate_limit or len(
+            {item.casefold() for item in self.entity_queries}
+        ) != len(self.entity_queries):
+            raise ValueError(
+                "entity queries must be unique and fit the candidate limit"
+            )
+        for minimum, maximum in (
+            (self.min_rating, self.max_rating),
+            (self.min_page_count, self.max_page_count),
+        ):
+            if minimum is not None and maximum is not None and minimum > maximum:
+                raise ValueError("minimum catalog bound cannot exceed maximum")
         return self
 
 

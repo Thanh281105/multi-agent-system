@@ -45,6 +45,7 @@ import {
 
 const V2_API_ROOT = "/api/v2"
 const GENERIC_ERROR_MESSAGE = "Không thể xử lý yêu cầu lúc này."
+export const V2_REQUEST_TIMEOUT_MS = 15_000
 
 interface RuntimeSchema<T> {
   safeParse(value: unknown):
@@ -246,7 +247,7 @@ export function createV2ApiClient(options: V2ApiClientOptions = {}): V2ApiClient
         onProgress: requestOptions.onProgress,
         onTextDelta: requestOptions.onTextDelta,
         onTerminal: requestOptions.onTerminal,
-      })
+      }, requestOptions.signal)
     },
 
     getTurn: (requestOptions) => json(
@@ -348,7 +349,7 @@ export function buildV2ChatStreamRequest(request: V2ChatStreamRequest): {
 
 export async function parseV2HttpError(response: Response): Promise<V2ApiError> {
   try {
-    const payload: unknown = await response.json()
+    const payload: unknown = await beforeRequestDeadline(response.json())
     const parsed = safeErrorResponseSchema.safeParse(payload)
     if (parsed.success) {
       return new V2ApiError(parsed.data.error.code, parsed.data.error.message, {
@@ -360,7 +361,8 @@ export async function parseV2HttpError(response: Response): Promise<V2ApiError> 
         validationErrors: parsed.data.error.validationErrors,
       })
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof V2ApiError || isAbortError(error)) throw error
     // Malformed server responses are replaced with a stable, non-sensitive error.
   }
   return new V2ApiError(`v2.http_${response.status}`, GENERIC_ERROR_MESSAGE, {
@@ -386,8 +388,9 @@ async function requestJson<T>(
 
   let payload: unknown
   try {
-    payload = await response.json()
-  } catch {
+    payload = await beforeRequestDeadline(response.json(), context.signal)
+  } catch (error) {
+    if (isAbortError(error) || error instanceof V2ApiError) throw error
     throw new V2ApiError("v2.invalid_json_response", GENERIC_ERROR_MESSAGE, {
       httpStatus: response.status,
     })
@@ -422,14 +425,45 @@ async function safeFetch(
   init: RequestInit,
 ): Promise<Response> {
   try {
-    return await fetchImpl(url, init)
+    const controller = new AbortController()
+    const signal = init.signal
+      ? AbortSignal.any([init.signal, controller.signal])
+      : controller.signal
+    return await beforeRequestDeadline(
+      fetchImpl(url, { ...init, signal }), signal, () => controller.abort(),
+    )
   } catch (error) {
-    if (isAbortError(error)) throw error
+    if (isAbortError(error) || error instanceof V2ApiError) throw error
     throw new V2ApiError(
       "v2.network_error",
       "Không thể kết nối đến API v2.",
       { retryable: true },
     )
+  }
+}
+
+async function beforeRequestDeadline<T>(
+  operation: Promise<T>,
+  signal?: AbortSignal | null,
+  onTimeout?: () => void,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let rejectRequest!: (error: Error) => void
+  const aborted = () => rejectRequest(new DOMException("Đã dừng kết nối.", "AbortError"))
+  const bound = new Promise<never>((_resolve, reject) => {
+    rejectRequest = reject
+    timer = setTimeout(() => {
+      reject(new V2ApiError("v2.request_timeout", "API v2 chưa phản hồi; có thể khôi phục lượt trả lời.", { retryable: true }))
+      onTimeout?.()
+    }, V2_REQUEST_TIMEOUT_MS)
+    signal?.addEventListener("abort", aborted, { once: true })
+    if (signal?.aborted) aborted()
+  })
+  try {
+    return await Promise.race([operation, bound])
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener("abort", aborted)
   }
 }
 

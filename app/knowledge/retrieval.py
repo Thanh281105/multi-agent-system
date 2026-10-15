@@ -350,7 +350,7 @@ class ModelRuntimeKnowledgeQueryPlanner:
                 ),
                 schema=_ModelKnowledgePlan,
                 max_output_tokens=600,
-                reasoning_effort="low",
+                reasoning_effort="none",
             )
         except ModelRuntimeError as exc:
             if not self.fallback_on_model_error:
@@ -465,8 +465,8 @@ class HybridKnowledgeRetriever:
             return _empty_bundle(snapshot, cleaned, plan=plan)
 
         query_vectors = await self._embed_queries(plan.queries, snapshot)
-        ranked, diagnostics = _rank_chunks(
-            chunks, plan.queries, query_vectors, snapshot
+        ranked, diagnostics = await asyncio.to_thread(
+            _rank_chunks, chunks, plan.queries, query_vectors, snapshot
         )
         selected = _select_and_expand(
             ranked,

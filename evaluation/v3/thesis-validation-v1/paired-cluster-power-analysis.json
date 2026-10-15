@@ -1,0 +1,512 @@
+{
+  "schema_version": "pre_registered_statistical_power_v1",
+  "timestamp": "2026-10-14T15:45:00Z",
+  "pre_registered_primary_metric": {
+    "name": "primary_correct_and_supported",
+    "definition": "Task Completion = 1 AND Claim Support = 1 (all claims entailed by verified snapshot evidence)",
+    "analysis_unit": "independent_author_cluster",
+    "cluster_count": 250,
+    "total_tasks": 624,
+    "minimal_important_difference_mcid_pp": 5.0,
+    "confidence_interval": "95% Cluster-Robust Bootstrap CI (B = 10,000 resamples at cluster level)"
+  },
+  "power_scenarios": [
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.1,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9711,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 132
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.15,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.8803,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 200
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.2,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.7735,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 268
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.3,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.5981,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 403
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.4,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.4802,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 538
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.1,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 1.0,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 57
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.15,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9974,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 87
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.2,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9838,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 117
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.3,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9147,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 177
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.4,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.8205,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 238
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.1,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 1.0,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 31
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.15,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 1.0,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 48
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.2,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9998,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 65
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.3,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.994,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 99
+    },
+    {
+      "intracluster_correlation_icc": 0.05,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.4,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9711,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 132
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.1,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9617,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 142
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.15,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.8583,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 214
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.2,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.7456,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 286
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.3,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.5696,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 431
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.4,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.4551,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 575
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.1,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9999,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 61
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.15,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9958,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 93
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.2,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9774,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 125
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.3,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.8962,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 190
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.4,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.7945,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 254
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.1,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 1.0,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 33
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.15,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 1.0,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 51
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.2,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9996,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 69
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.3,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.991,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 105
+    },
+    {
+      "intracluster_correlation_icc": 0.1,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.4,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9617,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 142
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.1,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9393,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 160
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.15,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.814,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 242
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.2,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.6933,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 323
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.3,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.5194,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 487
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.05,
+      "discordance_rate_D": 0.4,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.412,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 650
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.1,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9997,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 69
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.15,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.991,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 105
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.2,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9615,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 142
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.3,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.8575,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 214
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.075,
+      "discordance_rate_D": 0.4,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.7444,
+      "power_adequate_ge_80pct": false,
+      "required_clusters_for_80pct_power": 287
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.1,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 1.0,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 37
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.15,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 1.0,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 58
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.2,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9989,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 78
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.3,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9825,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 119
+    },
+    {
+      "intracluster_correlation_icc": 0.2,
+      "true_effect_delta": 0.1,
+      "discordance_rate_D": 0.4,
+      "available_clusters": 250,
+      "available_tasks": 624,
+      "statistical_power": 0.9393,
+      "power_adequate_ge_80pct": true,
+      "required_clusters_for_80pct_power": 160
+    }
+  ],
+  "multiplicity_protocol": {
+    "hypothesis_family": [
+      {
+        "id": "H1",
+        "metric": "primary_correct_and_supported",
+        "description": "Superiority on composite correct & supported claims",
+        "alpha_initial": 0.01
+      },
+      {
+        "id": "H2",
+        "metric": "task_completion",
+        "description": "Superiority on task completion",
+        "alpha_initial": 0.01
+      },
+      {
+        "id": "H3",
+        "metric": "claim_support",
+        "description": "Superiority on claim support rate",
+        "alpha_initial": 0.01
+      },
+      {
+        "id": "H4",
+        "metric": "citation_precision",
+        "description": "Superiority on citation precision",
+        "alpha_initial": 0.01
+      },
+      {
+        "id": "H5",
+        "metric": "authorization_safety",
+        "description": "Non-inferiority gate on authorization violations (margin = 0%)",
+        "alpha_initial": 0.01
+      }
+    ],
+    "correction_procedures": [
+      {
+        "name": "Holm-Bonferroni Step-Down",
+        "target_error_rate": "Family-Wise Error Rate (FWER) <= 0.05",
+        "formula": "Order p-values p_(1) <= ... <= p_(k). Reject H_(i) if p_(i) <= alpha / (k - i + 1)."
+      },
+      {
+        "name": "Benjamini-Hochberg (B-H)",
+        "target_error_rate": "False Discovery Rate (FDR) <= 0.05",
+        "formula": "Reject H_(i) for all i <= k_max where p_(i) <= (i / m) * Q."
+      }
+    ]
+  },
+  "pre_registration_summary": "With 250 independent author clusters and 624 tasks, the study is adequately powered (>= 80%) for effect sizes Delta >= +7.5pp when discordance D <= 0.20 and ICC <= 0.10. For the MCID boundary of Delta = +5.0pp, power reaches 80% when D <= 0.10. Holm-Bonferroni correction strictly guards the 5-hypothesis family against type-I error inflation."
+}

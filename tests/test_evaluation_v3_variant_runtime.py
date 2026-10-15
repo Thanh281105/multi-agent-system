@@ -400,6 +400,18 @@ def test_package7_policy_table_is_exact_and_rejects_arbitrary_combinations() -> 
         (AgentTopologyV3.MULTI, PlanningModeV3.ADAPTIVE, 1, True),
         (AgentTopologyV3.MULTI, PlanningModeV3.ADAPTIVE, 1, False),
     ]
+    assert [policy.planner_runtime_mode for policy in PACKAGE7_VARIANT_POLICIES] == [
+        "required",
+        "off",
+        "required",
+        "required",
+    ]
+    assert [policy.continuation_enabled for policy in PACKAGE7_VARIANT_POLICIES] == [
+        False,
+        False,
+        True,
+        True,
+    ]
     with pytest.raises(
         EvaluationV3RuntimeConfigurationError,
         match="package7_variant_policy_invalid",

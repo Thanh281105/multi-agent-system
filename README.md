@@ -7,7 +7,7 @@ dùng PostgreSQL cho hội thoại, hành động và knowledge retrieval. Các 
 trong môi trường development.
 
 > **Ranh giới dữ liệu:** runtime mặc định dùng snapshot lịch sử Tiki Books,
-> profile `eval` gồm 200 sách và 1.773 review, lấy mẫu deterministic từ Kaggle
+> profile `eval` gồm 200 bản ghi sản phẩm và 1.773 review, lấy mẫu deterministic từ Kaggle
 > Tiki Books v4 đã truy xuất ngày 2026-08-24. Đây không phải API/feed Tiki
 > trực tiếp và không phản ánh catalog,
 > giá, tồn kho, người bán, review, xu hướng, nhu cầu hay thị phần hiện tại.
@@ -29,7 +29,7 @@ flowchart LR
     V2 --> PG2[(PostgreSQL: conversations, turns, actions)]
     V2 --> KI[(Published corpus/index in PostgreSQL)]
     G -. optional POST /chat fixture .-> O[Phase 1 legacy runner]
-    O --> MA[Historical domain agents / tools]
+    O --> MA[Single-agent tool loop]
     MA --> PG[(PostgreSQL: cleaned Tiki Books snapshot)]
     O <--> RS[(Redis: optional shared state)]
     O & MA -. structured model modes .-> L[OpenAI Responses API]
@@ -47,11 +47,16 @@ và có thể kiểm thử end-to-end. Bốn domain-agent ID cố định:
 | `trust_agent` | Complaint/text-quality heuristic; không xác minh review giả |
 | `market_agent` | Aggregate cắt ngang trên snapshot; không tạo trend/live-market claim |
 
-Multi-domain recommendation chạy `product.rank`, sau đó
-`review.compare`/`trust.compare` trên cùng tối đa 5 candidates. Python sở hữu
-entity extraction, permission, DAG, facts, score, claim text và citation. Model
-chỉ được chọn intent/capability/fact ID/claim ID trong schema có giới hạn; output
-không grounded bị fallback hoặc fail closed theo runtime mode.
+API v2 là bounded hybrid multi-expert orchestration: supervisor điều phối các
+expert/capability services, không instantiate bốn domain-agent classes của
+orchestrator lịch sử. Các expert không có memory riêng hoặc tự thương lượng.
+Recommendation chạy `product.rank`, rồi `review.compare`/`trust.compare` tuần tự
+trên cùng tối đa 5 candidates. Review/trust bổ sung evidence; v2 không dùng
+weighted reranking 55/15/20/10 của v1. Python sở hữu entity extraction,
+permission, dependencies, facts, score và citation binding. Model chọn plan và
+fact/evidence IDs trong schema có giới hạn; knowledge prose do model viết phải
+qua exact-span và automated semantic verification. Các kiểm tra này có sai số,
+không bảo đảm mọi câu trả lời đúng tuyệt đối.
 
 Historical `KNOWLEDGE_BACKEND=disabled` vẫn là mặc định và Qdrant chỉ là adapter
 tương thích cũ. API v2 dùng `PostgresKnowledgeStore` trên PostgreSQL bền vững và
@@ -77,14 +82,17 @@ Tài liệu chính:
 
 ## Khả năng chính
 
-- Chỉ nhận câu hỏi sách; sản phẩm ngoài sách trả `general.unsupported`.
-- Tìm theo title/free text, author, publisher, category, price, rating và page
-  count; so sánh/ranking có công thức deterministic công khai.
+- Miền công bố là sách; xem [contract từng runtime](docs/architecture.md).
+  Snapshot bảo tồn cả record ngoài miền; guard runtime phải loại chúng khỏi
+  candidates và aggregate, không sửa snapshot lịch sử để che dữ liệu nguồn.
+- Tìm/so sánh/ranking trên metadata snapshot; khả năng parse câu tự nhiên của
+  API v2 được kiểm chứng riêng với khả năng filter của repository/tool.
 - Review/complaint/text-quality heuristics có version và caveat rõ ràng.
 - Market statistics chỉ là cross-sectional aggregates của snapshot.
 - Agent Gateway kiểm soát tool/capability/permission, trả typed provenance và
   audit metadata đã redact.
-- Session owner-bound, TTL, turn lock; Redis bắt buộc ở production.
+- Conversation/turn owner-bound và SQL lease trong v2; session TTL/Redis turn
+  coordination thuộc compatibility runtime lịch sử.
 - Model modes `off`, `shadow`, `hybrid`, `required`; structured output,
   `store=false`, timeout/retry/concurrency/circuit budgets.
 - POST JSON và SSE streaming có correlation IDs, heartbeat, cancellation và
@@ -119,7 +127,7 @@ Profiles:
 | Profile | Mục đích | Snapshot |
 | --- | --- | ---: |
 | `test` | Fast regression | 24 sách / 115 review |
-| `eval` | Runtime/evaluation mặc định | 200 sách / 1.773 review |
+| `eval` | Runtime/evaluation mặc định | 200 bản ghi / 1.773 review; 199 sách hợp lệ trong v2 |
 | `full` | Toàn bộ cleaned records, local only | Bị ignore, không commit |
 
 Mỗi profile có `products.jsonl`, `reviews.jsonl`, `manifest.json` và
@@ -312,35 +320,65 @@ không có checked-in live-LLM result cho historical v2 corpus Tiki Books. Các
 real-model report generic cũ dùng `sample_ecommerce_vi_28_v1`, nằm trong nhóm
 legacy và không hỗ trợ current Tiki claim.
 
-### Trạng thái P7/P8 hiện hành — 2026-10-02
+### P8 r3 lịch sử — 2026-10-12
 
-P7 successor `run_p7_successor_v18` hoàn tất 36/36 cell, không lỗi; protocol SHA-256
-`2d5f2afface0dd5c1337d52d67bf0b3cca6c66328cfbdf71fa77c58659691d23`, repeat-decision
-SHA-256 `40ea5ec8a1890c34195b8e3f4fd29935203834985625605af92fa24bbbd8c5cd`, freeze
-3 lần lặp. Cost đã biết `$0.05163060`.
+Sau khi sửa parser tên sách, đúng commit SUT
+`e99f186eb6662a99cd8397da1ea633473a6b3a54` hoàn tất P7 `36/36` và P8
+`720/720` (60 ca × 4 nhánh × 3 lần lặp). Đây là regression trên bộ held-out đã
+được dùng trong remediation, nên vẫn là **development**, không phải xác nhận độc
+lập. Chưa chạy semantic judge hoặc operate; `720/720` chỉ là độ phủ thu thập.
 
-P8 successor `run_p8_successor_v23` dùng schedule SHA-256
-`f46949cdae870718dd8d2411a343522842eb34c466554e5350ae960ea7e8892e` và hoàn tất
-720/720 SUT cells, không thiếu/lỗi/mơ hồ. Exact evidence resolution, 32/32
-calibration, freeze judge, 720 blind judgments, ghép kết quả và paired metrics
-đều hoàn tất. Report SHA-256 là
-`cf772ac876e0a2f69aef78f68ffa729925eb991359b76bc94da4f26fc6787f5d`; report
-manifest SHA-256 `550b4a1688334652d57b0ac1a359c5111ba29841c094ee451af1552640f62235`;
-scored-artifacts manifest SHA-256
-`72a0e68103e275e6f2ba08a874df272734faad3ff4a29f6681e07591726487a9`. Paired
-metrics ở `output/evaluation-v3/heldout-successor-v23/p8-publication/p8-report/comparisons.csv`.
-Known provider cost `$4.90357425`; report effective cost `$4.91358675`, gồm
-`$0.01001250` unresolved-reservation estimate trong report accounting. PostgreSQL
-account không còn reservation/active attempt.
+P8 ghi `$4.27855988` known cost, 3.108.871 input+output tokens và không còn
+reservation chưa quyết toán. Số `answered` dưới đây là trạng thái ứng dụng thô,
+không phải độ đúng:
 
-Ledger `codex-p7-p8-ledger` sau operate: known `$41.57320211`, unknown
-`$0.47555784`, reserved `$0`, còn `$57.95124005` dưới cap `$100`. Các scope có
-unknown cộng `$0.40455225`; phần account-level carry-forward `$0.07100559` không
-còn SQL scope rows. Diagnostic A `$0.05446350` thuộc clone lịch sử
-`p8_failed_diag_20260923_a` và nằm bên trong carry-forward này; không cộng lại.
-P7/P8 không gọi Embeddings API; cả ba embedding attempts trong DB thuộc ingestion
-(một thành công `$0.00004318`, hai lỗi không phát sinh cost). Audit local-only:
-`output/evaluation-v3/current-machine-ledger/ledger-reconciliation-20261002-v23-final.json`.
+| Nhánh | Answered / 180 | Latency p50 / p95 | Chi phí |
+| --- | ---: | ---: | ---: |
+| Single-Agent + RAG | 120 | 11,48 / 25,56 giây | $1,2867 |
+| Fixed Multi-Agent + RAG | 120 | 9,51 / 28,50 giây | $1,3089 |
+| Adaptive Multi-Agent + RAG | 119 | 10,82 / 28,00 giây | $1,3608 |
+| Adaptive Multi-Agent không RAG | 0 | 1,65 / 8,05 giây | $0,3221 |
+
+Raw checkpoint và hash: [`gói P7/P8 r3`](evaluation/v3/results/p8-trace-20261012-r3/README.md),
+[`summary.json`](evaluation/v3/results/p8-trace-20261012-r3/summary.json). Trace xác
+nhận parser đã bỏ lỗi tách sai liên từ viết hoa trong tên sách; vẫn còn nhiều
+`answer_repair_not_grounded` và `evidence_incomplete`, nên chưa thể kết luận về
+đúng/sai ngữ nghĩa hay ưu thế MA. Outcome lấy ở lượt cuối; latency E2E cộng thời
+gian các lượt trong cùng ca. Xem [phân tích evaluation](docs/evaluation.md)
+và [protocol xác nhận](docs/thesis-validation-protocol.md).
+
+Strict deployed HTTP/JSON/SSE/cancel rehearsal **chưa chạy**; xem
+[runbook](docs/operations.md) trước khi trình diễn.
+
+### P8 r7 mới nhất — 2026-10-13 (development trace, chưa chấm)
+
+Trên SUT `app/v2` tại commit
+`4238394ee932dbf79a53aaa1a565c5203f857263`, P7 hoàn tất `36/36`; P8 hoàn tất
+`720/720` (60 ca × 4 nhánh × 3 lần lặp), không thiếu hoặc lỗi ô. Held-out đã
+được dùng trong remediation nên lần chạy này vẫn là **development regression**.
+Chưa chạy semantic judge hoặc `operate`; 720/720 chỉ xác nhận độ phủ.
+
+| Nhánh | Calls | Known cost (USD) | Latency p50 / p95 (giây) | `answered` / 216 lượt user |
+| --- | ---: | ---: | ---: | ---: |
+| Adaptive MA + RAG | 874 | 1.601708 | 11.172 / 27.006 | 168 |
+| Single-Agent + RAG | 773 | 1.432035 | 11.125 / 24.429 | 168 |
+| Fixed MA + RAG | 700 | 1.457079 | 9.438 / 24.664 | 168 |
+| Adaptive MA không RAG | 234 | 0.339016 | 1.640 / 7.193 | 33 |
+
+Mỗi nhánh có 180 observations nhưng 216 lượt user do một số ca nhiều lượt; có
+27 work groups. Adaptive RAG dùng 13,1% thêm calls và 11,85% thêm chi phí so với
+SA RAG, p95 cao hơn 10,55%. Trong 8-fact cases, fallback sau sửa câu trả lời
+xuất hiện ở 32/36 Adaptive, 30/36 Fixed, 33/36 SA observations. Đây là tín hiệu
+về đường grounding dùng chung; chưa cho biết câu trả lời cuối đúng hay retrieval
+bỏ sót tài liệu.
+
+Protocol SHA-256 `342906ef4713edaef23fc0b829780ff7d70a3bc1f64fa58cd36cefe28f999a2a`;
+P8 schedule SHA-256 `e07a5e9996f12a57093a66f17de7585f63c0c1f0120cabf17aa2866fea495cef`;
+checkpoint SHA-256
+`cd9f7c0de094e1c7935880f3adc3c210604ac24c66f8cd9caede58f804e53261`. Xem [trace
+audit r7](evaluation/v3/results/p8-trace-20261013-r7/README.md) và [protocol xác
+nhận còn ở trạng thái draft](docs/thesis-validation-protocol.md). Tập xác nhận
+độc lập mới, đánh giá mù, semantic scores và document recall vẫn chưa có.
 
 ### Snapshot lịch sử — 2026-10-01; ledger trước P8 v23 lúc 2026-10-02 02:07 UTC
 
@@ -442,14 +480,13 @@ tests/                # offline regression + optional integration
   **Chưa có long-term** preference, summary hoặc artifact memory.
 - Rate limiter, trace ring và metrics aggregation nằm trong một process; scale
   nhiều replica cần distributed replacements.
-- Held-out live-model evidence hiện có là P7 successor v5 và các P8 successor
-  v6-v9; cả bốn P8 runs đều terminal partial. Source remediation mới cần P7
-  successor pilot và P8 run tiếp theo trước khi có thể xác nhận kết quả live
-  chính thức sau sửa. Diagnostic replay đã hoàn tất 8/8 sau sửa, nhưng dùng
-  pilot aliases nên không đủ điều kiện benchmark.
-  Calibrated judge output, exact evidence resolver run, completed analysis
-  matrix, human review, load/soak, fairness/drift và production HA vẫn chưa được
-  xác minh.
+- P7/P8 r7 trên SUT commit `4238394ee932dbf79a53aaa1a565c5203f857263` đã hoàn tất
+  36/36 và 720/720 SUT cells; các P8 v6-v9 cũ vẫn là terminal partial. r7 chạy
+  trên held-out đã dùng trong remediation, nên chỉ là development regression.
+  Chưa có calibrated semantic judge, exact evidence-resolution/operate result,
+  correctness analysis, document recall hoặc human audit; không dùng r7 để kết
+  luận MA hơn SA. Protocol xác nhận độc lập vẫn ở trạng thái draft.
+  Load/soak, fairness/drift và production HA cũng chưa được xác minh.
 
 Các giới hạn này là một phần của evidence contract, không phải footnote tùy
 chọn.

@@ -121,7 +121,7 @@ class Settings(BaseSettings):
         validation_alias="OPENAI_API_KEY",
     )
     openai_model: str = Field(
-        default="gpt-5.4-mini",
+        default="gpt-5.4-mini-2026-03-17",
         validation_alias=AliasChoices("OPENAI_MODEL", "MODEL"),
     )
     model_runtime_mode: Literal["off", "shadow", "hybrid", "required"] = Field(
@@ -129,23 +129,23 @@ class Settings(BaseSettings):
         validation_alias="MODEL_RUNTIME_MODE",
     )
     openai_routing_model: str = Field(
-        default="gpt-5.4-nano",
+        default="gpt-5.4-mini-2026-03-17",
         validation_alias="OPENAI_ROUTING_MODEL",
     )
     openai_planning_model: str = Field(
-        default="gpt-5.4-mini",
+        default="gpt-5.4-mini-2026-03-17",
         validation_alias="OPENAI_PLANNING_MODEL",
     )
     openai_specialist_model: str = Field(
-        default="gpt-5.4-nano",
+        default="gpt-5.4-mini-2026-03-17",
         validation_alias="OPENAI_SPECIALIST_MODEL",
     )
     openai_synthesis_model: str = Field(
-        default="gpt-5.4-mini",
+        default="gpt-5.4-mini-2026-03-17",
         validation_alias="OPENAI_SYNTHESIS_MODEL",
     )
     openai_reasoning_effort: Literal["none", "low", "medium", "high", "xhigh"] = Field(
-        default="low",
+        default="none",
         validation_alias="OPENAI_REASONING_EFFORT",
     )
     openai_request_timeout_seconds: float = Field(
@@ -197,6 +197,11 @@ class Settings(BaseSettings):
         ge=32,
         le=3_072,
         validation_alias="OPENAI_EMBEDDING_DIMENSIONS",
+    )
+    v2_catalog_version_id: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_-]{2,127}$",
+        validation_alias="V2_CATALOG_VERSION_ID",
     )
     v2_corpus_version_id: str | None = Field(
         default=None,

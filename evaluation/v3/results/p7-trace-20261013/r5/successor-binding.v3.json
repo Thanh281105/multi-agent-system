@@ -1,0 +1,15 @@
+{
+  "schema_version": "3.1",
+  "binding_id": "review_p8_successor_trace_20261013_r5",
+  "evaluator_contract": "evidence_semantics_v2",
+  "protocol_sha256": "6157a260f9ca0a28dbf9049d8a90158f65b1d632cd68aaa4eb2992b92f5ec43f",
+  "repeat_decision_sha256": "3b84748d752a195ca91de785c1f66d546603527fd89c79eb4f81959110630b54",
+  "gold_sha256": "f698841509a1cb95cc610af2830e6d5f91ba266dd72587c0e127793ccce9b59c",
+  "split_sha256": "d4af32e7aebf5144d43f443fbafe64ecd043df18eac2dcac4f062e6a7fb1381f",
+  "experiment_path": "evaluation/v3/review-successor-v1/experiment.v3.json",
+  "gold_path": "evaluation/v3/review-successor-v1/gold.v3.json",
+  "split_path": "evaluation/v3/review-successor-v1/split.v3.json",
+  "runtime_manifest_path": "output/review-remediation/live-runtime-manifest.v2.json",
+  "runtime_manifest_sha256": "94309ed2de18e60364c3429b9ce5fba6164ba3007ea9f3b55948f4f28053953b",
+  "binding_sha256": "cf86636866c46117b501aca025cf53f41142969dbe5a51baef80b8ef0d332f9c"
+}

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import {
   V2ApiError,
+  V2_REQUEST_TIMEOUT_MS,
   buildV2ChatStreamRequest,
   createV2ApiClient,
   parseV2HttpError,
@@ -22,6 +23,22 @@ import {
 const apiKey = "memory-only-secret"
 
 describe("v2 typed API client", () => {
+  it("bounds stalled response headers and aborts the underlying request", async () => {
+    vi.useFakeTimers()
+    let requestSignal: AbortSignal | null | undefined
+    const client = createV2ApiClient({ fetchImpl: vi.fn((_input, init) => {
+      requestSignal = init?.signal
+      return new Promise<Response>(() => {})
+    }) })
+    const failure = client.streamChat({ apiKey, request: {
+      conversationId: "conversation_demo_001", clientTurnId: "browser:turn-1", message: "Tìm sách",
+    } }).catch((error: unknown) => error)
+    await vi.advanceTimersByTimeAsync(V2_REQUEST_TIMEOUT_MS)
+    expect(await failure).toMatchObject({ code: "v2.request_timeout", retryable: true })
+    expect(requestSignal?.aborted).toBe(true)
+    vi.useRealTimers()
+  })
+
   it("constructs every JSON and stream endpoint with the exact transport contract", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
       const url = String(input)
@@ -93,7 +110,8 @@ describe("v2 typed API client", () => {
       throw new Error(`unexpected test request: ${method} ${url}`)
     })
     const client = createV2ApiClient({ baseUrl: "/root/", fetchImpl })
-    const signal = new AbortController().signal
+    const requestController = new AbortController()
+    const signal = requestController.signal
     const context = { apiKey, signal }
     const chatRequest = {
       conversationId: "conversation_demo_001",
@@ -151,10 +169,12 @@ describe("v2 typed API client", () => {
     for (const [, init] of fetchImpl.mock.calls) {
       const headers = new Headers(init?.headers)
       expect(headers.get("X-API-Key")).toBe(apiKey)
-      expect(init?.signal).toBe(signal)
+      expect(init?.signal).toBeInstanceOf(AbortSignal)
       expect(init?.credentials).toBe("same-origin")
       expect(init?.cache).toBe("no-store")
     }
+    requestController.abort()
+    for (const [, init] of fetchImpl.mock.calls) expect(init?.signal?.aborted).toBe(true)
     expect(JSON.stringify(client)).not.toContain(apiKey)
 
     const chatCall = fetchImpl.mock.calls.find(([url]) => url === "/root/api/v2/chat")

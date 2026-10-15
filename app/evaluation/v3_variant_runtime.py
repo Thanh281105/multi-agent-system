@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from threading import Lock
@@ -10,6 +10,7 @@ from typing import Literal, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.evaluation.v3_knowledge import ObservationKnowledgeStoreV3
 from app.evaluation.v3_models import (
     PACKAGE7_VARIANT_ORDER,
     AgentTopologyV3,
@@ -31,6 +32,7 @@ from app.shared import (
     collect_model_calls,
 )
 from app.v2.answers import GroundedAnswerProducer
+from app.v2.authorization import ResourceAuthorization
 from app.v2.execution import (
     DurableOperationExecutor,
     DurableReadTurnExecutor,
@@ -50,7 +52,7 @@ StructuredT = TypeVar("StructuredT", bound=BaseModel)
 PINNED_GENERATION_MODEL_V3: Literal["gpt-5.4-mini-2026-03-17"] = (
     "gpt-5.4-mini-2026-03-17"
 )
-PINNED_REASONING_EFFORT_V3: ReasoningEffort = "low"
+PINNED_REASONING_EFFORT_V3: ReasoningEffort = "none"
 PINNED_MAX_OUTPUT_TOKENS_V3 = 1_200
 CONTROLLER_ACTOR_ID_V3 = "controller"
 
@@ -205,7 +207,8 @@ class EvaluationV3LogicalModelRuntime:
         input_text: str,
         schema: type[StructuredT],
         max_output_tokens: int | None = None,
-        reasoning_effort: ReasoningEffort = "low",
+        reasoning_effort: ReasoningEffort = "none",
+        validate_output: Callable[[StructuredT], None] | None = None,
     ) -> StructuredModelResult[StructuredT]:
         if model != PINNED_GENERATION_MODEL_V3:
             raise EvaluationV3RuntimeConfigurationError(
@@ -234,6 +237,7 @@ class EvaluationV3LogicalModelRuntime:
             schema=schema,
             max_output_tokens=max_output_tokens,
             reasoning_effort=reasoning_effort,
+            validate_output=validate_output,
         )
 
 
@@ -248,6 +252,11 @@ class FinalizedModelCallEvidenceV3(BaseModel):
     requested_model: Literal["gpt-5.4-mini-2026-03-17"]
     resolved_model: Literal["gpt-5.4-mini-2026-03-17"]
     status: Literal["success", "failed"]
+    error_code: str | None = Field(
+        default=None,
+        pattern=r"^[a-z][a-z0-9_.-]{1,95}$",
+    )
+    latency_ms: float = Field(ge=0)
     attempts: int = Field(ge=0, le=10)
     fallback_used: bool
     fallback_reason: str | None = Field(
@@ -315,6 +324,8 @@ class EvaluationV3ModelCallRecorder:
             requested_model=PINNED_GENERATION_MODEL_V3,
             resolved_model=PINNED_GENERATION_MODEL_V3,
             status=metadata.status,
+            error_code=metadata.error_code,
+            latency_ms=metadata.duration_ms,
             attempts=metadata.attempts,
             fallback_used=metadata.fallback_used,
             fallback_reason=metadata.fallback_reason,
@@ -360,24 +371,33 @@ class EvaluationV3VariantComposer:
     def compose(
         self,
         variant: EvaluationVariantV3 | VariantIdV3,
+        *,
+        observation_access: ResourceAuthorization | None = None,
     ) -> EvaluationV3VariantRuntime:
         policy = package7_variant_policy(variant)
         runtime = EvaluationV3LogicalModelRuntime(self.model_runtime, policy)
         registry = self.shared_services.read_tools.registry
         shared_retriever = self.shared_services.knowledge_service.retriever
+        knowledge_store = self.shared_services.knowledge_store
+        if observation_access is not None:
+            knowledge_store = ObservationKnowledgeStoreV3(
+                knowledge_store,
+                self.shared_services.knowledge_snapshot,
+                observation_access,
+            )
         knowledge_query_planner = ModelRuntimeKnowledgeQueryPlanner(
             runtime,
             model=PINNED_GENERATION_MODEL_V3,
             fallback_on_model_error=False,
         )
         knowledge_retriever = HybridKnowledgeRetriever(
-            self.shared_services.knowledge_store,
+            knowledge_store,
             shared_retriever.embedder,
             planner=knowledge_query_planner,
         )
         knowledge_service = KnowledgeService(
             knowledge_retriever,
-            store=self.shared_services.knowledge_store,
+            store=knowledge_store,
         )
         read_tools = V2ReadTools(
             self.shared_services.session_factory,

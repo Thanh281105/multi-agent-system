@@ -191,6 +191,7 @@ export type ChatAction =
       type: "durable.turn.cancel.requested"
       generation: number
     }
+  | { type: "durable.turn.cancel.stopped"; generation: number }
   | {
       type: "durable.turn.reconciled" | "durable.turn.cancelled"
       generation: number
@@ -648,6 +649,24 @@ function reduceDurableAction(
       durable: {
         ...durable,
         activeTurn: { ...active, cancellationPending: true },
+      },
+    }
+  }
+
+  if (action.type === "durable.turn.cancel.stopped") {
+    const active = durable.activeTurn
+    if (!active || action.generation !== active.generation || active.serverSettled) return state
+    return {
+      ...state,
+      durable: {
+        ...durable,
+        activeTurn: { ...active, status: "cancelled", cancellationPending: false },
+        failure: {
+          source: "client",
+          code: "v2.cancel_recovery_pending",
+          message: "Đã dừng kết nối. Khôi phục lượt để xác nhận trạng thái hủy trên máy chủ.",
+          retryable: true,
+        },
       },
     }
   }

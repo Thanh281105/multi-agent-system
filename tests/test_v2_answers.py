@@ -30,7 +30,11 @@ from app.shared.budget import (
     provider_budget_scope,
 )
 from app.shared.model_runtime import ModelCallMetadata, ModelRuntimeError
-from app.v2.answers import EvidenceRequirement, GroundedAnswerProducer
+from app.v2.answers import (
+    EvidenceRequirement,
+    GroundedAnswerProducer,
+    _repair_fallback_reason,
+)
 from app.v2.authorization import ResourceAuthorization, ResourceBinding
 from app.v2.contracts import (
     ConversationMode,
@@ -402,6 +406,7 @@ def _knowledge_draft(text: str, evidence_id: str, claim_id: str = "claim_model")
         return kwargs["schema"](
             claims=[
                 {
+                    "kind": "knowledge",
                     "claim_id": claim_id,
                     "text": text,
                     "evidence_ids": [evidence_id],
@@ -414,7 +419,9 @@ def _knowledge_draft(text: str, evidence_id: str, claim_id: str = "claim_model")
 
 def _fact_draft(fact_id: str, claim_id: str = "claim_model_fact"):
     def build(kwargs: dict[str, Any]) -> Any:
-        return kwargs["schema"](claims=[{"claim_id": claim_id, "fact_ids": [fact_id]}])
+        return kwargs["schema"](
+            claims=[{"kind": "facts", "claim_id": claim_id, "fact_ids": [fact_id]}]
+        )
 
     return build
 
@@ -468,6 +475,116 @@ async def test_off_mode_makes_zero_generation_calls_and_relabels_citations() -> 
         price_ref.evidence_id,
         pages_ref.evidence_id,
     }
+
+
+@pytest.mark.asyncio
+async def test_model_comparison_uses_checked_numeric_fact_pair() -> None:
+    cheaper, cheaper_excerpt, cheaper_ref = _catalog_fact(
+        "comparison_alpha_price",
+        subject_id="product_1",
+        title="Book Alpha — historical snapshot",
+        field="snapshot_price_vnd",
+        value=191_000,
+        unit="VND",
+    )
+    costlier, costlier_excerpt, costlier_ref = _catalog_fact(
+        "comparison_beta_price",
+        subject_id="product_2",
+        title="Book Beta — historical snapshot",
+        field="snapshot_price_vnd",
+        value=210_000,
+        unit="VND",
+    )
+    runtime = QueueRuntime(
+        [
+            lambda kwargs: kwargs["schema"](
+                claims=[
+                    {
+                        "kind": "comparison",
+                        "claim_id": "claim_price_comparison",
+                        "fact_ids": [cheaper.fact_id, costlier.fact_id],
+                    }
+                ]
+            )
+        ]
+    )
+    producer = GroundedAnswerProducer(
+        runtime, runtime_mode="hybrid", model="model_snapshot"
+    )
+
+    with provider_budget_scope(_budget("answer_comparison_scope")):
+        result = await producer.produce(
+            user_request="Compare these books by price.",
+            evidence=ToolEvidence(
+                facts=(cheaper, costlier),
+                excerpts=(cheaper_excerpt, costlier_excerpt),
+                references=(cheaper_ref, costlier_ref),
+            ),
+            allowed_subject_ids=frozenset({"product_1", "product_2"}),
+        )
+
+    assert result.outcome == DialogueOutcome.ANSWERED
+    assert "191000 VND" in result.answer
+    assert "210000 VND" in result.answer
+    assert "có giá trong snapshot thấp hơn" in result.answer
+    assert {citation.evidence_id for citation in result.citations} == {
+        cheaper_ref.evidence_id,
+        costlier_ref.evidence_id,
+    }
+    assert "emit a comparison claim for that field" in runtime.calls[0]["instructions"]
+    assert len(runtime.calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_model_comparison_rejects_different_fact_fields() -> None:
+    price, price_excerpt, price_ref = _catalog_fact(
+        "comparison_price_mismatch",
+        subject_id="product_1",
+        title="Book Alpha — historical snapshot",
+        field="snapshot_price_vnd",
+        value=191_000,
+        unit="VND",
+    )
+    pages, pages_excerpt, pages_ref = _catalog_fact(
+        "comparison_pages_mismatch",
+        subject_id="product_2",
+        title="Book Beta — historical snapshot",
+        field="page_count",
+        value=320,
+        unit="page",
+    )
+    runtime = QueueRuntime(
+        [
+            lambda kwargs: kwargs["schema"](
+                claims=[
+                    {
+                        "kind": "comparison",
+                        "claim_id": "claim_invalid_comparison",
+                        "fact_ids": [price.fact_id, pages.fact_id],
+                    }
+                ]
+            )
+        ]
+    )
+    producer = GroundedAnswerProducer(
+        runtime, runtime_mode="hybrid", model="model_snapshot"
+    )
+
+    with provider_budget_scope(_budget("answer_comparison_mismatch_scope")):
+        result = await producer.produce(
+            user_request="Compare these values.",
+            evidence=ToolEvidence(
+                facts=(price, pages),
+                excerpts=(price_excerpt, pages_excerpt),
+                references=(price_ref, pages_ref),
+            ),
+            allowed_subject_ids=frozenset({"product_1", "product_2"}),
+        )
+
+    assert result.outcome == DialogueOutcome.ANSWERED
+    assert "có giá trong snapshot thấp hơn" not in result.answer
+    assert "snapshot_price_vnd=191000" not in result.answer
+    assert "answer_draft_not_grounded" in result.warnings
 
 
 @pytest.mark.asyncio
@@ -739,6 +856,15 @@ async def test_failed_repair_stops_after_one_and_returns_exact_extract() -> None
     assert result.draft_repairs == 1
     assert result.claims[0].text == evidence.excerpts[0].exact_text
     assert "answer_repair_not_grounded" in result.warnings
+
+
+def test_repair_fallback_trace_reason_keeps_rejection_and_missing_kind() -> None:
+    reason = _repair_fallback_reason(
+        (EvidenceRequirement(EvidenceKind.KNOWLEDGE, subject_id="product_1"),),
+        {"unsupported_claim"},
+    )
+
+    assert reason == "answer_repair_rejected_unsupported_claim_missing_knowledge"
 
 
 @pytest.mark.asyncio

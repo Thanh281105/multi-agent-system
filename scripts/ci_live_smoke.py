@@ -33,8 +33,9 @@ def main() -> None:
     _assert_agent_inventory()
     _assert_metrics()
     print(
-        "Live stack smoke passed: readiness, v2 identity/history, retired v1, "
-        "operations auth, and metrics"
+        "Infrastructure smoke passed: readiness, v2 identity/history availability, "
+        "retired v1, operations auth, and metrics. "
+        "Functional v2 chat requires the separate strict published-binding gate."
     )
 
 

@@ -7,6 +7,14 @@ metadata:
 data:
   APP_ENV: production
   PUBLIC_SNAPSHOT_DIR: {{ .Values.config.snapshotDir | quote }}
+  {{- if .Values.config.v2CatalogVersionId }}
+  V2_CATALOG_VERSION_ID: {{ .Values.config.v2CatalogVersionId | quote }}
+  {{- end }}
+  V2_BUDGET_ACCOUNT_ID: {{ .Values.config.v2BudgetAccountId | quote }}
+  {{- if .Values.config.v2CorpusVersionId }}
+  V2_CORPUS_VERSION_ID: {{ .Values.config.v2CorpusVersionId | quote }}
+  V2_INDEX_MANIFEST_ID: {{ required "config.v2IndexManifestId is required with v2CorpusVersionId" .Values.config.v2IndexManifestId | quote }}
+  {{- end }}
   SHARED_STATE_BACKEND: redis
   KNOWLEDGE_BACKEND: {{ .Values.config.knowledgeBackend | quote }}
   LEGACY_CHAT_ENABLED: "false"
