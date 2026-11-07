@@ -78,8 +78,22 @@ class V2TurnService:
             progress=callback,
         )
         if not admission.claimed:
+            if admission.outcome.status not in {TurnStatus.PENDING, TurnStatus.RUNNING}:
+                # Admission already emitted the terminal replay event.
+                return admission.outcome
             active = await self._active_run(turn_id)
-            if active is None or active.task is asyncio.current_task():
+            if active is None:
+                # The claimant may have completed and removed its active task
+                # after SQL admission returned the earlier running snapshot.
+                outcome = await asyncio.to_thread(
+                    self.query,
+                    turn_id,
+                    context.access,
+                    provider_budget=provider_budget,
+                )
+                await self._emit_direct_terminal(progress, outcome)
+                return outcome.model_copy(update={"reused": True})
+            if active.task is asyncio.current_task():
                 return admission.outcome
             try:
                 outcome = await asyncio.shield(active.task)

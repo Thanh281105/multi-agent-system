@@ -539,8 +539,10 @@ class IntentRouter:
     def _extract_named_book_subject(message: str) -> str | None:
         patterns = (
             r"(?:review|đánh giá|nhận xét|phàn nàn).*?"
-            r"(?:sách|cuốn|quyển|tác phẩm|tiểu thuyết|truyện|ấn bản|bản dịch|bộ sách|bộ truyện)\s+(.+?)(?:[?.!]|$)",
-            r"^\s*(?:sách|cuốn|quyển|tác phẩm|tiểu thuyết|truyện|ấn bản|bản dịch|bộ sách|bộ truyện)\s+(.+?)"
+            "(?:sách|cuốn|quyển|tác phẩm|tiểu thuyết|truyện|ấn bản|bản "
+            "dịch|bộ sách|bộ truyện)\\s+(.+?)(?:[?.!]|$)",
+            "^\\s*(?:sách|cuốn|quyển|tác phẩm|tiểu thuyết|truyện|ấn bản|bản "
+            "dịch|bộ sách|bộ truyện)\\s+(.+?)"
             r"(?=\s+(?:có vấn đề|bị phàn nàn)\b|[?.!]|$)",
         )
         for pattern in patterns:
@@ -573,7 +575,8 @@ class IntentRouter:
     @staticmethod
     def _extract_book_author(message: str) -> str | None:
         match = re.search(
-            r"(?:sách|cuốn|quyển|tác phẩm|tiểu thuyết|truyện|ấn bản)(?:\s+sách)?\s+của\s+(.+?)"
+            "(?:sách|cuốn|quyển|tác phẩm|tiểu thuyết|truyện|ấn "
+            "bản)(?:\\s+sách)?\\s+của\\s+(.+?)"
             r"(?=\s+(?:dưới|trên|từ|tối đa|tối thiểu|ít nhất|giá|rating)\b|[,.?!]|$)",
             message,
             flags=re.IGNORECASE,

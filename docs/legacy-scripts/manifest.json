@@ -1,0 +1,81 @@
+{
+  "schema_version": "archived_adhoc_sources_v1",
+  "status": "inert_source_history_not_supported_execution",
+  "files": [
+    {
+      "path": "bootstrap_database.py.txt",
+      "sha256": "17e66529f79cab11f9787d948d15f877c7d48744c38ec2e4b17edbead1f62fb5",
+      "size_bytes": 3444
+    },
+    {
+      "path": "align_db_snapshot.py.txt",
+      "sha256": "0074cf0833ababa7a8f3b511a74816bb624c3f632dee8b6e2fa25b299b863248",
+      "size_bytes": 1622
+    },
+    {
+      "path": "update_morisaki_chunk.py.txt",
+      "sha256": "0d117a46fec92c7076141aa11f740be6754e0daee18a28221d17137dcacf20e5",
+      "size_bytes": 1122
+    },
+    {
+      "path": "restore_morisaki_chunk.py.txt",
+      "sha256": "b1ddda94472e5f71c03f18bfe9c63b27661f47cba5741cda7dc4a4e2e735daab",
+      "size_bytes": 1457
+    },
+    {
+      "path": "normalize_checkpoints.py.txt",
+      "sha256": "a79da5a3858fd04fd20b3e4caf6d1eb0a6454b01e57caa281619140c305bfef7",
+      "size_bytes": 5530
+    },
+    {
+      "path": "build_independent_references.py.txt",
+      "sha256": "e15de2c6a8b07ac59c53b790afb3cf4b26d8dbe0326353d42a6e2cec57f1a155",
+      "size_bytes": 7302
+    },
+    {
+      "path": "run_full_p7_p8_benchmark.py.txt",
+      "sha256": "26694b9f89243fbb3679ed714024466b452f84aac304767788c9863c5d3fa8df",
+      "size_bytes": 9044
+    },
+    {
+      "path": "run_p7_live.py.txt",
+      "sha256": "8836eb0ef26cd7ac157821ff2598a269032ceb8c06f3d3ca600f0f309ca3de57",
+      "size_bytes": 4729
+    },
+    {
+      "path": "run_p8_live.py.txt",
+      "sha256": "89d9d34b7adc4322d5d3295f527dd74089041f7159cc315c6d0d421d097dadc6",
+      "size_bytes": 2532
+    },
+    {
+      "path": "run_p8_operate.py.txt",
+      "sha256": "d8c9c651f14a7267052ee71e7f07357e40261fcbdb010c469a3f801bc9140a81",
+      "size_bytes": 25224
+    },
+    {
+      "path": "run_p8_full_pipeline.py.txt",
+      "sha256": "bb0e9a980484a2f3c6667b8834f55ae6f2947fd39a96d3e1a3a61dfe6b63564b",
+      "size_bytes": 8399
+    },
+    {
+      "path": "run_p8_complete_and_operate.py.txt",
+      "sha256": "70917ec3d5e42e214fd7c2a1074b6c03d92a00117f26db21c935676628dee095",
+      "size_bytes": 16012
+    },
+    {
+      "path": "run_retry_19_turns.py.txt",
+      "sha256": "f3edcc9b0ebe8e640480d111ed427aae29ba50fa002258d8b4608649b25521cb",
+      "size_bytes": 10541
+    },
+    {
+      "path": "run_v4_full_benchmark.py.txt",
+      "sha256": "b2dffdecde9dce2f958edf0e017307f37454e2d1ba370e3f7c922711cfe1e59c",
+      "size_bytes": 29744
+    },
+    {
+      "path": "run_v4_pilot.py.txt",
+      "sha256": "64d5dede66e177ad5627e5f6ec3c0ff1e8622bceb55e57eba14371842966aef3",
+      "size_bytes": 14420
+    }
+  ]
+}

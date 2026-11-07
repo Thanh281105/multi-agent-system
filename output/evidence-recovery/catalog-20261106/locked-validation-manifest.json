@@ -1,0 +1,27 @@
+{
+  "schema_version": "locked_independent_validation_manifest_v1",
+  "timestamp": "2026-10-14T15:45:00Z",
+  "status": "frozen_locked_for_final_evaluation",
+  "domain": "e-commerce_catalog_pair_reasoning",
+  "source_family": "Kaggle_Tiki_Books_v4",
+  "generalization_boundary": {
+    "cross_source_generalization_claimed": false,
+    "rationale": "The validation pool is derived from the Tiki Books v4 Kaggle archive (CC0-1.0). While ID-disjoint and work-group disjoint from the 200-product development snapshot, it belongs to the same source family and distribution. It validates in-domain scalability and generalization to unseen catalog items, but does NOT establish cross-domain generalization to non-book domains or different e-commerce platform APIs."
+  },
+  "prior_heldout_classification": {
+    "status": "reclassified_as_development_regression_suite",
+    "reason": "The previous 60-case held-out set was repeatedly inspected and used during system remediation and bug fixing (Package 7/8). It is retained as a regression benchmark, while this locked suite serves as the unbiased independent validation set."
+  },
+  "dataset_statistics": {
+    "candidate_tasks": 628,
+    "excluded_ambiguous_edition_tasks": 4,
+    "locked_clean_tasks": 624,
+    "independent_author_clusters": 250,
+    "unique_catalog_products_used": 1248
+  },
+  "file_digests": {
+    "locked-prompts.jsonl": "a0ef8ee89d7a52d92831652979c79942533c4547d5f9f4f54729e65fb472dc05",
+    "locked-answer-key.jsonl": "6a69fe0997dc7d35144419d190d499566352ed2ffd7dde01a3d9ab92695eaaf5",
+    "author-cluster-mapping.json": "b77b8ec601a3793133fcb7476a90c2f710ef3f1114cbdd98236605b70100ecf6"
+  }
+}

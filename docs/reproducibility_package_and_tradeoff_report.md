@@ -1,5 +1,11 @@
 # Báo Cáo Đánh Đổi Hiệu Năng & Gói Tái Lập Thực Nghiệm (Trade-Off & Reproducibility Package)
 
+> **ĐÍNH CHÍNH — 2026-11-06:** tài liệu bên dưới là bản sinh lịch sử từ các
+> giá trị viết sẵn trong script; chưa có phép nối đến observations để xác minh
+> các số đo và kết luận ưu thế. Không dùng như báo cáo xác nhận độc lập hoặc
+> gói tái lập hoàn chỉnh. Các lệnh không tham số bên dưới đã được thay thế.
+> Xem [quy trình hiện hành](evidence-reporting.md).
+
 ## 1. Tóm Tắt Gói Tái Lập Đầy Đủ (Full Provenance Cryptographic Bundle)
 
 Nhằm đảm bảo tính tái lập 100% theo tiêu chuẩn khoa học cao nhất, toàn bộ thông số thực nghiệm, mã băm mật mã và cấu hình môi trường được đóng gói và khóa vĩnh viễn:

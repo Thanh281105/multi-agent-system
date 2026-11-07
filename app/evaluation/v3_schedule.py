@@ -8,9 +8,9 @@ from typing import Literal
 
 from app.evaluation.protocol import canonical_sha256
 from app.evaluation.v3_models import (
+    PACKAGE7_VARIANT_ORDER,
     EvaluationProtocolV3,
     ObservationIdentityV3,
-    PACKAGE7_VARIANT_ORDER,
     ScheduledTurnKindV3,
     ScheduledTurnV3,
     VariantIdV3,

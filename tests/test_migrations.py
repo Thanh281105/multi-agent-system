@@ -1,9 +1,12 @@
 """Database migration checks against isolated SQLite databases."""
 
+from contextlib import nullcontext
 from pathlib import Path
 
+import pytest
 from alembic import command
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.orm import sessionmaker
 
 from app.db.base import Base
 from app.db.migrate import (
@@ -12,6 +15,12 @@ from app.db.migrate import (
     check_database_schema,
     upgrade_database,
 )
+from app.shared.budget import (
+    PricingManifest,
+    SQLProviderBudgetLedger,
+    default_pricing_manifest_path,
+)
+from tests.test_knowledge_migrations import _downgrade_database
 from tests.v2_postgres_support import disposable_postgres_database
 
 
@@ -302,3 +311,71 @@ def test_postgres_upgrade_downgrade_reapply_preserves_legacy_schema() -> None:
 
 def _database_url(tmp_path: Path, name: str) -> str:
     return f"sqlite+pysqlite:///{(tmp_path / name).as_posix()}"
+
+
+@pytest.mark.parametrize("backend", ["sqlite", "postgres"])
+def test_timeout_migration_preserves_attempts_and_refuses_unsafe_downgrade(
+    tmp_path: Path, backend: str
+) -> None:
+    database = (
+        disposable_postgres_database()
+        if backend == "postgres"
+        else nullcontext(_database_url(tmp_path, "timeouts.db"))
+    )
+    with database as url:
+        upgrade_database(url)
+        engine = create_engine(url)
+        try:
+            ledger = SQLProviderBudgetLedger(
+                sessionmaker(bind=engine),
+                PricingManifest.load(default_pricing_manifest_path()),
+            )
+            ledger.create_account(account_id="migration_account")
+            ledger.create_scope(
+                account_id="migration_account",
+                scope_id="migration_scope",
+                purpose="chat",
+                hard_limit_nano_usd=250_000_000,
+            )
+            ledger.reserve_attempt(
+                scope_id="migration_scope",
+                call_id="mcall_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                attempt_number=1,
+                operation="generation",
+                purpose="chat",
+                model="gpt-5.4-mini",
+                request_fingerprint_sha256="a" * 64,
+                input_token_bound=100,
+                output_token_bound=10,
+                attempt_timeout_seconds=30.0,
+            )
+            with engine.connect() as connection:
+                before = connection.execute(
+                    text("SELECT * FROM v2_provider_attempts")
+                ).all()
+            with pytest.raises(RuntimeError, match="timeout above 18000"):
+                _downgrade_database(engine, "20260910_0008")
+            with engine.connect() as connection:
+                assert (
+                    connection.execute(text("SELECT * FROM v2_provider_attempts")).all()
+                    == before
+                )
+                assert (
+                    connection.scalar(text("SELECT version_num FROM alembic_version"))
+                    == EXPECTED_DATABASE_REVISION
+                )
+            check_database_schema(url)
+            with engine.begin() as connection:
+                connection.execute(
+                    text("UPDATE v2_provider_attempts SET attempt_timeout_ms=18000")
+                )
+            _downgrade_database(engine, "20260910_0008")
+            upgrade_database(url)
+            check_database_schema(url)
+            with engine.connect() as connection:
+                assert (
+                    connection.scalar(text("SELECT COUNT(*) FROM v2_provider_attempts"))
+                    == 1
+                )
+        finally:
+            engine.dispose()

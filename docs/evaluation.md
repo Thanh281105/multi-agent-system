@@ -1,5 +1,9 @@
 # Phương pháp evaluation
 
+> **Cập nhật 2026-11-06:** các báo cáo trade-off/ablation sinh từ hằng số và
+> human calibration mô phỏng không phải bằng chứng thực nghiệm. Xem
+> [quy trình báo cáo hiện hành và tình trạng artifact](evidence-reporting.md).
+
 ## 1. Câu hỏi nghiên cứu và giới hạn
 
 **Câu hỏi chính hiện tại (đang là draft):** trên cùng task, snapshot, nguồn,
@@ -200,7 +204,8 @@ Source `74149c8bc395852772e8b9ef92853e0b914ed816` hoàn tất P7 v15 `36/36` và
 v16 `720/720`. Validation độc lập đọc lại native publication và xác nhận report
 SHA-256 `97cf42490819abdb55f61173d178701760b826f26ace7f74e4a3cc3a9b042df9`;
 artifact local là
-[`current-publication-validation.v8.json`](../output/review-remediation/current-publication-validation.v8.json).
+`output/review-remediation/current-publication-validation.v8.json`
+(artifact operator-local, không có trong ZIP hiện tại).
 P8 gồm 60 conversations, bốn variants × 180 cells, ba repeats và 27 work groups;
 752 lượt chấm tự động (32 calibration, 720 held-out) hoàn tất, 0 lỗi và 0 job mơ hồ.
 720 cells là coverage của execution, không phải 720 mẫu độc lập hay 720 câu đúng.
@@ -660,7 +665,7 @@ sử với source checkout hiện tại.
 
 ### 12.1. Làn Đánh Giá Toàn Trình: Paired v2 Benchmark (Đã Kiểm Toán tại commit `7ae2e18`)
 Đây là làn benchmark toàn trình duy nhất có artifact và manifest được ghi nhận chính thức trên source code hiện tại:
-* **Bundle Manifest:** [`output/evaluation-v2/run_books_deterministic_v2/manifest.json`](file:///C:/Users/Thanh/Desktop/DACNTT/multi-agent-system/output/evaluation-v2/run_books_deterministic_v2/manifest.json)
+* **Bundle Manifest lịch sử:** `output/evaluation-v2/run_books_deterministic_v2/manifest.json` (không có trong ZIP hiện tại; số liệu bên dưới chưa được đối soát lại từ gói đó).
 * **Quy mô:** 44 cases sách × 3 repeats = 132 cặp quan sát (334 observations tổng cộng).
 * **Phạm vi thực thi:** Toàn bộ chu trình từ Router $\rightarrow$ Planner $\rightarrow$ SQL Tools (Database / Catalog / Review / Ranking) $\rightarrow$ Structured Answer Assertions.
 * **Kết quả đo đạc:**
@@ -672,7 +677,7 @@ sử với source checkout hiện tại.
 > Kết quả Paired-v2 là bằng chứng thực nghiệm đã được kiểm toán đầu tiên chứng minh kiến trúc Multi-Agent vượt trội Single-Agent trên môi trường đánh giá cục bộ.
 
 ### 12.2. Làn Package 7 / Package 8: Kiểm Tra Tính Hợp Lệ Của Kế Hoạch (Plan Admissibility)
-Lớp logic lập kế hoạch của hệ thống lõi tại [`app/v2/planning.py`](file:///C:/Users/Thanh/Desktop/DACNTT/multi-agent-system/app/v2/planning.py) đã được nâng cấp (hỗ trợ composite planning, chuẩn hóa chuỗi tiếng Việt, phân giải anaphora, bắt lỗi mâu thuẫn khoảng giá và phòng thủ prompt injection).
+Lớp logic lập kế hoạch của hệ thống lõi tại [`app/v2/planning.py`](../app/v2/planning.py) đã được nâng cấp (hỗ trợ composite planning, chuẩn hóa chuỗi tiếng Việt, phân giải anaphora, bắt lỗi mâu thuẫn khoảng giá và phòng thủ prompt injection).
 
 Script kiểm tra tính hợp lệ của kế hoạch:
 ```powershell
@@ -698,7 +703,7 @@ Thực nghiệm toàn trình **Package 8 (P8 Held-out Live v3)** chạy trên 60
 * **Tổng số lượt tương tác mô hình (Total Provider Attempts):** 3,530 lượt (2,770 lượt sinh tác tử SUT + 760 lượt thẩm định Model Judge).
 * **Độ phủ thực thi chấp nhận kiểm định (Accepted Observations):** **720 / 720 ô (100.0% execution coverage)** — Toàn bộ 720 ô quan sát đều được thu thập đầy đủ vào sổ cái, không có ô nào bị thiếu, hủy bỏ hoặc lỗi mồ côi (lưu ý: đây là độ phủ thu thập dữ liệu thực nghiệm, không phải tỷ lệ hoàn thành tác vụ hay độ chính xác).
 * **Chi phí thực thi thực tế (Total Effective Cost):** 9.534 USD.
-* **Gói xuất bản kết quả (Publication Artifacts):** [`output/evaluation-v3/heldout-live-v3/p8-publication/p8-report/`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/output/evaluation-v3/heldout-live-v3/p8-publication/p8-report)
+* **Gói xuất bản lịch sử:** `output/evaluation-v3/heldout-live-v3/p8-publication/p8-report/` (không có trong ZIP hiện tại).
   - `report_sha256`: `15a7452b5965e54a80ba47f2b4ecf2eb66b98c20f6ca97fc0cdaa445a523230f`
   - `analysis_sha256`: `97210098587367e1f5661c92b230dcad1be022b2ffad3284b5a29b1ab5bf0fef`
   - `preparation_sha256`: `9e5278559debb684e4b41697221621cf7e3f429ff1fa2547d369bd17b1593ebd`
@@ -774,7 +779,7 @@ nhận. Artifact không ghi SUT Git SHA, nên source revision đã tạo run cũ
 
 ##### Nguyên tắc cho các đợt đánh giá tiếp theo:
 - **Dừng mở rộng benchmark thăm dò ad-hoc:** Không tiếp tục tạo các kịch bản benchmark thăm dò đơn lẻ.
-- **Khóa tiêu chí thẩm định trên runtime chính:** Mọi đợt đo đạc mới chỉ được tiến hành khi đã khóa phương pháp thẩm định trực tiếp trên runtime sản phẩm chuẩn ([`app/v2`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/app/v2)), kết hợp đối chiếu nguồn snapshot (source-grounding) và một phần thẩm định mù bởi con người (blind human audit) thay vì chỉ phụ thuộc vào automated LLM Judge.
+- **Khóa tiêu chí thẩm định trên runtime chính:** Mọi đợt đo đạc mới chỉ được tiến hành khi đã khóa phương pháp thẩm định trực tiếp trên runtime sản phẩm chuẩn ([`app/v2`](../app/v2)), kết hợp đối chiếu nguồn snapshot (source-grounding) và một phần thẩm định mù bởi con người (blind human audit) thay vì chỉ phụ thuộc vào automated LLM Judge.
 
 ### 12.4. P7/P8 r3 sau sửa parser — 2026-10-12 (development regression)
 

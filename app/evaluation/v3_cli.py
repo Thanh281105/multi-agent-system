@@ -12,6 +12,7 @@ import subprocess
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, NoReturn
 from urllib.parse import urlsplit
@@ -19,6 +20,12 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel
 
 from app.evaluation.protocol import canonical_json_bytes, canonical_sha256
+from app.evaluation.source_identity import (
+    SourceIdentityError,
+    capture_source_identity,
+    freeze_source_identity,
+    require_same_source,
+)
 from app.evaluation.v3_checkpoint import (
     CheckpointErrorV3,
     canonical_run_id_v3,
@@ -65,9 +72,15 @@ from app.evaluation.v3_schedule import (
 )
 from app.evaluation.v3_variant_runtime import (
     PINNED_GENERATION_MODEL_V3,
+    EvaluationV3RuntimeConfigurationError,
+    package7_variant_policy,
 )
 from app.knowledge.v2_contracts import PublishedKnowledgeSnapshot
-from app.shared.budget import PricingManifest, default_pricing_manifest_path
+from app.shared.budget import (
+    PricingManifest,
+    default_pricing_manifest_path,
+    usd_to_nano_usd,
+)
 
 _IDENTIFIER = re.compile(r"^[a-z][a-z0-9_.-]{2,127}$")
 _PROTOCOL_NAME = "protocol.v3.json"
@@ -228,6 +241,7 @@ class EvaluationV3CLIInputs:
     pricing: PricingManifest
     protocol: EvaluationProtocolV3
     cases: Mapping[str, EvaluationCaseV3]
+    operator_budget_usd: Decimal | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -389,11 +403,19 @@ def _execute_command(arguments: argparse.Namespace) -> int:
             "database_url_required",
             "pilot execution requires an explicit --database-url",
         )
+    if inputs.operator_budget_usd is None:
+        raise EvaluationV3CLIError(
+            "operator_budget_required", "pilot requires explicit --run-budget-usd"
+        )
+    _operator_budget_nano_usd(inputs)
     _freeze_or_validate_json(paths.protocol, inputs.protocol, EvaluationProtocolV3)
     _freeze_or_validate_schedule(paths.schedule, schedule)
 
     try:
         executor_factory = _build_live_executor_factory(inputs)
+        identity = getattr(executor_factory, "source_identity", None)
+        if identity is not None:
+            freeze_source_identity(paths.output / "source-identity.v1.json", identity)
         result = asyncio.run(
             run_observations_v3(
                 protocol=inputs.protocol,
@@ -403,6 +425,8 @@ def _execute_command(arguments: argparse.Namespace) -> int:
                 executor_factory=executor_factory,
             )
         )
+        if identity is not None:
+            require_same_source(inputs.project_root, identity)
     except (CheckpointErrorV3, EvaluationV3CLIError):
         raise
     except BaseException as exc:
@@ -522,6 +546,7 @@ def _load_inputs(arguments: argparse.Namespace) -> EvaluationV3CLIInputs:
         pricing=pricing,
         protocol=protocol,
         cases=cases,
+        operator_budget_usd=getattr(arguments, "run_budget_usd", None),
     )
 
 
@@ -645,6 +670,43 @@ def _sut_git_revision(project_root: Path) -> str:
 def _build_live_executor_factory(
     inputs: EvaluationV3CLIInputs,
 ) -> ObservationExecutorFactoryV3:
+    # Parsing a historical binding is not permission to execute it with today's
+    # composer. Refuse before credentials, accounts, reservations or calls.
+    try:
+        for variant in inputs.protocol.variants:
+            package7_variant_policy(variant)
+    except EvaluationV3RuntimeConfigurationError as exc:
+        raise EvaluationV3CLIError(
+            "runtime_binding_unsupported",
+            "historical generation binding is readable but unsupported by the "
+            "current runtime; create an explicit successor protocol",
+        ) from exc
+    judge = inputs.protocol.experiment.judgment_policy.model_binding
+    if (
+        judge is not None
+        and judge.model == inputs.protocol.variants[0].generation_binding.model
+    ):
+        raise EvaluationV3CLIError(
+            "judge_binding_not_independent",
+            "current execution requires a separately frozen judge model",
+        )
+    if Path(__file__).resolve() != (
+        inputs.project_root.resolve() / "app/evaluation/v3_cli.py"
+    ):
+        raise EvaluationV3CLIError(
+            "source_import_root_mismatch", "runtime import differs from source root"
+        )
+    try:
+        identity = capture_source_identity(inputs.project_root)
+    except SourceIdentityError as exc:
+        raise EvaluationV3CLIError(
+            str(exc), "live execution requires locked source"
+        ) from exc
+    if identity.git_revision != inputs.protocol.assets.sut_git_revision:
+        raise EvaluationV3CLIError(
+            "source_revision_drift", "live source differs from the protocol revision"
+        )
+    operator_cap = _operator_budget_nano_usd(inputs)
     from app.contracts.a2a import AuthorizationContext
     from app.core.config import Settings
     from app.shared import OpenAIEmbeddingRuntime, OpenAIModelRuntime
@@ -695,14 +757,30 @@ def _build_live_executor_factory(
     _validate_live_services(inputs, services)
     services.budget_ledger.create_account(
         account_id=services.budget_account_id,
-        hard_limit_nano_usd=100_000_000_000,
-        warning_threshold_nano_usd=50_000_000_000,
+        hard_limit_nano_usd=operator_cap,
+        warning_threshold_nano_usd=min(50_000_000_000, operator_cap),
         max_concurrency=budget.provider_concurrency,
     )
-    return EvaluationV3ObservationExecutorFactory(
+    factory = EvaluationV3ObservationExecutorFactory(
         services,
         model_runtime=model_runtime,
     )
+    factory.source_identity = identity
+    return factory
+
+
+def _operator_budget_nano_usd(inputs: EvaluationV3CLIInputs) -> int:
+    maximum = inputs.protocol.experiment.budget.reservation_cap_usd
+    value = inputs.operator_budget_usd
+    if value is None:
+        # P8's separately consented frozen protocol retains its account cap.
+        value = maximum
+    if not value.is_finite() or not Decimal("0") < value <= maximum:
+        raise EvaluationV3CLIError("operator_budget_invalid", "invalid run budget")
+    result = usd_to_nano_usd(value)
+    if result <= 0:
+        raise EvaluationV3CLIError("operator_budget_invalid", "invalid run budget")
+    return result
 
 
 def _validate_runtime_settings(
@@ -1134,6 +1212,7 @@ def _parser() -> argparse.ArgumentParser:
         _add_run_identity(command)
         _add_output_paths(command, project_root)
         command.add_argument("--allow-network", action="store_true")
+        command.add_argument("--run-budget-usd", type=Decimal)
         command.add_argument(
             "--database-url",
             help="explicit durable PostgreSQL URL (never emitted)",

@@ -27,6 +27,7 @@ from app.v2.runtime_contracts import (
     EvidenceExcerpt,
     ExpertResult,
     RuntimeOperation,
+    StructuredFact,
     ToolEvidence,
     build_operation_key,
 )
@@ -39,8 +40,14 @@ class _Runtime:
     async def generate_structured(self, **kwargs: Any) -> Any:
         self.stages.append(kwargs["stage"])
         return SimpleNamespace(
-            value=AnswerDraft(
-                claims=(DraftClaim(claim_id="claim_probe", fact_ids=("missing",)),)
+            value=kwargs["schema"](
+                claims=[
+                    {
+                        "kind": "facts",
+                        "claim_id": "claim_probe",
+                        "fact_ids": ["missing"],
+                    }
+                ]
             )
         )
 
@@ -59,6 +66,26 @@ def _evidence() -> ToolEvidence:
     )
     return ToolEvidence(
         references=(reference,),
+        facts=(
+            StructuredFact(
+                fact_id="fact_probe",
+                subject_id="product_1",
+                field="page_count",
+                value=100,
+                unit="page",
+                data_version_id="catalog_v1",
+                evidence_ids=(reference.evidence_id,),
+            ),
+            StructuredFact(
+                fact_id="fact_probe_two",
+                subject_id="product_1",
+                field="snapshot_rating",
+                value=4,
+                unit="rating_5",
+                data_version_id="catalog_v1",
+                evidence_ids=(reference.evidence_id,),
+            ),
+        ),
         excerpts=(
             EvidenceExcerpt(
                 evidence_id=reference.evidence_id,
@@ -78,6 +105,16 @@ def _evidence() -> ToolEvidence:
 async def _run_stage(stage: str, runtime: _Runtime) -> None:
     evidence = _evidence()
     if stage == "expert":
+        # The expert skips a single subject group. Use two candidates so this
+        # probe exercises actual provider admission, rather than the fast path.
+        evidence = evidence.model_copy(
+            update={
+                "facts": (
+                    evidence.facts[0],
+                    evidence.facts[1].model_copy(update={"subject_id": "product_2"}),
+                )
+            }
+        )
         parameters = {"query": "Book Probe"}
         versions = ("catalog_v1",)
         operation = RuntimeOperation(

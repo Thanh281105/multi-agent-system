@@ -34,7 +34,7 @@ TEST_DATABASE_URL = "postgresql+psycopg://evaluation@example.invalid/package7"
 
 
 def test_judge_prompt_computes_missing_required_capabilities() -> None:
-    prompt = " ".join(v3_cli.PACKAGE7_JUDGE_PROMPT_V3.split())
+    prompt = " ".join(v3_cli.PACKAGE7_LEGACY_JUDGE_PROMPT_V3.split())
 
     assert '"complete"' in prompt
     assert '"awaiting_confirmation"' in prompt
@@ -146,6 +146,7 @@ def _base_args(output: Path, command: str) -> tuple[str, ...]:
         str(output),
         "--run-id",
         "run_cli_package7_v3",
+        *(("--run-budget-usd", "10") if command in {"pilot", "resume"} else ()),
     )
 
 

@@ -37,6 +37,7 @@ from app.shared.budget import (
     PricingManifestError,
     ProviderBudgetContext,
     current_provider_budget,
+    generation_input_token_limit,
     generation_payload_token_bound,
     generation_usage_from_response,
     request_fingerprint,
@@ -439,6 +440,8 @@ class OpenAIModelRuntime:
             input_text=input_text,
             schema=schema,
         )
+        if input_bound > generation_input_token_limit(budget):
+            raise BudgetLimitExceededError("generation_payload_limit_exceeded")
         budget.ledger.manifest.quote(
             model=model,
             operation="generation",
@@ -737,6 +740,15 @@ class OpenAIModelRuntime:
             return schema.model_validate_json(output_text)
         except ValidationError as exc:
             details = exc.errors(include_input=False)
+            code: Literal[
+                "model_response_incomplete",
+                "model_response_contract_violation",
+                "model_response_invalid",
+                "model_response_claim_count_invalid",
+                "model_response_claim_shape_invalid",
+                "model_response_selector_invalid",
+                "model_response_schema_invalid",
+            ]
             if any(item.get("type") == "json_invalid" for item in details):
                 code = "model_response_invalid"
             elif any(
@@ -755,8 +767,7 @@ class OpenAIModelRuntime:
             ):
                 code = "model_response_claim_count_invalid"
             elif any(
-                item.get("loc")
-                and item.get("loc", ())[0] == "claims"
+                item.get("loc") and item.get("loc", ())[0] == "claims"
                 for item in details
             ):
                 code = "model_response_claim_shape_invalid"

@@ -1,5 +1,11 @@
 # Báo Cáo Thực Nghiệm P8 Chính Thức (Official Publication Benchmark Report)
 
+> **TRẠNG THÁI KIỂM CHỨNG — 2026-11-06:** tên báo cáo này là nhãn lịch sử.
+> Gói P8 trong ZIP thiếu `preparation.json` và CSV không khớp manifest, nên
+> tuyên bố toàn vẹn đầy đủ bên dưới chưa được xác nhận trên gói hiện có.
+> Đủ 720 ô không đồng nghĩa đúng 720 câu trả lời. Xem
+> [quy trình đối soát](evidence-reporting.md).
+
 > **Mã số thực nghiệm:** `run_p8_mini_luna_judge_v3_rating_fix_20261014`  
 > **Cam kết Protocol:** P8 Frozen Protocol (`pilot-mini-luna-judge-v3-rating-fix-20261014/protocol.v3.json`)  
 > **SUT Git Revision:** `9618e03d87ebffb42bae75d14ed40f256b7156f7`  

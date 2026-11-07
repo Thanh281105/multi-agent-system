@@ -70,10 +70,10 @@ jobs:
       - name: Type-check
         run: mypy app
 
-      - name: Run offline test suite
+      - name: Run tests including PostgreSQL integration
         env:
           TEST_POSTGRES_URL: postgresql+psycopg://ecommerce_test:ci-postgres-disposable-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/thanh_v2_test_server
-        run: pytest -m "not integration" -q
+        run: pytest --ignore=tests/test_agent_integration.py -q
 
       - name: Re-score legacy captured real-model baseline
         run: |

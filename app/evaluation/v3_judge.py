@@ -335,7 +335,10 @@ class CalibrationReferenceLabelsV3(FrozenJudgeContractV3):
                 "automated_rules",
             ):
                 raise ValueError(
-                    "independent semantic labels require automated adjudication provenance"
+                    (
+                        "independent semantic labels require automated "
+                        "adjudication provenance"
+                    )
                 )
         if self.adjudicator is not None and (
             (self.source_classification == "human_review")

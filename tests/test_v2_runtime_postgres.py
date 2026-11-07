@@ -476,7 +476,7 @@ async def test_claim_lifetime_is_relative_to_locked_database_clock_under_app_ske
             assert turn is not None and db_now is not None
             assert turn.lease_expires_at is not None
             remaining = (turn.lease_expires_at - db_now).total_seconds()
-            assert 55 < remaining <= 65
+            assert 90 < remaining <= 95
 
     handler.release.set()
     outcome = await asyncio.wait_for(task, timeout=5)

@@ -233,7 +233,7 @@ def test_injected_dependencies_build_one_pinned_service_graph() -> None:
     assert first.access.binding.tenant_id == "tenant_one"
     assert second.access.binding.tenant_id == "tenant_two"
     assert first.access.binding.store_id == "demo"
-    assert first.model_snapshot.planning_model == "gpt-5.4-mini"
+    assert first.model_snapshot.planning_model == "gpt-5.4-mini-2026-03-17"
     assert first.model_snapshot.embedding_model == "hashed_token_cosine_v1"
 
 
@@ -320,7 +320,7 @@ def test_public_input_cannot_override_server_authority_or_snapshots() -> None:
     assert resolved.access.binding.store_id == "demo"
     assert resolved.versions.corpus_version_id == CORPUS_ID
     assert resolved.versions.index_manifest_id == INDEX_ID
-    assert resolved.model_snapshot.planning_model == "gpt-5.4-mini"
+    assert resolved.model_snapshot.planning_model == "gpt-5.4-mini-2026-03-17"
 
 
 def test_v2_configuration_errors_are_clear_and_remain_lazy() -> None:

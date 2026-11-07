@@ -16,6 +16,7 @@ DOCUMENTS = (
     PROJECT_ROOT / "docs" / "data.md",
     PROJECT_ROOT / "docs" / "operations.md",
     PROJECT_ROOT / "docs" / "evaluation.md",
+    PROJECT_ROOT / "docs" / "evidence-reporting.md",
     PROJECT_ROOT / "frontend" / "README.md",
 )
 MARKDOWN_LINK = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")

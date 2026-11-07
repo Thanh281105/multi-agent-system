@@ -72,9 +72,7 @@ def build_variant_orchestrator_v2(
         model_runtime=(model_runtime if specialist_binding is not None else None),
         runtime_mode=(runtime_mode if specialist_binding is not None else "off"),
         specialist_model=(
-            specialist_binding.model
-            if specialist_binding is not None
-            else "gpt-6-luna"
+            specialist_binding.model if specialist_binding is not None else "gpt-6-luna"
         ),
         reasoning_effort=_reasoning_effort(specialist_binding),
     )
@@ -98,9 +96,7 @@ def build_variant_orchestrator_v2(
             model_runtime=(model_runtime if planning_binding is not None else None),
             runtime_mode=(runtime_mode if planning_binding is not None else "off"),
             model=(
-                planning_binding.model
-                if planning_binding is not None
-                else "gpt-6-luna"
+                planning_binding.model if planning_binding is not None else "gpt-6-luna"
             ),
             reasoning_effort=_reasoning_effort(planning_binding),
         ),

@@ -441,7 +441,7 @@ def test_migration_0008_supports_runtime_upgrade_and_reapply() -> None:
             with engine.connect() as connection:
                 assert (
                     connection.scalar(text("SELECT version_num FROM alembic_version"))
-                    == "20260910_0008"
+                    == "20261013_0009"
                 )
                 assert (
                     connection.scalar(

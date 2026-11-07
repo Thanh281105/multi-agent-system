@@ -1,21 +1,16 @@
-"""Architectural Contribution Ablation Framework.
+"""Descriptive ablation arithmetic; experimental control is the caller's duty.
 
-This module provides clean component isolation to evaluate the marginal contribution
-of individual architectural components in the Multi-Agent System:
-1. Dynamic Intent-Aware Routing vs Static Specialist Broadcast (Routing Ablation)
-2. Evidence-Adaptive Replanning / Continuation vs Single-Pass Dispatch (Planning Ablation)
-3. Grounded Evidence-Checked Synthesis vs Unconstrained Concatenation (Synthesis Ablation)
-
-By holding the model backend (gpt-5.4-mini), generation temperature (0.0), snapshot data,
-and evaluator strictly identical, this framework isolates the exact delta (Delta) attributable
-to the chosen component.
+Aggregate measurements alone cannot establish causal attribution or statistical
+superiority. Use the frozen evaluation harness for paired observations and CIs.
 """
 
 from __future__ import annotations
 
 import enum
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 
 class AblationTarget(str, enum.Enum):
@@ -26,7 +21,7 @@ class AblationTarget(str, enum.Enum):
 
 @dataclass(frozen=True)
 class AblationConfiguration:
-    """Strict configuration that defines which architectural component is active or ablated."""
+    """Declare which component is active or ablated."""
 
     target: AblationTarget
     is_ablated: bool
@@ -55,31 +50,84 @@ class AblationMeasurement:
     mean_cost_usd: float
     tier_breakdown: Mapping[str, float] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if type(self.task_count) is not int or self.task_count <= 0:
+            raise ValueError("task_count must be a positive integer")
+        for name in (
+            "task_completion_rate",
+            "claim_support_rate",
+            "citation_precision",
+            "citation_coverage",
+        ):
+            value = getattr(self, name)
+            if (
+                isinstance(value, bool)
+                or not math.isfinite(value)
+                or not 0 <= value <= 1
+            ):
+                raise ValueError(f"{name} must be finite and between zero and one")
+        for name in (
+            "mean_latency_seconds",
+            "p95_latency_seconds",
+            "mean_total_tokens",
+            "mean_cost_usd",
+        ):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not math.isfinite(value) or value < 0:
+                raise ValueError(f"{name} must be finite and nonnegative")
+        if any(
+            isinstance(value, bool) or not math.isfinite(value) or not 0 <= value <= 1
+            for value in self.tier_breakdown.values()
+        ):
+            raise ValueError("tier rates must be finite and between zero and one")
+
 
 def compute_ablation_delta(
     full_system: AblationMeasurement,
     ablated_system: AblationMeasurement,
 ) -> dict[str, Any]:
-    """Calculate the isolated architectural contribution delta between full and ablated configurations."""
-    delta_completion = full_system.task_completion_rate - ablated_system.task_completion_rate
-    delta_claim_support = full_system.claim_support_rate - ablated_system.claim_support_rate
+    """Describe two measurements without inferring significance from effect size."""
+    if full_system.configuration.target != ablated_system.configuration.target:
+        raise ValueError("ablation measurements must describe the same component")
+    if (
+        full_system.configuration.is_ablated
+        or not ablated_system.configuration.is_ablated
+    ):
+        raise ValueError("expected a full configuration followed by an ablated one")
+    if full_system.task_count != ablated_system.task_count:
+        raise ValueError("ablation measurements must have the same task count")
+    delta_completion = (
+        full_system.task_completion_rate - ablated_system.task_completion_rate
+    )
+    delta_claim_support = (
+        full_system.claim_support_rate - ablated_system.claim_support_rate
+    )
     delta_precision = full_system.citation_precision - ablated_system.citation_precision
-    latency_ratio = full_system.mean_latency_seconds / max(0.001, ablated_system.mean_latency_seconds)
-    token_ratio = full_system.mean_total_tokens / max(1.0, ablated_system.mean_total_tokens)
+    latency_ratio = (
+        full_system.mean_latency_seconds / ablated_system.mean_latency_seconds
+        if ablated_system.mean_latency_seconds > 0
+        else None
+    )
+    token_ratio = (
+        full_system.mean_total_tokens / ablated_system.mean_total_tokens
+        if ablated_system.mean_total_tokens > 0
+        else None
+    )
 
     return {
-        "isolated_component": full_system.configuration.target.value,
+        "component": full_system.configuration.target.value,
         "full_system_variant": full_system.configuration.variant_label(),
         "ablated_system_variant": ablated_system.configuration.variant_label(),
         "delta_task_completion_pp": round(delta_completion * 100, 2),
         "delta_claim_support_pp": round(delta_claim_support * 100, 2),
         "delta_citation_precision_pp": round(delta_precision * 100, 2),
-        "latency_overhead_ratio": round(latency_ratio, 2),
-        "token_overhead_ratio": round(token_ratio, 2),
-        "is_statistically_superior": delta_completion > 0.05,
-        "architectural_justification": (
-            f"Ablating {full_system.configuration.target.value} causes a "
-            f"{abs(delta_completion)*100:.1f} percentage point change in task completion "
-            f"with a {latency_ratio:.2f}x latency trade-off."
+        "latency_overhead_ratio": (
+            round(latency_ratio, 2) if latency_ratio is not None else None
         ),
+        "token_overhead_ratio": (
+            round(token_ratio, 2) if token_ratio is not None else None
+        ),
+        "is_statistically_superior": None,
+        "inference_status": "not_tested",
+        "attribution_status": "requires_controlled_paired_observations",
     }

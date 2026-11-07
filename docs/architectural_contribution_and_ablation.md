@@ -1,5 +1,10 @@
 # Báo Cáo Thực Nghiệm: Cô Lập Đóng Góp Kiến Trúc (Architectural Ablation Study)
 
+> **ĐÍNH CHÍNH — 2026-11-06:** các số đo trong bản lịch sử này được script
+> dựng từ hằng số; script không thực thi các ablation được mô tả. Không dùng
+> những con số này để kết luận tác động nhân quả hay ý nghĩa thống kê.
+> Xem [quy trình hiện hành](evidence-reporting.md).
+
 ## 1. Đặt Vấn Đề & Lựa Chọn Đóng Góp Kiến Trúc Chính
 
 Trong các báo cáo trước, 4 nhánh so sánh gồm:

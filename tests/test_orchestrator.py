@@ -510,4 +510,3 @@ def test_router_supports_rich_literature_and_book_markers() -> None:
     assert routed_author.intent == "product.search"
     assert routed_author.entities.get("author") == "Nguyễn Nhật Ánh"
     assert routed_author.entities.get("max_price") == 100_000
-

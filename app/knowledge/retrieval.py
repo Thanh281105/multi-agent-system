@@ -13,6 +13,7 @@ import asyncio
 import json
 import math
 import re
+import unicodedata
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
@@ -370,7 +371,11 @@ class ModelRuntimeKnowledgeQueryPlanner:
             return _fallback_plan(fallback, "model_source_id_outside_allowlist")
         return KnowledgeQueryPlan(
             original_query=fallback.original_query,
-            queries=result.value.queries,
+            # Rewrites supplement the user's exact names/identifiers. A model
+            # must not erase the only lexical anchor to the requested work.
+            queries=tuple(
+                dict.fromkeys((fallback.original_query, *result.value.queries))
+            )[:_MAX_PLANNED_QUERIES],
             source_ids=result.value.source_ids or fallback.source_ids,
             planner="model",
         )
@@ -642,7 +647,10 @@ def _clean_query(query: str) -> str:
 
 
 def _tokens(text: str) -> tuple[str, ...]:
-    return tuple(token.casefold() for token in _TOKEN_PATTERN.findall(text))
+    return tuple(
+        token.casefold()
+        for token in _TOKEN_PATTERN.findall(unicodedata.normalize("NFC", text))
+    )
 
 
 def _planning_source_payload(source: AuthorizedKnowledgeSource) -> dict[str, object]:
@@ -739,7 +747,7 @@ def _bm25(
 ) -> dict[str, float]:
     if not chunks or not query_terms:
         return {}
-    frequencies = [Counter(_tokens(chunk.content)) for chunk in chunks]
+    frequencies = [Counter(_tokens(_lexical_text(chunk))) for chunk in chunks]
     average_length = sum(sum(frequency.values()) for frequency in frequencies) / len(
         frequencies
     )
@@ -794,8 +802,13 @@ def _lexical_coverage(chunk: RetrievalChunk, query_terms: Sequence[str]) -> floa
     unique_terms = frozenset(query_terms)
     if not unique_terms:
         return 0.0
-    chunk_terms = frozenset(_tokens(chunk.content))
+    chunk_terms = frozenset(_tokens(_lexical_text(chunk)))
     return len(unique_terms & chunk_terms) / len(unique_terms)
+
+
+def _lexical_text(chunk: RetrievalChunk) -> str:
+    """Use existing authorized metadata for ranking, never as invented evidence."""
+    return f"{chunk.title}\n{chunk.content}"
 
 
 def _rank_chunks(
@@ -957,9 +970,14 @@ def _select_and_expand(
     queries: Sequence[str],
 ) -> tuple[_RankedChunk, ...]:
     seeds: list[_RankedChunk] = []
-    seen_hashes: set[str] = set()
+    seen_hashes: set[tuple[str, str, str]] = set()
     for candidate in ranked:
-        if candidate.chunk.content_hash in seen_hashes:
+        identity = (
+            candidate.chunk.source_id,
+            candidate.chunk.source_version_id,
+            candidate.chunk.content_hash,
+        )
+        if identity in seen_hashes:
             continue
         if not _context_fits(
             (*seeds, candidate),
@@ -968,7 +986,7 @@ def _select_and_expand(
         ):
             continue
         seeds.append(candidate)
-        seen_hashes.add(candidate.chunk.content_hash)
+        seen_hashes.add(identity)
         if len(seeds) >= limit:
             break
 
@@ -986,7 +1004,12 @@ def _select_and_expand(
             if (
                 neighbor is None
                 or neighbor.chunk_id in selected
-                or neighbor.content_hash in seen_hashes
+                or (
+                    neighbor.source_id,
+                    neighbor.source_version_id,
+                    neighbor.content_hash,
+                )
+                in seen_hashes
             ):
                 continue
             adjacent = _RankedChunk(
@@ -1008,7 +1031,9 @@ def _select_and_expand(
             ):
                 continue
             selected[neighbor.chunk_id] = adjacent
-            seen_hashes.add(neighbor.content_hash)
+            seen_hashes.add(
+                (neighbor.source_id, neighbor.source_version_id, neighbor.content_hash)
+            )
     return _order_selected(tuple(selected.values()))[:max_results]
 
 

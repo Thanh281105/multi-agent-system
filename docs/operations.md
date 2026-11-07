@@ -402,7 +402,8 @@ cho evaluation hiện hành là `74149c8bc395852772e8b9ef92853e0b914ed816`:
 P7 v15 hoàn tất `36/36`; P8 review successor
 `run_p8_review_successor_v16` hoàn tất `720/720`. Cả 752 lượt chấm tự động (32
 calibration, 720 held-out) hoàn tất, không có job lỗi hoặc mơ hồ. Validation local:
-[`current-publication-validation.v8.json`](../output/review-remediation/current-publication-validation.v8.json),
+`output/review-remediation/current-publication-validation.v8.json`
+(artifact operator-local, không có trong ZIP hiện tại),
 report SHA-256 `97cf42490819abdb55f61173d178701760b826f26ace7f74e4a3cc3a9b042df9`.
 
 Kết quả là execution coverage và điểm của automated judge, không phải 720 câu

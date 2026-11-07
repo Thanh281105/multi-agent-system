@@ -23,6 +23,7 @@ from app.evaluation.v3_runner import (
     SandboxFixtureAdapterV3,
     _turn_request,
 )
+from app.evaluation.v3_variant_runtime import FinalizedModelCallEvidenceV3
 from app.models.budget import ProviderBudgetScope
 from app.models.v2 import (
     V2Cart,
@@ -109,9 +110,9 @@ class _EmptyRecorder:
 
 class _MutableRecorder:
     def __init__(self) -> None:
-        self.calls: list[Any] = []
+        self.calls: list[FinalizedModelCallEvidenceV3] = []
 
-    def snapshot(self) -> tuple[Any, ...]:
+    def snapshot(self) -> tuple[FinalizedModelCallEvidenceV3, ...]:
         return tuple(self.calls)
 
 
@@ -241,7 +242,25 @@ class _KnowledgePlanHandler:
         self.recorder = recorder
 
     async def run_claimed(self, **_: Any) -> TurnComputation:
-        self.recorder.calls.append(SimpleNamespace(stage="knowledge_query_plan"))
+        self.recorder.calls.append(
+            FinalizedModelCallEvidenceV3(
+                call_id="mcall_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                stage="knowledge_query_plan",
+                actor_id="evaluation_controller",
+                requested_model="gpt-5.4-mini-2026-03-17",
+                resolved_model="gpt-5.4-mini-2026-03-17",
+                status="success",
+                latency_ms=0,
+                attempts=1,
+                fallback_used=False,
+                fallback_reason=None,
+                input_tokens=1,
+                cached_input_tokens=0,
+                output_tokens=1,
+                reasoning_tokens=0,
+                total_tokens=2,
+            )
+        )
         return TurnComputation(
             result=TurnResult(
                 outcome=DialogueOutcome.ANSWERED,

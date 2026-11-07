@@ -197,6 +197,7 @@ def _assets() -> EvaluationAssetBindingsV3:
         {
             field_name: f"{index + 1:064x}"
             for index, field_name in enumerate(EvaluationAssetBindingsV3.model_fields)
+            if field_name != "sut_git_revision"
         }
     )
 

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import random
 import shutil
+import statistics
 import tempfile
+from collections import defaultdict
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Literal
@@ -726,6 +729,8 @@ def write_evaluation_artifacts_v3(
         analysis.analysis_sha256
     ):
         raise ValueError("report does not bind the supplied analysis")
+    if report != build_evaluation_report_v3(analysis):
+        raise ValueError("report content differs from the supplied analysis")
     if blinded.packet.bindings != analysis.bindings:
         raise ValueError("blind artifacts do not bind the supplied analysis")
     if (
@@ -737,6 +742,7 @@ def write_evaluation_artifacts_v3(
             "complete evaluation artifacts require judgments for every blind answer"
         )
     collection = _judgment_collection(blinded.packet, judgments)
+    _validate_complete_judgment_comparisons(analysis, blinded, collection)
 
     output_directory.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(
@@ -849,9 +855,26 @@ def validate_evaluation_artifacts_v3(
         raise ValueError("artifact bindings differ from the manifest")
     if report.analysis_sha256 != analysis.analysis_sha256:
         raise ValueError("report references a different analysis")
+    if report != build_evaluation_report_v3(analysis):
+        raise ValueError("report content differs from the referenced analysis")
+    if manifest.completion_status != analysis.completion_status:
+        raise ValueError("manifest completion status differs from the analysis")
     BlindedAnswerArtifactsV3(packet=packet, unblinding_key=key)
     if collection.blinded_packet_sha256 != packet.packet_sha256:
         raise ValueError("judgment collection references a different blind packet")
+    if _judgment_collection(packet, collection.judgments) != collection:
+        raise ValueError("judgment collection differs from admitted records")
+    if (
+        analysis.completion_status == "complete"
+        and packet.answer_count
+        and not (collection.judgments)
+    ):
+        raise ValueError("complete evaluation artifacts require judgments")
+    _validate_complete_judgment_comparisons(
+        analysis,
+        BlindedAnswerArtifactsV3(packet=packet, unblinding_key=key),
+        collection,
+    )
     record_counts = {
         "blinded_answers.json": packet.answer_count,
         "unblinding_key.json": len(key.entries),
@@ -1032,6 +1055,77 @@ def _reject_blind_leaks(
             "blinded answer packet contains identifying execution metadata: "
             f"values={leaked_values}, keys={leaked_keys}"
         )
+
+
+def _validate_complete_judgment_comparisons(
+    analysis: EvaluationAnalysisV3,
+    blinded: BlindedAnswerArtifactsV3,
+    collection: JudgmentCollectionV3,
+) -> None:
+    """Rejoin available rubric scores; resource totals need execution receipts."""
+    if analysis.completion_status != "complete":
+        return
+    entries = blinded.unblinding_key.entries
+    records = collection.judgments
+    if len(entries) != analysis.accepted_observation_count:
+        raise ValueError("complete analysis count differs from blind observations")
+    judgments = {item.opaque_answer_id: item for item in records}
+    if len(judgments) != len(records) or len(records) != len(entries):
+        raise ValueError("complete analysis requires one final judgment per answer")
+    identities = {
+        (item.variant_id, item.work_group_id, item.conversation_id, item.repetition)
+        for item in entries
+    }
+    if len(identities) != len(entries):
+        raise ValueError("blind observations contain duplicate analysis identities")
+    for comparison in analysis.comparisons:
+        relevant = [
+            entry
+            for entry in entries
+            if entry.variant_id
+            in {comparison.baseline_variant_id, comparison.candidate_variant_id}
+        ]
+        # Human-reviewed bundles may contain only a subset of rubric metrics.
+        # Never invent absent labels or interpret resource totals as labels.
+        if not relevant or any(
+            comparison.metric not in judgments[item.opaque_answer_id].scores
+            for item in relevant
+        ):
+            continue
+        by_variant: dict[str, dict[tuple[str, str, int], float | None]] = defaultdict(
+            dict
+        )
+        for item in relevant:
+            by_variant[item.variant_id][
+                (item.work_group_id, item.conversation_id, item.repetition)
+            ] = judgments[item.opaque_answer_id].scores[comparison.metric]
+        baseline = by_variant[comparison.baseline_variant_id]
+        candidate = by_variant[comparison.candidate_variant_id]
+        groups: dict[str, dict[str, list[tuple[float, float]]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        for identity in baseline.keys() & candidate.keys():
+            left, right = baseline[identity], candidate[identity]
+            if left is not None and right is not None:
+                groups[identity[0]][identity[1]].append((left, right))
+        if set(groups) != {group.work_group_id for group in comparison.work_groups}:
+            raise ValueError("analysis work groups differ from final judgments")
+        for row in comparison.work_groups:
+            cases = groups[row.work_group_id]
+            means = [
+                statistics.fmean(
+                    statistics.fmean(pair[side] for pair in pairs)
+                    for pairs in cases.values()
+                )
+                for side in (0, 1)
+            ]
+            if (
+                row.conversation_count != len(cases)
+                or row.paired_repetition_count != sum(map(len, cases.values()))
+                or not math.isclose(row.baseline_mean, means[0], abs_tol=1e-12)
+                or not math.isclose(row.candidate_mean, means[1], abs_tol=1e-12)
+            ):
+                raise ValueError("analysis metric values differ from final judgments")
 
 
 def _judgment_collection(

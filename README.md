@@ -1,5 +1,18 @@
 # Evidence Atlas — trợ lý sách Multi-Agent tiếng Việt
 
+> **Trạng thái bằng chứng — 2026-11-06:** báo cáo trade-off/ablation cũ có số
+> liệu viết sẵn và human calibration cũ là mô phỏng; không dùng chúng để chứng
+> minh ưu thế MA hay người thật chấm mù. Gói P8/catalog trong ZIP còn thiếu hoặc
+> sai hash artifact. Xem [quy trình báo cáo đã sửa](docs/evidence-reporting.md).
+> Các lệnh báo cáo mới yêu cầu evidence đầu vào rõ ràng và không ghi đè kết quả cũ.
+> Bản P1 bổ sung đối soát report → analysis → điểm chấm, tính lại bootstrap,
+> sửa migration/readiness và ngừng runner ad-hoc có thể sửa evidence frozen.
+> Xem [thay đổi P1 và giới hạn kiểm chứng](docs/p1-remediation-20261106.md).
+> Bản P2 cải thiện retrieval và độ đầy đủ của câu trả lời: giữ truy vấn gốc,
+> dùng tiêu đề đã cấp quyền khi chấm lexical, giữ attribution giữa các nguồn,
+> tăng phần trích dẫn khi vừa budget và yêu cầu đủ các trường đã dùng để lọc sách.
+> Xem [cơ sở nghiên cứu, đối chứng development và cách chạy benchmark](docs/benchmark-quality-p2.md).
+
 Evidence Atlas là reference implementation **production-oriented** cho trợ lý
 quyết định sách dựa trên evidence. `/api/v2` là API HTTP có version duy nhất,
 dùng PostgreSQL cho hội thoại, hành động và knowledge retrieval. Các endpoint
@@ -490,3 +503,10 @@ tests/                # offline regression + optional integration
 
 Các giới hạn này là một phần của evidence contract, không phải footnote tùy
 chọn.
+
+## Chuẩn bị benchmark P3 (API để sau)
+
+P3 thêm source identity cho live admission, áp dụng input bound của profile và
+operator cap cho P7, cùng công cụ readiness offline và tạo phiếu chấm mù chưa có
+nhãn. Chưa có điểm model mới hoặc kết luận MA vượt SA.
+Xem [hướng dẫn, giới hạn và kế hoạch đo](docs/benchmark-readiness-p3.md).
