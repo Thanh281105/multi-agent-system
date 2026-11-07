@@ -37,8 +37,8 @@ X-Operations-Key: <operations-secret>
 Client chỉ chọn `mode` (`shopper` hoặc `merchant`); identity, store, catalog
 version, corpus version và index manifest do server bind. PostgreSQL là nguồn
 chính cho hội thoại, turn, action và published knowledge. Cấu hình runtime dùng
-`V2_CORPUS_VERSION_ID` và tùy chọn `V2_INDEX_MANIFEST_ID`; Docker Compose truyền
-hai biến này từ môi trường vào app container.
+`V2_CORPUS_VERSION_ID` và tùy chọn `V2_INDEX_MANIFEST_ID`, đọc từ môi trường
+hoặc `.env`.
 
 V2 chỉ nhận turn khi resolve được corpus/index đã publish trong PostgreSQL và
 embedding model/dimension khớp. Thiếu binding hoặc snapshot hợp lệ làm runtime

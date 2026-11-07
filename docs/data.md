@@ -136,8 +136,8 @@ ecommerce-data import --snapshot data/snapshots/tiki-books-v4-eval
 ```
 
 `ecommerce-seed` mặc định đọc `PUBLIC_SNAPSHOT_DIR`, hiện là
-`data/snapshots/tiki-books-v4-eval`. Compose đóng gói đường dẫn tương ứng trong
-container và chạy `migrate → seed-data → backend`.
+`data/snapshots/tiki-books-v4-eval`; thứ tự chạy là
+`ecommerce-migrate → ecommerce-seed → backend`.
 
 Importer validate trước khi ghi, stream trong transaction và validate lại sau
 khi đọc để phát hiện artifact bị thay đổi giữa chừng. Identity bất biến là

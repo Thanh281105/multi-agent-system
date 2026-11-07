@@ -1,9 +1,9 @@
 # Runbook vận hành
 
-## 1. Production prerequisites
+## 1. Prerequisites
 
-- Docker Engine/Compose v2 cho production-like local; Helm 3 + Kubernetes cho
-  cluster, kind chỉ dùng smoke disposable.
+- Python 3.12+ và Node theo `frontend/package-lock.json`. Dự án không kèm
+  Docker image hay Helm chart; backend chạy trực tiếp bằng `uvicorn`.
 - Reverse proxy TLS; backend chỉ bind loopback/private network.
 - Secret manager hoặc `.env` có quyền đọc giới hạn và không commit.
 - PostgreSQL bền; Redis authenticated theo shared-state production settings.
@@ -21,9 +21,9 @@ PostgreSQL corpus/index đã pin. Repository không seed Qdrant knowledge corpus
 
 | Variable | Production/default | Ghi chú |
 | --- | --- | --- |
-| `APP_ENV` | `production` | Compose đặt cố định |
+| `APP_ENV` | `production` | Đặt trong `.env` |
 | `DATABASE_URL` | Authenticated PostgreSQL | SQLite chỉ development/test |
-| `PUBLIC_SNAPSHOT_DIR` | `data/snapshots/tiki-books-v4-eval` | Trong image là `/app/data/...` |
+| `PUBLIC_SNAPSHOT_DIR` | `data/snapshots/tiki-books-v4-eval` | Tương đối từ repo root |
 | `V2_CATALOG_VERSION_ID` | Expected catalog ID | Optional; nếu đặt, factory từ chối snapshot khác pin |
 | `V2_CORPUS_VERSION_ID` | Published v2 corpus ID | Bắt buộc khi resolve API v2 |
 | `V2_INDEX_MANIFEST_ID` | Published v2 index ID | Optional chỉ khi corpus có một complete index; production nên pin rõ |
@@ -41,12 +41,12 @@ PostgreSQL corpus/index đã pin. Repository không seed Qdrant knowledge corpus
 | `LEGACY_CHAT_ENABLED` | `false` | Production validator bắt buộc |
 | `LOG_LEVEL` | `INFO` khuyến nghị | Không log request/provider payload |
 
-Compose truyền tiếp `V2_CORPUS_VERSION_ID` và `V2_INDEX_MANIFEST_ID` từ shell
-hoặc `.env` vào app container. Không cần mở hay chép giá trị secret để kiểm tra
-route; corpus/index ID là binding dữ liệu server-side.
+App đọc `V2_CORPUS_VERSION_ID` và `V2_INDEX_MANIFEST_ID` từ shell hoặc `.env`.
+Không cần mở hay chép giá trị secret để kiểm tra route; corpus/index ID là
+binding dữ liệu server-side.
 
-`POSTGRES_PASSWORD` và `REDIS_PASSWORD` trong Compose phải URL-safe vì được nội
-suy vào connection URL. Muốn chạy không provider: đặt
+Mật khẩu PostgreSQL/Redis phải URL-safe vì nằm trong connection URL. Muốn chạy
+không provider: đặt
 `MODEL_RUNTIME_MODE=off` và giữ `KNOWLEDGE_BACKEND=disabled`; embedding settings
 không được dùng cho đường v1 này. V2 vẫn phải khớp embedding model/dimension của
 published index trước khi resolve knowledge.
@@ -56,12 +56,11 @@ Chỉ khi owner chủ động tích hợp Qdrant mới đặt `KNOWLEDGE_BACKEND
 thích vector contract và không rỗng trước readiness. Repository không có job
 `seed-knowledge` và agent path hiện tại không dùng collection đó làm evidence.
 
-## 3. Pre-deploy
+## 3. Kiểm tra trước khi chạy
 
 ```powershell
 Copy-Item .env.example .env
 # Thay placeholder bằng secret thật; không in nội dung .env ra terminal/log.
-docker compose --env-file .env config --quiet
 
 Push-Location frontend
 npm ci
@@ -75,15 +74,10 @@ ruff check app tests migrations
 ruff format --check app tests migrations
 mypy app
 pytest -m "not integration" -q
-pytest -q tests/test_helm_assets.py tests/test_deployment_assets.py
+pytest -q tests/test_runtime_assets.py
 ```
 
-Không deploy nếu migration, snapshot validation, tests, Compose render hoặc
-image build thất bại. Image check:
-
-```powershell
-docker build --tag ecommerce-multi-agent:1.0.0 .
-```
+Không chạy demo nếu migration, snapshot validation hoặc tests thất bại.
 
 Trước khi mở API v2, xác nhận migration head `20260910_0008`, catalog snapshot
 đã import và published corpus/index là `books-v1-calibrated-20260909` (20
@@ -91,155 +85,39 @@ sources/chunks/vectors, 200 mappings). V2 phải fail closed nếu thiếu
 `V2_CORPUS_VERSION_ID`, index chưa complete hoặc embedding model/dimension không
 khớp. Không dùng calibration/Q&A artifacts làm corpus data.
 
-`app/frontend/dist` là output của Vite; không sửa tay. Image đóng gói đúng
-`data/snapshots/tiki-books-v4-eval` và chạy non-root/read-only.
+`app/frontend/dist` là output của Vite; không sửa tay.
 
-## 4. Docker Compose production-like
+## 4. Chạy local
 
-Tạo `.env` từ template. Các giá trị tối thiểu phải thay là
-`POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `GATEWAY_API_KEYS`,
-`GATEWAY_PRINCIPAL_POLICIES`, `OPERATIONS_API_KEY`; thêm `OPENAI_API_KEY` nếu
-model mode bật. Không cần Qdrant key khi knowledge disabled.
+`compose.yaml` chỉ cung cấp PostgreSQL/Redis disposable cho máy dev
+(`127.0.0.1:55432`, `127.0.0.1:56379`); credential trong file chỉ dùng local.
 
 ```powershell
-docker compose --env-file .env up --build -d
-docker compose --env-file .env ps
-```
+docker compose up -d
+$env:DATABASE_URL = "postgresql+psycopg://ecommerce_p1:p1-local-disposable-only@127.0.0.1:55432/ecommerce_p1"
+$env:REDIS_URL = "redis://:p1-local-disposable-only@127.0.0.1:56379/0"
+$env:TEST_POSTGRES_URL = $env:DATABASE_URL
 
-Startup thực tế:
-
-```text
-postgres healthy → migrate (`ecommerce-migrate`)
-                 → seed-data (`ecommerce-seed`)
-                 → backend
-redis healthy ────────────────────────────────┘
-```
-
-`seed-data` validate/import evaluation snapshot và từ chối database mixed,
-legacy, khác profile hoặc khác hashes. Nó không sinh dữ liệu và không có reset
-flag. Qdrant service chỉ khởi động nếu gọi Compose với profile `knowledge`, và
-vẫn không có knowledge seed.
-
-Xem log có giới hạn, không dump environment:
-
-```powershell
-docker compose --env-file .env logs --tail 100 migrate seed-data
-docker compose --env-file .env logs --tail 100 backend
-```
-
-Backend chỉ publish ở `127.0.0.1:8000` theo default. Không expose trực tiếp ra
-Internet; đặt sau reverse proxy TLS.
-
-## 5. Helm
-
-### 5.1 Production profile
-
-Profile mặc định triển khai một application replica. PostgreSQL/Redis do
-platform cung cấp; Qdrant không bắt buộc. Chart không tạo Secret. Existing
-Secret tối thiểu chứa:
-
-```text
-DATABASE_URL
-REDIS_URL
-GATEWAY_API_KEYS
-OPERATIONS_API_KEY
-```
-
-Kubernetes `secretKeyRef` cho `OPENAI_API_KEY` có `optional: true` chỉ để profile
-model `off` có thể bỏ key. Với production mặc định `hybrid`, Existing Secret
-phải có `OPENAI_API_KEY` không rỗng; runtime sẽ fail nếu thiếu. `QDRANT_API_KEY`
-chỉ được tham chiếu khi `config.knowledgeBackend=qdrant`.
-
-Production chart chạy Alembic hook nhưng `bootstrap.seedData=false`; việc import
-snapshot và bind published corpus/index vào external database phải là data change
-đã review riêng. Có thể chạy
-cùng migration idempotent từ image/release tương ứng trong bounded operator job
-trước khi mở traffic; Helm hook sẽ xác nhận lại revision khi rollout:
-
-```powershell
 ecommerce-data validate --snapshot data/snapshots/tiki-books-v4-eval
 ecommerce-migrate
-ecommerce-data import --snapshot data/snapshots/tiki-books-v4-eval
+ecommerce-seed --snapshot data/snapshots/tiki-books-v4-eval
+uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Sau đó đặt `V2_CORPUS_VERSION_ID` vào published corpus ID và pin
-`V2_INDEX_MANIFEST_ID` vào published index ID. Không trỏ v2 vào Qdrant legacy seam
-hoặc một index đang build.
+`ecommerce-seed` validate/import evaluation snapshot và từ chối database mixed,
+legacy, khác profile hoặc khác hashes. Nó không sinh dữ liệu và không có reset
+flag. Sau đó đặt `V2_CORPUS_VERSION_ID` vào published corpus ID và pin
+`V2_INDEX_MANIFEST_ID` vào published index ID. Không trỏ v2 vào Qdrant legacy
+seam hoặc một index đang build.
 
-Render/lint và deploy bằng immutable image:
-
-```powershell
-helm lint deploy/helm/ecommerce-multi-agent
-helm template ecommerce-multi-agent deploy/helm/ecommerce-multi-agent `
-  --namespace ecommerce `
-  --set existingSecret=ecommerce-multi-agent-runtime
-
-helm upgrade --install ecommerce-multi-agent `
-  deploy/helm/ecommerce-multi-agent `
-  --namespace ecommerce `
-  --create-namespace `
-  --set existingSecret=ecommerce-multi-agent-runtime `
-  --set image.repository=REGISTRY/ecommerce-multi-agent `
-  --set image.tag=IMMUTABLE_TAG `
-  --wait `
-  --timeout 10m
-```
-
-Chart dùng `ClusterIP`, NetworkPolicy, non-root/read-only security context và
-chặn replica khác `1`. Không tăng replica trước khi externalize limiter và
-telemetry. Monitoring resources là opt-in:
-
-```powershell
-helm upgrade --install ecommerce-multi-agent `
-  deploy/helm/ecommerce-multi-agent `
-  --reuse-values `
-  --set monitoring.serviceMonitor.enabled=true `
-  --set monitoring.prometheusRule.enabled=true `
-  --set monitoring.grafanaDashboard.enabled=true `
-  --wait
-```
-
-### 5.2 kind smoke profile
-
-Kind profile chạy internal PostgreSQL/Redis, migration, Tiki snapshot bootstrap,
-model `off` và knowledge `disabled`. Nó không chạy Qdrant hay `seed-knowledge`.
-
-```powershell
-docker build --provenance=false --tag ecommerce-multi-agent:kind .
-kind create cluster --name ecommerce-ma `
-  --image kindest/node:v1.35.0@sha256:452d707d4862f52530247495d180205e029056831160e22870e37e3f6c1ac31f
-kind load docker-image ecommerce-multi-agent:kind --name ecommerce-ma
-
-kubectl create namespace ecommerce-kind
-kubectl -n ecommerce-kind create secret generic ecommerce-multi-agent-runtime `
-  --from-literal=DATABASE_URL='postgresql+psycopg://ecommerce:kind-postgres-only@ecommerce-multi-agent-postgres:5432/ecommerce' `
-  --from-literal=REDIS_URL='redis://:kind-redis-only@ecommerce-multi-agent-redis:6379/0' `
-  --from-literal=GATEWAY_API_KEYS='kind:kind-gateway-secret-2026' `
-  --from-literal=OPERATIONS_API_KEY='kind-operations-secret-2026' `
-  --from-literal=POSTGRES_PASSWORD='kind-postgres-only' `
-  --from-literal=REDIS_PASSWORD='kind-redis-only'
-
-helm upgrade --install ecommerce-multi-agent `
-  deploy/helm/ecommerce-multi-agent `
-  --namespace ecommerce-kind `
-  --values deploy/helm/ecommerce-multi-agent/values-kind.yaml `
-  --wait `
-  --timeout 10m
-
-kubectl -n ecommerce-kind get pods
-kubectl -n ecommerce-kind port-forward service/ecommerce-multi-agent 8000:8000
-```
-
-Trong terminal khác, chạy `python scripts/ci_live_smoke.py`. Expected:
-PostgreSQL/Redis Ready; `wait-for-dependencies`, `migrate`, `seed-data` exit 0;
+Backend chỉ bind `127.0.0.1` theo ví dụ trên; không expose trực tiếp ra
+Internet. Khi server đang chạy, `python scripts/ci_live_smoke.py` kiểm tra
 readiness/liveness, V2 identity/history (history có thể fail closed nếu chưa
-publish corpus/index), V1 route trả 404, operations auth và metrics smoke pass.
-Xóa cluster disposable bằng `kind delete cluster --name ecommerce-ma`.
+publish corpus/index), V1 route trả 404, operations auth và metrics. Đây là
+infrastructure smoke; trước demo phải publish corpus/index và chạy strict
+functional gate bên dưới.
 
-Đây là infrastructure smoke. Trước demo phải publish corpus/index và chạy
-strict functional gate bên dưới; history trả 503 không đạt gate demo.
-
-## 6. Health và smoke
+## 5. Health và smoke
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/livez
@@ -283,14 +161,12 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v2/chat `
 ```
 
 Bind `V2_CORPUS_VERSION_ID` và tùy chọn `V2_INDEX_MANIFEST_ID` trong môi trường
-Compose để app resolve đúng snapshot PostgreSQL đã publish. Response phải giữ
+của app để resolve đúng snapshot PostgreSQL đã publish. Response phải giữ
 provenance cho các claim dựa trên evidence.
 
-Strict functional gate dùng ba identity đã xác minh từ deployment. Đặt
+Strict functional gate dùng ba identity đã xác minh từ môi trường chạy. Đặt
 `CI_GATEWAY_KEY` bằng user credential qua secret environment; không in key.
-Helm nhận cùng pins qua `config.v2CatalogVersionId`,
-`config.v2CorpusVersionId`, `config.v2IndexManifestId` và
-`config.v2BudgetAccountId`. Corpus/index phải cùng complete published snapshot.
+Corpus/index phải cùng complete published snapshot.
 Chuẩn bị offer bằng insert-only seeder cho đúng tenant demo trước khi chạy
 shopper catalog; không reset database lịch sử. URL lấy từ secret environment:
 
@@ -313,10 +189,9 @@ Backup không provider cần query embedder tương thích chính xác model/dim
 của index. `MODEL_RUNTIME_MODE=off` chỉ tắt generation, không tạo embeddings
 offline tương thích. Nếu chưa có runtime offline đã rehearsal, dùng recorded
 demo có timestamp, source pins và kết quả gate; gắn nhãn recorded, không gọi
-là live offline inference. Bundle rehearsal của remediation nằm trong
-`output/review-remediation/`, tách khỏi evidence benchmark chính thức.
+là live offline inference.
 
-## 7. Metrics và diagnosis
+## 6. Metrics và diagnosis
 
 ```powershell
 $ops = @{"X-Operations-Key" = "OPERATIONS_SECRET"}
@@ -337,22 +212,22 @@ Metrics/traces dùng labels bounded và không chứa raw user/session/model pay
 Trace/audit nằm trong ring buffer process và mất khi restart; cần collector ngoài
 nếu muốn retention.
 
-## 8. Backup, upgrade và rollback
+## 7. Backup, upgrade và rollback
 
 Trước migration/data replacement, backup PostgreSQL theo policy môi trường và
-restore thử vào database riêng. Ví dụ Compose logical backup:
+restore thử vào database riêng. Ví dụ logical backup với PostgreSQL local:
 
 ```powershell
-docker compose --env-file .env exec -T postgres `
-  pg_dump -U ecommerce -d ecommerce -Fc > ecommerce-backup.dump
+docker compose exec -T postgres `
+  pg_dump -U ecommerce_p1 -d ecommerce_p1 -Fc > ecommerce-backup.dump
 ```
 
 Upgrade:
 
-1. Ghi image tag/commit và tạo backup đã kiểm tra.
+1. Ghi commit và tạo backup đã kiểm tra.
 2. Review migration và snapshot manifest/quality report.
-3. Chạy offline suite, evaluation phù hợp và image/chart checks.
-4. Chạy migration/import theo thứ tự, rồi rollout immutable image.
+3. Chạy offline suite và evaluation phù hợp.
+4. Chạy migration/import theo thứ tự, rồi khởi động lại backend.
 5. Chờ `/readyz`, smoke JSON/SSE và theo dõi errors/latency.
 
 `ecommerce-seed` chỉ xác nhận/import đúng snapshot; nó không reset. Rollback app
@@ -364,7 +239,7 @@ procedure cho legacy v1 adapter. V2 corpus/index trong PostgreSQL phải nằm t
 backup/restore drill và được kiểm tra identity trước khi mở traffic. Nếu thêm
 Qdrant về sau, phải bổ sung versioned index backup và restore drill riêng.
 
-## 9. Incident hints
+## 8. Incident hints
 
 | Triệu chứng | Kiểm tra | Hành động an toàn đầu tiên |
 | --- | --- | --- |
@@ -379,7 +254,7 @@ Qdrant về sau, phải bổ sung versioned index backup và restore drill riên
 | 503 all agents failed | Agent errors/audit | Giữ fail closed; không bịa fallback facts |
 | Model fallback tăng | Timeout/rate/schema/policy/circuit | Kiểm tra stage/error code; không tăng retry vô hạn |
 
-## 10. Dọn seed legacy disposable
+## 9. Dọn seed legacy disposable
 
 Đây không phải bước startup/upgrade thường lệ. Chỉ với database disposable đã
 xác nhận đúng fingerprint seed tổng hợp cũ:
@@ -394,7 +269,7 @@ ecommerce-seed --snapshot data/snapshots/tiki-books-v4-eval
 Command bị chặn ở production và từ chối database không khớp exact legacy
 fingerprint. Không dùng nó trên dữ liệu cần giữ.
 
-## 11. V2 và Package 8 evaluation handoff
+## 10. V2 và Package 8 evaluation handoff
 
 Handoff sau sửa P02 nằm tại
 [P02 successor handoff](thanh-v2/p02-successor-handoff.md). Source đã freeze

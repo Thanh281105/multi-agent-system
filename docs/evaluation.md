@@ -679,10 +679,9 @@ sử với source checkout hiện tại.
 ### 12.2. Làn Package 7 / Package 8: Kiểm Tra Tính Hợp Lệ Của Kế Hoạch (Plan Admissibility)
 Lớp logic lập kế hoạch của hệ thống lõi tại [`app/v2/planning.py`](../app/v2/planning.py) đã được nâng cấp (hỗ trợ composite planning, chuẩn hóa chuỗi tiếng Việt, phân giải anaphora, bắt lỗi mâu thuẫn khoảng giá và phòng thủ prompt injection).
 
-Script kiểm tra tính hợp lệ của kế hoạch:
-```powershell
-python scripts/run_full_p7_p8_benchmark.py
-```
+Script lịch sử kiểm tra tính hợp lệ của kế hoạch là
+`scripts/run_full_p7_p8_benchmark.py`; script đã bị gỡ khỏi source hiện hành,
+bản gốc xem bằng `git show thanh-v4:scripts/run_full_p7_p8_benchmark.py`.
 * **Phạm vi kiểm tra:** Đo lường **Plan Admissibility** — kiểm tra xem `desired_capabilities` sinh ra từ Planner có thỏa mãn hoàn toàn `action_capability_blueprint` (required, allowed, forbidden) của 80 gold cases (20 Dev + 60 Held-out) và 756 ô lịch trình (P7: 36 ô, P8: 720 ô) hay không.
 * **Kết quả Plan Admissibility:** Đạt **100.0% độ hợp lệ kế hoạch** trên cả 3 biến thể có RAG, giải quyết triệt để 4 nhóm lỗi từng đạt 0.0% plan validity trong lịch sử (`multi_constraint`, `multi_expert_compare_recommendation`, `multi_turn_memory`, `shopping_merchant`).
 * **Giới hạn học thuật:** Đây là phép đo kiểm tra tính đúng đắn của pha Lập Kế Hoạch (Planning Stage), **chưa phải là phép đo Task Completion toàn trình có Model Judge** của Package 8, do chưa thực thi trọn vẹn specialist execution, live RAG retrieval và automated LLM judging.

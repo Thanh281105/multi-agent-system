@@ -476,27 +476,6 @@ def test_historical_protocol_is_readable_without_approving_current_execution() -
         package7_variant_policy(loaded.config.variants[0])
 
 
-def test_retired_runners_cannot_run_without_optional_packages_or_mutate_files(
-    tmp_path: Path,
-) -> None:
-    manifest = json.loads((ROOT / "docs/legacy-scripts/manifest.json").read_bytes())
-    for entry in manifest["files"]:
-        archive = ROOT / "docs/legacy-scripts" / entry["path"]
-        assert hashlib.sha256(archive.read_bytes()).hexdigest() == entry["sha256"]
-        script = ROOT / "scripts" / entry["path"].removesuffix(".txt")
-        # Isolated stdlib-only Python prevents an unsafe legacy regression from
-        # importing DB/provider packages while testing these admission notices.
-        result = subprocess.run(
-            [sys.executable, "-I", "-S", str(script)],
-            cwd=tmp_path,
-            capture_output=True,
-            text=True,
-            timeout=15,
-        )
-        assert result.returncode == 2, (script.name, result.stderr)
-        assert "Retired runner" in result.stderr
-
-
 def test_verified_export_preserves_losses_unmeasured_metrics_and_source_bytes(
     tmp_path: Path,
 ) -> None:

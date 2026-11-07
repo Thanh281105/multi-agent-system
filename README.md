@@ -112,8 +112,7 @@ Tài liệu chính:
   đúng một terminal event.
 - Same-origin responsive UI hiển thị answer, agent execution và evidence; API
   key chỉ ở memory của trang.
-- Alembic, fail-closed snapshot bootstrap, non-root/read-only container,
-  Compose/Helm và offline evaluation gates.
+- Alembic, fail-closed snapshot bootstrap và offline evaluation gates.
 - API v2 có owner-bound conversation/turn/action state trong PostgreSQL; một
   turn pin catalog, corpus và index version rồi mới được dispatch.
 
@@ -149,34 +148,26 @@ Mỗi profile có `products.jsonl`, `reviews.jsonl`, `manifest.json` và
 database mixed/legacy hoặc snapshot khác. Chi tiết/checksum nằm trong
 [docs/data.md](docs/data.md).
 
-## Khởi động production-like bằng Docker Compose
+## PostgreSQL/Redis local cho dev và test
 
-Yêu cầu Docker Compose v2. Default chỉ publish backend tại
-`127.0.0.1:8000`; PostgreSQL/Redis nằm trên internal network. Qdrant không chạy
-khi không bật profile `knowledge`.
+`compose.yaml` chỉ chạy PostgreSQL và Redis disposable cho máy dev, publish tại
+`127.0.0.1:55432` và `127.0.0.1:56379`. Dự án không kèm Docker image hay Helm
+chart để deploy; backend chạy trực tiếp bằng `uvicorn` như mục bên dưới.
 
 ```powershell
-Copy-Item .env.example .env
-# Mở .env và thay placeholder; không in/commit secret.
-docker compose --env-file .env config --quiet
-docker compose --env-file .env up --build -d
-docker compose --env-file .env ps
+docker compose up -d
+$env:TEST_POSTGRES_URL = "postgresql+psycopg://ecommerce_p1:p1-local-disposable-only@127.0.0.1:55432/ecommerce_p1"
 ```
 
-Phải thay:
+Credential trong `compose.yaml` chỉ dành cho database disposable local. Trong
+`.env`, phải thay:
 
-- `POSTGRES_PASSWORD`, `REDIS_PASSWORD`: URL-safe;
 - `GATEWAY_API_KEYS`: `principal:secret[,principal:secret]`;
 - `GATEWAY_PRINCIPAL_POLICIES`: `principal:tenant:scope1|scope2`;
 - `OPERATIONS_API_KEY`: credential riêng, ít nhất 16 ký tự;
 - `OPENAI_API_KEY` nếu `MODEL_RUNTIME_MODE` khác `off`.
 
-Không cần `QDRANT_API_KEY` khi `KNOWLEDGE_BACKEND=disabled`. Startup order:
-
-```text
-PostgreSQL healthy → Alembic migrate → Tiki snapshot bootstrap → backend
-Redis healthy ────────────────────────────────────────────────────┘
-```
+Không cần `QDRANT_API_KEY` khi `KNOWLEDGE_BACKEND=disabled`.
 
 Thử các câu hỏi:
 
@@ -187,7 +178,7 @@ Thử các câu hỏi:
 5. `Thống kê sách lập trình trong snapshot.`
 
 Mọi answer phải nêu đây là snapshot lịch sử. Xem [runbook](docs/operations.md)
-trước khi đặt sau TLS proxy hoặc chạy Helm.
+để cấu hình và kiểm tra vận hành.
 
 ## Chạy fixture Phase 1 local
 
@@ -266,8 +257,6 @@ corpus/index đã bind bằng `V2_CORPUS_VERSION_ID` và tùy chọn
 - `/livez` chỉ kiểm tra process.
 - `/readyz` kiểm tra runtime, DB/current production revision, Redis nếu cấu hình
   và knowledge boundary; default trả `knowledge: "disabled"`.
-- Compose chạy migrate + bootstrap; Helm production tắt bootstrap để data import
-  external được review riêng; kind bật bootstrap eval snapshot.
 - Qdrant chỉ được kiểm tra khi opt-in backend `qdrant`; không có knowledge seed.
 
 Lệnh xóa exact legacy synthetic seed chỉ dành cho database disposable và bị
@@ -295,7 +284,7 @@ pytest -m "not integration" -q
 python -m pip wheel --no-deps --wheel-dir dist .
 ```
 
-CI còn validate Compose/Helm, frontend bundle trong Python wheel và Docker image.
+CI còn chạy PostgreSQL integration và kiểm tra frontend bundle trong Python wheel.
 Offline tests dùng SQLite/fakeredis/mock adapters; chỉ tests có marker
 `integration` cần provider/network. Không sửa tay `app/frontend/dist`.
 
@@ -474,7 +463,6 @@ app/
 └── shared/           # model runtime, Redis state, telemetry
 data/snapshots/       # committed test/eval normalized fixtures
 migrations/           # Alembic lifecycle
-deploy/helm/          # production/kind profiles + monitoring
 evaluation/           # frozen corpus, experiments, pricing, reports
 tests/                # offline regression + optional integration
 ```

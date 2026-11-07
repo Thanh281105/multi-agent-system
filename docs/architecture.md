@@ -71,24 +71,17 @@ flowchart TB
     K -. historical adapter only .-> Q
 ```
 
-Default Compose dùng PostgreSQL + Redis, rồi chạy:
+Thứ tự khởi động dùng PostgreSQL + Redis:
 
 ```text
 PostgreSQL healthy → migrate → quality-gated snapshot bootstrap → backend
 Redis healthy ────────────────────────────────────────────────────┘
 ```
 
-Qdrant nằm sau Compose profile `knowledge`, không phải dependency mặc định và
-không có `seed-knowledge`; V2 published corpus/index nằm trong
-PostgreSQL. Helm production mặc định dùng external
-PostgreSQL/Redis; kind dùng dependency nội bộ, model `off`, knowledge
-`disabled`, migration và snapshot bootstrap. Cả hai profile Helm giới hạn một
-application replica vì rate limiter, metric aggregation và trace ring còn nằm
-trong process.
-
-Container chạy UID/GID `10001`, read-only filesystem, drop capabilities và
-không publish data services ra edge. TLS/reverse proxy, secret manager, backup
-và external monitoring là trách nhiệm của deployment.
+Qdrant không phải dependency mặc định và không có `seed-knowledge`; V2 published
+corpus/index nằm trong PostgreSQL. Backend chỉ chạy một process vì rate limiter,
+metric aggregation và trace ring còn nằm trong process. Dự án không kèm Docker
+image hay Helm chart.
 
 ## 3. Logical components
 
@@ -336,7 +329,7 @@ hạn hiện tại.
 | Agents | Product/Review/Trust/Market chuyên biệt cho books |
 | Orchestrator | Authorized parallel DAG + deterministic/model-assisted modes |
 | API/UI | V2 JSON/SSE/UI; `/api/v1` routes retired |
-| Deployment | Compose + Helm production/kind, migration/snapshot bootstrap |
+| Runtime | `uvicorn` một process, migration/snapshot bootstrap |
 | Evaluation | Historical v1/v2 lanes preserved; P7 frozen protocol and P8 additive held-out driver |
 | Knowledge/RAG | Historical Qdrant adapter disabled; V2 published PostgreSQL corpus/index |
 | Memory | TTL short-term state; chưa có long-term preference/summary/artifact memory |
