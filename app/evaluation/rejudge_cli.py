@@ -296,7 +296,9 @@ def _report(args: argparse.Namespace) -> dict[str, Any]:
     args.out.mkdir(parents=True, exist_ok=True)
     report_path = args.out / f"{args.target}-report.json"
     report_path.write_text(
-        json.dumps(content, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        json.dumps(content, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
     )
     manifest = {
         "target": args.target,
@@ -308,11 +310,15 @@ def _report(args: argparse.Namespace) -> dict[str, Any]:
         "files": {
             p.name: _sha256_file(p)
             for p in sorted(args.out.iterdir())
-            if p.is_file() and p.name != f"{args.target}-manifest.json"
+            if p.is_file()
+            and p.name.startswith(f"{args.target}-")
+            and p.name != f"{args.target}-manifest.json"
         },
     }
     (args.out / f"{args.target}-manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
     )
     return manifest
 

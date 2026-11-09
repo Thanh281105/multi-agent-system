@@ -148,3 +148,35 @@ def test_report_writes_manifest_with_hashes(tmp_path: Path) -> None:
     assert manifest["totals"]["rows"] == 1
     assert set(manifest["files"]) == {"v4-judgments.jsonl", "v4-report.json"}
     assert all(len(h) == 64 for h in manifest["files"].values())
+
+
+def test_report_and_manifest_use_lf_and_hashes_match_bytes(tmp_path: Path) -> None:
+    import hashlib
+
+    cases = {"cases": [{"case_id": "c1", "required_facts": [{"fact_id": "a"}]}]}
+    results = [
+        {
+            "case_id": "c1",
+            "single_agent": {"repeats": [{"repeat": 0, "score": 0.0}]},
+            "multi_agent": {"repeats": [{"repeat": 0, "score": 1.0}]},
+        }
+    ]
+    (tmp_path / "cases.json").write_text(json.dumps(cases), encoding="utf-8")
+    (tmp_path / "results.json").write_text(json.dumps(results), encoding="utf-8")
+    out = tmp_path / "out"
+    out.mkdir()
+    row = {"key": "c1|single_agent|0", "error": "x", "output": None}
+    (out / "p8-other-target.json").write_text("{}", encoding="utf-8")
+    (out / "v4-judgments.jsonl").write_bytes((json.dumps(row) + "\n").encode())
+    argv = [
+        "report", "v4", "--out", str(out),
+        "--v4-results", str(tmp_path / "results.json"),
+        "--v4-cases", str(tmp_path / "cases.json"),
+    ]  # fmt: skip
+    assert rejudge_cli.main(argv) == 0
+    for name in ("v4-report.json", "v4-manifest.json"):
+        assert b"\r\n" not in (out / name).read_bytes()
+    manifest = json.loads((out / "v4-manifest.json").read_text(encoding="utf-8"))
+    assert "p8-other-target.json" not in manifest["files"]
+    for name, digest in manifest["files"].items():
+        assert hashlib.sha256((out / name).read_bytes()).hexdigest() == digest

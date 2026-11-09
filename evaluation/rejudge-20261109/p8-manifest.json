@@ -2,7 +2,7 @@
   "target": "p8",
   "model": "gpt-6-luna",
   "exploratory": true,
-  "git_head": "543da7fc7707270058954e00e88652f5f2b2de2e",
+  "git_head": "257fa03a1fe9d7d798d3639f3f9a6fd3513afab4",
   "instructions_sha256": "34dc5cd4db3ccd9098e33825de0ef2d709f5739622418c0bd245e99001564c04",
   "totals": {
     "rows": 720,
@@ -14,9 +14,6 @@
   },
   "files": {
     "p8-judgments.jsonl": "3efed47a51cc0557be0aab2aa2d4c6d048b2a5ebfb7af80dfe846b1c3d01a9d3",
-    "p8-report.json": "4a7a02f04ff5a9cac1b64145f4c14d66fcff402ef687436ef5e03e9702e5b808",
-    "v4-judgments.jsonl": "8529a828cb4caaeea190114b36cc956d7514d368bf9c2a3d746a284d447884a4",
-    "v4-manifest.json": "c243641fcc965724d03ef1244e58b02d2757749c28d0f994acbcb449924a6a90",
-    "v4-report.json": "034428b7b130e2dd1053e249bef30511281ed81a8a8e93374578ecca1bed023c"
+    "p8-report.json": "2d229de0a87c277c51efe81fa740b14fffa964ff5f914a2b8ad422d1b7d74b34"
   }
 }
