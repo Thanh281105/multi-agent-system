@@ -183,16 +183,18 @@ def compare_runs(
             "agreement": agreement(first, second),
             "kappa": cohens_kappa(first, second),
         }
-    deltas: dict[str, dict[str, PairedDelta]] = {}
+    deltas: dict[str, dict[str, PairedDelta | None]] = {}
     for label, source in (
         ("original", artifacts.original_scores),
         ("rejudge", new_scores),
     ):
         restricted = {k: source[k] for k in common}
         scores = variant_group_scores(artifacts, restricted, "task_completion")
-        deltas[label] = {
-            "sa_vs_ma_adaptive": paired_variant_delta(
+        try:
+            delta: PairedDelta | None = paired_variant_delta(
                 scores, baseline=SA, treatment=MA_ADAPTIVE, resamples=resamples
             )
-        }
+        except ValueError:  # mẫu nhỏ: không có work group chung hai biến thể
+            delta = None
+        deltas[label] = {"sa_vs_ma_adaptive": delta}
     return {"answers_compared": len(common), "metrics": per_metric, "deltas": deltas}

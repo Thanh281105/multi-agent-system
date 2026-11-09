@@ -97,3 +97,13 @@ def test_regression_original_delta_matches_analysis(p8: P8Artifacts) -> None:
 def test_variant_group_scores_covers_groups(p8: P8Artifacts) -> None:
     scores = variant_group_scores(p8, p8.original_scores, "task_completion")
     assert {v for _, v in scores} >= {SA, MA_ADAPTIVE}
+
+
+@needs_p8
+def test_compare_runs_small_sample_without_common_groups(p8: P8Artifacts) -> None:
+    """Mẫu nhỏ không có work group chung SA/MA: không sập, delta là None."""
+    first = p8.unblinding.entries[0].opaque_answer_id
+    scores = {first: p8.original_scores[first]}
+    result = compare_runs(p8, scores, resamples=50)
+    assert result["answers_compared"] == 1
+    assert result["deltas"]["rejudge"]["sa_vs_ma_adaptive"] is None
