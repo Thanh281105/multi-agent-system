@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -77,11 +77,19 @@ async def collect(
     prices: ModelPrices,
     concurrency: int = 4,
     retry_errors: bool = False,
+    validate: Callable[[str, dict[str, Any]], str | None] | None = None,
 ) -> CollectSummary:
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     rows = read_cache(cache_path)
+
+    def _is_bad(key: str, row: Mapping[str, Any]) -> bool:
+        if row.get("error"):
+            return True
+        output = row.get("output")
+        return bool(validate and output is not None and validate(key, output))
+
     cached = {
-        key for key, row in rows.items() if not (retry_errors and row.get("error"))
+        key for key, row in rows.items() if not (retry_errors and _is_bad(key, row))
     }
     pending = [key for key in requests if key not in cached]
     semaphore = asyncio.Semaphore(concurrency)
@@ -108,10 +116,13 @@ async def collect(
                 output_tokens=result.output_tokens,
             )
             guard.charge(actual - upper)
+            error = result.error
+            if error is None and validate and result.output is not None:
+                error = validate(key, result.output)
             row = {
                 "key": key,
                 "output": result.output,
-                "error": result.error,
+                "error": error,
                 "input_tokens": result.input_tokens,
                 "cached_input_tokens": result.cached_input_tokens,
                 "output_tokens": result.output_tokens,
@@ -121,7 +132,7 @@ async def collect(
                 with cache_path.open("a", encoding="utf-8", newline="\n") as handle:
                     handle.write(json.dumps(row, ensure_ascii=False) + "\n")
             state["done"] += 1
-            if result.error is not None:
+            if error is not None:
                 state["errors"] += 1
 
     await asyncio.gather(*(one(key) for key in pending))

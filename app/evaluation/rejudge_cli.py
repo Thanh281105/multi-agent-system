@@ -187,12 +187,28 @@ def _require_gates(args: argparse.Namespace) -> str:
     return key
 
 
+def _p8_validator(
+    context: dict[str, Any],
+) -> Callable[[str, dict[str, Any]], str | None]:
+    """Dùng validator của P8 để ô output không hợp lệ được gọi lại."""
+    from app.evaluation import rejudge_p8
+
+    def validate(key: str, output: dict[str, Any]) -> str | None:
+        _, errors = rejudge_p8.rejudge_scores(
+            context["artifacts"], {key: {"output": output, "error": None}}
+        )
+        return errors.get(key)
+
+    return validate
+
+
 def _run(
     args: argparse.Namespace, *, call_factory: CallFactory | None
 ) -> dict[str, Any]:
     api_key = _require_gates(args)
     prices = load_model_prices(PRICING_MANIFEST, args.model)
-    requests, _ = _build(args, sample=args.command == "sample")
+    requests, context = _build(args, sample=args.command == "sample")
+    validate = _p8_validator(context) if args.target == "p8" else None
     factory = call_factory or (
         lambda key, model: make_openai_call(
             key, model, "none", max_concurrency=args.concurrency
@@ -208,6 +224,7 @@ def _run(
             prices=prices,
             concurrency=args.concurrency,
             retry_errors=args.retry_errors,
+            validate=validate,
         )
     )
     return {

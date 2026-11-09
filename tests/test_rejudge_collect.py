@@ -125,3 +125,40 @@ def test_retry_errors_recalls_only_error_cells_and_latest_row_wins(
     assert sorted(retry.keys) == ["k0", "k1"]
     assert summary.done == 2
     assert all(row["error"] is None for row in read_cache(cache).values())
+
+
+def test_validator_failures_are_retried_with_retry_errors(tmp_path: Path) -> None:
+    from app.evaluation.rejudge_collect import read_cache
+
+    cache = tmp_path / "c.jsonl"
+    attempts: dict[str, int] = {}
+
+    class Flaky(FakeCall):
+        async def __call__(self, key, request):
+            attempts[key] = attempts.get(key, 0) + 1
+            return JudgeCallResult({"good": attempts[key] > 1}, None, 10, 0, 5)
+
+    def validate(key: str, output: dict) -> str | None:
+        return None if output["good"] else "invalid_output: chưa đạt"
+
+    def go(retry: bool):
+        return asyncio.run(
+            collect(
+                _requests(2),
+                call=Flaky(),
+                cache_path=cache,
+                guard=BudgetGuard(Decimal("10")),
+                prices=PRICES,
+                concurrency=2,
+                retry_errors=retry,
+                validate=validate,
+            )
+        )
+
+    first = go(False)
+    assert first.errors == 2  # output không qua validator được ghi là lỗi
+    assert go(False).done == 0  # mặc định không gọi lại
+    second = go(True)
+    assert second.done == 2 and second.errors == 0
+    assert all(r["error"] is None for r in read_cache(cache).values())
+    assert attempts == {"k0": 2, "k1": 2}
