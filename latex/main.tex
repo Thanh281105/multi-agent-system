@@ -1,0 +1,163 @@
+% !TeX program = xelatex
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=22mm,headheight=14pt,headsep=8mm,footskip=10mm]{geometry}
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\setsansfont{Arial}
+\setmonofont{Consolas}[Scale=0.88]
+\usepackage{amsmath,amssymb,graphicx,booktabs,longtable,tabularx,array}
+\usepackage{enumitem,fancyhdr,titlesec,caption,needspace,fvextra,xurl,float}
+\usepackage[hidelinks,unicode,pdftitle={Hệ thống trợ lý tư vấn sách ứng dụng nhiều tác tử},pdfauthor={Hoàng Xuân Thanh, Trần Gia Lạc}]{hyperref}
+\usepackage{tikz}
+\hypersetup{bookmarksnumbered=true}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\renewcommand{\contentsname}{Mục lục}
+\renewcommand{\refname}{Tài liệu tham chiếu}
+\captionsetup{font=small,labelfont=bf,justification=raggedright,singlelinecheck=false}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5.5pt}
+\linespread{1.09}
+\setlist{nosep,leftmargin=5mm,itemsep=3pt,topsep=4pt}
+\setlength{\emergencystretch}{2.5em}
+\renewcommand{\arraystretch}{1.16}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection.}{0.6em}{}
+\titlespacing*{\section}{0pt}{13pt}{6pt}
+\titlespacing*{\subsection}{0pt}{9pt}{4pt}
+\newcommand{\src}[1]{\hyperlink{src-#1}{[#1]}}
+\ExplSyntaxOn
+\NewDocumentCommand{\code}{m}{
+  \tl_if_in:nnTF {#1} {~}
+    {\texttt{\detokenize{#1}}}
+    {\nolinkurl{#1}}
+}
+\ExplSyntaxOff
+\newcommand{\file}[1]{\nolinkurl{#1}}
+\newcommand{\fig}[3]{\begin{figure}[H]\centering\includegraphics[width=\linewidth]{images/#1.png}\caption{#2}\label{#3}\end{figure}}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Hệ thống trợ lý tư vấn sách}
+\fancyhead[R]{\small Dự án Công nghệ thông tin}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\widowpenalty=10000
+\clubpenalty=10000
+\begin{document}
+% ---------- Trang bìa ----------
+\begin{titlepage}
+    \thispagestyle{empty}
+    \centering
+
+    \begin{tikzpicture}[remember picture,overlay]
+        \draw[line width=0.6pt]
+        ([xshift=1cm,yshift=-1cm]current page.north west)
+        rectangle
+        ([xshift=-1cm,yshift=1cm]current page.south east);
+    \end{tikzpicture}
+
+    \vspace*{0.2cm}
+
+    {\large\bfseries TỔNG LIÊN ĐOÀN LAO ĐỘNG VIỆT NAM\par}
+    \vspace{0.2cm}
+    {\large\bfseries TRƯỜNG ĐẠI HỌC TÔN ĐỨC THẮNG\par}
+    \vspace{0.2cm}
+    {\large\bfseries KHOA CÔNG NGHỆ THÔNG TIN\par}
+
+    \vspace{0.8cm}
+    \includegraphics[width=4cm]{images/tdtu.jpg}\par
+
+    \vspace{1cm}
+
+    {\normalsize\bfseries HOÀNG XUÂN THANH -- 523H0178\par}
+    \vspace{0.2cm}
+    {\normalsize\bfseries TRẦN GIA LẠC -- 523H0154\par}
+
+    \vspace{1.2cm}
+
+    {\Large\bfseries
+    HỆ THỐNG TRỢ LÝ TƯ VẤN SÁCH\\
+    ỨNG DỤNG NHIỀU TÁC TỬ\par}
+
+    \vspace{1.1cm}
+
+    {\Large\bfseries BÁO CÁO MÔN HỌC\par}
+    \vspace{0.25cm}
+    {\Large\bfseries DỰ ÁN CÔNG NGHỆ THÔNG TIN\par}
+
+    \vspace{1cm}
+
+    {\normalsize\bfseries Giảng viên\par}
+    \vspace{0.2cm}
+    {\normalsize\bfseries PGS. TS. Lê Anh Cường\par}
+
+    \vfill
+
+    {\large\bfseries THÀNH PHỐ HỒ CHÍ MINH, 2026\par}
+    \vspace*{0.2cm}
+\end{titlepage}
+
+% ---------- Lời cảm ơn ----------
+\pagenumbering{roman}
+\section*{LỜI CẢM ƠN}
+\addcontentsline{toc}{section}{Lời cảm ơn}
+
+Nhóm chúng em xin chân thành cảm ơn PGS. TS. Lê Anh Cường đã hướng dẫn, định hướng và góp ý trong quá trình thực hiện học phần Dự án Công nghệ thông tin. Những nhận xét của thầy giúp nhóm làm rõ bài toán, hoàn thiện cách trình bày hệ thống và nhìn nhận kết quả thực nghiệm thận trọng hơn.
+
+Chúng em cũng trân trọng ghi nhận các bộ dữ liệu, tài liệu kỹ thuật và phần mềm mã nguồn mở được sử dụng trong quá trình xây dựng và đánh giá hệ thống. Các nguồn này được dẫn trong báo cáo để người đọc có thể tra cứu và đối chiếu.
+
+Mặc dù đã cố gắng hoàn thiện đề tài, báo cáo vẫn có thể còn thiếu sót. Nhóm mong nhận được góp ý của thầy để tiếp tục cải thiện hệ thống và cách đánh giá trong thời gian tới.
+
+\begin{flushright}
+\textit{Thành phố Hồ Chí Minh, 2026}\\
+\textbf{Nhóm thực hiện}\\[1cm]
+Hoàng Xuân Thanh\\
+Trần Gia Lạc
+\end{flushright}
+
+\clearpage
+
+% ---------- Lời cam đoan ----------
+\section*{LỜI CAM ĐOAN}
+\addcontentsline{toc}{section}{Lời cam đoan}
+
+Chúng em cam đoan báo cáo này được thực hiện trong khuôn khổ học phần Dự án Công nghệ thông tin. Nội dung mô tả thiết kế, dữ liệu, quy trình và kết quả được trình bày dựa trên tài liệu và hiện vật của dự án; các nguồn tham khảo được ghi nhận trong báo cáo.
+
+Nhóm chịu trách nhiệm về tính trung thực của phần trình bày và việc ghi nguồn. Các kết quả đánh giá được diễn giải trong phạm vi bộ câu hỏi, dữ liệu và phương pháp chấm đã nêu; không được xem là bằng chứng cho mọi tình huống sử dụng thực tế.
+
+\begin{flushright}
+\textit{Thành phố Hồ Chí Minh, 2026}\\
+\textbf{Nhóm thực hiện}\\[1cm]
+Hoàng Xuân Thanh\\
+Trần Gia Lạc
+\end{flushright}
+
+\clearpage
+
+% ---------- Tóm tắt ----------
+\section*{TÓM TẮT}
+\addcontentsline{toc}{section}{Tóm tắt}
+
+Đề tài xây dựng hệ thống trợ lý tư vấn sách tiếng Việt theo hướng phối hợp nhiều tác tử chuyên trách. Bộ phận điều phối chia yêu cầu thành các nhiệm vụ tra cứu thông tin sách, tổng hợp đánh giá người mua, nhận diện dấu hiệu phàn nàn và đối chiếu nguồn kiến thức về tác phẩm. Bước tổng hợp gắn nhận định với nguồn tương ứng và nêu rõ khi dữ liệu chưa đủ. Hệ thống sử dụng dữ liệu sách, đánh giá đã lưu và một tập nguồn được tuyển chọn; không cung cấp giá hay tình trạng tồn kho theo thời gian thực.
+
+Báo cáo so sánh cách xử lý một tác tử và nhiều tác tử trên cùng 24 câu hỏi, mỗi câu được chạy ba lần, với cùng mô hình ngôn ngữ và thông tin liên quan đã cấp sẵn. Theo bộ chấm tự động dựa trên 43 dữ kiện bắt buộc, cách nhiều tác tử đạt 129/129 lượt dữ kiện (100\%), còn cách một tác tử đạt 126/129 (97,67\%). Thời gian trả lời trung bình lần lượt là 6,75 giây và 1,43 giây; số token trung bình là 3.706 và 1.332.
+
+Phần chênh lệch điểm tập trung ở một câu hỏi về tên ấn bản. Vì vậy, kết quả hiện tại cho thấy một đánh đổi giữa mức đáp ứng dữ kiện và tài nguyên sử dụng, chưa đủ để kết luận nhiều tác tử ưu việt nói chung. Kết quả cũng phản ánh phép thử có thông tin liên quan cấp sẵn và bộ chấm tự động, không thay thế đánh giá của con người hay chứng minh chất lượng trong mọi tình huống thực tế.
+
+Sau thực nghiệm, nhóm sửa sáu điểm khiến hệ thống có thể làm rơi dữ kiện và loại khỏi kết luận các số liệu được viết sẵn trong mã chương trình. Các sửa đổi được xác nhận bằng kiểm thử tự động; thực nghiệm chưa được chạy lại nên các số liệu trên chưa phản ánh chúng.
+
+\clearpage
+
+% ---------- Mục lục ----------
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+\input{01-he-thong.tex}
+\input{02-co-che.tex}
+\input{03-danh-gia.tex}
+\input{04-ket-luan.tex}
+\input{05-phu-luc.tex}
+\end{document}

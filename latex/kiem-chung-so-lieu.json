@@ -1,0 +1,626 @@
+{
+  "revision": "0a4930e87664dd91add96025a2230b92a15810e3",
+  "case_count": 24,
+  "tiers": {
+    "tier_1_single_specialist": 6,
+    "tier_2_cross_specialist": 8,
+    "tier_3_multi_perspective_recommendation": 6,
+    "tier_4_guardrails_abstention": 4
+  },
+  "fact_count_once": 43,
+  "case_id_match": true,
+  "structural_issues": [],
+  "single_agent": {
+    "runs": 72,
+    "macro_score": 0.9895833333333334,
+    "verdict_pass": 126,
+    "verdict_total": 129,
+    "micro_score": 0.9767441860465116,
+    "latency_mean_s": 1.4274742470847235,
+    "latency_median_s": 1.332403540611267,
+    "tokens_mean": 1331.5694444444443,
+    "tokens_total": 95873,
+    "verbatim_cases": 0,
+    "failed_facts": [
+      [
+        "fair_tier1_catalog_01",
+        0,
+        {
+          "fact_id": "fact_t1_c01_name",
+          "passed": false,
+          "reason": "Câu trả lời không nêu đúng tên đầy đủ trong catalog; thiếu phần '(Tái Bản 2022)'."
+        }
+      ],
+      [
+        "fair_tier1_catalog_01",
+        1,
+        {
+          "fact_id": "fact_t1_c01_name",
+          "passed": false,
+          "reason": "Câu trả lời thiếu phần tái bản 2022; chỉ nêu 'Sapiens: Lược Sử Loài Người' nên không khớp đầy đủ tên sách trong catalog."
+        }
+      ],
+      [
+        "fair_tier1_catalog_01",
+        2,
+        {
+          "fact_id": "fact_t1_c01_name",
+          "passed": false,
+          "reason": "Câu trả lời không nêu đúng tên đầy đủ trong catalog; thiếu phần '(Tái Bản 2022)'."
+        }
+      ]
+    ]
+  },
+  "multi_agent": {
+    "runs": 72,
+    "macro_score": 1.0,
+    "verdict_pass": 129,
+    "verdict_total": 129,
+    "micro_score": 1.0,
+    "latency_mean_s": 6.746377527713776,
+    "latency_median_s": 7.320330858230591,
+    "tokens_mean": 3706.2638888888887,
+    "tokens_total": 266851,
+    "verbatim_cases": 0,
+    "failed_facts": []
+  },
+  "latency_ratio": 4.72609403741724,
+  "tokens_ratio": 2.7833800965861086,
+  "paired": {
+    "n_cases": 24,
+    "mean_delta": 0.010416666666666666,
+    "standard_error": 0.010416666666666668,
+    "t_stat": 0.9999999999999999,
+    "t_ci95": [
+      -0.011131850104166669,
+      0.0319651834375
+    ],
+    "wins_ties_losses": {
+      "MA_WIN": 1,
+      "TIE": 23
+    },
+    "bootstrap_percentile_ci95": [
+      0.0,
+      0.03125
+    ]
+  },
+  "tier_summary": [
+    {
+      "tier": "tier_1_single_specialist",
+      "cases": 6,
+      "facts": 14,
+      "single_agent": {
+        "score": 0.9583333333333334,
+        "latency": 1.3545415931277804,
+        "tokens": 1170.8333333333333
+      },
+      "multi_agent": {
+        "score": 1.0,
+        "latency": 5.285417768690321,
+        "tokens": 2480
+      }
+    },
+    {
+      "tier": "tier_2_cross_specialist",
+      "cases": 8,
+      "facts": 17,
+      "single_agent": {
+        "score": 1.0,
+        "latency": 1.4989494681358337,
+        "tokens": 1308.9583333333333
+      },
+      "multi_agent": {
+        "score": 1.0,
+        "latency": 8.819382141033808,
+        "tokens": 4750.25
+      }
+    },
+    {
+      "tier": "tier_3_multi_perspective_recommendation",
+      "cases": 6,
+      "facts": 8,
+      "single_agent": {
+        "score": 1.0,
+        "latency": 1.5168831613328722,
+        "tokens": 1850.0555555555557
+      },
+      "multi_agent": {
+        "score": 1.0,
+        "latency": 8.396372318267822,
+        "tokens": 5413.333333333333
+      }
+    },
+    {
+      "tier": "tier_4_guardrails_abstention",
+      "cases": 4,
+      "facts": 4,
+      "single_agent": {
+        "score": 1.0,
+        "latency": 1.259809414545695,
+        "tokens": 840.1666666666666
+      },
+      "multi_agent": {
+        "score": 1.0,
+        "latency": 2.316815753777822,
+        "tokens": 897.0833333333334
+      }
+    }
+  ],
+  "snapshots": {
+    "test": {
+      "products": 24,
+      "reviews": 115,
+      "unique_products": 24,
+      "unique_reviews": 115,
+      "orphan_reviews": 0,
+      "manifest": {
+        "cleaner_version": "tiki-books-cleaner-1.0.0",
+        "config_version": "tiki-books-profiles-1.0.0",
+        "dataset_id": "tiki-books",
+        "dataset_version": "kaggle-v4",
+        "product_count": 24,
+        "products_sha256": "48403ba8c12c9a2ac7c20abb21f5fc6a24096ff4fae17b60d1be8ece8d7f9b81",
+        "profile": "test",
+        "raw_archive_bytes": 7874779,
+        "raw_archive_sha256": "371a618ed66425f8f2738ab01514ab2f20ed1bed645258b509fcce443bd32bbb",
+        "required_product_external_ids": [
+          "105778970",
+          "106185389",
+          "109298270",
+          "113583126",
+          "113656455",
+          "114228620",
+          "116835635",
+          "130996084",
+          "147999778",
+          "1667307",
+          "169262882",
+          "171057415",
+          "184419723",
+          "185071145",
+          "189765038",
+          "190707002",
+          "193226972",
+          "19588948",
+          "19918848",
+          "204649516",
+          "46755109",
+          "47273263",
+          "74488127",
+          "91277007"
+        ],
+        "retrieved_at": "2026-08-24T03:47:30.042026Z",
+        "review_count": 115,
+        "reviews_sha256": "154163895de7aff0a8531b5993bbde4f576047e00443c7291305e700ad88e226",
+        "sampling_policy": "Stable SHA-256 ranking with category round-robin product coverage; at most 5 reviews per product, stratified by rating after cleaning.",
+        "sampling_seed": 42,
+        "schema_version": "2.0",
+        "snapshot_sha256": "d84ec4d5f37549db38840f9eaafb32b78b22d1fe0d556b61b19df9ed7e8bb0e0",
+        "source_files": [
+          "book_data.csv",
+          "comments.csv"
+        ],
+        "source_license": "CC0-1.0",
+        "source_revision": 4,
+        "source_url": "https://www.kaggle.com/api/v1/datasets/download/biminhc/tiki-books-dataset?datasetVersionNumber=4",
+        "taxonomy_version": "tiki-books-taxonomy-1.0.0"
+      },
+      "quality_status": "pass",
+      "quality_top_keys": [
+        "cleaner_version",
+        "config_version",
+        "correction_counts",
+        "drop_counts",
+        "field_coverage",
+        "gate_failures",
+        "input_counts",
+        "output_counts",
+        "output_hashes",
+        "profile",
+        "raw_archive_sha256",
+        "redaction_counts",
+        "schema_version",
+        "status",
+        "taxonomy_version"
+      ],
+      "hashes": {
+        "products.jsonl": "48403ba8c12c9a2ac7c20abb21f5fc6a24096ff4fae17b60d1be8ece8d7f9b81",
+        "reviews.jsonl": "154163895de7aff0a8531b5993bbde4f576047e00443c7291305e700ad88e226",
+        "quality-report.json": "28c18d29a48c2e25d72d0aaa4f61728a0ddbacca8bd00bafff83f19c8f6d9e4b"
+      },
+      "manifest_counts_match": true,
+      "product_hash_matches_manifest": true,
+      "review_hash_matches_manifest": true
+    },
+    "eval": {
+      "products": 200,
+      "reviews": 1773,
+      "unique_products": 200,
+      "unique_reviews": 1773,
+      "orphan_reviews": 0,
+      "manifest": {
+        "cleaner_version": "tiki-books-cleaner-1.0.0",
+        "config_version": "tiki-books-profiles-1.0.0",
+        "dataset_id": "tiki-books",
+        "dataset_version": "kaggle-v4",
+        "product_count": 200,
+        "products_sha256": "830c684733e47a2dddc4591ffba7d62d5db01600f0c00910b02730b1e8da148e",
+        "profile": "eval",
+        "raw_archive_bytes": 7874779,
+        "raw_archive_sha256": "371a618ed66425f8f2738ab01514ab2f20ed1bed645258b509fcce443bd32bbb",
+        "required_product_external_ids": [
+          "105778970",
+          "106185389",
+          "109298270",
+          "113583126",
+          "113656455",
+          "114228620",
+          "116835635",
+          "130996084",
+          "147999778",
+          "1667307",
+          "169262882",
+          "171057415",
+          "184419723",
+          "185071145",
+          "189765038",
+          "190707002",
+          "193226972",
+          "19588948",
+          "19918848",
+          "204649516",
+          "46755109",
+          "47273263",
+          "74488127",
+          "91277007"
+        ],
+        "retrieved_at": "2026-08-24T03:47:30.042026Z",
+        "review_count": 1773,
+        "reviews_sha256": "1eb3b76031d8186968d9b5d062edb6f6fb5e8d504d78be1bf0b1f71fd8c0bafe",
+        "sampling_policy": "Stable SHA-256 ranking with category round-robin product coverage; at most 10 reviews per product, stratified by rating after cleaning; globally capped at 1773 reviews.",
+        "sampling_seed": 42,
+        "schema_version": "2.0",
+        "snapshot_sha256": "986803ba95d268cf158f36103efa2e1ce00c6134b0e03b67d96c7058f019d66d",
+        "source_files": [
+          "book_data.csv",
+          "comments.csv"
+        ],
+        "source_license": "CC0-1.0",
+        "source_revision": 4,
+        "source_url": "https://www.kaggle.com/api/v1/datasets/download/biminhc/tiki-books-dataset?datasetVersionNumber=4",
+        "taxonomy_version": "tiki-books-taxonomy-1.0.0"
+      },
+      "quality_status": "pass",
+      "quality_top_keys": [
+        "cleaner_version",
+        "config_version",
+        "correction_counts",
+        "drop_counts",
+        "field_coverage",
+        "gate_failures",
+        "input_counts",
+        "output_counts",
+        "output_hashes",
+        "profile",
+        "raw_archive_sha256",
+        "redaction_counts",
+        "schema_version",
+        "status",
+        "taxonomy_version"
+      ],
+      "hashes": {
+        "products.jsonl": "830c684733e47a2dddc4591ffba7d62d5db01600f0c00910b02730b1e8da148e",
+        "reviews.jsonl": "1eb3b76031d8186968d9b5d062edb6f6fb5e8d504d78be1bf0b1f71fd8c0bafe",
+        "quality-report.json": "b75c8e0f6efb8da8278b4d3babd33ffb9fabdcf5b58fea5678be90de4c537eac"
+      },
+      "manifest_counts_match": true,
+      "product_hash_matches_manifest": true,
+      "review_hash_matches_manifest": true
+    }
+  },
+  "knowledge_sources_count": 20,
+  "knowledge_mapping_statuses": {
+    "ambiguous": 17,
+    "unmatched": 163,
+    "exact_work": 20
+  },
+  "ma_call_breakdown_token_mismatches": 0,
+  "routing_modes": {
+    "autonomous": 24
+  },
+  "r7": {
+    "classification": "development_trace_only_not_independent_validation",
+    "run_id": "run_p8_trace_20261013_r7",
+    "sut_git_revision": "4238394ee932dbf79a53aaa1a565c5203f857263",
+    "p8_started_cells": 720,
+    "p8_completed_cells": 720,
+    "variants": {
+      "ma_adaptive_no_rag": {
+        "observations": 180,
+        "cases": 60,
+        "work_groups": 27,
+        "user_turns": 216,
+        "generation_calls": 234,
+        "input_tokens": 213770,
+        "output_tokens": 50499,
+        "known_cost_usd": "0.33901620",
+        "observation_latency_seconds": {
+          "definition": "sum of elapsed_seconds across turns inside each observation; type-7 percentile",
+          "p50": 1.6405,
+          "p95": 7.19325
+        },
+        "user_turn_outcomes": {
+          "abstained": 141,
+          "answered": 33,
+          "awaiting_confirmation": 6,
+          "needs_clarification": 36
+        }
+      },
+      "ma_adaptive_rag": {
+        "observations": 180,
+        "cases": 60,
+        "work_groups": 27,
+        "user_turns": 216,
+        "generation_calls": 874,
+        "input_tokens": 977842,
+        "output_tokens": 259351,
+        "known_cost_usd": "1.60170757",
+        "observation_latency_seconds": {
+          "definition": "sum of elapsed_seconds across turns inside each observation; type-7 percentile",
+          "p50": 11.1715,
+          "p95": 27.0057
+        },
+        "user_turn_outcomes": {
+          "abstained": 6,
+          "answered": 168,
+          "awaiting_confirmation": 6,
+          "needs_clarification": 36
+        }
+      },
+      "ma_fixed_rag": {
+        "observations": 180,
+        "cases": 60,
+        "work_groups": 27,
+        "user_turns": 216,
+        "generation_calls": 700,
+        "input_tokens": 909517,
+        "output_tokens": 240260,
+        "known_cost_usd": "1.45707887",
+        "observation_latency_seconds": {
+          "definition": "sum of elapsed_seconds across turns inside each observation; type-7 percentile",
+          "p50": 9.438,
+          "p95": 24.6635
+        },
+        "user_turn_outcomes": {
+          "abstained": 6,
+          "answered": 168,
+          "awaiting_confirmation": 6,
+          "needs_clarification": 36
+        }
+      },
+      "sa_shared_tools_rag": {
+        "observations": 180,
+        "cases": 60,
+        "work_groups": 27,
+        "user_turns": 216,
+        "generation_calls": 773,
+        "input_tokens": 849886,
+        "output_tokens": 240693,
+        "known_cost_usd": "1.43203463",
+        "observation_latency_seconds": {
+          "definition": "sum of elapsed_seconds across turns inside each observation; type-7 percentile",
+          "p50": 11.125,
+          "p95": 24.4292
+        },
+        "user_turn_outcomes": {
+          "abstained": 6,
+          "answered": 168,
+          "awaiting_confirmation": 6,
+          "needs_clarification": 36
+        }
+      }
+    }
+  },
+  "publication_package_exists": false,
+  "r7_archive_checks": {
+    "file_count": 8,
+    "zip_crc_ok": true,
+    "archive_sha256_match": true,
+    "members": [
+      {
+        "path": "output/evaluation-v3/p7-trace-20261013-r7/protocol.v3.json",
+        "bytes_match": true,
+        "sha256_match": true
+      },
+      {
+        "path": "output/evaluation-v3/p7-trace-20261013-r7/pilot-schedule.v3.json",
+        "bytes_match": true,
+        "sha256_match": true
+      },
+      {
+        "path": "output/evaluation-v3/p7-trace-20261013-r7/pilot-checkpoint.v3.jsonl",
+        "bytes_match": true,
+        "sha256_match": true
+      },
+      {
+        "path": "output/evaluation-v3/p7-trace-20261013-r7/repeat-decision.v3.json",
+        "bytes_match": true,
+        "sha256_match": true
+      },
+      {
+        "path": "output/evaluation-v3/p7-trace-20261013-r7/successor-binding.v3.json",
+        "bytes_match": true,
+        "sha256_match": true
+      },
+      {
+        "path": "output/evaluation-v3/heldout-trace-20261013-r7/heldout-execution-plan.p8.json",
+        "bytes_match": true,
+        "sha256_match": true
+      },
+      {
+        "path": "output/evaluation-v3/heldout-trace-20261013-r7/heldout-schedule.p8.json",
+        "bytes_match": true,
+        "sha256_match": true
+      },
+      {
+        "path": "output/evaluation-v3/heldout-trace-20261013-r7/heldout-checkpoint.v3.jsonl",
+        "bytes_match": true,
+        "sha256_match": true
+      }
+    ]
+  },
+  "source_files": {
+    "README.md": {
+      "sha256": "36e8d1a3f6ce6a0551686996d8136cf4a374cb6caed38f3613fc9cc3d3cd7a8e",
+      "lines": 492
+    },
+    "docs/architecture.md": {
+      "sha256": "85b56bb835b8ff499fca902861089599066d961ca3cd83a56c073fa4015996a6",
+      "lines": 347
+    },
+    "docs/data.md": {
+      "sha256": "79b0e0414ecce261b13d05e8c8f43d0b01334b28eb02724ee2752bab84958c7c",
+      "lines": 198
+    },
+    "docs/api.md": {
+      "sha256": "02b462433894d4a9e694091b862339041ea266e119406ab2363bdfd42305e3f4",
+      "lines": 162
+    },
+    "docs/operations.md": {
+      "sha256": "0492ded0b1e17465b2c16cce7b81985c5ca9c6dd38d51197bc39d4948f2bdddc",
+      "lines": 554
+    },
+    "app/v2/runtime.py": {
+      "sha256": "3f1753f58792c2b0abb11d7ddd3b5e0382440ece40d986de3a2769ce916a3486",
+      "lines": 600
+    },
+    "app/v2/contracts.py": {
+      "sha256": "cc5253a1636261f3cc8b5013cf11c6d7ca786b5a01f8dec42cb327f1ba22f794",
+      "lines": 1137
+    },
+    "app/v2/planning.py": {
+      "sha256": "e222539c2dfad0cbaca7a24a3492a7af43af991b9539c541c964b4c76760b576",
+      "lines": 2408
+    },
+    "app/v2/execution.py": {
+      "sha256": "3811991e94ed46800c7d1760fa8f3baaa172cd8c3dd9f80efd7e361575b7c0e8",
+      "lines": 2140
+    },
+    "app/v2/supervisor.py": {
+      "sha256": "45ef8ae85d51fed2bb1772ee71c134240a3cbc00698f949a73500caa8c6da47c",
+      "lines": 1414
+    },
+    "app/v2/answers.py": {
+      "sha256": "88a659c10363bd35d8837dd38c2e40ca3db9f81e9421e0611c657aea2fe2f720",
+      "lines": 1628
+    },
+    "app/v2/actions.py": {
+      "sha256": "427eec0df29c52605fae72e97fca126a3c67ec7179fdd40cf43d59c2653d1259",
+      "lines": 1908
+    },
+    "app/v2/authorization.py": {
+      "sha256": "2d7b7d19bd4b53b0957ce25a59fadf91be27328ac02006a9b8f5a9d2ae003f06",
+      "lines": 159
+    },
+    "app/v2/registry.py": {
+      "sha256": "044d052d6073fe6bd6667ea874f18a8491585af58daaea9054cb9064353b0d44",
+      "lines": 722
+    },
+    "app/v2/tools.py": {
+      "sha256": "b690887ef463627630f29c07f515c4bf4306db7ba3812ea50c160f0ebf422b36",
+      "lines": 1046
+    },
+    "app/knowledge/retrieval.py": {
+      "sha256": "dcd724abc7c9064526cced0264222eefd4674cc5fcae70ff2c85aa30c3f35a28",
+      "lines": 1146
+    },
+    "app/orchestrator/aggregator.py": {
+      "sha256": "5ea83db9dfac2566c730c233b0d2c82118623b36e25fe4c40a89513ec2afe86b",
+      "lines": 474
+    },
+    "app/agents/product/agent.py": {
+      "sha256": "6ae9ace072fd76ccc5cf2c6559b41ab47c3ea704db7e66d8cad95da7b2ac020a",
+      "lines": 160
+    },
+    "app/orchestrator/executor.py": {
+      "sha256": "c5c35a8b1b2d6e27a8a93d2957f2aca06822dbf2fe7f9f563df8981048179ce7",
+      "lines": 240
+    },
+    "scripts/run_v4_full_benchmark.py": {
+      "sha256": "b2dffdecde9dce2f958edf0e017307f37454e2d1ba370e3f7c922711cfe1e59c",
+      "lines": 590
+    },
+    "evaluation/v4_fair_benchmark_cases.json": {
+      "sha256": "f9413b9e7cb7b2209b298c05948e12fb3e78a6eec2387a6823cfb5ebf945c333",
+      "lines": 865
+    },
+    "output/evaluation-v4/full_24_benchmark_results.json": {
+      "sha256": "16f98bd2801524905bf1faa0db62496a8abf704c952716008cb01d1ea321ca15",
+      "lines": 6182
+    },
+    "docs/v4_exploratory_benchmark_results.md": {
+      "sha256": "9efea480b02768f1d76e32125a059842f92327290d363ef3d629dfd6b07421ec",
+      "lines": 141
+    },
+    "docs/p8_official_publication_benchmark_report.md": {
+      "sha256": "386d203bb7edb509ffe6d352bd9de96326a910a36af685be50282d5d3760ebc7",
+      "lines": 84
+    },
+    "docs/reproducibility_package_and_tradeoff_report.md": {
+      "sha256": "ba88771cb267a16991f264fb8faa5afc3099ac54e2a1bc979165e85ee9c714ed",
+      "lines": 90
+    },
+    "evaluation/v3/results/p8-trace-20261013-r7/summary.json": {
+      "sha256": "5e1a93b8dfa5d19e3d4f95c3aedcb1c85d51d131196d15a01b54c713c66b28e1",
+      "lines": 616
+    },
+    "evaluation/v3/results/p8-trace-20261013-r7/README.md": {
+      "sha256": "1f26325c2ab9be9970ddb2c5c1a1511d9ebfc5fe29f3f54a4e23fb4548d21303",
+      "lines": 50
+    },
+    "compose.yaml": {
+      "sha256": "8c8b6c72f983aefc27028589aeb2988605077b1021b4c1722aefefed0f27153f",
+      "lines": 185
+    },
+    ".github/workflows/ci.yml": {
+      "sha256": "74130572c9fb214434af627abc2efaef834d58ecadf2642254c6246708db22bc",
+      "lines": 218
+    },
+    "pyproject.toml": {
+      "sha256": "14c9bd2fb8ec73eabd4727e8ac9040a3936fefd548165a2d1f189d9bc8a34076",
+      "lines": 76
+    },
+    "frontend/package.json": {
+      "sha256": "8a267eeffa0234efb8519e53c2978282b54677b5fc25895a0e37fc70d53e50f9",
+      "lines": 53
+    },
+    "app/db/migrate.py": {
+      "sha256": "dad730fb1c0f0ac28cd7aee2804cf843a089eb6ac5dc80d5666b41f00133eb71",
+      "lines": 88
+    },
+    "data/knowledge/books-v1/coverage.md": {
+      "sha256": "cef5f8d676f5dc388b14263e35435b6239037e011afea7e2dc3c2062805af350",
+      "lines": 82
+    },
+    "data/knowledge/books-v1/runtime-manifest.json": {
+      "sha256": "498974dfb4dc76bcfc85af889b008919ab10a69c5c43c8ecb4f1618959d36261",
+      "lines": 339
+    },
+    "data/knowledge/books-v1/mappings.json": {
+      "sha256": "bc4b84839b4ad26018e81ee1b1b1afc832b4262b0854918f0270fc8bdb984ac1",
+      "lines": 2049
+    },
+    "app/knowledge/grounding.py": {
+      "sha256": "7f24c63c25245581c1443fb4ef5a154b4927eb210d92efaa8f0309b7a61109f1",
+      "lines": 972
+    },
+    "app/agents/product/skills.py": {
+      "sha256": "10815ecb14115ea95886648c16e8a830e23f900d279a8c0761264048eede10b8",
+      "lines": 74
+    },
+    "app/orchestrator/scoring.py": {
+      "sha256": "0b1bf314f51f676b61ddcf0f33e1062e41ec28a4f1bec0cdefb24b1331010975",
+      "lines": 162
+    }
+  }
+}

@@ -1,0 +1,85 @@
+\section{Nhận xét và thảo luận}
+
+\subsection{Giá trị của việc chia trách nhiệm}
+Lợi ích dễ nhận thấy của mô hình nhiều tác tử là tổ chức công việc rõ ràng. Hệ thống biết phần nào là tìm thông tin sách, phần nào là đọc đánh giá và phần nào là đối chiếu nguồn. Cách chia này giúp giải thích kết quả, tìm nguyên nhân khi sai và bổ sung năng lực chuyên môn theo từng phần.
+
+Ví dụ, nếu câu trả lời chọn đúng sách nhưng nhận xét đóng gói sai, có thể xem lại phần đọc đánh giá thay vì sửa mọi bước. Nếu thông tin tác giả khác nhau giữa danh mục bán hàng và nguồn thư mục, hệ thống có cơ hội phát hiện sự khác biệt trước khi tổng hợp. Đây là giá trị về tổ chức và kiểm soát, dù chưa đồng nghĩa đã làm tăng điểm trên mọi bộ câu hỏi.
+
+\subsection{Vì sao nhiều tác tử chậm hơn}
+Cách một tác tử có thể đi trực tiếp từ thông tin được cấp đến câu trả lời. Cách nhiều tác tử còn phải phân chia yêu cầu, tạo kết quả từng phần và tổng hợp chúng. Mỗi công đoạn đều có thể phát sinh thêm thời gian và thêm văn bản cần xử lý.
+
+Một số phần việc có thể được xử lý cùng lúc trong mô hình thử nghiệm, nhưng tổng thời gian vẫn còn những bước phải chờ nhau. Chẳng hạn, phải biết đã chọn cuốn sách nào thì mới có thể đọc đúng đánh giá của cuốn đó. Vì vậy, tăng số tác tử không tự động làm hệ thống nhanh hơn.
+
+\subsection{Khi nào cần cân nhắc từng cách}
+Với câu hỏi ngắn, dữ liệu liên quan đã có sẵn và ít yêu cầu đối chiếu, một tác tử có thể đáp ứng tốt với thời gian thấp hơn. Kết quả thực nghiệm hiện tại phù hợp với nhận định có điều kiện này.
+
+Nhiều tác tử đáng cân nhắc khi một yêu cầu có nhiều loại nhiệm vụ cần kiểm soát riêng, cần đối chiếu các nguồn khác nhau hoặc cần giải thích rõ căn cứ của từng kết luận. Tuy nhiên, đây là lý do thiết kế và hướng ứng dụng; vẫn cần thực nghiệm phù hợp để xác nhận lợi ích chất lượng lớn hơn phần chi phí tăng thêm.
+
+Không nên kết luận một cách tuyệt đối rằng ``câu hỏi khó thì bắt buộc nhiều tác tử''. Một tác tử cũng có thể được thiết kế để tra cứu từng bước và kiểm tra kết quả. Cần so sánh hai cách trên điều kiện tương đương trước khi quy toàn bộ khác biệt cho số lượng tác tử.
+
+\section{Hạn chế của nghiên cứu hiện tại}
+
+\subsection{Dữ liệu chưa đại diện cho sử dụng thực tế}
+Thông tin sách là dữ liệu lịch sử, đánh giá người mua chỉ là mẫu và nguồn kiến thức mới phủ một phần nhỏ danh mục. Vì vậy, không thể dùng kết quả để khẳng định hệ thống hiểu toàn bộ thị trường sách hoặc luôn có thông tin cập nhật.
+
+Phần chuẩn bị dữ liệu cũng cần tiếp tục làm sạch các bản ghi ngoài phạm vi sách và đối chiếu tốt hơn giữa tác phẩm với ấn bản. Chất lượng tư vấn phụ thuộc cả việc mô hình xử lý tốt lẫn việc dữ liệu đầu vào mô tả đúng đối tượng.
+
+\subsection{Số câu hỏi còn ít}
+Bộ thực nghiệm có 24 câu hỏi. Chạy mỗi câu ba lần giúp quan sát việc trả lời lặp lại, nhưng không tăng tương ứng số tình huống độc lập. Kết quả cần được kiểm tra trên các câu hỏi mới trước khi mở rộng thành nhận định chung.
+
+Trong dữ liệu đã lưu, nội dung trả lời của ba lần lặp không hoàn toàn giống nhau. Do đó, việc đặt điều kiện sinh ít ngẫu nhiên không bảo đảm mô hình luôn tạo ra cùng một câu chữ. Cần đánh giá độ ổn định theo nội dung và dữ kiện, thay vì chỉ kỳ vọng văn bản lặp lại nguyên vẹn.
+
+\subsection{Thông tin liên quan đã được cấp sẵn}
+Hai cách trả lời đều nhận dữ liệu đã được lựa chọn dựa trên nguồn đáp án chuẩn. Đây là điều kiện hữu ích để so cách xử lý thông tin, nhưng chưa đánh giá đầy đủ khả năng tự tìm kiếm trong kho lớn. Một hệ thống có thể tổng hợp tốt khi được cấp đúng dữ liệu mà vẫn gặp khó khi phải tự tìm dữ liệu đó.
+
+Vì vậy, cần phân biệt kết quả của phép thử này với trải nghiệm sử dụng trọn vẹn: từ câu hỏi ban đầu, tìm nguồn, xử lý, kiểm tra cho đến trả lời cuối cùng.
+
+\subsection{Bộ chấm chưa kiểm mọi nội dung}
+Bộ chấm chủ yếu xét những dữ kiện bắt buộc. Nếu câu trả lời có thêm lời khuyên hoặc nhận định ngoài danh sách đó, việc đạt đủ điểm không tự xác nhận các phần bổ sung đều đúng. Ngược lại, một ý đúng trong dữ liệu nhưng khác đáp án rút gọn cũng có thể bị chấm thiếu. \src{5}
+
+Nghiên cứu tiếp theo cần có người đối chiếu một phần câu trả lời với nguồn, kiểm tra sự thống nhất giữa người và bộ chấm, đồng thời xem xét cả thông tin bị bỏ sót lẫn thông tin được thêm không có căn cứ.
+
+\subsection{Chi phí và thời gian mới được đo trong phạm vi thử nghiệm}
+Thời gian và token trong bảng kết quả thuộc quá trình sinh câu trả lời đã được ghi nhận. Chúng chưa phải toàn bộ chi phí triển khai, vận hành và chấm điểm. Thứ tự chạy hai cách cũng chưa được cân bằng ngẫu nhiên, nên khác biệt tải xử lý hoặc mạng có thể ảnh hưởng kết quả thời gian.
+
+Tỷ lệ token lớn hơn cho thấy nhu cầu xử lý văn bản tăng, nhưng chưa đủ để chuyển trực tiếp thành một tỷ lệ tiền cụ thể nếu chưa xét loại mô hình, đầu vào, đầu ra và các thành phần liên quan.
+
+\section{Hướng phát triển và đánh giá tiếp theo}
+
+\subsection{Mở rộng và nâng chất lượng dữ liệu}
+Trước hết cần tăng số nguồn kiến thức đáng tin cậy, cải thiện độ phủ tác phẩm và xác định rõ các ấn bản. Với thông tin biến động như giá hoặc tồn kho, nếu muốn phục vụ thực tế thì phải có nguồn cập nhật phù hợp và hiển thị rõ thời điểm thông tin được ghi nhận.
+
+Nên tiếp tục kiểm tra các đánh giá thuộc đúng sản phẩm, phân biệt trải nghiệm giao hàng với chất lượng nội dung và giữ những trường hợp mâu thuẫn để hệ thống học cách diễn giải thận trọng. Mở rộng dữ liệu có căn cứ thường hữu ích hơn chỉ tăng số lượng tác tử trên cùng một tập thông tin nhỏ.
+
+\subsection{Xây dựng bộ câu hỏi mới có độ khó thực chất}
+Bộ câu hỏi tiếp theo nên có nhiều tình huống gần nhu cầu người dùng: nhiều tựa sách gần giống nhau, nhiều điều kiện kết hợp, thông tin thiếu, nguồn bất đồng, câu hỏi vượt phạm vi dữ liệu và yêu cầu giải thích vì sao chọn một cuốn thay vì cuốn khác.
+
+Các câu hỏi dùng để kết luận phải được tách khỏi những câu đã dùng để chỉnh hệ thống. Nếu sửa cách xử lý sau khi xem một câu sai rồi tiếp tục dùng đúng câu đó để chứng minh hiệu quả, kết quả sẽ khó phản ánh khả năng xử lý tình huống mới.
+
+\subsection{So sánh công bằng hai cách xử lý}
+Cả một tác tử và nhiều tác tử cần được tiếp cận cùng loại thông tin, cùng yêu cầu bảo toàn tên sách, cùng tiêu chí trả lời và cùng quy tắc an toàn. Khi đó mới dễ xác định phần lợi ích do cách phối hợp, thay vì do một bên được hướng dẫn kỹ hơn.
+
+Nên thay đổi cân bằng thứ tự chạy, lặp ở những thời điểm khác nhau và ghi đầy đủ kết quả. Các lần lặp của cùng một câu phải được xem là có liên quan, không coi tất cả là những bài toán mới để làm kết luận có vẻ chắc chắn hơn thực tế.
+
+Một phần điều kiện cho đợt đánh giá tiếp theo đã được chuẩn bị. Trước khi chạy với mô hình thật, hệ thống ghi lại và khóa đúng phiên bản mã nguồn, từ chối chạy nếu mã nguồn có thay đổi chưa lưu, và yêu cầu người chạy đặt trần ngân sách. Bộ phiếu chấm mù cho hai người chấm độc lập cũng đã sẵn sàng, với mọi điểm để trống cho tới khi người thật điền. \src{9} Đợt đánh giá đó chưa được thực hiện, nên chưa có số liệu mới để báo cáo.
+
+\subsection{Đánh giá nhiều mặt thay vì chỉ một điểm số}
+Một phép đánh giá đầy đủ nên trả lời các câu hỏi:
+\begin{enumerate}
+\item Câu trả lời đã đáp ứng đủ những ý người dùng hỏi chưa?
+\item Các thông tin bắt buộc có đúng và đủ không?
+\item Những nhận định bổ sung có được nguồn hỗ trợ không?
+\item Hệ thống có biết hỏi lại hoặc từ chối đúng lúc không?
+\item Người đọc có hiểu được lý do lựa chọn và giới hạn thông tin không?
+\item Mức cải thiện có xứng đáng với thời gian chờ và tài nguyên tăng thêm không?
+\end{enumerate}
+Những câu hỏi này phù hợp hơn việc chỉ tuyên bố ``đạt 100\%'' mà không nói rõ điểm đó đang đo điều gì.
+
+\section{Kết luận}
+Hệ thống trợ lý tư vấn sách được xây dựng theo hướng phân chia công việc cho các tác tử chuyên trách, kết hợp thông tin sách, đánh giá người mua và nguồn kiến thức. Bộ phận điều phối tổ chức các phần việc, còn bước tổng hợp kiểm tra căn cứ trước khi đưa ra câu trả lời. Giá trị chính của cách tiếp cận là làm rõ trách nhiệm và nguồn thông tin của từng nhận định.
+
+Trên bộ thực nghiệm 24 câu hỏi, nhiều tác tử đạt điểm trung bình 100\%, còn một tác tử đạt 98,96\%. Tuy nhiên, chênh lệch chỉ nằm ở một câu hỏi về hậu tố ấn bản, trong khi nhiều tác tử cần thời gian trung bình gấp 4,73 lần và lượng token gấp 2,78 lần. Vì vậy, kết quả hiện có cho thấy một đánh đổi cụ thể giữa mức đáp ứng dữ kiện và tài nguyên, chưa đủ chứng minh nhiều tác tử vượt trội trong mọi tình huống.
+
+Sau thực nghiệm, nhóm đã sửa sáu điểm làm mất thông tin trong quá trình xử lý và loại khỏi kết luận các số liệu không truy ngược được tới kết quả chạy thật. Các sửa đổi được xác nhận bằng kiểm thử tự động; tác động của chúng lên chất lượng trả lời vẫn cần được đo lại.
+
+Hướng phát triển phù hợp là tiếp tục nâng chất lượng dữ liệu, kiểm soát việc sử dụng bằng chứng và đánh giá trên các câu hỏi mới với điều kiện so sánh công bằng. Việc chọn một hay nhiều tác tử nên dựa trên nhu cầu thực tế và lợi ích đo được, thay vì mặc định số tác tử nhiều hơn sẽ cho kết quả tốt hơn.
