@@ -1,0 +1,22 @@
+{
+  "target": "v4",
+  "model": "gpt-6-luna",
+  "exploratory": true,
+  "git_head": "543da7fc7707270058954e00e88652f5f2b2de2e",
+  "instructions_sha256": "dbf5872d4820052725d2c8aabd311a619f0eb9e9d052c7155d18d09cdbbd26d0",
+  "totals": {
+    "rows": 144,
+    "errors": 0,
+    "input_tokens": 160345,
+    "cached_input_tokens": 6803,
+    "output_tokens": 20004,
+    "cost_usd": "0.02542423"
+  },
+  "files": {
+    "p8-judgments.jsonl": "3efed47a51cc0557be0aab2aa2d4c6d048b2a5ebfb7af80dfe846b1c3d01a9d3",
+    "p8-manifest.json": "e88bc8cd531324241a6848332383c878cd006c4e81cd8b6c9b8e8d786aa5a551",
+    "p8-report.json": "4a7a02f04ff5a9cac1b64145f4c14d66fcff402ef687436ef5e03e9702e5b808",
+    "v4-judgments.jsonl": "8529a828cb4caaeea190114b36cc956d7514d368bf9c2a3d746a284d447884a4",
+    "v4-report.json": "034428b7b130e2dd1053e249bef30511281ed81a8a8e93374578ecca1bed023c"
+  }
+}
