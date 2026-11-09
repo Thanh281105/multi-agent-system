@@ -98,3 +98,30 @@ def test_cache_line_written_incrementally(tmp_path: Path) -> None:
         pass
     lines = cache.read_text(encoding="utf-8").splitlines()
     assert [json.loads(x)["key"] for x in lines] == ["k0", "k1"]
+
+
+def test_retry_errors_recalls_only_error_cells_and_latest_row_wins(
+    tmp_path: Path,
+) -> None:
+    from app.evaluation.rejudge_collect import read_cache
+
+    cache = tmp_path / "c.jsonl"
+    _run(_requests(2), FakeCall(error="boom"), cache)
+    plain = FakeCall()
+    _run(_requests(2), plain, cache)
+    assert plain.keys == []  # mặc định: ô lỗi không bị gọi lại
+    retry = FakeCall()
+    summary = asyncio.run(
+        collect(
+            _requests(2),
+            call=retry,
+            cache_path=cache,
+            guard=BudgetGuard(Decimal("10")),
+            prices=PRICES,
+            concurrency=2,
+            retry_errors=True,
+        )
+    )
+    assert sorted(retry.keys) == ["k0", "k1"]
+    assert summary.done == 2
+    assert all(row["error"] is None for row in read_cache(cache).values())

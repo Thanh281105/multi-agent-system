@@ -76,9 +76,13 @@ async def collect(
     guard: BudgetGuard,
     prices: ModelPrices,
     concurrency: int = 4,
+    retry_errors: bool = False,
 ) -> CollectSummary:
     cache_path.parent.mkdir(parents=True, exist_ok=True)
-    cached = set(read_cache(cache_path))
+    rows = read_cache(cache_path)
+    cached = {
+        key for key, row in rows.items() if not (retry_errors and row.get("error"))
+    }
     pending = [key for key in requests if key not in cached]
     semaphore = asyncio.Semaphore(concurrency)
     write_lock = asyncio.Lock()
@@ -169,6 +173,8 @@ def make_openai_call(
                 error = None
             except ModelRuntimeError as exc:
                 output, error = None, str(exc.code)
+                if not calls:
+                    calls.append(exc.metadata)
         return JudgeCallResult(
             output=output,
             error=error,

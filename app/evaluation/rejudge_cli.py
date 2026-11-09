@@ -65,6 +65,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--budget-usd", type=Decimal)
     parser.add_argument("--allow-network", action="store_true")
+    parser.add_argument(
+        "--retry-errors",
+        action="store_true",
+        help="gọi lại đúng các ô đã lỗi trong cache (mỗi lần chạy thêm một lượt)",
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--p8-root", type=Path, default=DEFAULT_P8_ROOT)
@@ -202,6 +207,7 @@ def _run(
             guard=guard,
             prices=prices,
             concurrency=args.concurrency,
+            retry_errors=args.retry_errors,
         )
     )
     return {
