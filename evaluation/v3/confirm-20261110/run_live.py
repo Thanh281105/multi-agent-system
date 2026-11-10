@@ -10,8 +10,10 @@ ROOT = Path(__file__).resolve().parents[3]
 CONFIRM = ROOT / "evaluation" / "v3" / "confirm-20261110"
 OUT = ROOT / "output" / "evaluation-v3" / "confirm-20261110"
 RUNTIME_MANIFEST = OUT / "runtime-manifest.json"
-EXPERIMENT = ROOT / "evaluation" / "v3" / "mini-generation-luna-judge-v1" / "experiment.v3.json"
-DATABASE_URL = (
+EXPERIMENT = (
+    ROOT / "evaluation" / "v3" / "mini-generation-luna-judge-v1" / "experiment.v3.json"
+)
+DATABASE_URL = (  # noqa: E501
     "postgresql+psycopg://ecommerce_p1:p1-local-disposable-only@127.0.0.1:55432/ecommerce_p1"
 )
 MODEL = "gpt-5.4-mini-2026-03-17"
