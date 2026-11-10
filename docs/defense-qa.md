@@ -143,9 +143,10 @@ mới.
 hộ: `ma_fixed_rag` − SA trên `multi_constraint` +2,78 điểm %, CI [0; +8,33];
 trên 60 câu cả hai cấu hình MA +1,07, CI [0; +2,78], W/T/L 2/24/0. MA không
 thua SA ở nhóm nào nhưng chênh lệch chưa có ý nghĩa thống kê. Hai điểm yếu phải
-nói rõ: bốn trong sáu loại câu cho 0% ở mọi biến thể (gold do subagent soạn
-nhiều khả năng quá khắt khe hoặc lệch cách chấm), và cổng hiệu chuẩn judge đã
-bị nới, 719/720 ô được chấm. Bỏ RAG vẫn làm giảm rõ (−16,24, CI [−23,18;
+nói rõ: bốn trong sáu loại câu cho 0% ở mọi biến thể vì cả SA lẫn MA trả
+"cần làm rõ" khi câu hỏi diễn đạt tự nhiên thay vì theo khuôn P8 (phần lập kế
+hoạch và tìm ứng viên dùng chung nên gãy giống nhau; khả năng khái quát ngoài
+khuôn P8 còn yếu), và cổng hiệu chuẩn judge đã bị nới, 719/720 ô được chấm. Bỏ RAG vẫn làm giảm rõ (−16,24, CI [−23,18;
 −9,62]).
 
 **Q12. Nếu làm tiếp, bạn sẽ làm gì?**

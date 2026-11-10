@@ -37,15 +37,25 @@ MA adaptive − SA +3,21, CI [0,00; +7,05], W/T/L 5/20/1.
 | insufficient_conflict_injection | 0 | 0 | 0 | 62 |
 | shopping_merchant | 0 | 0 | 0 | 0 |
 
-## Bộ câu hỏi mới bị hiệu ứng sàn
+## Hiệu ứng sàn: cả hai hệ thống gãy với cách hỏi tự nhiên
 
 Bốn loại câu cho 0% ở **mọi** biến thể, và `multi_constraint` rơi từ 94% (P8)
-xuống 6%. Các chỉ số thành phần xác định (authorization, answerability,
-valid_plan) giống hệt nhau giữa SA và MA ở các loại này, nên nguyên nhân nhiều
-khả năng nằm ở gold do subagent soạn (yêu cầu không khớp cách hệ thống được
-chấm), không phải ở hệ thống. Chưa điều tra từng câu. Hệ quả: bộ này chỉ phân
-biệt được hai hệ thống ở `knowledge_source` và một phần `multi_constraint`; nó
-yếu hơn P8 về sức phân biệt. Gold không được sửa sau khi xem kết quả.
+xuống 6%. Kiểm tra outcome runtime (cùng số ở SA và MA fixed): hệ thống trả
+`needs_clarification` ("chưa tìm thấy đủ ứng viên đã xác minh") ở 27/36 ô
+`multi_constraint`, 33/36 ô `multi_expert`, 24/24 ô
+`insufficient_conflict_injection`, 9/24 ô `multi_turn_memory`.
+
+Câu hỏi P8 theo khuôn cố định ("Tìm X với giá không vượt quá N đồng, rating ít
+nhất R; nêu thêm tác giả..."); câu hỏi mới dùng đúng tên sản phẩm nhưng diễn
+đạt tự nhiên ("ngân sách tối đa 240.000 đồng... Cuốn này có đạt cả hai điều
+kiện không?"). Bước lập kế hoạch và tìm ứng viên là phần **dùng chung** của SA
+và MA, nên cả hai gãy giống nhau. Diễn giải hợp lý nhất: điểm cao trên P8 một
+phần phản ánh việc hệ thống đã được chỉnh nhiều vòng trên khuôn câu hỏi P8, và
+khả năng khái quát sang cách hỏi khác còn yếu. Đây là giả thuyết từ vài ví dụ,
+chưa kiểm từng câu; cũng chưa loại trừ gold mới đòi hỏi quá khắt khe ở một số
+câu. Hệ quả cho so sánh: bộ này chỉ phân biệt được hai hệ thống ở
+`knowledge_source` và một phần `multi_constraint`. Gold không được sửa sau khi
+xem kết quả.
 
 ## Lệch so với khai báo trước và quy trình chuẩn
 
