@@ -62,9 +62,14 @@ cuối phải dựa trên tập xác nhận chưa dùng để sửa hệ thống
 **Q4. Bộ chấm LLM có đáng tin không? Nhãn người chấm đâu?**
 Không có nhãn người thật. Calibration cũ là mô phỏng (40 bộ nhãn viết sẵn) nên
 đã bị loại khỏi kết luận. Bộ phiếu chấm mù cho hai người chấm đã chuẩn bị nhưng
-để trống. Judge còn chỉ thấy `required_facts` rút gọn, từng gây hai âm tính giả
-trong v4 (`fair_tier2_cross_06` và `_07`). Trả lời: đây là giới hạn đã nêu,
-không tuyên bố judge đã hiệu chuẩn.
+để trống. Ngày 2026-11-09 đã chấm lại bằng cùng judge Luna (xem
+`docs/rejudge_llm_judge_results.md`): trên 715/720 câu P8, đồng thuận 97,3%
+(κ = 0,946) với task_completion và 96,9% (κ = 0,937) với claim_support; hiệu
+SA → MA adaptive là −4,99 điểm % ở lần chấm gốc và −6,53 điểm % ở lần chấm lại
+(cùng 715 câu, cùng hướng). Nói đúng: **so sánh ổn định qua hai lần chấm bằng
+cùng judge**. Không nói judge đã được kiểm chứng: cùng model không phát hiện
+thiên lệch chung, `reasoning_effort=none` có thể làm đánh giá thấp độ ồn, và
+chưa có người hiệu chuẩn.
 
 **Q5. Gói P8 có toàn vẹn không?**
 Audit `evidence_integrity` ngày 2026-11-09: bản copy trong
@@ -77,9 +82,13 @@ gốc vào bản nộp (không tạo mới). Audit chỉ chứng minh toàn vẹ
 chứng minh chất lượng hay độ độc lập của nhãn. Catalog set cũng hợp lệ.
 
 **Q6. Con số 100% có nghĩa hệ thống chính xác tuyệt đối không?**
-Không. 100% nghĩa là mọi `required_facts` được judge chấp nhận trên 24 câu.
-Judge chưa kiểm các phát biểu bổ sung với toàn snapshot. Và cả hai bên được
-cấp sẵn thông tin liên quan, nên chưa đo khả năng tự tìm trong kho lớn.
+Không. 100% nghĩa là mọi `required_facts` được judge cũ chấp nhận trên 24 câu.
+Khi chấm lại cùng 144 câu trả lời bằng judge được cấp bản ghi nguồn, điểm là
+88,5% (SA) và 96,5% (MA), nên mức bão hòa phụ thuộc thiết kế judge. Đừng dùng
+hai số mới này làm độ chính xác: kiểm tay cho thấy có âm tính giả do ngữ cảnh
+chỉ gồm bản ghi của từng fact (ví dụ `recom_03`, `recom_04`). Điều chắc chắn là
+v4 không đủ sức phân biệt hai hệ thống. Cả hai bên cũng được cấp sẵn thông tin
+liên quan, nên chưa đo khả năng tự tìm trong kho lớn.
 
 **Q7. Hệ thống có an toàn/phân quyền không?**
 P8: cả 4 biến thể đạt 0 vi phạm phân quyền trên 720 ô. Kiến trúc: Agent
@@ -104,7 +113,7 @@ Là snapshot lịch sử Tiki Books (200 sản phẩm, 1.773 review, truy xuất
 giới hạn này; không tuyên bố phản ánh giá, tồn kho, xu hướng hiện tại.
 
 **Q10. Phần mềm đã được kiểm thử thế nào?**
-Ngày 2026-11-09 chạy trên máy dev: pytest 1.418 pass, 0 fail (có PostgreSQL
+Ngày 2026-11-09 chạy trên máy dev: pytest 1.418 pass, 0 fail (sau khi thêm bộ chấm lại: 1.456 pass, 0 fail) (có PostgreSQL
 16.15 dùng một lần), ruff và mypy (176 file) sạch, frontend: oxlint, `tsc -b`
 và vitest 101/101 đều qua. Chưa kiểm Redis/Qdrant thật, chưa load/soak test.
 Lưu ý: `latex/03-danh-gia.tex` ghi 1.416 test, lệch 2 so với lần chạy này;
@@ -137,7 +146,7 @@ Gợi ý luồng demo (≈ 5 phút), cần xác nhận khi chạy thử:
 
 ## 5. Việc cần chốt trước ngày bảo vệ
 
-- Thống nhất số test: báo cáo ghi 1.416, lần chạy 2026-11-09 là 1.418.
+- Số test: báo cáo LaTeX và lần chạy cuối 2026-11-09 đều là 1.456 (đã thống nhất).
 - Bổ sung `preparation.json` gốc vào bản nộp P8 (copy nguyên byte từ
   `output/.../p8-report/`, rồi audit lại), hoặc nêu rõ bản nộp dùng bản gốc.
 - Sửa `docs/p8_official_publication_benchmark_report.md`: nhãn ablation "SA vs

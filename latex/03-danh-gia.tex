@@ -101,9 +101,16 @@ Phần đóng góp rõ nhất đến từ việc truy xuất có căn cứ. Khi 
 
 Cần đọc các số này với các giới hạn: bộ chấm chưa được hiệu chuẩn bằng người thật, khả năng tìm đúng tài liệu (document recall) chưa được đo, và kết quả của đợt này đã được xem để định hướng các sửa đổi sau đó nên không thể xem là phép xác nhận độc lập.
 
+\subsection{Chấm lại bằng cùng bộ chấm (thăm dò)}
+Để đo độ ổn định của bộ chấm mô hình mà không cần người chấm, 720 câu trả lời của đợt lớn được chấm lại bằng đúng cấu hình cũ (cùng mô hình \texttt{gpt-6-luna}). Trên 715 câu có kết quả hợp lệ ở cả hai lần, độ đồng thuận là 97,3\% (hệ số Cohen $\kappa = 0{,}946$) với tiêu chí hoàn thành tác vụ và 96,9\% ($\kappa = 0{,}937$) với tiêu chí căn cứ của phát biểu. Chênh lệch giữa một tác tử và nhiều tác tử thích nghi là $-5{,}0$ điểm phần trăm ở lần chấm gốc và $-6{,}5$ điểm phần trăm ở lần chấm lại trên cùng 715 câu; hai lần chấm cùng chiều.
+
+Kết quả này chỉ cho thấy so sánh ổn định qua hai lần chấm bằng cùng bộ chấm. Nó không chứng minh bộ chấm đúng: cùng một mô hình không phát hiện được thiên lệch chung, chế độ không suy luận có thể làm độ ồn bị đánh giá thấp, và bộ chấm vẫn chưa được người hiệu chuẩn. Kết luận chính thức vẫn là kết quả trên đủ 720 câu ở mục trước.
+
+Với bộ 24 câu, chấm lại 144 câu trả lời bằng bộ chấm được cấp bản ghi nguồn cho điểm 88,5\% (một tác tử) và 96,5\% (nhiều tác tử), thay vì 99,0\% và 100\%. Kiểm tra thủ công cho thấy một phần mức giảm là do ngữ cảnh cấp cho bộ chấm chỉ gồm bản ghi của từng sự kiện, nên không dùng hai số này làm độ chính xác. Điều rút ra được là điểm bão hòa của bộ 24 câu phụ thuộc cách thiết kế bộ chấm và bộ này không đủ sức phân biệt hai kiến trúc. Chi tiết và giới hạn nằm trong \texttt{docs/rejudge\_llm\_judge\_results.md}.
+
 \subsection{Kiểm chứng lại nguồn gốc số liệu}
 Các số liệu trong mục này được tính lại độc lập từ kết quả đã lưu và khớp với bảng trên. Trong quá trình rà soát, nhóm cũng phát hiện một số tài liệu khác của dự án dùng số đo được viết sẵn trong mã chương trình, không tính từ kết quả chạy thật: báo cáo đánh đổi giữa các cấu hình, thí nghiệm bỏ bớt thành phần và một đợt chấm của người được mô phỏng. \src{8}
 
 Các số liệu này \textbf{không được dùng trong báo cáo}. Những tài liệu liên quan đã được ghi chú đính chính; quy trình tạo báo cáo mới chỉ đọc kết quả gốc, kiểm tra tính toàn vẹn của tệp và dừng lại nếu thiếu dữ liệu, thay vì tự điền con số. Công cụ chấm của người cũng chỉ tổng hợp phiếu do người thật điền, không tự sinh nhãn.
 
-Toàn bộ 1.418 kiểm thử tự động không gọi mô hình thật, gồm các kiểm thử chạy trên cơ sở dữ liệu PostgreSQL, đều qua trên mã nguồn hiện tại. Kết quả này cho thấy phần mềm vận hành đúng các quy tắc đã được kiểm thử; nó không thay thế một đợt đánh giá mới với mô hình thật.
+Toàn bộ 1.456 kiểm thử tự động không gọi mô hình thật, gồm các kiểm thử chạy trên cơ sở dữ liệu PostgreSQL, đều qua trên mã nguồn hiện tại. Kết quả này cho thấy phần mềm vận hành đúng các quy tắc đã được kiểm thử; nó không thay thế một đợt đánh giá mới với mô hình thật.
