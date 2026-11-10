@@ -29,6 +29,9 @@ Bộ thực nghiệm có 24 câu hỏi. Chạy mỗi câu ba lần giúp quan s�
 
 Trong dữ liệu đã lưu, nội dung trả lời của ba lần lặp không hoàn toàn giống nhau. Do đó, việc đặt điều kiện sinh ít ngẫu nhiên không bảo đảm mô hình luôn tạo ra cùng một câu chữ. Cần đánh giá độ ổn định theo nội dung và dữ kiện, thay vì chỉ kỳ vọng văn bản lặp lại nguyên vẹn.
 
+\subsection{Khả năng xử lý cách hỏi mới còn yếu}
+Lần chạy xác nhận trên 60 hội thoại mới cho thấy cả một tác tử lẫn nhiều tác tử thường đề nghị người dùng nêu rõ hơn khi câu hỏi được diễn đạt tự nhiên thay vì theo khuôn của bộ câu hỏi cũ. Bước lập kế hoạch và tìm ứng viên là phần dùng chung, nên hạn chế này không phân biệt hai cách tổ chức; nó cho thấy điểm số trên các bộ câu hỏi quen thuộc không nên được hiểu là khả năng xử lý mọi cách hỏi. \src{10}
+
 \subsection{Thông tin liên quan đã được cấp sẵn}
 Hai cách trả lời đều nhận dữ liệu đã được lựa chọn dựa trên nguồn đáp án chuẩn. Đây là điều kiện hữu ích để so cách xử lý thông tin, nhưng chưa đánh giá đầy đủ khả năng tự tìm kiếm trong kho lớn. Một hệ thống có thể tổng hợp tốt khi được cấp đúng dữ liệu mà vẫn gặp khó khi phải tự tìm dữ liệu đó.
 
@@ -61,7 +64,7 @@ Cả một tác tử và nhiều tác tử cần được tiếp cận cùng lo�
 
 Nên thay đổi cân bằng thứ tự chạy, lặp ở những thời điểm khác nhau và ghi đầy đủ kết quả. Các lần lặp của cùng một câu phải được xem là có liên quan, không coi tất cả là những bài toán mới để làm kết luận có vẻ chắc chắn hơn thực tế.
 
-Một phần điều kiện cho đợt đánh giá tiếp theo đã được chuẩn bị. Trước khi chạy với mô hình thật, hệ thống ghi lại và khóa đúng phiên bản mã nguồn, từ chối chạy nếu mã nguồn có thay đổi chưa lưu, và yêu cầu người chạy đặt trần ngân sách. Bộ phiếu chấm mù cho hai người chấm độc lập cũng đã sẵn sàng, với mọi điểm để trống cho tới khi người thật điền. \src{9} Đợt đánh giá đó chưa được thực hiện, nên chưa có số liệu mới để báo cáo.
+Một phần điều kiện cho đợt đánh giá tiếp theo đã được chuẩn bị. Trước khi chạy với mô hình thật, hệ thống ghi lại và khóa đúng phiên bản mã nguồn, từ chối chạy nếu mã nguồn có thay đổi chưa lưu, và yêu cầu người chạy đặt trần ngân sách. Bộ phiếu chấm mù cho hai người chấm độc lập cũng đã sẵn sàng, với mọi điểm để trống cho tới khi người thật điền. \src{9} Một lần chạy xác nhận với mô hình thật trên 60 hội thoại mới đã được thực hiện theo các điều kiện này và được trình bày ở phần kết quả; phần chấm của người thật vẫn chưa được thực hiện. \src{10}
 
 \subsection{Đánh giá nhiều mặt thay vì chỉ một điểm số}
 Một phép đánh giá đầy đủ nên trả lời các câu hỏi:
@@ -79,6 +82,8 @@ Những câu hỏi này phù hợp hơn việc chỉ tuyên bố ``đạt 100\%'
 Hệ thống trợ lý tư vấn sách được xây dựng theo hướng phân chia công việc cho các tác tử chuyên trách, kết hợp thông tin sách, đánh giá người mua và nguồn kiến thức. Bộ phận điều phối tổ chức các phần việc, còn bước tổng hợp kiểm tra căn cứ trước khi đưa ra câu trả lời. Giá trị chính của cách tiếp cận là làm rõ trách nhiệm và nguồn thông tin của từng nhận định.
 
 Trên bộ thực nghiệm 24 câu hỏi, nhiều tác tử đạt điểm trung bình 100\%, còn một tác tử đạt 98,96\%. Tuy nhiên, chênh lệch chỉ nằm ở một câu hỏi về hậu tố ấn bản, trong khi nhiều tác tử cần thời gian trung bình gấp 4,73 lần và lượng token gấp 2,78 lần. Vì vậy, kết quả hiện có cho thấy một đánh đổi cụ thể giữa mức đáp ứng dữ kiện và tài nguyên, chưa đủ chứng minh nhiều tác tử vượt trội trong mọi tình huống.
+
+Hai đợt đánh giá lớn hơn với mô hình thật, mỗi đợt 720 lượt trên 60 hội thoại, cho cùng một bức tranh: không có bằng chứng nhiều tác tử hoàn thành tác vụ tốt hơn một tác tử. Ở lần chạy xác nhận có giả thuyết khai báo trước, nhiều tác tử không thua ở nhóm tác phẩm nào nhưng chênh lệch $+1{,}07$ điểm phần trăm chưa có ý nghĩa thống kê. Thành phần tạo khác biệt rõ là truy xuất có căn cứ: tắt truy xuất làm tỷ lệ hoàn thành giảm từ 16 đến 36 điểm phần trăm tùy đợt. Lần chạy xác nhận cũng cho thấy cả hai cách còn yếu khi câu hỏi được diễn đạt khác khuôn quen thuộc.
 
 Sau thực nghiệm, nhóm đã sửa sáu điểm làm mất thông tin trong quá trình xử lý và loại khỏi kết luận các số liệu không truy ngược được tới kết quả chạy thật. Các sửa đổi được xác nhận bằng kiểm thử tự động; tác động của chúng lên chất lượng trả lời vẫn cần được đo lại.
 

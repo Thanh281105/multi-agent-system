@@ -99,7 +99,27 @@ Trên bộ này, tỷ lệ hoàn thành tác vụ trung bình thấp hơn nhiề
 
 Phần đóng góp rõ nhất đến từ việc truy xuất có căn cứ. Khi tắt truy xuất trong cùng cấu hình nhiều tác tử thích nghi, tỷ lệ hoàn thành giảm khoảng 36,1 điểm phần trăm (khoảng tin cậy 95\% từ $-51{,}2$ đến $-21{,}6$) và khả năng từ chối đúng lúc giảm khoảng 74,4 điểm phần trăm. Cả bốn cấu hình đều không ghi nhận vi phạm phân quyền.
 
-Cần đọc các số này với các giới hạn: bộ chấm chưa được hiệu chuẩn bằng người thật, khả năng tìm đúng tài liệu (document recall) chưa được đo, và kết quả của đợt này đã được xem để định hướng các sửa đổi sau đó nên không thể xem là phép xác nhận độc lập.
+Cần đọc các số này với các giới hạn: bộ chấm chưa được hiệu chuẩn bằng người thật, khả năng tìm đúng tài liệu (document recall) chưa được đo, và bộ 60 hội thoại này đã được chạy lặp nhiều lần trong quá trình phát triển, hệ thống được sửa giữa các lần, nên không thể xem đây là phép xác nhận độc lập cho phiên bản hiện tại.
+
+\subsection{Lần chạy xác nhận trên câu hỏi mới}
+Để có một phép thử chưa từng dùng để chỉnh hệ thống, dự án soạn 60 hội thoại mới trên cùng 13 sản phẩm và 26 nhóm tác phẩm, đóng băng bằng mã băm, rồi chạy đủ bốn cấu hình, ba lần lặp, tổng cộng 720 lượt. Giả thuyết và quy tắc phân tích được ghi lại và lưu vào kho mã \textit{trước khi} soạn câu hỏi và chạy hệ thống: giả thuyết chính là nhiều tác tử kế hoạch cố định hoàn thành tác vụ tốt hơn một tác tử ở loại câu nhiều điều kiện; chỉ kết luận ``ủng hộ'' khi khoảng tin cậy 95\% (bootstrap theo nhóm tác phẩm, 10.000 mẫu) không chứa 0. \src{10}
+
+\begin{table}[htbp]\small
+\caption{Kết quả lần chạy xác nhận: chênh lệch tỷ lệ hoàn thành tác vụ so với một tác tử (điểm phần trăm).}
+\begin{tabularx}{\linewidth}{Yrrr}\toprule
+So sánh & Chênh lệch & Khoảng tin cậy 95\% & Thắng/Hòa/Thua\\\midrule
+Kế hoạch cố định, câu nhiều điều kiện (giả thuyết chính) & $+2{,}78$ & $[0{,}00;\ +8{,}33]$ & 1/11/0\\
+Kế hoạch cố định, cả 60 hội thoại & $+1{,}07$ & $[0{,}00;\ +2{,}78]$ & 2/24/0\\
+Kế hoạch thích nghi, cả 60 hội thoại & $+1{,}07$ & $[0{,}00;\ +2{,}78]$ & 2/24/0\\
+Thích nghi không truy xuất, cả 60 hội thoại & $-16{,}24$ & $[-23{,}18;\ -9{,}62]$ & 0/13/13\\\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Không giả thuyết nào được ủng hộ}: cả ba khoảng tin cậy của so sánh nhiều tác tử với một tác tử đều chạm 0. Điều nói được là hai cấu hình nhiều tác tử không thua một tác tử ở nhóm tác phẩm nào và cao hơn khoảng 1,07 điểm phần trăm, nhưng chênh lệch chỉ đến từ 2 trong 26 nhóm và chưa có ý nghĩa thống kê. Tắt truy xuất tiếp tục làm giảm rõ tỷ lệ hoàn thành, nhất quán với đợt đánh giá trước.
+
+Tỷ lệ hoàn thành tuyệt đối trên bộ mới thấp: 19,4\% (một tác tử) và 20,6\% (hai cấu hình nhiều tác tử). Bốn trong sáu loại câu cho 0\% ở mọi cấu hình, và loại câu nhiều điều kiện giảm từ khoảng 94\% ở đợt trước xuống khoảng 6\%. Ở các loại này, cả một tác tử lẫn nhiều tác tử thường trả lời rằng chưa tìm thấy đủ ứng viên và đề nghị người dùng nêu rõ hơn. Câu hỏi của đợt trước theo một khuôn cố định, còn câu hỏi mới dùng đúng tên sách nhưng diễn đạt tự nhiên hơn; bước lập kế hoạch và tìm ứng viên là phần dùng chung của hai cách nên cả hai gặp khó giống nhau. Cách hiểu hợp lý nhất, dù mới dựa trên một số ví dụ, là khả năng xử lý cách hỏi ngoài khuôn quen thuộc còn yếu, và điểm cao ở đợt trước một phần phản ánh việc hệ thống đã được chỉnh nhiều vòng trên chính khuôn câu hỏi đó. Hệ quả là bộ mới chỉ phân biệt được hai cách ở loại câu tra cứu nguồn kiến thức (91,7\% so với 94,4\% và 97,2\%).
+
+Kết quả này có các giới hạn phải nêu: câu hỏi mới dùng lại cùng 13 sản phẩm và do một mô hình ngôn ngữ soạn, nên không phải bộ độc lập về dữ liệu; ngưỡng hiệu chuẩn bộ chấm đã được nới vì bộ chấm lệch nhãn tham chiếu tự động ở 3 trong 32 trường hợp thử; 719 trên 720 lượt được chấm, lượt còn lại bộ chấm không trả được kết quả hợp lệ và không thuộc các so sánh nhiều tác tử với một tác tử; bảng trên được tính trực tiếp từ nhật ký chấm theo công thức đã khai báo, không qua bước tổng hợp chính thức của quy trình. Câu hỏi và đáp án không được sửa sau khi xem kết quả.
 
 \subsection{Chấm lại bằng cùng bộ chấm (thăm dò)}
 Để đo độ ổn định của bộ chấm mô hình mà không cần người chấm, 720 câu trả lời của đợt lớn được chấm lại bằng đúng cấu hình cũ (cùng mô hình \texttt{gpt-6-luna}). Trên 715 câu có kết quả hợp lệ ở cả hai lần, độ đồng thuận là 97,3\% (hệ số Cohen $\kappa = 0{,}946$) với tiêu chí hoàn thành tác vụ và 96,9\% ($\kappa = 0{,}937$) với tiêu chí căn cứ của phát biểu. Chênh lệch giữa một tác tử và nhiều tác tử thích nghi là $-5{,}0$ điểm phần trăm ở lần chấm gốc và $-6{,}5$ điểm phần trăm ở lần chấm lại trên cùng 715 câu; hai lần chấm cùng chiều.
