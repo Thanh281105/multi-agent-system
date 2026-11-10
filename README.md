@@ -1,5 +1,14 @@
 # Evidence Atlas — trợ lý sách Multi-Agent tiếng Việt
 
+> **Cập nhật 2026-11-09:** gói P8 gốc đã được đối chiếu lại: `preparation.json`
+> khôi phục nguyên byte từ bản chạy gốc, audit `evidence_integrity` hợp lệ cho
+> P8 và catalog. Kết quả chính (720 lượt, 27 nhóm tác phẩm): một tác tử 45,2%,
+> nhiều tác tử thích nghi 41,4% task completion, chênh lệch −3,8 điểm % với CI
+> 95% [−8,7; +1,0], tức chưa có bằng chứng nhiều tác tử tốt hơn. Chấm lại bằng
+> cùng judge cho đồng thuận 97,3% (κ 0,946) trên 715 câu, chưa có nhãn người
+> thật. Xem [`docs/rejudge_llm_judge_results.md`](docs/rejudge_llm_judge_results.md)
+> và [`docs/defense-qa.md`](docs/defense-qa.md) về giới hạn của từng bộ số liệu.
+
 > **Trạng thái bằng chứng — 2026-11-06:** báo cáo trade-off/ablation cũ có số
 > liệu viết sẵn và human calibration cũ là mô phỏng; không dùng chúng để chứng
 > minh ưu thế MA hay người thật chấm mù. Gói P8/catalog trong ZIP còn thiếu hoặc

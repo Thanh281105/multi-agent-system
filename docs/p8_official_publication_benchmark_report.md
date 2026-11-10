@@ -59,8 +59,12 @@ Theo phân tích bootstrap cụm tác giả (Author-Cluster Bootstrap) với $N 
 │ MA Fixed RAG vs MA Adaptive RAG   │ Claim Supp.  │ -0.0648 (-6.48%)          │ [-0.1080, -0.0278]*     │
 │ MA Fixed RAG vs MA Adaptive RAG   │ Latency      │ +1576.10 ms               │ [+1036.31, +2197.88]    │
 ├───────────────────────────────────┼──────────────┼───────────────────────────┼─────────────────────────┤
+│ MA Adaptive RAG vs MA Adaptive    │ Task Compl.  │ -0.3611 (-36.11%)         │ [-0.5123, -0.2160]*     │
+│ Không RAG (cùng kiến trúc)        │ Abstention   │ -0.7438 (-74.38%)         │ [-0.8488, -0.6235]*     │
+│                                   │ Claim Supp.  │ -0.3549 (-35.49%)         │ [-0.5103, -0.2078]*     │
+├───────────────────────────────────┼──────────────┼───────────────────────────┼─────────────────────────┤
 │ SA Shared Tools vs MA Adaptive    │ Task Compl.  │ -0.3992 (-39.92%)         │ [-0.5504, -0.2490]*     │
-│ (Ablation Không Dùng RAG)         │ Abstention   │ -0.7438 (-74.38%)         │ [-0.8519, -0.6265]*     │
+│ Không RAG (khác kiến trúc, nhiễu) │ Abstention   │ -0.7438 (-74.38%)         │ [-0.8519, -0.6265]*     │
 │                                   │ Claim Supp.  │ -0.3868 (-38.68%)         │ [-0.5484, -0.2346]*     │
 │                                   │ Latency      │ -6140.49 ms               │ [-7026.61, -5192.06]*   │
 └───────────────────────────────────┴──────────────┴───────────────────────────┴─────────────────────────┘
@@ -71,7 +75,7 @@ Theo phân tích bootstrap cụm tác giả (Author-Cluster Bootstrap) với $N 
 1. **Tuân thủ phân quyền và an toàn (100% Authorization Compliance):**
    - Cả 4 biến thể đạt tuyệt đối $\Delta = 0.0$ vi phạm phân quyền trên toàn bộ 720 quan sát.
 2. **Vai trò sinh tử của Grounded RAG Retrieval:**
-   - Khi tắt thành phần RAG (`ma_adaptive_no_rag`), tỷ lệ hoàn thành tác vụ tụt dốc **-39.92%**, độ chính xác claim tụt **-38.68%**, và khả năng từ chối có căn cứ tụt **-74.38%**. Điều này chứng minh kiến trúc agent không thể thay thế kiến trúc truy xuất ngữ cảnh xác thực từ snapshot.
+   - Khi tắt RAG trong cùng kiến trúc MA adaptive (so sánh like-for-like), tỷ lệ hoàn thành tác vụ giảm **-36.11%**, claim support giảm **-35.49%** và khả năng từ chối có căn cứ giảm **-74.38%**. Con số -39.92% ở bảng trên là so SA với MA không RAG nên lẫn hai yếu tố (kiến trúc và RAG); dùng hàng like-for-like khi trích dẫn tác động của RAG. Kết quả này cho thấy truy xuất có căn cứ đóng góp lớn trong bộ P8, chưa phải bằng chứng độc lập vì bộ này đã được xem để định hướng sửa đổi.
 3. **Chi phí và độ trễ đánh đổi của Adaptive Orchestration:**
    - Nhánh `ma_adaptive_rag` yêu cầu thêm trung bình $1.238$ ms độ trễ và $+757$ tokens do phải qua các bước phân loại ý định (router) và tái lập kế hoạch (replanning). Trong khi đó, nhánh `ma_fixed_rag` thực thi song song nhanh hơn đáng kể.
 
