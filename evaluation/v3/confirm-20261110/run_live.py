@@ -23,7 +23,7 @@ CORPUS_ID = "cor_17992e80bd6be14e465994c571308e9710642342f4aebef4a8db5fc54881"
 INDEX_ID = "idx_eba47dd90e51dc1808c23b1a1a6215034c1a8622d22fce2acef3df2d2148"
 
 
-def runtime_env() -> dict[str, str]:
+def runtime_env(stage: str) -> dict[str, str]:
     from app.core.config import Settings
 
     key = Settings().openai_api_key_value
@@ -45,7 +45,7 @@ def runtime_env() -> dict[str, str]:
             "OPENAI_EMBEDDING_DIMENSIONS": "1536",
             "V2_CORPUS_VERSION_ID": CORPUS_ID,
             "V2_INDEX_MANIFEST_ID": INDEX_ID,
-            "V2_BUDGET_ACCOUNT_ID": "thanh-v2-provider-global",
+            "V2_BUDGET_ACCOUNT_ID": f"confirm-{stage}-account-20261110",
             "OPENAI_CIRCUIT_FAILURE_THRESHOLD": "20",
             "OPENAI_MAX_CONCURRENCY": "1",
         }
@@ -68,7 +68,8 @@ def common(extra: list[str]) -> list[str]:
 
 def main(stage: str) -> int:
     sys.path.insert(0, str(ROOT))
-    os.environ.update(runtime_env())
+    account_stage = "pilot" if stage in {"pilot", "resume", "freeze"} else stage
+    os.environ.update(runtime_env(account_stage))
     os.chdir(ROOT)
     from app.evaluation import v3_cli
 
