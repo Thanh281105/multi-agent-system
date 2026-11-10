@@ -17,8 +17,9 @@ DATABASE_URL = (  # noqa: E501
     "postgresql+psycopg://ecommerce_p1:p1-local-disposable-only@127.0.0.1:55432/ecommerce_p1"
 )
 MODEL = "gpt-5.4-mini-2026-03-17"
-RUN_ID = "run_p7_confirm_20261110"
-RUN_KEY = "package7-pilot-confirm-20261110"
+SUFFIX = os.environ.get("CONFIRM_RUN_SUFFIX", "")
+RUN_ID = f"run_p7_confirm_20261110{SUFFIX}"
+RUN_KEY = f"package7-pilot-confirm-20261110{SUFFIX}"
 CORPUS_ID = "cor_17992e80bd6be14e465994c571308e9710642342f4aebef4a8db5fc54881"
 INDEX_ID = "idx_eba47dd90e51dc1808c23b1a1a6215034c1a8622d22fce2acef3df2d2148"
 
@@ -61,7 +62,7 @@ def common(extra: list[str]) -> list[str]:
         "--runtime-manifest", str(RUNTIME_MANIFEST),
         "--run-id", RUN_ID,
         "--run-key", RUN_KEY,
-        "--output", str(OUT / "pilot"),
+        "--output", str(OUT / f"pilot{SUFFIX}"),
         *extra,
     ]  # fmt: skip
 
@@ -97,10 +98,10 @@ def main(stage: str) -> int:
     if stage in {"heldout-dry-run", "heldout-run", "heldout-resume"}:
         from app.evaluation import benchmark_cli
 
-        p7 = OUT / "pilot"
+        p7 = OUT / f"pilot{SUFFIX}"
         base = [
-            "--run-id", "run_p8_confirm_20261110",
-            "--successor-binding", str(OUT / "successor-binding.v3.json"),
+            "--run-id", f"run_p8_confirm_20261110{SUFFIX}",
+            "--successor-binding", str(OUT / f"successor-binding{SUFFIX}.v3.json"),
             "--p7-runtime-manifest", str(RUNTIME_MANIFEST),
             "--p7-protocol", str(p7 / "protocol.v3.json"),
             "--p7-repeat-decision", str(p7 / "repeat-decision.v3.json"),
@@ -118,7 +119,7 @@ def main(stage: str) -> int:
                 "--database-url",
                 DATABASE_URL,
                 "--output",
-                str(OUT / "heldout"),
+                str(OUT / f"heldout{SUFFIX}"),
             ]  # fmt: skip
         )
     raise SystemExit(f"unknown stage: {stage}")
