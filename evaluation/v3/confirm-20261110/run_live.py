@@ -68,7 +68,7 @@ def common(extra: list[str]) -> list[str]:
 
 def main(stage: str) -> int:
     sys.path.insert(0, str(ROOT))
-    account_stage = "pilot" if stage in {"pilot", "resume", "freeze"} else stage
+    account_stage = "pilot" if stage in {"pilot", "resume", "freeze"} else "heldout"
     os.environ.update(runtime_env(account_stage))
     os.chdir(ROOT)
     from app.evaluation import v3_cli
@@ -78,8 +78,13 @@ def main(stage: str) -> int:
             [
                 "pilot",
                 *common(
-                    ["--allow-network", "--database-url", DATABASE_URL,
-                     "--run-budget-usd", "1.5"]
+                    [
+                        "--allow-network",
+                        "--database-url",
+                        DATABASE_URL,
+                        "--run-budget-usd",
+                        "1.5",
+                    ]
                 ),
             ]  # fmt: skip
         )
@@ -89,6 +94,33 @@ def main(stage: str) -> int:
         )
     if stage == "freeze":
         return v3_cli.cli(["repeat-freeze", *common([])])
+    if stage in {"heldout-dry-run", "heldout-run", "heldout-resume"}:
+        from app.evaluation import benchmark_cli
+
+        p7 = OUT / "pilot"
+        base = [
+            "--run-id", "run_p8_confirm_20261110",
+            "--successor-binding", str(OUT / "successor-binding.v3.json"),
+            "--p7-runtime-manifest", str(RUNTIME_MANIFEST),
+            "--p7-protocol", str(p7 / "protocol.v3.json"),
+            "--p7-repeat-decision", str(p7 / "repeat-decision.v3.json"),
+            "--gold", str(CONFIRM / "gold.v3.json"),
+            "--split", str(CONFIRM / "split.v3.json"),
+        ]  # fmt: skip
+        if stage == "heldout-dry-run":
+            return benchmark_cli.cli(["dry-run", *base])
+        command = "run" if stage == "heldout-run" else "resume"
+        return benchmark_cli.cli(
+            [
+                command,
+                *base,
+                "--allow-network",
+                "--database-url",
+                DATABASE_URL,
+                "--output",
+                str(OUT / "heldout"),
+            ]  # fmt: skip
+        )
     raise SystemExit(f"unknown stage: {stage}")
 
 
