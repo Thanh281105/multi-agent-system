@@ -125,15 +125,28 @@ model. Trong v4, MA tốn token gấp 2,78 lần và chậm 4,73 lần. Thứ t�
 cân bằng ngẫu nhiên nên số đo thời gian chỉ mang tính tham khảo.
 
 **Q13. Vì sao chưa có holdout độc lập? P8 có phải holdout không?**
-P8 là held-out đóng băng trước khi chạy hệ thống: 60 hội thoại held-out tách
-khỏi 20 hội thoại dev, gold sinh tự động trước SUT (`gold_origin:
-automated_pre_sut_spec`). Nhưng P8 đã được phân tích lỗi và v4 thiết kế sau đó,
-nên không còn là xác nhận độc lập cho phiên bản đã sửa. Một bộ thứ hai độc lập
-chưa làm được vì pipeline chính thức đóng cứng 80/60/20 hội thoại và 264 fact,
-và dữ liệu hiện có chỉ cho 13 sản phẩm held-out (20/200 sản phẩm có nguồn kiến
-thức khớp chính xác). Câu hỏi mới viết trên cùng 13 sản phẩm chỉ là bằng chứng
-tái lập, không phải độc lập. Muốn độc lập thật cần thêm nguồn tri thức, lập chỉ
-mục lại và nới các hằng số đã đóng băng. Đây nằm trong Q12 (1).
+P8 tách 60 hội thoại held-out khỏi 20 hội thoại dev, gold sinh tự động trước
+SUT (`gold_origin: automated_pre_sut_spec`). Nhưng bộ held-out này **đã được
+chạy lặp nhiều lần** trong quá trình phát triển (các thư mục
+`output/evaluation-v3/heldout-successor-v4…v23`, `operate-v20…v36`), hệ thống
+được sửa giữa các lần, và v4 thiết kế sau khi phân tích lỗi P8. Vì vậy P8 không
+phải held-out "sạch" cho phiên bản hiện tại; số P8 nên đọc là kết quả trên bộ
+đã quen, không phải xác nhận độc lập. Một bộ độc lập về dữ liệu chưa làm được
+vì pipeline đóng cứng 80/60/20 hội thoại và 264 fact, và chỉ 13 sản phẩm
+held-out có nguồn kiến thức khớp chính xác. Xem Q14 cho lần chạy trên câu hỏi
+mới.
+
+**Q14. Lần chạy xác nhận 2026-11-10 cho thấy gì?**
+60 câu hỏi mới (cùng 13 sản phẩm), giả thuyết khai báo trước khi chạy
+(`docs/preregistration-confirmatory-run-2026-11-10.md`), kết quả ở
+`docs/confirmatory-run-results-2026-11-10.md`. Không giả thuyết nào được ủng
+hộ: `ma_fixed_rag` − SA trên `multi_constraint` +2,78 điểm %, CI [0; +8,33];
+trên 60 câu cả hai cấu hình MA +1,07, CI [0; +2,78], W/T/L 2/24/0. MA không
+thua SA ở nhóm nào nhưng chênh lệch chưa có ý nghĩa thống kê. Hai điểm yếu phải
+nói rõ: bốn trong sáu loại câu cho 0% ở mọi biến thể (gold do subagent soạn
+nhiều khả năng quá khắt khe hoặc lệch cách chấm), và cổng hiệu chuẩn judge đã
+bị nới, 719/720 ô được chấm. Bỏ RAG vẫn làm giảm rõ (−16,24, CI [−23,18;
+−9,62]).
 
 **Q12. Nếu làm tiếp, bạn sẽ làm gì?**
 (1) Tập xác nhận mới chưa dùng để sửa hệ thống; (2) đối chứng SA cùng chỉ dẫn
