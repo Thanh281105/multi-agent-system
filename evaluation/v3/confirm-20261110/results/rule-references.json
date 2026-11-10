@@ -1,0 +1,1632 @@
+{
+  "schema_version": "3.0",
+  "split": "development",
+  "protocol_sha256": "67acef67eee25125b4a9555d2e9590a2f92b6be30bf0c2f4d9773e13f9dcd7df",
+  "references": [
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_047fbc6930e168e91e5bb5f98b2fccb5eab2c53ca7e5feb9",
+      "development_observation_id": "obs_2a216405b2a82f78c1eef4aeb652f85fb60174ba35ff0becbb0ff5e7cc525677",
+      "development_case_sha256": "59462073ea58b1a81345232350af270faab4bce4ae99509ef62905306b99d4bf",
+      "answer_sha256": "a2b59b85e41ee6dc8c2d5604d7e1e44ba4b74fe93d0c38c02072e7cb57a555b3",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "a2b59b85e41ee6dc8c2d5604d7e1e44ba4b74fe93d0c38c02072e7cb57a555b3",
+        "claim_count": 3,
+        "supported_claim_count": 3,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 2,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "a58b5ed6f6c676ab5ee9eca566211c5ca4f67e31f0d774e810d37aef1d088796"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_057d7e47f635ac0c7d204e086a90d25c796b4e34c7a5c04d",
+      "development_observation_id": "obs_fcc8000d4c5f05ccad330417097ec414d78c218d542c2f95e5b849f25c26135e",
+      "development_case_sha256": "248fc30726e43d7fc6b11cd9da70fa5eba910be5273c934a9c027b13ebfbe0e3",
+      "answer_sha256": "f6be701c62e3652102e446222c4b8dac3f58ae41ab731bb30f07efe7b72da007",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "f6be701c62e3652102e446222c4b8dac3f58ae41ab731bb30f07efe7b72da007",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "eca4c88f036d877cd7a5bf8af35b675c1eedd02e56837ef0548cf50082551e4b"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_106a27f0912772d5740b62df181cf721ce69973465da9415",
+      "development_observation_id": "obs_bcbe32ad295148907c9f95da9cc2e65fad905f1ffd71abdcddf74180281359c0",
+      "development_case_sha256": "85c06df3e6edf2120d0223844c54d9897537dff409d571413767d9a4790c0134",
+      "answer_sha256": "fc06a3985efeb647ba1dfad1db514f2fc695d9cf82c23273eed1c7e3b9f84167",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "fc06a3985efeb647ba1dfad1db514f2fc695d9cf82c23273eed1c7e3b9f84167",
+        "claim_count": 6,
+        "supported_claim_count": 6,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "claim_index": 2,
+            "supported": true,
+            "citation_labels": [
+              "[C1]",
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              4,
+              5
+            ]
+          },
+          {
+            "claim_index": 3,
+            "supported": true,
+            "citation_labels": [
+              "[C1]",
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              2,
+              4,
+              6
+            ]
+          },
+          {
+            "claim_index": 4,
+            "supported": true,
+            "citation_labels": [
+              "[C3]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          },
+          {
+            "claim_index": 5,
+            "supported": true,
+            "citation_labels": [
+              "[C4]"
+            ],
+            "rubric_fact_indices": [
+              7
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "78dc16f1cc0e37d47fbbc6bf82bd1956a490f3b38269dd2318c4832b5cd594a7"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_1b237685e8516de0c3be23994b72c94ff4e9e1dd46db06ef",
+      "development_observation_id": "obs_9ef0909b14827c794ed6e40cfa7123930299eb2a5ddfc65efe883cf04dc87088",
+      "development_case_sha256": "0e32b133aa9ed004a5ca0856f9cdf1a912470260eee5ffa393f80a90ad187f37",
+      "answer_sha256": "0c185115cc4b2ff8012d318b499b668951a8b7f10ed8b2d36aef868e8e55f644",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "0c185115cc4b2ff8012d318b499b668951a8b7f10ed8b2d36aef868e8e55f644",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "b4fa05c4b6b415b91ba0bf0ac9065621634c25c2bc8c2995727f50faabc39817"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_1be25516af011bbcafc043e06c507c12d134f721947b074f",
+      "development_observation_id": "obs_2ee84211f0d60b578d851af1b06d289bc32d18294679728b8dfe46074609f48c",
+      "development_case_sha256": "c59c5272882db420bdaab5fb5ed7c297254dc1c002a7d7438014d8902ab0335d",
+      "answer_sha256": "5a458d7206bc9df5f524917e1d5ae6372d302bb53545a375d8249c7c269dc3dc",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "5a458d7206bc9df5f524917e1d5ae6372d302bb53545a375d8249c7c269dc3dc",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 0.0,
+        "claim_support": 1.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "e0efcc649d800cec2d7d20c037b19217531c40788aebd91b91faa96102eeb720"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_21a9791e201d9bb3028b7c7cff19958014c656348d5ba3cf",
+      "development_observation_id": "obs_a1d18d2e645f8e5ec40cdb5b436d572e27450ac789bfbe7c3eaba8113b9f481f",
+      "development_case_sha256": "89ad1c30977f3c77cbf20ddbf8d585726064b50e139bc3c265c13668ae6462e1",
+      "answer_sha256": "e4617ad52ceb08107891b655c7a6d4e97c2429315ab68518e95872bac6382551",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "e4617ad52ceb08107891b655c7a6d4e97c2429315ab68518e95872bac6382551",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 0.0,
+        "claim_support": 1.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "8cd9c11929ad26f9d53b22bf1447ee784003236e058ac81a1285742388d67614"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_259d6c63f598091f7cbcad4b099818e6e1723c897784cbd4",
+      "development_observation_id": "obs_5e3006076cd92b399bbdf7b7bd5ec3906d6631c943eeee1bc8c82d7ec147fa83",
+      "development_case_sha256": "91967137fbeccf030c3cfa7937ce2ef884ea93e5acdcd554cfca90c738efdba2",
+      "answer_sha256": "735190d5e2cd1a0e7d2914419d7497ca5798d70fc3d6847f5a78b1a00c4bec0a",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "735190d5e2cd1a0e7d2914419d7497ca5798d70fc3d6847f5a78b1a00c4bec0a",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "8cdbe16de3bd4358fa7dafc5829b981b04a397f0f6f10ff6f9ce1a42174d4502"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_2656e7612b89823da17fd0f8d4bdb3f0c625efd781500865",
+      "development_observation_id": "obs_35d2d22fab647c95f17b820f5fcbeaa548389daa9143e539be7a39107dcbab3c",
+      "development_case_sha256": "b2d981f60a7e980d42e47eed325aab890fd6bb8350ef9e9c2b942b1f4de39bb3",
+      "answer_sha256": "9fb4794bd0dd1424e7f8c367c1e686e16e23450a329dd31d7f47217761193d61",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "9fb4794bd0dd1424e7f8c367c1e686e16e23450a329dd31d7f47217761193d61",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "b2557a5ae55654135af85b2aa16aefd612ff3051e1bdd7ee5ecb52713726d155"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_3b6c5f0dd946a2abeaebf1db31f9a8abdf766444a0c5e04d",
+      "development_observation_id": "obs_375efc57afeb84b44fb105915a448a89a16fc9ee47f04ba8c8db5e904cc8e887",
+      "development_case_sha256": "10b27482dc2f981e23c6d5cbade711ebbd7b60ae0d3198af2114d6ffb9b4d0f6",
+      "answer_sha256": "146443364ce17eb8b0ed942d2bec2edb9d7aa9710a3953968655ca67f9f640ab",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "146443364ce17eb8b0ed942d2bec2edb9d7aa9710a3953968655ca67f9f640ab",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "2329ef991b9e207ba38fe9f8144c2cf95d2ca652f71b2cd58a22f996ab21c244"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_3e8fdb65471b30a844d17f2cafaf8415466c774fda03fd88",
+      "development_observation_id": "obs_238a286ebef1cb5f6ab9f737e60f7779c17922ac504bc6eea2cbd611aafc08d1",
+      "development_case_sha256": "4fe6801ad7192bba4a4bac00fbc8cfa7e6a5bb3faa24ce9cf7154664ee12b1b9",
+      "answer_sha256": "1a4e782843d12043cb2726b7813289911e140b409880720e603517d348d2dffc",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "1a4e782843d12043cb2726b7813289911e140b409880720e603517d348d2dffc",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "18db5ccb29d3da298ec8cb9f0f9f87e92dc7bded5ac3cd006c8725edbdf7d84e"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_46e055c22367f71b0219496f2b41cc9d483d130db73592f5",
+      "development_observation_id": "obs_547d81b3f80238b2c27ab9bd278e30d93229e2018168098c63a9acc40a90fd69",
+      "development_case_sha256": "14d303d9ba131ac4cca7d16cd2c69c7a8b83abb5801af30ff847714758ef70e2",
+      "answer_sha256": "adb0ef7db86664e1c47cefca48cbd4e4f07cb4d150d5f8f34df5d4648a839721",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "adb0ef7db86664e1c47cefca48cbd4e4f07cb4d150d5f8f34df5d4648a839721",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "ba41c9be50d883cdeb61d47bec54962251d9d4bb2a44656fe693eb489c4ef7bf"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_630cb8064438854b19f3f0bf4c1358900c9822553e5998aa",
+      "development_observation_id": "obs_a5e96f68aef9d82bb4bc632d345d3f1ed0ad7409e95364a1eaeb47a433a016b7",
+      "development_case_sha256": "20d538270bb549395e22c7eaefd80e86bd17cf3793046824c509d16f58715038",
+      "answer_sha256": "6f8cfd6acafea3a4a3acd2166043ab74e6cc461589d0942036246c84408bf87b",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "6f8cfd6acafea3a4a3acd2166043ab74e6cc461589d0942036246c84408bf87b",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "4482d10075fa2a90fd794be3892593ea50dcfac6bb2d10ab0d22a1ec17901831"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_6febe4f2dc67a22f1af4e977e6807719acda55f82f5a76fb",
+      "development_observation_id": "obs_17b4baa6ade1d95656a5b5ad129db46cedc2d5d83ae41039b42ceb227aebab9f",
+      "development_case_sha256": "f933fca2183362bb558ee1f41aeac78d03508d129511b97d4bff15c4bef201c4",
+      "answer_sha256": "026d4c92b658f2a59dfe0d58f6d9a357dc018186113e33128eb0a5e8aa5adac0",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "026d4c92b658f2a59dfe0d58f6d9a357dc018186113e33128eb0a5e8aa5adac0",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "ddea66a3363f9afdd359480f1f2c4da355b0440e0fffb2c68e9b92fe83798bec"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_708b411b1abc60197e1df45b22bfa399f90a95e34016375a",
+      "development_observation_id": "obs_d9e8de8501a0070b1190390d5ac5ab2523a16f3d3a06cc6f9ed59c00b7ded565",
+      "development_case_sha256": "52d8a16bb1961296b5312a7676b65a0e578d6a9faf4ce8284638c4c4ede6289f",
+      "answer_sha256": "d48b86bcd9bb50913d1d2b70b688e441fdff13755204ea66c01c5df80387a73e",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "d48b86bcd9bb50913d1d2b70b688e441fdff13755204ea66c01c5df80387a73e",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "7ba1926b362af84790d0341bba331b4441b4ff732255084d1747143c87545f7b"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_7154bb6e4e38547a404ab519ee697c03310fe10e78fabca2",
+      "development_observation_id": "obs_c7a630dfa2316d7a687531e1ca1714503aa5a76ba22b5ad02410f0daea3e90df",
+      "development_case_sha256": "e4893d20fc43604fecce96346b1e47c67223bd2d5de123490c535169937e69e5",
+      "answer_sha256": "244171f5bd3e6b32ec10cd6b33e2b9b05b1db80f71b29eddde125faab0489cab",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "244171f5bd3e6b32ec10cd6b33e2b9b05b1db80f71b29eddde125faab0489cab",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "83940af6b487ef34fa7bd6116529203f6ff1b3379578cfe262d93854cdbb48c4"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_7844c2b553a8b121d94bd6b0beef8422f2e6ac134d73e49e",
+      "development_observation_id": "obs_069ab5965c0d752c3424c874347d91b09e2283c8cc6d72274bb1aaf6cda2d717",
+      "development_case_sha256": "06e08c14d56e6f6f3339df7e829468c0afe188744524b1afd106462308012974",
+      "answer_sha256": "334412197c3e7a5bf2039f6622f6b61ad35eff50e2574f22498a9c4edc88fe79",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "334412197c3e7a5bf2039f6622f6b61ad35eff50e2574f22498a9c4edc88fe79",
+        "claim_count": 4,
+        "supported_claim_count": 4,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1
+            ]
+          },
+          {
+            "claim_index": 2,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              2
+            ]
+          },
+          {
+            "claim_index": 3,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "03e62480fae4ef50a071405ea87281b929d285b7f84f4c0d245e94eb2f875c41"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_7dd941b08aa558c8a22e1271a3f77d53b003d0ad756e9c33",
+      "development_observation_id": "obs_1ec0b2815046e06a8e6799f9725973da058e2cdb333234f65f0257614ad746c5",
+      "development_case_sha256": "833e6309f44d4431c365fbc9a35783f39d93ebd63c677eab80956962c64821e7",
+      "answer_sha256": "4322dea5a8441593c048c6846f09c6971cbcd22df77952344b7e2e2913c0bc06",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "4322dea5a8441593c048c6846f09c6971cbcd22df77952344b7e2e2913c0bc06",
+        "claim_count": 3,
+        "supported_claim_count": 3,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 2,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "be192c25de19f3cb02da9ae26575a8caee04840eec51445a2ead3a3745193404"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_7dea6e6f83448505926f982dff16e76711d3a446f4fe94ae",
+      "development_observation_id": "obs_ad7c152084aa29deca4baa40cb0ab5a45c0fc310a376379a806e43e3fa38047c",
+      "development_case_sha256": "0293f895a2631ede4c41e29cb7751f7be135fc1978669691d6b28ce9308c80b7",
+      "answer_sha256": "2f4ebf00090d405f94ffe158fef9637f64b671b6a90750a3bb56e5187b2e610a",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "2f4ebf00090d405f94ffe158fef9637f64b671b6a90750a3bb56e5187b2e610a",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "bb4618602e569eb44c8d5438c86d0bf52a36cc8d2eef75ff589b09ccdc8c9db5"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_8c658035b783cb004ce80ba892e139bfecb4b7f25e2eead3",
+      "development_observation_id": "obs_4f8b91e252e9c3ba180e5b5992d766767c3d77044d1568269f6c4434e2282908",
+      "development_case_sha256": "a6075f41c8f1626f22b12ca010d3e22f90e82aa2cc7c77e6d3d156bd7d206496",
+      "answer_sha256": "58380419e7488729a269f1b1322fd969de5086d20aa31b07e547128f42d02cd8",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "58380419e7488729a269f1b1322fd969de5086d20aa31b07e547128f42d02cd8",
+        "claim_count": 4,
+        "supported_claim_count": 4,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "claim_index": 2,
+            "supported": true,
+            "citation_labels": [
+              "[C3]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          },
+          {
+            "claim_index": 3,
+            "supported": true,
+            "citation_labels": [
+              "[C4]"
+            ],
+            "rubric_fact_indices": [
+              7
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "86d5ff6e439dcce3ad5fec10af4d8158ffd0522fbef3147934d814f9bdfa4a87"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_8ff3b7fad7b9555f271a8ac6618e99abf92159f06b232244",
+      "development_observation_id": "obs_781ce6150d88e7d5d9fe13e5b1b3248bea4a00e0c2c731cedf513f6fd116df83",
+      "development_case_sha256": "d0690fdbec782ece9de2d08cbcb9864afe2361ad8dc99a31ec5e90c723b445a6",
+      "answer_sha256": "137fc11a68f9c92c87069310b6b5ce64c795631111102dd52496f8b368474ec0",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "137fc11a68f9c92c87069310b6b5ce64c795631111102dd52496f8b368474ec0",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "83c1dd5b976483ebc07e0d1e3b346df5cd8837b6690b868e70c5469ccfa460ab"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_908afad482225831ae0aa3ea953f044d5ef93e6827b9eb87",
+      "development_observation_id": "obs_33d1692f825af7943d3e46e1cda98624f478ae0f95a0caada7cb807a1ce6cbe0",
+      "development_case_sha256": "6370c5d770646c789d28b79b8bfeb389ac87b2c3eee36bfec5e96b3aa149dfc3",
+      "answer_sha256": "c5f1f437e9b09d43a23bded455809f22945b1c72a5e6ed52b44cc5582e47ec08",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "c5f1f437e9b09d43a23bded455809f22945b1c72a5e6ed52b44cc5582e47ec08",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "980e2fb5cc9ef9834f473329e2019129f5f69ef5c40d5161a023ca7756e2b6d9"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_9103b59d02c063e739514a6681d180ff897f551c5160a040",
+      "development_observation_id": "obs_bacfcd41921e64cf24d6a327e07947b2cdd9d4c98ba58e9f830a71147331ec54",
+      "development_case_sha256": "ce771f3647f7a1fd074a07eb807f9bfee017c48652e2b87392cdf470f05e88ec",
+      "answer_sha256": "8c3b1b07958e216bc121faf4e46260fa4c37ba02a9cb73f6b8385d143d8978a5",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "8c3b1b07958e216bc121faf4e46260fa4c37ba02a9cb73f6b8385d143d8978a5",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "71a8b6c6c666cda9cc1f679f9d7e3fed219337229933c05aec3017662098ae45"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_9eaa1cc6e637b83654d4e9064b2ac4e61c2ebb9438594095",
+      "development_observation_id": "obs_c0c792a5d676f4f196c1024bad55cc9cd58146a2ee482d876eca8745362bf4ae",
+      "development_case_sha256": "be33368818102561dd422b72c0618517e304d56a3ebb945ad269bfe7b7ac7040",
+      "answer_sha256": "8b67ddef5174936bad7376c3d1b405e21c3c295153dfd028f52ea9e6f5ef5958",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "8b67ddef5174936bad7376c3d1b405e21c3c295153dfd028f52ea9e6f5ef5958",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 1.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "3f1ba524faac5aa9d82656dbd97c62c47ec9c83bb5508e46cbb7ff646af00c61"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_b3d738710f1d1a76856d35bb60fb50c5f699ad34b313b752",
+      "development_observation_id": "obs_5e9e3c2399cc12dcf8b77cf6976c842f15628109656728225db6cab8be92ded1",
+      "development_case_sha256": "0b2962f5ebfaf152983ee9fc895e620222080f28cd77a3ed33ce7a22523c324a",
+      "answer_sha256": "455e8cd479ebc82878607abf4e15424f0c1464d159ad07e7cbd3c65473860897",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "455e8cd479ebc82878607abf4e15424f0c1464d159ad07e7cbd3c65473860897",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "951cb67ee2ec8f37f893bb6aabcabb874f48e895140c24ab1fc82322ef6ab4f2"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_b42c21cec2f3e4ceee34bef535dcaaf8aaff6c7861425ad5",
+      "development_observation_id": "obs_0a809b6031650f522aae27dfa717fb74cb9e86d231d81393d8c87b541fb30df8",
+      "development_case_sha256": "578a9674674dd560d06f2af6bfa86f46a58c755faa66fc9aceeb85759df9dc72",
+      "answer_sha256": "2f242ac5f38fc1a80997928abc3aef96285d129af5f406e5f1377ba2f6309535",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "2f242ac5f38fc1a80997928abc3aef96285d129af5f406e5f1377ba2f6309535",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 0.0,
+        "claim_support": 1.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "81b45298bee99361dc027574d14a81856a85e0fbd0a70f11823901923181e484"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_bced2f63e75190bcd2002ce383076aac0ad99bfd32c6aaa7",
+      "development_observation_id": "obs_1ed93e070d98c20e67c8354fa04491fdb2e9735d9eb01fe0ebff3827cf9ca22a",
+      "development_case_sha256": "18b185f69876c122db241c1a9d6f95f92a595e632776d14bc9e08cb79379d54c",
+      "answer_sha256": "fb98c906843a524291e11261804fea9ca1732a858aaf81f481d2c5e2e482e272",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "fb98c906843a524291e11261804fea9ca1732a858aaf81f481d2c5e2e482e272",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "0d06cf95df967438cd528689f7f9285b9b6a0bf118f66a12ba6ebd57844f1725"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_c21b6e14ee1e0081bfa4252bd13f95e5242b444d17e815ef",
+      "development_observation_id": "obs_87b7d6f6616faaec935b6e7862b9c9efd2a73a88082d3d6eb3627ed6ba79f7f3",
+      "development_case_sha256": "7e5a8f7ee2313f706c71e9b31e596120e7ca093e270ddc5b088c62f0212b62f2",
+      "answer_sha256": "ff24834861f134c7cc19906ee4201b92fe972f2df394e0a48562800b7a5a8034",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "ff24834861f134c7cc19906ee4201b92fe972f2df394e0a48562800b7a5a8034",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "c900e89ce37d0513d77eea93ba33cb40c49e8e1e56ac738fd3d4be9217b5d487"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_c37e36424c09d31adf6e3be9f243149ad082732c08ac454c",
+      "development_observation_id": "obs_f53b8421d71f3de0ad5f0db08527a73cb1c467a527a8c63744c621558a6b4668",
+      "development_case_sha256": "30de7329e1c4e7b37a52dca59164db6dc6145829423dbdb77a322b88a0ed1d84",
+      "answer_sha256": "48196476ed63188fbaa204009812052780c71363ad78896ce812b3389cf5da9f",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "48196476ed63188fbaa204009812052780c71363ad78896ce812b3389cf5da9f",
+        "claim_count": 2,
+        "supported_claim_count": 2,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "4548e84a97556cc2f7589bfcd64c7a6e4728ed17fc106710b552abf4cbf5fbc2"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_c6390786d3817fc35d66203b688bbaeabf67d1fb238cad06",
+      "development_observation_id": "obs_a57fa407e8235a0d51c2377907d858da3326511392fa29c58740424b3dd8b39e",
+      "development_case_sha256": "3011149ac909b23c359c7b9a24ea0c863eee793edf6567f34f9463d09eb3021c",
+      "answer_sha256": "f461f92d43115ba626e719b384ec1b27cab2bf11488cb15f1139547191c6597b",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "f461f92d43115ba626e719b384ec1b27cab2bf11488cb15f1139547191c6597b",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "d212493c86456417c3b311b4e3a06ce3ad9a1624462b4d87b0bff43e4bc71df5"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_cc2cc76ecfd955ad3a8f424600761eff375aee1f2f4efa57",
+      "development_observation_id": "obs_4298ff3865b65c3b1936904bf747b2169254443213123188b36bd0b28408035f",
+      "development_case_sha256": "d1967c176c7359dd634ceae1198e6ddfc63c9de504a525b19efac14c439c1449",
+      "answer_sha256": "2d9f674f774b49275e8c61ea074636ce35a0ed4323a6582acf94c19d29870070",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "2d9f674f774b49275e8c61ea074636ce35a0ed4323a6582acf94c19d29870070",
+        "claim_count": 4,
+        "supported_claim_count": 4,
+        "verdicts": [
+          {
+            "claim_index": 0,
+            "supported": true,
+            "citation_labels": [
+              "[C1]"
+            ],
+            "rubric_fact_indices": [
+              0,
+              1,
+              2
+            ]
+          },
+          {
+            "claim_index": 1,
+            "supported": true,
+            "citation_labels": [
+              "[C2]"
+            ],
+            "rubric_fact_indices": [
+              4,
+              5,
+              6
+            ]
+          },
+          {
+            "claim_index": 2,
+            "supported": true,
+            "citation_labels": [
+              "[C3]"
+            ],
+            "rubric_fact_indices": [
+              3
+            ]
+          },
+          {
+            "claim_index": 3,
+            "supported": true,
+            "citation_labels": [
+              "[C4]"
+            ],
+            "rubric_fact_indices": [
+              7
+            ]
+          }
+        ],
+        "coverage": 1.0
+      },
+      "scores": {
+        "answerability_abstention": 1.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 1.0,
+        "claim_support": 1.0,
+        "task_completion": 1.0
+      },
+      "reference_sha256": "b729cc36c9e935255f4968b842ffd06f506332f2fef54ea3074ddce791d5f0da"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_d35012f5e1c2ad409ffa7def08fa8f3c4ddebd67d608d0bc",
+      "development_observation_id": "obs_d690ad4942fe3b00c496f16be47a2af85005fc724253f1a05c56da6986d348df",
+      "development_case_sha256": "bcd4c7c9001e1fd221009eb71d6ff563aba2de16faeacd826bc2170f058077c0",
+      "answer_sha256": "e722ce93251cde622b7c09362625276eac09a8e916244b29dc6ed44e0c8e56e0",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "e722ce93251cde622b7c09362625276eac09a8e916244b29dc6ed44e0c8e56e0",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 0.0,
+        "useful_continuation": 0.0,
+        "claim_support": 0.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "314937b71731a578aedb5555d63c1af63bfbccee102b7d03846e707681acd7d9"
+    },
+    {
+      "schema_version": "3.0",
+      "split": "development",
+      "calibration_id": "calibration_d7528cd060084a7f66007aeb246733206b24bb27ff40e2bc",
+      "development_observation_id": "obs_2b0d1ac240e757f6260b266d2498a60915f8ebcdaa668d741521177f66c51114",
+      "development_case_sha256": "e113fc6199f164412661e7b56fc3c2d12df1689338fc5d17c660381f21c7d4fb",
+      "answer_sha256": "887c7bcf70c379378ea67bf72216022a04e20e3231ee86e692c5711cbce44207",
+      "source_classification": "automated_independent_semantic",
+      "reviewer_ids": [],
+      "adjudicator": {
+        "adjudicator_id": "independent_rules_adjudicator_v1",
+        "method": "automated_rules",
+        "source_system": "deterministic claim-citation evidence rules",
+        "model_snapshot": null,
+        "instructions_sha256": "365cd879cb28ffc195d97bf05936a3476e09db6db26cd4522d815b3363749abc"
+      },
+      "claim_coverage": {
+        "contract": "receipt_claim_citation_coverage_v1",
+        "answer_sha256": "887c7bcf70c379378ea67bf72216022a04e20e3231ee86e692c5711cbce44207",
+        "claim_count": 0,
+        "supported_claim_count": 0,
+        "verdicts": [],
+        "coverage": null
+      },
+      "scores": {
+        "answerability_abstention": 0.0,
+        "authorization": 1.0,
+        "valid_plan": 1.0,
+        "useful_continuation": 0.0,
+        "claim_support": 1.0,
+        "task_completion": 0.0
+      },
+      "reference_sha256": "4e1335bb1448522a252ef55389e43b52d2608c76787e69393e48af6c610d1672"
+    }
+  ],
+  "reference_bundle_sha256": "14db2a2d9cc82cd3e27e8a2dd9c3b887ed2c0c562d7580e2e02c455914fc0742"
+}

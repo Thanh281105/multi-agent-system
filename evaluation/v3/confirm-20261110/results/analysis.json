@@ -1,0 +1,1143 @@
+{
+ "judged": 719,
+ "expected": 720,
+ "missing": [
+  {
+   "conversation_id": "held_multi_constraint_02",
+   "observation_id": "obs_fe47a058e6391b0e7b0b8022caa65f63cf4948845186c04daa2762404197e04c",
+   "opaque_answer_id": "answer_a78b9dfc5fe8cf9627fcd81d",
+   "repetition": 0,
+   "variant_id": "ma_adaptive_no_rag",
+   "work_group_id": "work_start_up_nation_dan_senor_saul_singer"
+  }
+ ],
+ "bootstrap": {
+  "seed": 42,
+  "resamples": 10000,
+  "unit": "work_group"
+ },
+ "task_completion": {
+  "ma_fixed_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_fixed_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": 2.78,
+   "ci95_pp": [
+    0.0,
+    8.33
+   ],
+   "W/T/L": [
+    1,
+    11,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": 2.78,
+   "ci95_pp": [
+    0.0,
+    8.33
+   ],
+   "W/T/L": [
+    1,
+    11,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_fixed_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_fixed_rag|ALL": {
+   "groups": 26,
+   "delta_pp": 1.07,
+   "ci95_pp": [
+    0.0,
+    2.78
+   ],
+   "W/T/L": [
+    2,
+    24,
+    0
+   ]
+  },
+  "ma_adaptive_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_adaptive_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": 5.56,
+   "ci95_pp": [
+    0.0,
+    13.89
+   ],
+   "W/T/L": [
+    2,
+    10,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_rag|ALL": {
+   "groups": 26,
+   "delta_pp": 1.07,
+   "ci95_pp": [
+    0.0,
+    2.78
+   ],
+   "W/T/L": [
+    2,
+    24,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": -91.67,
+   "ci95_pp": [
+    -100.0,
+    -77.78
+   ],
+   "W/T/L": [
+    0,
+    0,
+    12
+   ]
+  },
+  "ma_adaptive_no_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": -5.56,
+   "ci95_pp": [
+    -16.67,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    11,
+    1
+   ]
+  },
+  "ma_adaptive_no_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|ALL": {
+   "groups": 26,
+   "delta_pp": -16.24,
+   "ci95_pp": [
+    -23.18,
+    -9.62
+   ],
+   "W/T/L": [
+    0,
+    13,
+    13
+   ]
+  },
+  "variant_means_pct": {
+   "ma_adaptive_no_rag": 0.0,
+   "ma_adaptive_rag": 20.56,
+   "ma_fixed_rag": 20.56,
+   "sa_shared_tools_rag": 19.44
+  }
+ },
+ "claim_support": {
+  "ma_fixed_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_fixed_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": 2.78,
+   "ci95_pp": [
+    0.0,
+    8.33
+   ],
+   "W/T/L": [
+    1,
+    11,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": -2.78,
+   "ci95_pp": [
+    -16.67,
+    8.33
+   ],
+   "W/T/L": [
+    1,
+    10,
+    1
+   ]
+  },
+  "ma_fixed_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_fixed_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 8.33,
+   "ci95_pp": [
+    0.0,
+    20.83
+   ],
+   "W/T/L": [
+    2,
+    6,
+    0
+   ]
+  },
+  "ma_fixed_rag|ALL": {
+   "groups": 26,
+   "delta_pp": 1.07,
+   "ci95_pp": [
+    -2.56,
+    4.27
+   ],
+   "W/T/L": [
+    4,
+    21,
+    1
+   ]
+  },
+  "ma_adaptive_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_adaptive_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": 5.56,
+   "ci95_pp": [
+    0.0,
+    13.89
+   ],
+   "W/T/L": [
+    2,
+    10,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": 2.78,
+   "ci95_pp": [
+    -8.33,
+    16.67
+   ],
+   "W/T/L": [
+    1,
+    10,
+    1
+   ]
+  },
+  "ma_adaptive_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 12.5,
+   "ci95_pp": [
+    0.0,
+    29.17
+   ],
+   "W/T/L": [
+    2,
+    6,
+    0
+   ]
+  },
+  "ma_adaptive_rag|ALL": {
+   "groups": 26,
+   "delta_pp": 3.21,
+   "ci95_pp": [
+    0.0,
+    7.05
+   ],
+   "W/T/L": [
+    5,
+    20,
+    1
+   ]
+  },
+  "ma_adaptive_no_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": -91.67,
+   "ci95_pp": [
+    -100.0,
+    -77.78
+   ],
+   "W/T/L": [
+    0,
+    0,
+    12
+   ]
+  },
+  "ma_adaptive_no_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": -13.89,
+   "ci95_pp": [
+    -30.56,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    9,
+    3
+   ]
+  },
+  "ma_adaptive_no_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 12.5,
+   "ci95_pp": [
+    4.17,
+    25.0
+   ],
+   "W/T/L": [
+    3,
+    5,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|ALL": {
+   "groups": 26,
+   "delta_pp": -16.03,
+   "ci95_pp": [
+    -25.53,
+    -7.37
+   ],
+   "W/T/L": [
+    3,
+    10,
+    13
+   ]
+  },
+  "variant_means_pct": {
+   "ma_adaptive_no_rag": 21.67,
+   "ma_adaptive_rag": 44.44,
+   "ma_fixed_rag": 42.22,
+   "sa_shared_tools_rag": 41.11
+  }
+ },
+ "task_completion_missing_as_0": {
+  "ma_fixed_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_fixed_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": 2.78,
+   "ci95_pp": [
+    0.0,
+    8.33
+   ],
+   "W/T/L": [
+    1,
+    11,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": 2.78,
+   "ci95_pp": [
+    0.0,
+    8.33
+   ],
+   "W/T/L": [
+    1,
+    11,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_fixed_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_fixed_rag|ALL": {
+   "groups": 26,
+   "delta_pp": 1.07,
+   "ci95_pp": [
+    0.0,
+    2.78
+   ],
+   "W/T/L": [
+    2,
+    24,
+    0
+   ]
+  },
+  "ma_adaptive_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_adaptive_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": 5.56,
+   "ci95_pp": [
+    0.0,
+    13.89
+   ],
+   "W/T/L": [
+    2,
+    10,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_rag|ALL": {
+   "groups": 26,
+   "delta_pp": 1.07,
+   "ci95_pp": [
+    0.0,
+    2.78
+   ],
+   "W/T/L": [
+    2,
+    24,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": -91.67,
+   "ci95_pp": [
+    -100.0,
+    -77.78
+   ],
+   "W/T/L": [
+    0,
+    0,
+    12
+   ]
+  },
+  "ma_adaptive_no_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": -5.56,
+   "ci95_pp": [
+    -16.67,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    11,
+    1
+   ]
+  },
+  "ma_adaptive_no_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|ALL": {
+   "groups": 26,
+   "delta_pp": -16.24,
+   "ci95_pp": [
+    -23.18,
+    -9.62
+   ],
+   "W/T/L": [
+    0,
+    13,
+    13
+   ]
+  },
+  "variant_means_pct": {
+   "ma_adaptive_no_rag": 0.0,
+   "ma_adaptive_rag": 20.56,
+   "ma_fixed_rag": 20.56,
+   "sa_shared_tools_rag": 19.44
+  }
+ },
+ "task_completion_missing_as_1": {
+  "ma_fixed_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_fixed_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": 2.78,
+   "ci95_pp": [
+    0.0,
+    8.33
+   ],
+   "W/T/L": [
+    1,
+    11,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": 2.78,
+   "ci95_pp": [
+    0.0,
+    8.33
+   ],
+   "W/T/L": [
+    1,
+    11,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_fixed_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_fixed_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_fixed_rag|ALL": {
+   "groups": 26,
+   "delta_pp": 1.07,
+   "ci95_pp": [
+    0.0,
+    2.78
+   ],
+   "W/T/L": [
+    2,
+    24,
+    0
+   ]
+  },
+  "ma_adaptive_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_adaptive_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": 5.56,
+   "ci95_pp": [
+    0.0,
+    13.89
+   ],
+   "W/T/L": [
+    2,
+    10,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_rag|ALL": {
+   "groups": 26,
+   "delta_pp": 1.07,
+   "ci95_pp": [
+    0.0,
+    2.78
+   ],
+   "W/T/L": [
+    2,
+    24,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|insufficient_conflict_injection": {
+   "groups": 6,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    6,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|knowledge_source": {
+   "groups": 12,
+   "delta_pp": -91.67,
+   "ci95_pp": [
+    -100.0,
+    -77.78
+   ],
+   "W/T/L": [
+    0,
+    0,
+    12
+   ]
+  },
+  "ma_adaptive_no_rag|multi_constraint": {
+   "groups": 12,
+   "delta_pp": -2.78,
+   "ci95_pp": [
+    -8.33,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    11,
+    1
+   ]
+  },
+  "ma_adaptive_no_rag|multi_expert": {
+   "groups": 12,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    12,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|multi_turn_memory": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|shopping_merchant": {
+   "groups": 8,
+   "delta_pp": 0.0,
+   "ci95_pp": [
+    0.0,
+    0.0
+   ],
+   "W/T/L": [
+    0,
+    8,
+    0
+   ]
+  },
+  "ma_adaptive_no_rag|ALL": {
+   "groups": 26,
+   "delta_pp": -15.6,
+   "ci95_pp": [
+    -22.33,
+    -9.19
+   ],
+   "W/T/L": [
+    0,
+    13,
+    13
+   ]
+  },
+  "variant_means_pct": {
+   "ma_adaptive_no_rag": 0.56,
+   "ma_adaptive_rag": 20.56,
+   "ma_fixed_rag": 20.56,
+   "sa_shared_tools_rag": 19.44
+  }
+ }
+}
