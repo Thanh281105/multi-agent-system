@@ -124,6 +124,17 @@ P8 tốn ≈ 2,93 USD cho 720 ô (sinh 2,69 USD + judge 0,22 USD), 3.134 lượt
 model. Trong v4, MA tốn token gấp 2,78 lần và chậm 4,73 lần. Thứ tự chạy chưa
 cân bằng ngẫu nhiên nên số đo thời gian chỉ mang tính tham khảo.
 
+**Q13. Vì sao chưa có holdout độc lập? P8 có phải holdout không?**
+P8 là held-out đóng băng trước khi chạy hệ thống: 60 hội thoại held-out tách
+khỏi 20 hội thoại dev, gold sinh tự động trước SUT (`gold_origin:
+automated_pre_sut_spec`). Nhưng P8 đã được phân tích lỗi và v4 thiết kế sau đó,
+nên không còn là xác nhận độc lập cho phiên bản đã sửa. Một bộ thứ hai độc lập
+chưa làm được vì pipeline chính thức đóng cứng 80/60/20 hội thoại và 264 fact,
+và dữ liệu hiện có chỉ cho 13 sản phẩm held-out (20/200 sản phẩm có nguồn kiến
+thức khớp chính xác). Câu hỏi mới viết trên cùng 13 sản phẩm chỉ là bằng chứng
+tái lập, không phải độc lập. Muốn độc lập thật cần thêm nguồn tri thức, lập chỉ
+mục lại và nới các hằng số đã đóng băng. Đây nằm trong Q12 (1).
+
 **Q12. Nếu làm tiếp, bạn sẽ làm gì?**
 (1) Tập xác nhận mới chưa dùng để sửa hệ thống; (2) đối chứng SA cùng chỉ dẫn
 bảo toàn tên; (3) người chấm mù thật cho một mẫu; (4) tăng độ phủ corpus và
