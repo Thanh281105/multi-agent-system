@@ -29,7 +29,7 @@ python tools/audit_report.py --repo 'C:/path/to/multi-agent-system' --out './aud
 
 Script chỉ đọc checkout, ghi JSON/CSV vào thư mục output được chỉ định; không chạy dịch vụ, không gọi provider và không sửa repository.
 
-Các số liệu được tính lại từ kết quả đã lưu, không phải một đợt chạy thực nghiệm mới. Thực nghiệm và các nguồn [1]–[6] gắn với commit `0a4930e`; phần cải tiến sau thực nghiệm (nguồn [7]–[9]) gắn với commit `0d83c79` trên nhánh `v4-evidence-clean`, nên chỉ mở được sau khi nhánh này được push lên GitHub. Bản PDF đã lược các chi tiết triển khai và tập trung giải thích bằng ngôn ngữ dễ hiểu; dữ liệu kiểm chứng vẫn được giữ riêng để có thể kiểm tra lại các phép tính.
+Các số liệu được tính lại từ kết quả đã lưu, không phải một đợt chạy thực nghiệm mới. Thực nghiệm và các nguồn [1]–[6] gắn với commit `0a4930e`; phần cải tiến sau thực nghiệm (nguồn [7]–[9]) gắn với commit `0d83c79` trên nhánh `v4-evidence-clean`, nên chỉ mở được sau khi nhánh này được push lên GitHub. Lần chạy xác nhận (mục 8.6, nguồn [10]) gắn với commit `ebb3da8` trên cùng nhánh; số liệu của mục này tái tạo bằng `evaluation/v3/confirm-20261110/results/analyze.py`, không nằm trong `kiem-chung-so-lieu.json`. Bản PDF đã lược các chi tiết triển khai và tập trung giải thích bằng ngôn ngữ dễ hiểu; dữ liệu kiểm chứng vẫn được giữ riêng để có thể kiểm tra lại các phép tính.
 
 ## Skill thiết kế
 
