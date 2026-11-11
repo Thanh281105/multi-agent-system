@@ -1,5 +1,12 @@
 # Báo Cáo Hiệu Chuẩn LLM Judge Với Người Chấm Mù (Human-in-the-Loop Judge Calibration)
 
+> **ĐÍNH CHÍNH — 2026-11-06:** đây là output lịch sử của 40 bộ nhãn viết
+> sẵn trong script mô phỏng, không chứng minh có người thật chấm mù. Trong
+> fixture, A/B đồng thuận 37/40 = 92,5%, không phải 38/40. Các tuyên bố hiệu
+> chuẩn độc lập, sai số thực tế và độ tin cậy bên dưới không được dùng làm
+> bằng chứng thực nghiệm. Script hiện yêu cầu packet và phiếu đầu vào rõ ràng;
+> xem [hướng dẫn](../../../docs/evidence-reporting.md).
+
 ## 1. Mục Đích & Thiết Kế Thử Nghiệm Chấm Mù (Blind Protocol)
 
 Theo khuyến nghị phương pháp luận, việc sử dụng LLM Judge đơn độc mà không có kiểm định đối chiếu với người chấm mù có nguy cơ đưa ra các kết luận sai lệch do hiện tượng ảo giác (judge hallucination) hoặc thiên kiến chuỗi ký tự (surface string bias).

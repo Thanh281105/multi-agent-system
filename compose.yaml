@@ -1,185 +1,58 @@
-x-app-environment: &app-environment
-  APP_ENV: production
-  DATABASE_URL: postgresql+psycopg://ecommerce:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/ecommerce
-  PUBLIC_SNAPSHOT_DIR: /app/data/snapshots/tiki-books-v4-eval
-  GATEWAY_API_KEYS: ${GATEWAY_API_KEYS:?set GATEWAY_API_KEYS}
-  GATEWAY_PRINCIPAL_POLICIES: ${GATEWAY_PRINCIPAL_POLICIES:?set GATEWAY_PRINCIPAL_POLICIES}
-  OPERATIONS_API_KEY: ${OPERATIONS_API_KEY:?set OPERATIONS_API_KEY}
-  GATEWAY_RATE_LIMIT_REQUESTS: ${GATEWAY_RATE_LIMIT_REQUESTS:-60}
-  GATEWAY_RATE_LIMIT_WINDOW_SECONDS: ${GATEWAY_RATE_LIMIT_WINDOW_SECONDS:-60}
-  GATEWAY_AUTH_ATTEMPT_REQUESTS: ${GATEWAY_AUTH_ATTEMPT_REQUESTS:-120}
-  SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-3600}
-  SHARED_STATE_BACKEND: redis
-  REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379/0
-  REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-ecommerce_agents}
-  REDIS_SOCKET_TIMEOUT_SECONDS: ${REDIS_SOCKET_TIMEOUT_SECONDS:-2}
-  KNOWLEDGE_BACKEND: ${KNOWLEDGE_BACKEND:-disabled}
-  QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
-  QDRANT_API_KEY: ${QDRANT_API_KEY:-}
-  QDRANT_COLLECTION: ${QDRANT_COLLECTION:-knowledge}
-  QDRANT_TIMEOUT_SECONDS: ${QDRANT_TIMEOUT_SECONDS:-3}
-  ORCHESTRATION_TIMEOUT_SECONDS: ${ORCHESTRATION_TIMEOUT_SECONDS:-30}
-  LEGACY_CHAT_ENABLED: "false"
-  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-  MODEL_RUNTIME_MODE: ${MODEL_RUNTIME_MODE:-hybrid}
-  EMBEDDING_BACKEND: ${EMBEDDING_BACKEND:-auto}
-  V2_CORPUS_VERSION_ID:
-  V2_INDEX_MANIFEST_ID:
-  LOG_LEVEL: ${LOG_LEVEL:-INFO}
-
-x-app-common: &app-common
-  image: ecommerce-multi-agent:${APP_IMAGE_TAG:-1.0.0}
-  build:
-    context: .
-    dockerfile: Dockerfile
-  environment: *app-environment
-  networks:
-    - data
-  read_only: true
-  tmpfs:
-    - /tmp:size=64m,mode=1777
-  init: true
-  cpus: 2.0
-  mem_limit: 2g
-  pids_limit: 256
-  cap_drop:
-    - ALL
-  security_opt:
-    - no-new-privileges:true
+name: thanh-v2-p1-services
 
 services:
   postgres:
     image: postgres:16.15-alpine3.24
     environment:
-      POSTGRES_DB: ecommerce
-      POSTGRES_USER: ecommerce
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ecommerce_p1
+      POSTGRES_USER: ecommerce_p1
+      POSTGRES_PASSWORD: p1-local-disposable-only
+    ports:
+      - "127.0.0.1:55432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - p1_postgres_data:/var/lib/postgresql/data
     networks:
-      - data
+      - p1_data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ecommerce -d ecommerce"]
+      test: ["CMD-SHELL", "pg_isready -U ecommerce_p1 -d ecommerce_p1"]
       interval: 5s
       timeout: 5s
       retries: 12
-    restart: unless-stopped
-    cpus: 1.0
-    mem_limit: 1g
-    pids_limit: 256
-    logging:
-      options:
-        max-size: 10m
-        max-file: "3"
+      start_period: 5s
+    restart: "no"
 
   redis:
     image: redis:8.10.0-alpine3.23
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+      REDIS_PASSWORD: p1-local-disposable-only
     command:
       - redis-server
       - --appendonly
       - "yes"
       - --requirepass
-      - ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+      - p1-local-disposable-only
+    ports:
+      - "127.0.0.1:56379:6379"
     volumes:
-      - redis_data:/data
+      - p1_redis_data:/data
     networks:
-      - data
+      - p1_data
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      test:
+        - CMD-SHELL
+        - REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep -q PONG
       interval: 5s
       timeout: 5s
       retries: 12
-    restart: unless-stopped
-    cpus: 0.5
-    mem_limit: 512m
-    pids_limit: 128
-    logging:
-      options:
-        max-size: 10m
-        max-file: "3"
-
-  qdrant:
-    image: qdrant/qdrant:v1.18.2
-    profiles: ["knowledge"]
-    environment:
-      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-}
-    volumes:
-      - qdrant_data:/qdrant/storage
-    networks:
-      - data
-    restart: unless-stopped
-    cpus: 1.0
-    mem_limit: 1g
-    pids_limit: 256
-    logging:
-      options:
-        max-size: 10m
-        max-file: "3"
-
-  migrate:
-    <<: *app-common
-    command: ["ecommerce-migrate"]
-    depends_on:
-      postgres:
-        condition: service_healthy
+      start_period: 5s
     restart: "no"
-
-  seed-data:
-    <<: *app-common
-    command: ["ecommerce-seed"]
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    restart: "no"
-
-  backend:
-    <<: *app-common
-    command:
-      - uvicorn
-      - app.main:app
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8000"
-      - --workers
-      - "1"
-    ports:
-      - ${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-8000}:8000
-    networks:
-      - edge
-      - data
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      seed-data:
-        condition: service_completed_successfully
-    healthcheck:
-      test:
-        - CMD
-        - python
-        - -c
-        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=3).read()
-      interval: 15s
-      timeout: 5s
-      start_period: 20s
-      retries: 4
-    restart: unless-stopped
-    logging:
-      options:
-        max-size: 10m
-        max-file: "3"
 
 networks:
-  edge:
-  data:
-    internal: true
+  p1_data:
+    name: thanh-v2-p1-data
 
 volumes:
-  postgres_data:
-  redis_data:
-  qdrant_data:
+  p1_postgres_data:
+    name: thanh-v2-p1-postgres-data
+  p1_redis_data:
+    name: thanh-v2-p1-redis-data

@@ -814,6 +814,8 @@ def test_finalized_observer_is_sanitized_deduplicated_and_nested() -> None:
         "output_tokens",
         "reasoning_tokens",
         "total_tokens",
+        "latency_ms",
+        "error_code",
     }
     assert canary not in repr(evidence)
 

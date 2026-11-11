@@ -18,30 +18,31 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.drop_constraint(
-        "ck_v2_provider_attempt_reservation",
-        "v2_provider_attempts",
-        type_="check",
-    )
-    op.create_check_constraint(
-        "ck_v2_provider_attempt_reservation",
-        "v2_provider_attempts",
-        "input_token_bound >= 0 AND output_token_bound >= 0 "
-        "AND reserved_nano_usd >= 0 "
-        "AND attempt_timeout_ms BETWEEN 1 AND 30000",
-    )
+    _replace_timeout_constraint(30000)
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        "ck_v2_provider_attempt_reservation",
-        "v2_provider_attempts",
-        type_="check",
+    # Refuse before SQLite's copy-and-move DDL can modify the source table.
+    count = (
+        op.get_bind()
+        .exec_driver_sql(
+            "SELECT COUNT(*) FROM v2_provider_attempts WHERE attempt_timeout_ms > 18000"
+        )
+        .scalar_one()
     )
-    op.create_check_constraint(
-        "ck_v2_provider_attempt_reservation",
-        "v2_provider_attempts",
-        "input_token_bound >= 0 AND output_token_bound >= 0 "
-        "AND reserved_nano_usd >= 0 "
-        "AND attempt_timeout_ms BETWEEN 1 AND 18000",
-    )
+    if count:
+        raise RuntimeError(
+            "cannot downgrade provider attempts with timeout above 18000 ms"
+        )
+    _replace_timeout_constraint(18000)
+
+
+def _replace_timeout_constraint(maximum_ms: int) -> None:
+    with op.batch_alter_table("v2_provider_attempts") as batch:
+        batch.drop_constraint("ck_v2_provider_attempt_reservation", type_="check")
+        batch.create_check_constraint(
+            "ck_v2_provider_attempt_reservation",
+            "input_token_bound >= 0 AND output_token_bound >= 0 "
+            "AND reserved_nano_usd >= 0 "
+            f"AND attempt_timeout_ms BETWEEN 1 AND {maximum_ms}",
+        )

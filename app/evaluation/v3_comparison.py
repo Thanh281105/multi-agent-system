@@ -8,6 +8,7 @@ import random
 import statistics
 from collections import defaultdict
 from collections.abc import Sequence
+from functools import lru_cache
 from itertools import combinations
 from typing import Literal
 
@@ -125,6 +126,17 @@ class WorkGroupDeltaV3(FrozenAnalysisContractV3):
     candidate_mean: float
     delta: float
 
+    @model_validator(mode="after")
+    def validate_delta(self) -> WorkGroupDeltaV3:
+        if not math.isclose(
+            self.delta,
+            self.candidate_mean - self.baseline_mean,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            raise ValueError("work-group delta differs from its means")
+        return self
+
 
 class PairedMetricComparisonV3(FrozenAnalysisContractV3):
     schema_version: Literal["3.0"] = "3.0"
@@ -179,10 +191,43 @@ class PairedMetricComparisonV3(FrozenAnalysisContractV3):
                 self.work_groups
             ):
                 raise ValueError("win/tie/loss counts must cover every work group")
+            if len({group.work_group_id for group in self.work_groups}) != len(
+                self.work_groups
+            ):
+                raise ValueError("paired work-group IDs must be unique")
+            deltas = [group.delta for group in self.work_groups]
+            expected_statistics = (
+                statistics.fmean(group.baseline_mean for group in self.work_groups),
+                statistics.fmean(group.candidate_mean for group in self.work_groups),
+                statistics.fmean(deltas),
+                statistics.median(deltas),
+            )
+            if any(
+                actual is None
+                or not math.isclose(actual, expected, rel_tol=1e-12, abs_tol=1e-12)
+                for actual, expected in zip(
+                    statistics_values, expected_statistics, strict=True
+                )
+            ):
+                raise ValueError("comparison statistics differ from work-group rows")
+            if (self.candidate_wins, self.ties, self.candidate_losses) != (
+                _win_tie_loss(deltas, self.direction)
+            ):
+                raise ValueError("comparison win/tie/loss differs from work-group rows")
+            if self.confidence_interval != _work_group_bootstrap_interval(
+                deltas,
+                bootstrap_samples=self.confidence_interval.bootstrap_samples,
+                random_seed=self.confidence_interval.random_seed,
+            ):
+                raise ValueError(
+                    "comparison interval differs from the declared bootstrap"
+                )
         elif any(value is not None for value in statistics_values) or (
             self.confidence_interval is not None
         ):
             raise ValueError("empty paired results cannot declare statistics")
+        elif self.candidate_wins or self.ties or self.candidate_losses:
+            raise ValueError("empty paired results cannot declare wins/ties/losses")
         return self
 
 
@@ -674,18 +719,27 @@ def _work_group_bootstrap_interval(
     bootstrap_samples: int,
     random_seed: int,
 ) -> ConfidenceIntervalV3:
+    lower, upper = _bootstrap_bounds(tuple(deltas), bootstrap_samples, random_seed)
+    return ConfidenceIntervalV3(
+        lower=lower,
+        upper=upper,
+        bootstrap_samples=bootstrap_samples,
+        random_seed=random_seed,
+    )
+
+
+@lru_cache(maxsize=256)
+def _bootstrap_bounds(
+    deltas: tuple[float, ...], bootstrap_samples: int, random_seed: int
+) -> tuple[float, float]:
+    # The same frozen comparisons are revalidated at several artifact boundaries.
     generator = random.Random(random_seed)
     sample_size = len(deltas)
     means = sorted(
         statistics.fmean(generator.choice(deltas) for _ in range(sample_size))
         for _ in range(bootstrap_samples)
     )
-    return ConfidenceIntervalV3(
-        lower=_percentile(means, 0.025),
-        upper=_percentile(means, 0.975),
-        bootstrap_samples=bootstrap_samples,
-        random_seed=random_seed,
-    )
+    return _percentile(means, 0.025), _percentile(means, 0.975)
 
 
 def _percentile(values: Sequence[float], quantile: float) -> float:

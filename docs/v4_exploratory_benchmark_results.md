@@ -135,7 +135,7 @@ Kết quả thực nghiệm này mang lại một đóng góp học thuật quan
 
 ## 5. DANH MỤC MINH CHỨNG & TÀI LIỆU
 
-1. **Bộ benchmark chuẩn hóa 24 cases:** [`evaluation/v4_fair_benchmark_cases.json`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/evaluation/v4_fair_benchmark_cases.json)
-2. **Runner thực thi đo đạc trực tiếp (Autonomous Routing + Token Accounting):** [`scripts/run_v4_full_benchmark.py`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/scripts/run_v4_full_benchmark.py)
-3. **Dữ liệu thực nghiệm 144 runs hoàn chỉnh:** [`output/evaluation-v4/full_24_benchmark_results.json`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/output/evaluation-v4/full_24_benchmark_results.json)
-4. **Script tổng hợp & thẩm định đối chiếu:** [`scratch/human_audit_report.py`](file:///c:/Users/Thanh/Desktop/DACNTT/multi-agent-system/scratch/human_audit_report.py)
+1. **Bộ benchmark lịch sử 24 cases:** [cases gốc](../evaluation/v4_fair_benchmark_cases.json).
+2. **Runner lịch sử đã gỡ khỏi source:** xem bản gốc để kiểm toán bằng `git show thanh-v4:scripts/run_v4_full_benchmark.py`. Đây là pipeline synthesis có context chọn bằng gold.
+3. **Capture lịch sử 144 runs:** [artifact gốc](../output/evaluation-v4/full_24_benchmark_results.json), không phải kết quả chạy lại trong bản sửa này.
+4. **Script audit lịch sử:** `git show thanh-v4:scratch/human_audit_report.py`. Script không thay thế phiếu người chấm thật; xem [quy trình evidence hiện hành](evidence-reporting.md).

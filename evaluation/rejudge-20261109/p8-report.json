@@ -1,0 +1,61 @@
+{
+  "comparison": {
+    "answers_compared": 715,
+    "metrics": {
+      "task_completion": {
+        "n": 715,
+        "agreement": 0.9734265734265735,
+        "kappa": 0.9459585251073073
+      },
+      "answerability_abstention": {
+        "n": 715,
+        "agreement": 1.0,
+        "kappa": 1.0
+      },
+      "claim_support": {
+        "n": 715,
+        "agreement": 0.9692307692307692,
+        "kappa": 0.9366476837942117
+      },
+      "useful_continuation": {
+        "n": 715,
+        "agreement": 1.0,
+        "kappa": 1.0
+      },
+      "valid_plan": {
+        "n": 715,
+        "agreement": 1.0,
+        "kappa": 1.0
+      }
+    },
+    "deltas": {
+      "original": {
+        "sa_vs_ma_adaptive": {
+          "mean_delta": -0.04989711934156378,
+          "ci_low": -0.09259259259259259,
+          "ci_high": -0.013374485596707812,
+          "wins": 2,
+          "ties": 18,
+          "losses": 7
+        }
+      },
+      "rejudge": {
+        "sa_vs_ma_adaptive": {
+          "mean_delta": -0.06532921810699589,
+          "ci_low": -0.12654320987654322,
+          "ci_high": -0.013374485596707841,
+          "wins": 3,
+          "ties": 17,
+          "losses": 7
+        }
+      }
+    }
+  },
+  "invalid_or_error_rows": {
+    "answer_bfeeb5815cf763f86bb03259": "invalid_output: positive claim support lacks per-claim required facts",
+    "answer_90fa27938e2edcc937c7d0d3": "model_response_invalid",
+    "answer_a5030f876b203b7ee42190b7": "invalid_output: supported claim violates exact fact matching",
+    "answer_276a64507b81e24a87eaab22": "invalid_output: supported claim violates exact fact matching",
+    "answer_c99a44b72b98ec5ef1c1b62a": "model_response_invalid"
+  }
+}

@@ -48,7 +48,7 @@ ruff check app tests migrations
 ruff format --check app tests migrations
 mypy app
 pytest -m "not integration" -q
-pytest -q tests/test_helm_assets.py tests/test_deployment_assets.py
+pytest -q tests/test_runtime_assets.py
 ```
 
 Với thay đổi API, turn lifecycle, action, lease, replay, migration, budget hoặc

@@ -187,7 +187,8 @@ class V2ReadSupervisor:
         if planned.intent == "conversation.acknowledgment":
             result = TurnResult(
                 outcome=DialogueOutcome.ANSWERED,
-                answer="Được, mình sẽ giữ cuốn sách vừa nêu làm ngữ cảnh cho lượt tiếp theo.",
+                answer="Được, mình sẽ giữ cuốn sách vừa nêu làm ngữ cảnh cho lượt "
+                "tiếp theo.",
                 plan=_plan_trace(planned, (), None, None),
             )
             return TurnComputation(
@@ -1067,6 +1068,22 @@ def _grounding_requirements(
             EvidenceRequirement(kind=kind, subject_id=subject, field=field)
             for subject in subjects
         )
+        if obligation.kind == EvidenceObligationKind.CATALOG:
+            # Kind-level coverage alone lets a price-only claim stand in for
+            # an identified, constraint-qualified product. Bind the fields the
+            # planner actually used, independently for every returned candidate.
+            required_fields = ["title"]
+            if planned.min_price_vnd is not None or planned.max_price_vnd is not None:
+                required_fields.append("snapshot_price_vnd")
+            if planned.min_rating is not None or planned.max_rating is not None:
+                required_fields.append("snapshot_rating")
+            if planned.min_page_count is not None or planned.max_page_count is not None:
+                required_fields.append("page_count")
+            requirements.extend(
+                EvidenceRequirement(kind=kind, subject_id=subject, field=required_field)
+                for subject in subjects
+                for required_field in required_fields
+            )
     return tuple(dict.fromkeys(requirements))
 
 

@@ -1,5 +1,11 @@
 # Báo Cáo Đánh Đổi Hiệu Năng & Gói Tái Lập Thực Nghiệm (Trade-Off & Reproducibility Package)
 
+> **ĐÍNH CHÍNH — 2026-11-06:** tài liệu bên dưới là bản sinh lịch sử từ các
+> giá trị viết sẵn trong script; chưa có phép nối đến observations để xác minh
+> các số đo và kết luận ưu thế. Không dùng như báo cáo xác nhận độc lập hoặc
+> gói tái lập hoàn chỉnh. Các lệnh không tham số bên dưới đã được thay thế.
+> Xem [quy trình hiện hành](evidence-reporting.md).
+
 ## 1. Tóm Tắt Gói Tái Lập Đầy Đủ (Full Provenance Cryptographic Bundle)
 
 Nhằm đảm bảo tính tái lập 100% theo tiêu chuẩn khoa học cao nhất, toàn bộ thông số thực nghiệm, mã băm mật mã và cấu hình môi trường được đóng gói và khóa vĩnh viễn:
@@ -55,7 +61,10 @@ Multi-Agent Adaptive vượt trội rõ rệt trên các bài toán **đa chuyê
 - **Claim Support:** Tăng từ 68.5% lên **78.5%**, chứng minh vai trò kiểm duyệt của Grounded Synthesizer.
 
 ### 3.2. Cái giá phải trả (The Overhead Cost):
-- **Độ trễ:** P50 tăng từ 1.35s lên 5.42s (chậm hơn 4.01 lần), do phải trải qua chuỗi tuần tự Router $ightarrow$ Specialists song song $ightarrow$ Continuation $ightarrow$ Synthesizer.
+- **Độ trễ:** P50 tăng từ 1.35s lên 5.42s (chậm hơn 4.01 lần), do phải trải qua chuỗi tuần tự Router $
+ightarrow$ Specialists song song $
+ightarrow$ Continuation $
+ightarrow$ Synthesizer.
 - **Tiêu thụ tài nguyên:** Tốn gấp 2.72 lần token ($3.620$ so với $1.332$ tokens) và chi phí tăng 2.68 lần.
 
 ### 3.3. Ranh giới Khuyến nghị Triển khai (Engineering Recommendation):
@@ -73,8 +82,8 @@ Multi-Agent Adaptive vượt trội rõ rệt trên các bài toán **đa chuyê
 # 1. Khởi động cơ sở dữ liệu PostgreSQL cục bộ
 bash scripts/run_wsl_postgres.sh
 
-# 2. Chạy tái lập bộ kết quả P8 đầy đủ
-.venv/Scripts/python.exe scripts/run_p8_complete_and_operate.py
+# 2. Runner P8 lịch sử (scripts/run_p8_complete_and_operate.py) đã bị gỡ;
+#    dùng python -m app.evaluation.v3_cli với input và budget tường minh.
 
 # 3. Tái lập thí nghiệm ablation cô lập kiến trúc
 .venv/Scripts/python.exe scripts/run_architectural_ablation.py

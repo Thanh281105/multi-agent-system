@@ -1,0 +1,51 @@
+{
+  "schema_version": "evidence_integrity_v1",
+  "validation_scope": "file_integrity_only_not_semantic_validation",
+  "status": "invalid",
+  "manifest_name": "manifest.json",
+  "checked_files": [
+    {
+      "path": "summary.json",
+      "sha256": "3351ee61bc34b56bc2c4a12e4d763e5eda151b3b3e92850f34e6f6a3ced82402",
+      "size_bytes": 1726
+    },
+    {
+      "path": "error-analysis.json",
+      "sha256": "b61db2c5123ddfcfbbcc68da6cc4d7899e00dcf4d53cf135f6544add5a0e3d21",
+      "size_bytes": 87
+    },
+    {
+      "path": "comparisons.csv",
+      "sha256": "fa52c726819b3ff3a311371dc466264104ee4af7af821dc326e4adfe1cca493d",
+      "size_bytes": 8096
+    },
+    {
+      "path": "comparisons.svg",
+      "sha256": "d008a2a084128a03187929a22311ccb2bb7fb1d5be5d8a895cbc21ef0b7b9f1d",
+      "size_bytes": 12285
+    }
+  ],
+  "line_ending_recovery_candidates": [
+    {
+      "path": "comparisons.csv",
+      "line_endings": "crlf",
+      "sha256": "b0b87e5b452a86b06ce71142c836bd5cf0f48c9f658b99f3e9d9c7af105de778"
+    }
+  ],
+  "issues": [
+    {
+      "code": "missing_or_unreadable_file",
+      "path": "preparation.json"
+    },
+    {
+      "code": "file_size_mismatch",
+      "path": "comparisons.csv"
+    },
+    {
+      "code": "file_digest_mismatch",
+      "path": "comparisons.csv"
+    }
+  ],
+  "manifest_file_sha256": "f56c44a8efd2582df700d18ef0b1d518266e45c15ae44da134e12c30e01f01b4",
+  "recovery_status": "refused_missing_or_irrecoverable_evidence"
+}

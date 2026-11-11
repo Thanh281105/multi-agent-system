@@ -1,5 +1,11 @@
 # Kế Hoạch Đăng Ký Trước & Phân Tích Độ Mạnh Thống Kê (Pre-registered Statistical Protocol & Power Analysis)
 
+> **TRẠNG THÁI — 2026-11-06:** đây là kế hoạch/giả định lịch sử. Manifest
+> bộ 624 task hiện không khớp ba artifact nên chưa xác nhận được bản freeze.
+> Tên tài liệu không chứng minh thời điểm đăng ký trước khi xem kết quả.
+> Không coi các giả định power là kết quả đo. Xem
+> [quy trình đối soát](evidence-reporting.md).
+
 ## 1. Khóa Tiền Định Metric Chính & Ranh Giới Ý Nghĩa Thực Tiễn (MCID)
 
 Nhằm tuân thủ nguyên tắc nghiên cứu thực nghiệm chặt chẽ và loại bỏ nguy cơ "p-hacking" (thử nhiều metric đến khi có $p < 0.05$):

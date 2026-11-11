@@ -1,0 +1,136 @@
+\section{Thiết kế thực nghiệm}
+
+\subsection{Mục đích so sánh}
+Thực nghiệm so sánh hai cách trả lời cùng một bộ câu hỏi:
+\begin{itemize}
+\item \textbf{Một tác tử:} nhận câu hỏi và thông tin liên quan, sau đó trực tiếp tạo câu trả lời.
+\item \textbf{Nhiều tác tử:} phân chia công việc cho các chuyên gia cần thiết, rồi tổng hợp kết quả thành một câu trả lời chung.
+\end{itemize}
+Cả hai cách dùng cùng một mô hình ngôn ngữ nền. Do đó, khác biệt cần quan sát chủ yếu nằm ở cách tổ chức xử lý và cách hướng dẫn từng phần việc, không phải việc một bên được dùng mô hình nền mạnh hơn. \src{4}\src{5}
+
+Thực nghiệm này là một phép so sánh riêng, có điều kiện được kiểm soát. Nó chưa đo toàn bộ quá trình sử dụng ứng dụng trong thực tế. Giữ rõ phạm vi này giúp đánh giá đúng giá trị của kết quả.
+
+\subsection{Bộ câu hỏi}
+Bộ thử nghiệm gồm 24 câu hỏi được chia thành bốn nhóm. Mỗi câu có một hoặc nhiều dữ kiện bắt buộc mà câu trả lời cần đề cập đúng. Tổng cộng có 43 dữ kiện bắt buộc cho một lượt đi qua cả bộ câu hỏi. \src{4}
+
+\begin{table}[htbp]\small
+\caption{Cấu trúc bộ câu hỏi thực nghiệm.}
+\begin{tabularx}{\linewidth}{P{12mm}Yrr}\toprule
+Nhóm & Nội dung chính & Câu hỏi & Dữ kiện\\\midrule
+1 & Tra cứu chủ yếu thuộc một chuyên gia & 6 & 14\\
+2 & Kết hợp thông tin của nhiều chuyên gia & 8 & 17\\
+3 & Tư vấn lựa chọn theo nhiều góc nhìn & 6 & 8\\
+4 & Nhận biết yêu cầu không phù hợp hoặc cần từ chối & 4 & 4\\\midrule
+Tổng & & 24 & 43\\\bottomrule
+\end{tabularx}
+\end{table}
+
+Mỗi câu được chạy ba lần với mỗi cách xử lý. Tổng số câu trả lời được lưu là $24\times2\times3=144$, tức 72 câu trả lời cho mỗi bên. Khi chấm các dữ kiện bắt buộc, mỗi bên có $43\times3=129$ lượt đánh giá dữ kiện.
+
+\textbf{144 lượt chạy không phải 144 bài toán khác nhau.} Thực chất vẫn là 24 câu hỏi được lặp lại. Sự phân biệt này quan trọng khi nhận xét độ đa dạng và mức chắc chắn của kết quả.
+
+\subsection{Điều kiện cung cấp thông tin}
+Trước khi trả lời, cả hai cách đều được cấp sẵn những thông tin liên quan đến câu hỏi. Việc chọn thông tin dựa vào nguồn của đáp án chuẩn và một số bổ sung đã được người thiết kế xác định. Điều này giúp hai bên có cùng nền dữ liệu, nhưng cũng làm bước tìm kiếm ban đầu thuận lợi hơn so với sử dụng thực tế. \src{5}
+
+Vì vậy, phép thử trả lời câu hỏi: \textit{khi đã có những thông tin liên quan, cách tổ chức nào đáp ứng yêu cầu tốt hơn?} Nó chưa trả lời đầy đủ câu hỏi: \textit{cách nào tự tìm đúng thông tin từ toàn bộ kho dữ liệu tốt hơn?}
+
+\fig{so-sanh-thuc-nghiem}{Hai cách xử lý được so sánh trên thông tin liên quan đã cấp sẵn. Bộ chấm đối chiếu câu trả lời với các dữ kiện bắt buộc.}{fig:experiment}
+
+\subsection{Cách chấm điểm và các tiêu chí quan sát}
+Một mô hình chấm tự động đối chiếu câu trả lời với từng dữ kiện bắt buộc. Điểm của một câu là tỷ lệ dữ kiện được chấp nhận trong câu đó. Điểm trung bình toàn bộ câu hỏi được tính bằng cách lấy trung bình qua các lần lặp rồi qua 24 câu, để mỗi câu hỏi có trọng số như nhau. \src{5}
+
+Báo cáo đồng thời nêu tỷ lệ dữ kiện được chấp nhận khi gộp toàn bộ 129 lượt đánh giá. Hai cách tính này có thể khác nhau vì mỗi câu hỏi có số dữ kiện khác nhau. Một câu có bốn dữ kiện sẽ có ảnh hưởng lớn hơn trong cách gộp theo dữ kiện, nhưng vẫn chỉ có trọng số như các câu khác trong cách tính trung bình theo câu hỏi.
+
+Ngoài điểm nội dung, thực nghiệm ghi thời gian tạo câu trả lời và lượng văn bản mô hình xử lý. Lượng văn bản được ghi bằng \textit{token}, là đơn vị dùng để biểu diễn độ dài đầu vào và đầu ra của mô hình. Token không tương đương chính xác với số từ, nhưng có ích để so sánh mức sử dụng tài nguyên giữa hai cách.
+
+\section{Kết quả thực nghiệm}
+
+\subsection{Kết quả tổng hợp}
+Các con số dưới đây được tính lại từ những câu trả lời, điểm chấm và thông tin đo lường đã lưu của thực nghiệm; không phải một đợt chạy mô hình mới. \src{6}
+
+\begin{table}[htbp]\small
+\caption{So sánh hai cách xử lý trên bộ thực nghiệm.}
+\begin{tabularx}{\linewidth}{Yrr}\toprule
+Tiêu chí & Một tác tử & Nhiều tác tử\\\midrule
+Số câu trả lời được lưu & 72 & 72\\
+Điểm trung bình theo câu hỏi & 98,96\% & 100,00\%\\
+Lượt dữ kiện được chấp nhận & 126/129 & 129/129\\
+Tỷ lệ chấp nhận theo dữ kiện & 97,67\% & 100,00\%\\
+Thời gian trả lời trung bình & 1,43 giây & 6,75 giây\\
+Token trung bình mỗi câu trả lời & 1.332 & 3.706\\\bottomrule
+\end{tabularx}
+\end{table}
+
+Nhiều tác tử đạt điểm trung bình cao hơn khoảng \textbf{1,04 điểm phần trăm}. Tuy nhiên, thời gian trả lời trung bình dài gấp khoảng \textbf{4,73 lần}, còn lượng token lớn gấp khoảng \textbf{2,78 lần}. Như vậy, phần cải thiện nội dung quan sát được đi kèm mức tăng đáng kể về thời gian và tài nguyên.
+
+Điểm 100\% ở đây có nghĩa tất cả dữ kiện bắt buộc đều được bộ chấm chấp nhận. Nó \textbf{không có nghĩa toàn bộ hệ thống chính xác tuyệt đối}, vì bộ chấm chưa đối chiếu mọi phát biểu bổ sung trong câu trả lời với toàn bộ dữ liệu nguồn.
+
+\subsection{Kết quả theo nhóm câu hỏi}
+\begin{table}[htbp]\small
+\caption{Điểm và thời gian trung bình theo nhóm câu hỏi.}
+\begin{tabularx}{\linewidth}{Yrrrr}\toprule
+ & \multicolumn{2}{c}{Điểm trung bình (\%)} & \multicolumn{2}{c}{Thời gian (giây)}\\
+Nhóm & Một tác tử & Nhiều tác tử & Một tác tử & Nhiều tác tử\\\midrule
+1. Tra cứu đơn giản & 95,83 & 100,00 & 1,35 & 5,29\\
+2. Kết hợp nhiều nguồn thông tin & 100,00 & 100,00 & 1,50 & 8,82\\
+3. Tư vấn nhiều góc nhìn & 100,00 & 100,00 & 1,52 & 8,40\\
+4. Yêu cầu không phù hợp & 100,00 & 100,00 & 1,26 & 2,32\\\bottomrule
+\end{tabularx}
+\end{table}
+
+Ở nhóm 2 và 3, cả hai cách cùng đạt điểm tối đa theo dữ kiện bắt buộc. Do đó, bộ thử nghiệm này chưa cho thấy nhiều tác tử tạo được chênh lệch điểm ở chính các câu hỏi được thiết kế theo hướng kết hợp chuyên gia. Việc gắn một câu hỏi vào nhóm phức tạp không tự chứng minh rằng chỉ nhiều tác tử mới trả lời được.
+
+\subsection{Trường hợp tạo ra chênh lệch}
+Toàn bộ khác biệt điểm nằm ở một câu hỏi về \textit{Sapiens}. Tên sách đầy đủ trong dữ liệu có hậu tố \textit{(Tái Bản 2022)}. Cách một tác tử bỏ hậu tố này trong cả ba lần trả lời; cách nhiều tác tử giữ được tên đầy đủ. Vì vậy, một tác tử đạt ba trên bốn dữ kiện của câu hỏi đó, còn nhiều tác tử đạt đủ bốn. \src{6}
+
+Xét trên 24 câu hỏi, nhiều tác tử có điểm cao hơn ở một câu và hòa ở 23 câu còn lại. Kết quả này cho thấy tầm quan trọng của việc giữ đúng thông tin ấn bản, nhưng chưa đủ để khẳng định nhiều tác tử tốt hơn trên mọi dạng câu hỏi.
+
+Cần lưu ý rằng chuyên gia thông tin sách được hướng dẫn nhấn mạnh tên đầy đủ và hậu tố ấn bản, trong khi cách một tác tử được yêu cầu trả lời ngắn gọn hơn. Do đó, ưu thế ở câu này có thể đến từ cách hướng dẫn trình bày chi tiết, chứ chưa chắc chỉ do việc chia thành nhiều tác tử. Một phép đối chứng hợp lý là yêu cầu cách một tác tử cũng bảo toàn tên ấn bản rồi thử trên một bộ câu hỏi mới. \src{5}
+
+\subsection{Mức chắc chắn của kết luận}
+Khoảng ước lượng cho chênh lệch điểm trung bình còn bao gồm cả khả năng không có cải thiện. Kết hợp với việc chỉ một trong 24 câu tạo ra khác biệt, dữ liệu hiện có \textbf{chưa đủ để kết luận nhiều tác tử có ưu thế tổng quát rõ ràng}. Điều này cũng không chứng minh hai cách hoàn toàn tương đương; cần thêm câu hỏi và một thiết kế đánh giá đủ sức phân biệt chúng.
+
+Việc cả hai bên đạt điểm rất cao còn tạo ra một giới hạn đo lường: khi một tác tử đã gần điểm tối đa, nhiều tác tử dù làm tốt cũng khó tạo thêm nhiều chênh lệch. Muốn đánh giá sâu hơn, cần các câu hỏi có khó khăn thực chất về chọn đúng sách, đối chiếu nguồn hoặc xử lý thông tin thiếu và mâu thuẫn.
+
+\subsection{Đối chiếu với một bộ câu hỏi khó hơn}
+Trước bộ 24 câu ở trên, dự án đã chạy một đợt đánh giá lớn hơn gồm 60 hội thoại thuộc 27 nhóm tác phẩm, mỗi hội thoại chạy ba lần với bốn cấu hình, tổng cộng 720 lượt quan sát. Cả 720 lượt đều được chấm và gói kết quả gốc qua kiểm tra toàn vẹn tệp.
+
+Trên bộ này, tỷ lệ hoàn thành tác vụ trung bình thấp hơn nhiều: khoảng 45,2\% (một tác tử), 47,2\% (nhiều tác tử, kế hoạch cố định) và 41,4\% (nhiều tác tử, kế hoạch thích nghi). So sánh chính đã đăng ký trước, giữa một tác tử và nhiều tác tử thích nghi, cho chênh lệch $-3{,}8$ điểm phần trăm với khoảng tin cậy 95\% từ $-8{,}7$ đến $+1{,}0$; tức không có bằng chứng nhiều tác tử tốt hơn, và ước lượng điểm còn nghiêng nhẹ về một tác tử.
+
+Phần đóng góp rõ nhất đến từ việc truy xuất có căn cứ. Khi tắt truy xuất trong cùng cấu hình nhiều tác tử thích nghi, tỷ lệ hoàn thành giảm khoảng 36,1 điểm phần trăm (khoảng tin cậy 95\% từ $-51{,}2$ đến $-21{,}6$) và khả năng từ chối đúng lúc giảm khoảng 74,4 điểm phần trăm. Cả bốn cấu hình đều không ghi nhận vi phạm phân quyền.
+
+Cần đọc các số này với các giới hạn: bộ chấm chưa được hiệu chuẩn bằng người thật, khả năng tìm đúng tài liệu (document recall) chưa được đo, và bộ 60 hội thoại này đã được chạy lặp nhiều lần trong quá trình phát triển, hệ thống được sửa giữa các lần, nên không thể xem đây là phép xác nhận độc lập cho phiên bản hiện tại.
+
+\subsection{Lần chạy xác nhận trên câu hỏi mới}
+Để có một phép thử chưa từng dùng để chỉnh hệ thống, dự án soạn 60 hội thoại mới trên cùng 13 sản phẩm và 26 nhóm tác phẩm, đóng băng bằng mã băm, rồi chạy đủ bốn cấu hình, ba lần lặp, tổng cộng 720 lượt. Giả thuyết và quy tắc phân tích được ghi lại và lưu vào kho mã \textit{trước khi} soạn câu hỏi và chạy hệ thống: giả thuyết chính là nhiều tác tử kế hoạch cố định hoàn thành tác vụ tốt hơn một tác tử ở loại câu nhiều điều kiện; chỉ kết luận ``ủng hộ'' khi khoảng tin cậy 95\% (bootstrap theo nhóm tác phẩm, 10.000 mẫu) không chứa 0. \src{10}
+
+\begin{table}[htbp]\small
+\caption{Kết quả lần chạy xác nhận: chênh lệch tỷ lệ hoàn thành tác vụ so với một tác tử (điểm phần trăm).}
+\begin{tabularx}{\linewidth}{Yrrr}\toprule
+So sánh & Chênh lệch & Khoảng tin cậy 95\% & Thắng/Hòa/Thua\\\midrule
+Kế hoạch cố định, câu nhiều điều kiện (giả thuyết chính) & $+2{,}78$ & $[0{,}00;\ +8{,}33]$ & 1/11/0\\
+Kế hoạch cố định, cả 60 hội thoại & $+1{,}07$ & $[0{,}00;\ +2{,}78]$ & 2/24/0\\
+Kế hoạch thích nghi, cả 60 hội thoại & $+1{,}07$ & $[0{,}00;\ +2{,}78]$ & 2/24/0\\
+Thích nghi không truy xuất, cả 60 hội thoại & $-16{,}24$ & $[-23{,}18;\ -9{,}62]$ & 0/13/13\\\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Không giả thuyết nào được ủng hộ}: cả ba khoảng tin cậy của so sánh nhiều tác tử với một tác tử đều chạm 0. Điều nói được là hai cấu hình nhiều tác tử không thua một tác tử ở nhóm tác phẩm nào và cao hơn khoảng 1,07 điểm phần trăm, nhưng chênh lệch chỉ đến từ 2 trong 26 nhóm và chưa có ý nghĩa thống kê. Tắt truy xuất tiếp tục làm giảm rõ tỷ lệ hoàn thành, nhất quán với đợt đánh giá trước.
+
+Tỷ lệ hoàn thành tuyệt đối trên bộ mới thấp: 19,4\% (một tác tử) và 20,6\% (hai cấu hình nhiều tác tử). Bốn trong sáu loại câu cho 0\% ở mọi cấu hình, và loại câu nhiều điều kiện giảm từ khoảng 94\% ở đợt trước xuống khoảng 6\%. Ở các loại này, cả một tác tử lẫn nhiều tác tử thường trả lời rằng chưa tìm thấy đủ ứng viên và đề nghị người dùng nêu rõ hơn. Câu hỏi của đợt trước theo một khuôn cố định, còn câu hỏi mới dùng đúng tên sách nhưng diễn đạt tự nhiên hơn; bước lập kế hoạch và tìm ứng viên là phần dùng chung của hai cách nên cả hai gặp khó giống nhau. Cách hiểu hợp lý nhất, dù mới dựa trên một số ví dụ, là khả năng xử lý cách hỏi ngoài khuôn quen thuộc còn yếu, và điểm cao ở đợt trước một phần phản ánh việc hệ thống đã được chỉnh nhiều vòng trên chính khuôn câu hỏi đó. Hệ quả là bộ mới chỉ phân biệt được hai cách ở loại câu tra cứu nguồn kiến thức (91,7\% so với 94,4\% và 97,2\%).
+
+Kết quả này có các giới hạn phải nêu: câu hỏi mới dùng lại cùng 13 sản phẩm và do một mô hình ngôn ngữ soạn, nên không phải bộ độc lập về dữ liệu; ngưỡng hiệu chuẩn bộ chấm đã được nới vì bộ chấm lệch nhãn tham chiếu tự động ở 3 trong 32 trường hợp thử; 719 trên 720 lượt được chấm, lượt còn lại bộ chấm không trả được kết quả hợp lệ và không thuộc các so sánh nhiều tác tử với một tác tử; bảng trên được tính trực tiếp từ nhật ký chấm theo công thức đã khai báo, không qua bước tổng hợp chính thức của quy trình. Câu hỏi và đáp án không được sửa sau khi xem kết quả.
+
+\subsection{Chấm lại bằng cùng bộ chấm (thăm dò)}
+Để đo độ ổn định của bộ chấm mô hình mà không cần người chấm, 720 câu trả lời của đợt lớn được chấm lại bằng đúng cấu hình cũ (cùng mô hình \texttt{gpt-6-luna}). Trên 715 câu có kết quả hợp lệ ở cả hai lần, độ đồng thuận là 97,3\% (hệ số Cohen $\kappa = 0{,}946$) với tiêu chí hoàn thành tác vụ và 96,9\% ($\kappa = 0{,}937$) với tiêu chí căn cứ của phát biểu. Chênh lệch giữa một tác tử và nhiều tác tử thích nghi là $-5{,}0$ điểm phần trăm ở lần chấm gốc và $-6{,}5$ điểm phần trăm ở lần chấm lại trên cùng 715 câu; hai lần chấm cùng chiều.
+
+Kết quả này chỉ cho thấy so sánh ổn định qua hai lần chấm bằng cùng bộ chấm. Nó không chứng minh bộ chấm đúng: cùng một mô hình không phát hiện được thiên lệch chung, chế độ không suy luận có thể làm độ ồn bị đánh giá thấp, và bộ chấm vẫn chưa được người hiệu chuẩn. Kết luận chính thức vẫn là kết quả trên đủ 720 câu ở mục trước.
+
+Với bộ 24 câu, chấm lại 144 câu trả lời bằng bộ chấm được cấp bản ghi nguồn cho điểm 88,5\% (một tác tử) và 96,5\% (nhiều tác tử), thay vì 99,0\% và 100\%. Kiểm tra thủ công cho thấy một phần mức giảm là do ngữ cảnh cấp cho bộ chấm chỉ gồm bản ghi của từng sự kiện, nên không dùng hai số này làm độ chính xác. Điều rút ra được là điểm bão hòa của bộ 24 câu phụ thuộc cách thiết kế bộ chấm và bộ này không đủ sức phân biệt hai kiến trúc. Chi tiết và giới hạn nằm trong \texttt{docs/rejudge\_llm\_judge\_results.md}.
+
+\subsection{Kiểm chứng lại nguồn gốc số liệu}
+Các số liệu trong mục này được tính lại độc lập từ kết quả đã lưu và khớp với bảng trên. Trong quá trình rà soát, nhóm cũng phát hiện một số tài liệu khác của dự án dùng số đo được viết sẵn trong mã chương trình, không tính từ kết quả chạy thật: báo cáo đánh đổi giữa các cấu hình, thí nghiệm bỏ bớt thành phần và một đợt chấm của người được mô phỏng. \src{8}
+
+Các số liệu này \textbf{không được dùng trong báo cáo}. Những tài liệu liên quan đã được ghi chú đính chính; quy trình tạo báo cáo mới chỉ đọc kết quả gốc, kiểm tra tính toàn vẹn của tệp và dừng lại nếu thiếu dữ liệu, thay vì tự điền con số. Công cụ chấm của người cũng chỉ tổng hợp phiếu do người thật điền, không tự sinh nhãn.
+
+Toàn bộ 1.456 kiểm thử tự động không gọi mô hình thật, gồm các kiểm thử chạy trên cơ sở dữ liệu PostgreSQL, đều qua trên mã nguồn hiện tại. Kết quả này cho thấy phần mềm vận hành đúng các quy tắc đã được kiểm thử; nó không thay thế một đợt đánh giá mới với mô hình thật.

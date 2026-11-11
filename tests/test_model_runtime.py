@@ -285,7 +285,7 @@ async def test_model_runtime_returns_schema_and_collects_safe_metadata() -> None
     request = client.responses.requests[0]
     assert request["store"] is False
     assert request["text_format"] is ParsedAnswer
-    assert request["reasoning"] == {"effort": "low"}
+    assert request["reasoning"] == {"effort": "none"}
     assert "test-key" not in repr(request)
 
 

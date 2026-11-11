@@ -998,6 +998,7 @@ async def test_free_model_answer_field_cannot_bypass_claim_verification() -> Non
                 "claims": [],
             }
         ]
+        * 4
     )
     producer = GroundedAnswerProducer(
         runtime, runtime_mode="hybrid", model="model_snapshot"
@@ -1169,12 +1170,13 @@ async def test_long_fact_group_splits_without_losing_a_required_field() -> None:
             references=(reference,),
         ),
         allowed_subject_ids=frozenset({"product_1"}),
-        requirements=(
+        requirements=tuple(
             EvidenceRequirement(
                 EvidenceKind.CATALOG,
                 subject_id="product_1",
-                field="snapshot_price_vnd",
-            ),
+                field=field,
+            )
+            for field in ("title", "author", "publisher", "snapshot_price_vnd")
         ),
     )
 

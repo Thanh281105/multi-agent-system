@@ -824,9 +824,10 @@ class EvaluationV3ObservationRunner:
             value is not None for value in dynamic_bindings
         ):
             raise ValueError("dynamic validation requires all three protocol bindings")
-        if protocol_sha256_override is not None and re.fullmatch(
-            r"[a-f0-9]{64}", protocol_sha256_override
-        ) is None:
+        if (
+            protocol_sha256_override is not None
+            and re.fullmatch(r"[a-f0-9]{64}", protocol_sha256_override) is None
+        ):
             raise ValueError("dynamic protocol hash must be a lowercase SHA-256 digest")
         self.protocol_sha256 = (
             protocol_sha256_override or evaluation_protocol_sha256_v3(protocol)
@@ -850,9 +851,10 @@ class EvaluationV3ObservationRunner:
         self.limits = EvaluationResourceLimitsV3.from_budget(protocol.experiment.budget)
         self.checkpoint_path = checkpoint_path
         scheduled_case_ids = {turn.identity.case_id for turn in self.schedule}
-        if protocol_sha256_override is not None and set(
-            self.case_group_bindings
-        ) != scheduled_case_ids:
+        if (
+            protocol_sha256_override is not None
+            and set(self.case_group_bindings) != scheduled_case_ids
+        ):
             raise ValueError("dynamic case bindings must exactly cover the schedule")
         self.cases = _validate_cases(
             protocol,
@@ -1630,12 +1632,11 @@ def _validate_cases(
     *,
     expected_case_groups: Mapping[str, str] | None = None,
 ) -> dict[str, EvaluationCaseV3]:
-    expected_groups = (
+    expected_groups: dict[str, str] = (
         dict(expected_case_groups)
         if expected_case_groups is not None
         else {
-            item.case_id: item.work_group_id
-            for item in protocol.experiment.pilot_cases
+            item.case_id: item.work_group_id for item in protocol.experiment.pilot_cases
         }
     )
     required_ids = {turn.identity.case_id for turn in schedule}
@@ -1666,12 +1667,11 @@ def _validate_schedule_against_protocol(
     if not schedule:
         raise ValueError("evaluation schedule cannot be empty")
     variant_ids = {variant.variant_id for variant in protocol.variants}
-    case_groups = (
+    case_groups: dict[str, str] = (
         dict(expected_case_groups)
         if expected_case_groups is not None
         else {
-            case.case_id: case.work_group_id
-            for case in protocol.experiment.pilot_cases
+            case.case_id: case.work_group_id for case in protocol.experiment.pilot_cases
         }
     )
     expected_warmup_case_id = warmup_case_id or protocol.experiment.warmup_case_id

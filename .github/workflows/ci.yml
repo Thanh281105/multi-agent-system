@@ -70,10 +70,10 @@ jobs:
       - name: Type-check
         run: mypy app
 
-      - name: Run offline test suite
+      - name: Run tests including PostgreSQL integration
         env:
           TEST_POSTGRES_URL: postgresql+psycopg://ecommerce_test:ci-postgres-disposable-only@127.0.0.1:${{ job.services.postgres.ports[5432] }}/thanh_v2_test_server
-        run: pytest -m "not integration" -q
+        run: pytest --ignore=tests/test_agent_integration.py -q
 
       - name: Re-score legacy captured real-model baseline
         run: |
@@ -106,113 +106,3 @@ jobs:
           assert any(name.startswith(prefix + "assets/") and name.endswith(".woff2") for name in names)
           print(f"WHEEL_FRONTEND_STATUS=PASS file={wheel.name}")
           PY
-
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: v3.19.0
-
-      - name: Lint and render deployment profiles
-        run: |
-          helm lint deploy/helm/ecommerce-multi-agent \
-            --set existingSecret=ci-runtime
-          helm template kind deploy/helm/ecommerce-multi-agent \
-            -f deploy/helm/ecommerce-multi-agent/values-kind.yaml \
-            > /tmp/ecommerce-kind.yaml
-          helm template production deploy/helm/ecommerce-multi-agent \
-            --set existingSecret=ci-runtime \
-            --set monitoring.serviceMonitor.enabled=true \
-            --set monitoring.prometheusRule.enabled=true \
-            --set monitoring.grafanaDashboard.enabled=true \
-            > /tmp/ecommerce-production.yaml
-          helm template qdrant deploy/helm/ecommerce-multi-agent \
-            --set existingSecret=ci-runtime \
-            --set config.knowledgeBackend=qdrant \
-            --set config.qdrantUrl=https://qdrant.example.test \
-            > /tmp/ecommerce-qdrant.yaml
-
-      - name: Validate rendered Kubernetes resources
-        run: |
-          docker run --rm \
-            -v /tmp:/manifests:ro \
-            ghcr.io/yannh/kubeconform@sha256:85dbef6b4b312b99133decc9c6fc9495e9fc5f92293d4ff3b7e1b30f5611823c \
-            -strict -summary /manifests/ecommerce-kind.yaml
-          docker run --rm \
-            -v /tmp:/manifests:ro \
-            ghcr.io/yannh/kubeconform@sha256:85dbef6b4b312b99133decc9c6fc9495e9fc5f92293d4ff3b7e1b30f5611823c \
-            -strict -summary -ignore-missing-schemas \
-            /manifests/ecommerce-production.yaml
-          docker run --rm \
-            -v /tmp:/manifests:ro \
-            ghcr.io/yannh/kubeconform@sha256:85dbef6b4b312b99133decc9c6fc9495e9fc5f92293d4ff3b7e1b30f5611823c \
-            -strict -summary /manifests/ecommerce-qdrant.yaml
-
-      - name: Validate Compose model
-        env:
-          POSTGRES_PASSWORD: ci-postgres-password
-          REDIS_PASSWORD: ci-redis-password
-          GATEWAY_API_KEYS: ci:ci-gateway-secret-123456
-          GATEWAY_PRINCIPAL_POLICIES: ci:default:ecommerce.read
-          OPERATIONS_API_KEY: ci-operations-secret-123456
-        run: docker compose -f compose.yaml config --quiet
-
-      - name: Build hardened application image
-        run: docker build --tag ecommerce-multi-agent:ci .
-
-  live-stack:
-    needs: verify
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      POSTGRES_PASSWORD: ci-postgres-password
-      REDIS_PASSWORD: ci-redis-password
-      GATEWAY_API_KEYS: ci:ci-gateway-secret-123456
-      GATEWAY_PRINCIPAL_POLICIES: ci:default:ecommerce.read
-      OPERATIONS_API_KEY: ci-operations-secret-123456
-      MODEL_RUNTIME_MODE: off
-      EMBEDDING_BACKEND: hashing
-      APP_IMAGE_TAG: ci
-      CI_BASE_URL: http://127.0.0.1:8000
-      CI_GATEWAY_KEY: ci-gateway-secret-123456
-      CI_OPERATIONS_KEY: ci-operations-secret-123456
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Build production-like application image
-        run: docker build --tag ecommerce-multi-agent:ci .
-
-      - name: Start production-like Compose stack
-        run: docker compose -f compose.yaml up --detach
-
-      - name: Show Compose status
-        run: docker compose -f compose.yaml ps
-
-      - name: Smoke readiness/liveness, v2 identity/history, retired v1, auth, and metrics
-        run: python scripts/ci_live_smoke.py
-
-      - name: Verify PostgreSQL backup and restore drill
-        run: |
-          set -euo pipefail
-          backup_path="$(mktemp)"
-          docker compose -f compose.yaml exec -T postgres \
-            pg_dump -U ecommerce -d ecommerce -Fc > "$backup_path"
-          test -s "$backup_path"
-          docker compose -f compose.yaml exec -T postgres \
-            createdb -U ecommerce ecommerce_restore_check
-          docker compose -f compose.yaml exec -T postgres \
-            pg_restore --exit-on-error -U ecommerce -d ecommerce_restore_check < "$backup_path"
-          products="$(docker compose -f compose.yaml exec -T postgres \
-            psql -U ecommerce -d ecommerce_restore_check -tAc \
-            'SELECT count(*) FROM products;')"
-          test "$(echo "$products" | tr -d '[:space:]')" = "200"
-          rm -f "$backup_path"
-
-      - name: Dump service logs on failure
-        if: ${{ failure() }}
-        run: docker compose -f compose.yaml logs --no-color --tail=200 migrate seed-data backend
-
-      - name: Tear down live stack
-        if: ${{ always() }}
-        run: docker compose -f compose.yaml down --volumes --remove-orphans

@@ -22,6 +22,7 @@ from app.models.budget import (
 )
 from app.shared.budget import (
     GENERATION_INPUT_TOKEN_LIMIT,
+    JUDGE_GENERATION_INPUT_TOKEN_LIMIT,
     BudgetAttemptLimitError,
     BudgetConcurrencyError,
     BudgetConflictError,
@@ -143,7 +144,7 @@ def test_default_output_and_judge_input_quote_limits_remain_bounded() -> None:
         manifest.quote(
             model="gpt-5.4-mini",
             operation="generation",
-            input_token_bound=GENERATION_INPUT_TOKEN_LIMIT + 1,
+            input_token_bound=JUDGE_GENERATION_INPUT_TOKEN_LIMIT + 1,
             output_token_bound=3_600,
             purpose="judge",
         )

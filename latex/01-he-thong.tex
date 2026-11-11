@@ -1,0 +1,60 @@
+\section{Bài toán đặt ra}
+
+Khi chọn mua sách, người đọc thường phải tổng hợp nhiều thông tin cùng lúc: sách có phù hợp nhu cầu không, tác giả là ai, giá bao nhiêu, người mua trước nhận xét thế nào và có điểm nào cần lưu ý. Các thông tin này thường nằm ở những nơi khác nhau. Trang giới thiệu sản phẩm cung cấp thông số sách, đánh giá người mua phản ánh trải nghiệm, còn nguồn thư mục hoặc nhà xuất bản giúp đối chiếu thông tin về tác phẩm.
+
+Một câu hỏi đơn giản như ``Cuốn sách này giá bao nhiêu?'' chủ yếu cần tra cứu. Nhưng yêu cầu ``Tìm sách phù hợp ngân sách, so sánh nhận xét của người mua và giải thích vì sao nên chọn'' đòi hỏi nhiều bước hơn. Hệ thống phải tìm đúng sách, đọc đúng đánh giá của cuốn đó, cân nhắc các điều kiện và đưa ra kết luận có căn cứ. Nếu ghép nhầm đánh giá giữa hai cuốn sách hoặc tự bổ sung thông tin chưa có nguồn, câu trả lời có thể trôi chảy nhưng vẫn sai.
+
+Đề tài xây dựng một trợ lý tư vấn sách tiếng Việt theo hướng chia công việc cho nhiều tác tử chuyên trách. Trong báo cáo này, \textbf{tác tử} được hiểu là một thành phần đảm nhiệm một nhóm nhiệm vụ nhất định, chẳng hạn tìm thông tin sách hoặc phân tích đánh giá. Các tác tử được điều phối để cùng giải quyết yêu cầu; không nên hiểu rằng mỗi tác tử là một trí tuệ tự chủ hoàn toàn độc lập.
+
+Vấn đề nghiên cứu không chỉ là làm cho trợ lý trả lời được. Cần làm rõ câu trả lời dựa vào đâu, các phần việc được phối hợp thế nào và việc dùng nhiều tác tử có đem lại lợi ích đủ lớn so với cách dùng một tác tử hay không.
+
+\section{Mục tiêu và phạm vi}
+
+\subsection{Mục tiêu của hệ thống}
+Hệ thống hướng tới bốn mục tiêu chính:
+\begin{enumerate}
+\item \textbf{Hỗ trợ tìm và so sánh sách bằng tiếng Việt.} Người dùng có thể nêu nhu cầu, ngân sách hoặc những thông tin muốn đối chiếu bằng cách hỏi tự nhiên.
+\item \textbf{Kết hợp nhiều góc nhìn.} Thông tin sách, đánh giá người mua và nguồn kiến thức được xem xét theo từng nhiệm vụ rồi tổng hợp thành câu trả lời.
+\item \textbf{Giữ câu trả lời có căn cứ.} Thông tin được trình bày phải gắn với dữ liệu đã có; thiếu căn cứ thì cần nói rõ hoặc hỏi lại.
+\item \textbf{Đánh giá lợi ích và chi phí của nhiều tác tử.} So sánh mức đáp ứng câu hỏi, thời gian trả lời và lượng tài nguyên sử dụng với cách dùng một tác tử.
+\end{enumerate}
+
+\subsection{Phạm vi sử dụng dữ liệu}
+Hệ thống dùng dữ liệu sách và đánh giá người mua được thu thập trước đó, cùng một tập nguồn kiến thức được chọn lọc. Đây là \textbf{dữ liệu lịch sử}, không phải thông tin được cập nhật trực tiếp từ sàn thương mại điện tử. Vì vậy, giá trong câu trả lời phải được hiểu là giá ghi nhận trong dữ liệu, không mặc nhiên là giá đang bán ở thời điểm người dùng hỏi. \src{1}\src{2}
+
+Hệ thống cũng không xác nhận được tình trạng tồn kho thực tế, doanh số hiện tại hoặc đánh giá nào là giả. Những nhận xét như ``có phàn nàn về đóng gói'' chỉ phản ánh nội dung các đánh giá đã được lấy mẫu. Chúng không đủ để kết luận toàn bộ người mua có cùng trải nghiệm.
+
+Phần mở rộng của hệ thống có mô phỏng thao tác dành cho người mua và người bán, như chuẩn bị giỏ hàng hoặc đề xuất thay đổi thông tin bán hàng. Các thao tác này diễn ra trong môi trường thử nghiệm, không phải giao dịch thật. Trọng tâm báo cáo là cách tư vấn, phối hợp tác tử và kết quả thực nghiệm.
+
+\section{Mô hình hoạt động của hệ thống}
+
+\subsection{Ý tưởng chia công việc cho các tác tử}
+Thay vì giao mọi việc cho một thành phần xử lý chung, hệ thống phân chia yêu cầu thành những phần có trách nhiệm rõ ràng. Một bộ phận điều phối nhận câu hỏi, xác định cần những thông tin nào và chuyển từng phần việc cho nhóm chuyên trách. Kết quả được kiểm tra trước khi ghép thành câu trả lời cuối. \src{1}
+
+Ví dụ, với câu hỏi ``Nên chọn cuốn A hay cuốn B nếu tôi quan tâm đến nội dung và chất lượng đóng gói?'', việc so sánh thông số sách khác với việc đọc đánh giá đóng gói. Tách hai phần giúp hệ thống biết mỗi kết luận đến từ nguồn nào, đồng thời giảm nguy cơ lấy ý kiến về cuốn A để nhận xét cuốn B.
+
+\begin{table}[htbp]\small
+\caption{Các nhóm nhiệm vụ trong hệ thống.}
+\begin{tabularx}{\linewidth}{P{33mm}YY}\toprule
+Nhóm nhiệm vụ & Trách nhiệm & Ví dụ thông tin cung cấp\\\midrule
+Thông tin sách & Tìm, lọc và so sánh các cuốn sách & Tên sách, tác giả, giá trong dữ liệu, số trang, điểm đánh giá\\
+Đánh giá người mua & Tổng hợp ý kiến từ những đánh giá được lưu & Nội dung được khen, trải nghiệm đọc, nhận xét giao hàng\\
+Phàn nàn và độ tin cậy & Nhận diện vấn đề và đặc điểm văn bản đánh giá & Đóng gói móp, sách hư hỏng, nội dung đánh giá quá ít thông tin\\
+Tổng quan danh mục & Tổng hợp số liệu trong tập dữ liệu & So sánh theo tác giả, nhóm sách hoặc khoảng giá\\
+Kiến thức về tác phẩm & Đối chiếu với nguồn kiến thức được chọn lọc & Tác giả gốc, tên tác phẩm gốc, thông tin được nguồn xác nhận\\\bottomrule
+\end{tabularx}
+\end{table}
+
+Nhóm phàn nàn và độ tin cậy chỉ cung cấp \textbf{dấu hiệu tham khảo}. Một nhận xét ngắn chưa chắc là nhận xét không đáng tin, và việc phát hiện từ ngữ tiêu cực không đồng nghĩa đã phát hiện gian lận. Hệ thống phải giữ rõ giới hạn này khi diễn giải kết quả.
+
+\subsection{Vai trò của bộ phận điều phối}
+Bộ phận điều phối trả lời ba câu hỏi: người dùng cần biết gì, cần giao việc cho nhóm nào và các kết quả đã đủ để trả lời chưa. Không phải câu hỏi nào cũng cần kích hoạt mọi tác tử. Câu hỏi chỉ về giá có thể chỉ cần thông tin sách; câu hỏi về so sánh và trải nghiệm người mua mới cần thêm các góc nhìn khác.
+
+Nếu chưa xác định được cuốn sách hoặc câu hỏi có điều kiện mâu thuẫn, hệ thống cần làm rõ trước. Chẳng hạn, yêu cầu ``giá trên 300.000 đồng nhưng dưới 200.000 đồng'' không nên được xử lý bằng cách tự bỏ một trong hai điều kiện. Việc hỏi lại đúng lúc là một phần của chất lượng tư vấn.
+
+\fig{tong-quan}{Mô hình xử lý ở mức chức năng: hiểu yêu cầu, phối hợp chuyên gia, lấy bằng chứng rồi kiểm tra câu trả lời.}{fig:overview}
+
+\subsection{Vai trò của bước tổng hợp}
+Kết quả của từng nhóm chuyên trách chỉ là thông tin từng phần. Bước tổng hợp cần biến chúng thành một câu trả lời thống nhất, giải thích được vì sao một cuốn sách phù hợp hơn, đồng thời giữ lại những hạn chế của dữ liệu.
+
+Ví dụ, sách A có điểm đánh giá cao nhưng trong mẫu có phàn nàn về đóng gói. Kết luận phù hợp không phải ``sách A chắc chắn không tốt'', mà là ``sách A đáp ứng điều kiện đã nêu; tuy nhiên một số đánh giá trong dữ liệu phản ánh vấn đề đóng gói''. Cách diễn đạt này giúp người đọc hiểu cả điểm mạnh lẫn mức chắc chắn của nhận định.

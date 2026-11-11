@@ -154,12 +154,16 @@ class _NeverHandler:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("claimant_finishes_before_attachment", [False, True])
 async def test_same_client_retry_attaches_without_duplicate_usage(
     postgres_store: _Store,
+    monkeypatch: pytest.MonkeyPatch,
+    claimant_finishes_before_attachment: bool,
 ) -> None:
     store = postgres_store
-    context = _context("retry")
-    request = _chat("retry")
+    suffix = f"retry_{int(claimant_finishes_before_attachment)}"
+    context = _context(suffix)
+    request = _chat(suffix)
     _conversation(store.sessions, context, request.conversation_id)
     turn_id = canonical_turn_id(request.conversation_id, request.client_turn_id)
     budget = _budget(store, turn_id)
@@ -172,6 +176,18 @@ async def test_same_client_retry_attaches_without_duplicate_usage(
         ),
         worker_id="worker_turn_service_retry",
     )
+    retry_admitted = asyncio.Event()
+    release_admission = asyncio.Event()
+    admit = service.executor.admit
+
+    async def delayed_admit(*args: Any, **kwargs: Any) -> Any:
+        admission = await admit(*args, **kwargs)
+        if claimant_finishes_before_attachment and not admission.claimed:
+            retry_admitted.set()
+            await release_admission.wait()
+        return admission
+
+    monkeypatch.setattr(service.executor, "admit", delayed_admit)
     progress: list[TurnProgress] = []
 
     async def capture(event: TurnProgress) -> None:
@@ -184,8 +200,14 @@ async def test_same_client_retry_attaches_without_duplicate_usage(
     retry_task = asyncio.create_task(
         service.execute(request, context, provider_budget=budget, progress=capture)
     )
-    await asyncio.sleep(0)
+    if claimant_finishes_before_attachment:
+        await asyncio.wait_for(retry_admitted.wait(), timeout=5)
+    else:
+        await asyncio.sleep(0)
     handler.release.set()
+    if claimant_finishes_before_attachment:
+        await asyncio.wait_for(asyncio.shield(first_task), timeout=5)
+        release_admission.set()
     first, retry = await asyncio.gather(first_task, retry_task)
 
     usage = store.ledger.scope_usage_summary(turn_id)
@@ -199,6 +221,12 @@ async def test_same_client_retry_attaches_without_duplicate_usage(
     assert usage.output_tokens == 3
     assert [event.phase for event in progress].count(TurnProgressPhase.CLAIMED) == 1
     assert [event.phase for event in progress].count(TurnProgressPhase.TERMINAL) == 2
+    replay = await service.execute(
+        request, context, provider_budget=budget, progress=capture
+    )
+    assert replay.status == first.status and replay.result == first.result
+    assert handler.calls == 1
+    assert [event.phase for event in progress].count(TurnProgressPhase.TERMINAL) == 3
     with store.sessions() as session:
         rows = tuple(
             session.scalars(

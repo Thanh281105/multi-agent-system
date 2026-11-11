@@ -6,3 +6,7 @@ data/snapshots/**/*.jsonl text eol=lf
 # These two frozen bindings were authored with CRLF; preserve their exact hashes.
 data/knowledge/books-v1/sources.json text eol=crlf
 data/knowledge/books-v1/mappings.json text eol=crlf
+
+# Audit archives and recovered evidence are bound by their original byte hashes.
+docs/legacy-scripts/*.py.txt -text
+output/evidence-recovery/** -text

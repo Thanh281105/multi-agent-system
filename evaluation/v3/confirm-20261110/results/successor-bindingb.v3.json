@@ -1,0 +1,15 @@
+{
+  "binding_id": "confirm_p8_successor_20261110b",
+  "binding_sha256": "93cf65f44bb6aff14627ac0a79e388373f6275656cb4b6728764fd30d19fbcbc",
+  "evaluator_contract": "evidence_semantics_v2",
+  "experiment_path": "evaluation/v3/mini-generation-luna-judge-v1/experiment.v3.json",
+  "gold_path": "evaluation/v3/confirm-20261110/gold.v3.json",
+  "gold_sha256": "e17e357edba6996f934fe55f686ec34233e49753d2eb91c01046a96d8d8f86b3",
+  "protocol_sha256": "67acef67eee25125b4a9555d2e9590a2f92b6be30bf0c2f4d9773e13f9dcd7df",
+  "repeat_decision_sha256": "16bdf7cb2760a2a3c8d4be36ef045e790ebdaa71af7f46a48ddbcf844c3d139a",
+  "runtime_manifest_path": "output/evaluation-v3/confirm-20261110/runtime-manifest.json",
+  "runtime_manifest_sha256": "49df1548aef4071e4291b3ad5d5d081dc1e6acb49c5f638cd55b351bb350d88d",
+  "schema_version": "3.1",
+  "split_path": "evaluation/v3/confirm-20261110/split.v3.json",
+  "split_sha256": "ec54d3b73670b8e3dd2fbbe89420b777201b3216e3f9b03baf6a1a45cbbea585"
+}

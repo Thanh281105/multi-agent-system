@@ -238,9 +238,7 @@ class ImmutableCatalogReviewSourceV3:
             EvidenceKind.TRUST: "trust_sample",
         }.get(reference.kind)
         rank_match = (
-            re.fullmatch(
-                r"rank_([1-9][0-9]*)_([0-9a-f]{24})", reference.source_id
-            )
+            re.fullmatch(r"rank_([1-9][0-9]*)_([0-9a-f]{24})", reference.source_id)
             if reference.kind is EvidenceKind.CATALOG
             else None
         )
@@ -268,7 +266,10 @@ class ImmutableCatalogReviewSourceV3:
             candidate_scope = _sandbox_tool_id("rnk", [line])[-24:]
             if rank_match.group(2) != candidate_scope:
                 raise CatalogReviewAuthorityUnavailableErrorV3(
-                    "rank source does not bind a reconstructible singleton candidate set"
+                    (
+                        "rank source does not bind a reconstructible singleton "
+                        "candidate set"
+                    )
                 )
             ranking = rank_products(
                 [

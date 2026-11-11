@@ -1,6 +1,7 @@
 """Natural request regressions using the unchanged imported public catalog."""
 
 from collections.abc import Iterator
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -14,15 +15,69 @@ from app.db.migrate import upgrade_database
 from app.db.public_import import import_public_snapshot
 from app.models.product import Product
 from app.repositories.book_domain import is_book_product
+from app.v2.answers import GroundedAnswerProducer
+from app.v2.contracts import DialogueOutcome
 from app.v2.history import ModelContext
 from app.v2.planning import BoundedV2Planner, PlanningContext, RuntimeDataVersions
 from app.v2.registry import CatalogSearchInput, ProductResult, ReviewResult
 from app.v2.sandbox_seed import seed_demo_offers
+from app.v2.supervisor import (
+    _BudgetRemaining,
+    _grounding_requirements,
+    assess_evidence,
+    merge_tool_evidence,
+)
 from app.v2.tools import V2ReadTools
 from tests.test_v2_tools import operation_for, read_tools, tool_access
 from tests.v2_postgres_support import disposable_postgres_database
 
 SNAPSHOT = Path(__file__).resolve().parents[1] / "data/snapshots/tiki-books-v4-eval"
+
+
+@pytest.mark.asyncio
+async def test_constrained_catalog_answer_preserves_all_numeric_fields(
+    actual_catalog_sessions: sessionmaker[Session],
+) -> None:
+    """Real imported data + planner + tools + verifier; no LLM or gold context."""
+    tools = read_tools(actual_catalog_sessions)
+    context = planning_context(tools)
+    planner = BoundedV2Planner()
+    question = "Tìm 2 sách dưới 300k, rating ít nhất 4.5, số trang tối thiểu 300"
+    planned = await planner.plan(question, context)
+    first = await tools.execute(planned.initial_operations[0], tool_access())
+    candidates = ProductResult.model_validate(first.output).products
+    assert len(candidates) == 2
+    operations = planner.bind_initial_candidates(
+        planned,
+        tuple(c.product_id for c in candidates),
+        context,
+        planned.initial_operations,
+    )
+    results = [first]
+    for operation in operations:
+        if operation.operation_key != first.operation.operation_key:
+            results.append(await tools.execute(operation, tool_access()))
+    assessment = assess_evidence(
+        planned.obligations,
+        tuple(results),
+        remaining=_BudgetRemaining(60, 10, 16, Decimal("0.25")),
+        plan_revisions_used=0,
+        added_reads_used=0,
+        draft_repairs_used=0,
+    )
+    assert not assessment.missing_obligation_ids
+    answer = await GroundedAnswerProducer(None, runtime_mode="off", model=None).produce(
+        user_request=question,
+        evidence=merge_tool_evidence(tuple(results)),
+        allowed_subject_ids=frozenset(f"product_{c.product_id}" for c in candidates),
+        requirements=_grounding_requirements(planned, assessment),
+    )
+    assert answer.outcome == DialogueOutcome.ANSWERED
+    for candidate in candidates:
+        assert candidate.title in answer.answer
+        assert str(candidate.price_vnd) in answer.answer
+    assert answer.answer.count("Điểm đánh giá trong snapshot") >= 2
+    assert answer.answer.count("Số trang") >= 2
 
 
 @pytest.fixture(

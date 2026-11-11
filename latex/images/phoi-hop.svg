@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="phoi-hop-title phoi-hop-desc" id="phoi-hop-root"><title id="phoi-hop-title">Phối hợp khi tư vấn lựa chọn sách</title><desc id="phoi-hop-desc">Sau khi chọn được sách phù hợp, hệ thống xem đánh giá và phàn nàn của đúng cuốn đó để bổ sung căn cứ tư vấn.</desc><defs>
+      <style>#phoi-hop-root { font-family: Arial,sans-serif; color: #111; }
+      #phoi-hop-root .diagram-container { width:100%;overflow-x:auto }
+      @media print {
+#phoi-hop-root .diagram-container { overflow-x:visible }
+}</style><marker id="phoi-hop-arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><path d="M0,0 L9,3.5 L0,7 Z" fill="#404040"/></marker></defs><rect width="1280" height="720" fill="white"/><text x="40" y="664" font-family="Arial,sans-serif" font-size="24" font-weight="400" fill="#111111">Đánh giá của cuốn A không được dùng để kết luận về cuốn B.</text><path d="M200,168 V312" fill="none" stroke="#404040" stroke-width="2" marker-end="url(#phoi-hop-arrow)"/><path d="M360,344 H416 Q424,344 424,336 V288 Q424,280 432,280 H480" fill="none" stroke="#404040" stroke-width="2" marker-end="url(#phoi-hop-arrow)"/><path d="M360,400 H392 Q400,400 400,408 V480 Q400,488 408,488 H480" fill="none" stroke="#404040" stroke-width="2" marker-end="url(#phoi-hop-arrow)"/><path d="M800,280 H848 Q856,280 856,288 V352 Q856,360 864,360 H920" fill="none" stroke="#404040" stroke-width="2" marker-end="url(#phoi-hop-arrow)"/><path d="M800,488 H880 Q888,488 888,480 V416 Q888,408 896,408 H920" fill="none" stroke="#404040" stroke-width="2" marker-end="url(#phoi-hop-arrow)"/><g data-node-id="Tìm sách phù hợp ngân sách và xem nhận xét về đóng gói"><rect x="40" y="48" width="1200" height="120" rx="6" fill="white" stroke="#111111" stroke-width="1.6"/>
+    <text x="60" y="76" font-family="Arial,sans-serif" font-size="17" fill="#4a4a4a">VÍ DỤ YÊU CẦU</text>
+    <text x="60" y="110" font-family="Arial,sans-serif" font-size="26" font-weight="600" fill="#111111">Tìm sách phù hợp ngân sách và xem nhận xét về đóng gói</text>
+    <text x="60" y="142" font-family="Arial,sans-serif" font-size="21" fill="#404040">Cần đáp ứng cả điều kiện chọn sách lẫn yêu cầu xem đánh giá</text></g><g data-node-id="Chọn sách"><rect x="40" y="312" width="320" height="120" rx="6" fill="white" stroke="#111111" stroke-width="1.6"/>
+    <text x="60" y="340" font-family="Arial,sans-serif" font-size="17" fill="#4a4a4a">TÌM ỨNG VIÊN</text>
+    <text x="60" y="374" font-family="Arial,sans-serif" font-size="26" font-weight="600" fill="#111111">Chọn sách</text>
+    <text x="60" y="406" font-family="Arial,sans-serif" font-size="21" fill="#404040">Đúng tên, đúng điều kiện</text></g><g data-node-id="Đọc đánh giá"><rect x="480" y="224" width="320" height="112" rx="6" fill="white" stroke="#111111" stroke-width="1.6"/>
+    <text x="500" y="252" font-family="Arial,sans-serif" font-size="17" fill="#4a4a4a">GÓC NHÌN NGƯỜI MUA</text>
+    <text x="500" y="286" font-family="Arial,sans-serif" font-size="26" font-weight="600" fill="#111111">Đọc đánh giá</text>
+    <text x="500" y="318" font-family="Arial,sans-serif" font-size="21" fill="#404040">Các ý kiến khen và chê</text></g><g data-node-id="Xem phàn nàn"><rect x="480" y="432" width="320" height="112" rx="6" fill="white" stroke="#111111" stroke-width="1.6"/>
+    <text x="500" y="460" font-family="Arial,sans-serif" font-size="17" fill="#4a4a4a">ĐIỂM CẦN LƯU Ý</text>
+    <text x="500" y="494" font-family="Arial,sans-serif" font-size="26" font-weight="600" fill="#111111">Xem phàn nàn</text>
+    <text x="500" y="526" font-family="Arial,sans-serif" font-size="21" fill="#404040">Vấn đề được phản ánh</text></g><g data-node-id="Đưa ra tư vấn"><rect x="920" y="328" width="320" height="120" rx="6" fill="white" stroke="#111111" stroke-width="3"/>
+    <text x="940" y="356" font-family="Arial,sans-serif" font-size="17" fill="#4a4a4a">TỔNG HỢP</text>
+    <text x="940" y="390" font-family="Arial,sans-serif" font-size="26" font-weight="600" fill="#111111">Đưa ra tư vấn</text>
+    <text x="940" y="422" font-family="Arial,sans-serif" font-size="21" fill="#404040">Ưu điểm, lưu ý và căn cứ</text></g></svg>

@@ -56,7 +56,11 @@ def test_protocol_binds_every_drift_sensitive_hash() -> None:
         changed = EvaluationAssetBindingsV3.model_validate(
             {
                 **assets.model_dump(),
-                field_name: f"{index + 20:064x}",
+                field_name: (
+                    f"{index + 20:040x}"
+                    if field_name == "sut_git_revision"
+                    else f"{index + 20:064x}"
+                ),
             }
         )
         changed_protocol = build_evaluation_protocol_v3(loaded, assets=changed)
@@ -246,6 +250,7 @@ def _assets() -> EvaluationAssetBindingsV3:
     values = {
         field_name: f"{index + 1:064x}"
         for index, field_name in enumerate(EvaluationAssetBindingsV3.model_fields)
+        if field_name != "sut_git_revision"
     }
     return EvaluationAssetBindingsV3.model_validate(values)
 

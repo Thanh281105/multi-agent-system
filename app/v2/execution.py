@@ -18,7 +18,6 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.contracts import AuthorizationContext, TaskStatus
-from app.knowledge.grounding import GroundingError
 from app.db.v2_repository import (
     StepResultConflictError,
     TurnLeaseConflictError,
@@ -27,6 +26,7 @@ from app.db.v2_repository import (
     TurnStateConflictError,
     V2Repository,
 )
+from app.knowledge.grounding import GroundingError
 from app.models.budget import ProviderBudgetScope
 from app.models.v2 import V2Turn
 from app.shared import (
@@ -101,7 +101,8 @@ _EXPERT_MODEL_INPUT_BOUND = 12_000
 _EXPERT_MODEL_OUTPUT_BOUND = GENERATION_OUTPUT_TOKEN_LIMIT
 _EXPERT_MODEL_INSTRUCTIONS = (
     "Act as the named domain specialist for this deterministic read result. "
-    "Use the capability and operation parameters to identify requested entities, fields, "
+    "Use the capability and operation parameters to identify requested "
+    "entities, fields, "
     "filters, and query terms; use them only to select relevant checked evidence. "
     "Select at most eight supplied fact IDs and eight supplied evidence IDs that "
     "are most useful for the operation. Each supplied fact ID represents all "

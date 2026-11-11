@@ -1,0 +1,9 @@
+{
+  "status": "automated_rules_not_human_review",
+  "input_sha256": "49cf503ad8bf79a272ca698d021f55865d40eb4b5efe55e36a1f3d4de37e37ad",
+  "bundle_sha256": "14db2a2d9cc82cd3e27e8a2dd9c3b887ed2c0c562d7580e2e02c455914fc0742",
+  "rules": "claim supported iff it has its own citations and every required fact it states (exact modes: value in claim text; fact_semantics: any own citation supports the fact) is source-matched; semantic facts are not judged",
+  "script_sha256": "6b03c808d142626774f0b8af6207328bfba236a645b72f566ed9796f2c2256db",
+  "positive_claim_support": 22,
+  "n": 32
+}

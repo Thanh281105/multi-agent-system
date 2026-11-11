@@ -15,6 +15,7 @@ from sqlalchemy import delete, select
 
 from app.db.v2_repository import canonical_turn_id
 from app.evaluation.protocol import canonical_sha256
+from app.evaluation.source_identity import SourceIdentity
 from app.evaluation.v3_gold import (
     LoadedEvaluationGoldV3,
     SandboxFixtureV3,
@@ -157,6 +158,7 @@ class EvaluationV3ObservationExecutorFactory:
         model_runtime: ModelRuntime,
     ) -> None:
         self.shared_services = shared_services
+        self.source_identity: SourceIdentity | None = None
         self.composer = EvaluationV3VariantComposer(
             shared_services,
             model_runtime=model_runtime,
@@ -274,6 +276,7 @@ class EvaluationV3ObservationExecutor:
             purpose=purpose,
             max_retries=DEFAULT_MAX_RETRIES,
             attempt_timeout_seconds=DEFAULT_ATTEMPT_TIMEOUT_SECONDS,
+            max_input_tokens_per_generation=limits.max_input_tokens_per_generation,
         )
         if (
             limits.per_turn_limit_usd != Decimal("0.25")

@@ -107,8 +107,10 @@ def test_budget_is_frozen_and_finite() -> None:
     assert budget.max_provider_attempts_per_turn == 16
     assert budget.provider_concurrency == 2
     assert budget.max_retries == 1
-    assert budget.attempt_timeout_seconds == 18
-    assert budget.turn_deadline_seconds == 60
+    # Match the supplied frozen experiment, rather than an older 18/60 policy.
+    config = load_evaluation_experiment_v3(EXPERIMENT_PATH).config
+    assert budget.attempt_timeout_seconds == config.budget.attempt_timeout_seconds == 30
+    assert budget.turn_deadline_seconds == config.budget.turn_deadline_seconds == 90
     assert budget.max_input_tokens_per_generation == 12_000
     assert budget.max_output_tokens_per_generation == 1_200
 

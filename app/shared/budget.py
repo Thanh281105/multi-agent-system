@@ -272,8 +272,7 @@ class PricingManifest:
             else GENERATION_INPUT_TOKEN_LIMIT
         )
         if operation == "generation" and (
-            input_token_bound > input_limit
-            or output_token_bound > output_limit
+            input_token_bound > input_limit or output_token_bound > output_limit
         ):
             raise BudgetLimitExceededError("generation_payload_limit_exceeded")
         if operation == "embedding":
@@ -563,6 +562,7 @@ class ProviderBudgetContext:
     call_id_factory: Callable[[ProviderOperation], str] | None = None
     max_retries: int = DEFAULT_MAX_RETRIES
     attempt_timeout_seconds: float = DEFAULT_ATTEMPT_TIMEOUT_SECONDS
+    max_input_tokens_per_generation: int | None = None
 
     def __post_init__(self) -> None:
         _validate_identifier(self.scope_id, "scope_id")
@@ -572,6 +572,17 @@ class ProviderBudgetContext:
             raise ValueError("budgeted retries must be between 0 and 1")
         if not 0 < self.attempt_timeout_seconds <= DEFAULT_ATTEMPT_TIMEOUT_SECONDS:
             raise ValueError("budgeted attempt timeout must be at most 30 seconds")
+        if self.max_input_tokens_per_generation is not None:
+            maximum = (
+                JUDGE_GENERATION_INPUT_TOKEN_LIMIT
+                if self.purpose == "judge"
+                else GENERATION_INPUT_TOKEN_LIMIT
+            )
+            if (
+                type(self.max_input_tokens_per_generation) is not int
+                or not 0 < self.max_input_tokens_per_generation <= maximum
+            ):
+                raise ValueError("generation input bound must fit its budget profile")
 
     def cancelled(self) -> bool:
         return bool(
@@ -591,6 +602,18 @@ class ProviderBudgetContext:
 _current_budget_context: ContextVar[ProviderBudgetContext | None] = ContextVar(
     "provider_budget_context", default=None
 )
+
+
+def generation_input_token_limit(budget: ProviderBudgetContext | None = None) -> int:
+    """Conservative input bound, narrowed by the active execution profile."""
+    active = budget if budget is not None else _current_budget_context.get()
+    default = (
+        JUDGE_GENERATION_INPUT_TOKEN_LIMIT
+        if active is not None and active.purpose == "judge"
+        else GENERATION_INPUT_TOKEN_LIMIT
+    )
+    override = getattr(active, "max_input_tokens_per_generation", None)
+    return min(default, override) if override is not None else default
 
 
 @contextmanager

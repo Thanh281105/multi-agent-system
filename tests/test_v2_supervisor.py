@@ -466,7 +466,9 @@ async def test_hybrid_applies_an_authorized_alternate_capability_sequence() -> N
     )
     planner = BoundedV2Planner(model_runtime=runtime, runtime_mode="hybrid")  # type: ignore[arg-type]
     with provider_budget_scope(_budget_context()):
-        planned = await planner.plan("Tìm sách Sapiens", _context())
+        planned = await planner.plan(
+            "Tìm sách Sapiens, cho biết giá và chủ đề theo nguồn", _context()
+        )
     assert planned.template_id == "shopper_knowledge"
     assert planned.intent == "knowledge"
     assert planned.desired_capabilities == (
@@ -1810,7 +1812,7 @@ async def test_expert_reasoning_selects_only_existing_checked_ids(
             "Tìm sách Sapiens", _context(resolved_product_ids=(1,))
         )
     ).initial_operations[0]
-    deterministic = _product_result(operation, (1,))
+    deterministic = _product_result(operation, (1, 2))
     fact_id = deterministic.evidence.facts[0].fact_id
     evidence_id = deterministic.evidence.references[0].evidence_id
     runtime = _ChoiceRuntime(
@@ -1889,7 +1891,7 @@ async def test_required_expert_rejects_unknown_fact_instead_of_succeeding() -> N
             "Tìm sách Sapiens", _context(resolved_product_ids=(1,))
         )
     ).initial_operations[0]
-    deterministic = _product_result(operation, (1,))
+    deterministic = _product_result(operation, (1, 2))
     reasoner = ModelRuntimeExpertReasoner(
         _ChoiceRuntime(
             {

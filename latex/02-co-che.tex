@@ -1,0 +1,99 @@
+\section{Dữ liệu được sử dụng}
+
+\subsection{Thông tin sách và đánh giá người mua}
+Dữ liệu chính được lấy từ bộ dữ liệu Tiki Books đã công bố. Hệ thống sử dụng hai tập được chuẩn bị cho mục đích kiểm thử và đánh giá, thay vì lấy toàn bộ dữ liệu vào mọi lần chạy. \src{2}
+
+\begin{table}[htbp]\small
+\caption{Quy mô hai tập dữ liệu đã lưu trong dự án.}
+\begin{tabularx}{\linewidth}{YrrY}\toprule
+Tập dữ liệu & Bản ghi sản phẩm & Đánh giá & Mục đích\\\midrule
+Tập kiểm thử & 24 & 115 & Kiểm tra chức năng trên một tập nhỏ\\
+Tập đánh giá & 200 & 1.773 & Làm nền cho việc đánh giá hệ thống\\\bottomrule
+\end{tabularx}
+\end{table}
+
+Đánh giá được lấy mẫu theo từng sản phẩm, không phải toàn bộ ý kiến đã từng xuất hiện trên sàn. Một sản phẩm có thể có nhiều lượt đánh giá trong thông tin tổng quan, nhưng hệ thống chỉ đọc được những đánh giá thực sự có trong tập dữ liệu đã lưu. Hai con số này cần được phân biệt khi trả lời.
+
+Trước khi sử dụng, dữ liệu được làm sạch, loại trùng, chuẩn hóa và che những thông tin như số điện thoại, thư điện tử hoặc liên kết trong nội dung đánh giá. Khi kiểm đếm lại các tập đã lưu, số bản ghi khớp với mô tả, các mã sản phẩm và đánh giá không trùng nhau, mọi đánh giá đều gắn với một sản phẩm có trong tập tương ứng. Điều đó hỗ trợ độ nhất quán của dữ liệu, nhưng chưa chứng minh mọi nội dung đều chính xác về mặt thực tế.
+
+\subsection{Nguồn kiến thức về tác phẩm}
+Bên cạnh thông tin bán hàng, hệ thống có một tập nguồn được chọn lọc để đối chiếu kiến thức về tác phẩm. Nguồn có thể đến từ tác giả, nhà xuất bản hoặc thư viện. Tập hiện có 20 nguồn, hỗ trợ đối chiếu ở cấp tác phẩm cho 20 trong 200 bản ghi của danh mục. \src{3}
+
+Cần phân biệt \textbf{tác phẩm} và \textbf{ấn bản}. Một nguồn có thể xác nhận ai viết tác phẩm, nhưng chưa đủ xác nhận cuốn đang bán thuộc lần tái bản nào, có bao nhiêu trang hoặc do ai dịch. Nếu gộp các thông tin này, hệ thống dễ tạo ra một câu trả lời có vẻ đầy đủ nhưng sai đối tượng.
+
+Ví dụ, tài liệu đối chiếu của dự án ghi nhận một nguồn thư mục về sách Morisaki có số trang khác với dữ liệu bán hàng. Cách xử lý đúng là nhận biết hai nguồn chưa xác nhận cùng một ấn bản, không tự chọn một con số rồi coi đó là sự thật chắc chắn. \src{3}
+
+\begin{table}[htbp]\small
+\caption{Mức độ đối chiếu của nguồn kiến thức với danh mục.}
+\begin{tabularx}{\linewidth}{YrY}\toprule
+Tình trạng & Số bản ghi & Cách hiểu\\\midrule
+Đối chiếu được ở cấp tác phẩm & 20 & Có nguồn hỗ trợ nhận diện tác phẩm; chưa xác nhận đầy đủ ấn bản\\
+Còn mơ hồ & 17 & Có thể là bộ sách hoặc nhiều tác phẩm ghép trong một sản phẩm\\
+Chưa có đối chiếu trong tập nguồn & 163 & Chưa được bổ sung nguồn phù hợp trong phạm vi tuyển chọn hiện tại\\\bottomrule
+\end{tabularx}
+\end{table}
+
+Như vậy, phạm vi kiến thức đối chiếu được còn hẹp. ``Chưa có nguồn trong hệ thống'' không có nghĩa ngoài thực tế không có nguồn, mà chỉ có nghĩa hệ thống chưa đủ dữ liệu để trả lời có căn cứ. Ngoài ra, dự án ghi nhận một bản ghi bán lẻ không thuộc sách trong danh mục. Đây là điểm cần tiếp tục làm sạch khi mở rộng dữ liệu. \src{3}
+
+\subsection{Dữ liệu có thể và không thể chứng minh điều gì}
+\begin{table}[htbp]\small
+\caption{Giới hạn diễn giải theo từng loại thông tin.}
+\begin{tabularx}{\linewidth}{P{33mm}YY}\toprule
+Thông tin & Có thể sử dụng để & Không đủ để khẳng định\\\midrule
+Giá trong dữ liệu & So sánh mức giá đã được ghi nhận & Giá đang bán hôm nay\\
+Đánh giá lấy mẫu & Mô tả ý kiến xuất hiện trong mẫu & Ý kiến của toàn bộ người mua\\
+Chỉ báo phổ biến & Tham khảo mức phổ biến của dữ liệu lịch sử & Doanh số hiện tại đã được xác minh\\
+Nguồn về tác phẩm & Kiểm tra nội dung mà nguồn thực sự hỗ trợ & Mọi chi tiết của ấn bản đang được bán\\\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Quy trình xử lý một yêu cầu tư vấn}
+
+\subsection{Bước 1: hiểu yêu cầu và điều kiện}
+Hệ thống xác định người dùng muốn tìm sách, so sánh, xem đánh giá hay hỏi kiến thức. Đồng thời, các điều kiện như ngân sách, số lượng sách và tiêu chí quan tâm cần được giữ lại. Nếu người dùng hỏi nhiều ý, hệ thống phải nhận diện đủ các ý thay vì chỉ trả lời phần dễ nhất.
+
+Ví dụ: ``Tìm hai cuốn sách dưới 200.000 đồng và cho biết người mua có phàn nàn về đóng gói không.'' Yêu cầu có ba phần: chọn đúng số lượng, đáp ứng điều kiện giá và kiểm tra nhận xét đóng gói. Một danh sách tên sách đơn thuần chưa hoàn thành yêu cầu.
+
+\subsection{Bước 2: tìm và xác định đúng sách}
+Nhóm thông tin sách tìm các ứng viên phù hợp, giữ tên đầy đủ và những thông tin cần thiết để phân biệt chúng. Đây là bước nền tảng: nếu chọn nhầm cuốn sách hoặc nhầm ấn bản, các phân tích phía sau dù đúng với dữ liệu đã lấy vẫn có thể trả lời sai câu hỏi.
+
+Khi cần xếp thứ tự ứng viên, hệ thống tham khảo điểm đánh giá, mức phổ biến lịch sử và giá tương đối. Những tiêu chí này giúp tạo thứ tự lựa chọn rõ ràng, nhưng không phải một phép đo đầy đủ về giá trị văn học hay mức phù hợp với mọi người đọc. Giá rẻ hơn hoặc nhiều lượt đánh giá hơn không tự động có nghĩa là sách hay hơn.
+
+\subsection{Bước 3: bổ sung đánh giá và bằng chứng}
+Sau khi xác định sách, các nhóm chuyên trách xem xét đánh giá người mua, dấu hiệu phàn nàn và nguồn kiến thức nếu câu hỏi cần. Mọi nhận xét phải đi cùng đúng cuốn sách đã chọn. Những ý kiến về đóng gói hay giao hàng cũng cần tách khỏi nhận xét về chất lượng nội dung tác phẩm.
+
+\fig{phoi-hop}{Ví dụ phối hợp khi tư vấn lựa chọn sách. Các nhánh thể hiện các phần việc cần kết hợp, không hàm ý chúng luôn được thực hiện đồng thời.}{fig:cooperation}
+
+\subsection{Bước 4: tổng hợp và kiểm tra}
+Hệ thống ghép các kết quả thành một câu trả lời thống nhất, kiểm tra những ý đã có bằng chứng và những phần chưa được hỗ trợ. Một nguồn liên quan đến cuốn sách chưa đủ để chứng minh mọi điều được viết về cuốn sách đó; nguồn phải thực sự hỗ trợ nội dung đang được nêu.
+
+Nếu một phần thông tin chưa có, hệ thống có thể trả lời phần đã biết và chỉ rõ phần còn thiếu. Nếu thông tin thiếu là điều kiện quyết định, chẳng hạn chưa biết người dùng đang hỏi cuốn nào, hệ thống nên hỏi lại. Không nên điền một thông tin có vẻ hợp lý chỉ để câu trả lời trông hoàn chỉnh.
+
+\subsection{Bước 5: trình bày kết quả cho người dùng}
+Một câu trả lời phù hợp nên đi theo trình tự: trả lời trực tiếp, đưa thông tin so sánh cần thiết, giải thích căn cứ và nêu giới hạn còn lại. Khi so sánh nhiều cuốn, cần trình bày song song để người đọc thấy điểm khác biệt, không trộn tất cả nhận xét thành một đoạn chung khó đối chiếu.
+
+\section{Cơ chế giữ chất lượng câu trả lời}
+
+\subsection{Giới hạn phạm vi công việc}
+Hệ thống giới hạn số ứng viên và số lần bổ sung thông tin trong một yêu cầu. Mục đích là tránh xử lý kéo dài không kiểm soát và hạn chế việc càng suy luận càng đi xa dữ liệu. Với yêu cầu quá rộng, cách phù hợp là chia nhỏ hoặc hỏi thêm tiêu chí, thay vì cố liệt kê và đánh giá mọi sách cùng lúc.
+
+\subsection{Giữ đúng nguồn của từng kết luận}
+Thông tin danh mục trả lời các câu hỏi về sản phẩm được lưu; đánh giá phản ánh ý kiến trong mẫu; nguồn kiến thức hỗ trợ những thông tin đã được đối chiếu. Bước tổng hợp cần giữ ranh giới giữa ba loại này. Chẳng hạn, ``người mua khen nội dung'' là một nhận xét trong đánh giá, không phải kết luận khách quan rằng tác phẩm phù hợp với tất cả người đọc.
+
+\subsection{Không tự thực hiện thay đổi ngoài thẩm quyền}
+Phần tư vấn không được tự sửa dữ liệu hoặc biến một lời đề nghị trong hội thoại thành giao dịch đã hoàn tất. Với các thao tác mô phỏng có làm thay đổi thông tin, hệ thống cần tạo đề xuất và có bước xác nhận phù hợp. Việc tư vấn và việc thực hiện hành động phải được phân biệt để người dùng biết điều gì mới là gợi ý, điều gì đã được thực hiện.
+
+\subsection{Sửa các điểm làm mất thông tin}
+Sau thực nghiệm, nhóm rà soát đường đi của thông tin từ câu hỏi đến câu trả lời và tái hiện được sáu chỗ hệ thống có thể làm rơi dữ kiện. Mỗi chỗ được sửa riêng và áp dụng chung cho cả cách một tác tử lẫn nhiều tác tử. \src{7}
+\begin{enumerate}
+\item Khi mô hình viết lại câu tìm kiếm, tên sách hoặc mã người dùng nêu có thể bị mất. Nay câu hỏi gốc luôn được giữ cùng các cách viết lại.
+\item Nguồn chỉ nhắc tên sách ở tiêu đề có thể không được tìm thấy. Nay tiêu đề được dùng để tìm nguồn, nhưng không được coi là bằng chứng cho nội dung.
+\item Cùng một chữ tiếng Việt có dấu có thể được mã hóa theo hai cách khác nhau, khiến kết quả tìm kiếm khác nhau. Nay văn bản được chuẩn hóa trước khi so khớp.
+\item Hai nguồn khác nhau có cùng đoạn văn từng bị gộp làm một, mất ghi nhận nguồn. Nay chỉ gộp các đoạn trùng trong cùng một nguồn.
+\item Đoạn trích bị cắt ở 350 ký tự có thể mất chi tiết ở cuối. Nay đoạn trích được giữ tới 1.000 ký tự khi còn chỗ, trong cùng giới hạn đầu vào.
+\item Câu trả lời từng được coi là đủ chỉ vì có một thông tin đúng. Nay mỗi cuốn được gợi ý phải có tên sách, kèm giá, điểm đánh giá hoặc số trang nếu người dùng lọc theo các điều kiện đó.
+\end{enumerate}
+Các sửa đổi được kiểm tra bằng tám tình huống kiểm thử dựng riêng cho từng lỗi. Trên mã nguồn trước khi sửa, sáu tình huống thất bại; trên mã nguồn hiện tại, cả tám tình huống đều qua. Đây là bằng chứng các lỗi cụ thể đã được khắc phục, \textbf{không phải điểm chất lượng của hệ thống}. Thực nghiệm ở mục sau được chạy trước đợt sửa này nên chưa phản ánh tác động của chúng.
+
+\subsection{Kiểm tra tự động vẫn có giới hạn}
+Hệ thống có bước kiểm tra câu trả lời, nhưng bước kiểm tra cũng có thể đánh giá sai. Vì thế, có cơ chế kiểm tra không đồng nghĩa bảo đảm tuyệt đối không có thông tin bịa hoặc nhầm. Độ tin cậy cuối cùng cần được đánh giá bằng các câu hỏi cụ thể và đối chiếu với nguồn, thay vì suy ra từ tên gọi của một thành phần.

@@ -837,8 +837,8 @@ def _receipt(
             "max_generation_calls": 10,
             "max_provider_attempts": 16,
             "max_retries": 1,
-            "attempt_timeout_seconds": 18.0,
-            "turn_deadline_seconds": 60.0,
+            "attempt_timeout_seconds": 30.0,
+            "turn_deadline_seconds": 90.0,
             "per_turn_limit_usd": "0.25",
             "max_input_tokens_per_generation": 12_000,
             "max_output_tokens_per_generation": 1_200,
@@ -1154,6 +1154,7 @@ def _partial_analysis_context():
     asset_payload = {
         field_name: f"{index + 1:064x}"
         for index, field_name in enumerate(EvaluationAssetBindingsV3.model_fields)
+        if field_name != "sut_git_revision"
     }
     asset_payload.update(
         {

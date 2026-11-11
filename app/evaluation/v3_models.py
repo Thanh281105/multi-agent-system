@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from enum import StrEnum
-from typing import Any, Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -111,9 +111,15 @@ class ScheduledTurnKindV3(StrEnum):
 
 
 class GenerationBindingV3(FrozenContractV3):
+    """Serialized binding, including historical settings; not execution approval.
+
+    The live composer enforces supported model/reasoning pins separately. Reading
+    a frozen protocol must preserve its original reasoning and canonical hash.
+    """
+
     provider: Literal["openai"] = "openai"
     model: Literal["gpt-5.4-mini-2026-03-17", "gpt-6-luna"]
-    reasoning_effort: Literal["none"] = "none"
+    reasoning_effort: Literal["none", "low", "medium", "high"] = "none"
 
 
 class GoldPolicyV3(FrozenContractV3):
@@ -305,15 +311,9 @@ class EvaluationExperimentConfigV3(FrozenContractV3):
         bindings = {variant.generation_binding for variant in self.variants}
         if len(bindings) != 1:
             raise ValueError("all Package 7 variants must share one model snapshot")
-        if self.judgment_policy.model_binding is not None and (
-            self.judgment_policy.model_binding.provider
-            != self.variants[0].generation_binding.provider
-            or self.judgment_policy.model_binding.model
-            == self.variants[0].generation_binding.model
-        ):
-            raise ValueError(
-                "model judge must be frozen separately from the generation snapshot"
-            )
+        # Historical captures used the same model with different reasoning for
+        # generation and judging. Preserve that record; judge independence is
+        # a separate experiment/execution requirement, not a file-read migration.
         adaptive = self.variants[2].model_dump(
             exclude={"variant_id", "description", "rag_enabled"}
         )

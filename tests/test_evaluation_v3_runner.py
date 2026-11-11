@@ -61,7 +61,7 @@ EXPERIMENT_PATH = PROJECT_ROOT / "evaluation" / "v3" / "experiment.v3.json"
 
 
 def _resource_limit_result(
-    *, output_tokens: int = 2_240, duration_seconds: float = 18.019608
+    *, output_tokens: int = 2_240, duration_seconds: float = 30.019608
 ) -> UserTurnExecutionResultV3:
     attribution = ExecutionAttributionV3(
         run_id="run_resource_test",
@@ -111,8 +111,8 @@ def _resource_limits() -> EvaluationResourceLimitsV3:
         max_generation_calls=10,
         max_provider_attempts=16,
         max_retries=1,
-        attempt_timeout_seconds=18.0,
-        turn_deadline_seconds=60.0,
+        attempt_timeout_seconds=30.0,
+        turn_deadline_seconds=90.0,
         per_turn_limit_usd="0.25",
         max_input_tokens_per_generation=12_000,
         max_output_tokens_per_generation=1_200,
@@ -140,7 +140,7 @@ def test_attempt_duration_beyond_settlement_slack_is_rejected() -> None:
         match="attempt_timeout_limit_exceeded",
     ):
         _enforce_resource_limits(
-            (_resource_limit_result(duration_seconds=18.101),),
+            (_resource_limit_result(duration_seconds=30.101),),
             _resource_limits(),
         )
 
@@ -150,6 +150,7 @@ def _protocol() -> EvaluationProtocolV3:
         {
             field_name: f"{index + 1:064x}"
             for index, field_name in enumerate(EvaluationAssetBindingsV3.model_fields)
+            if field_name != "sut_git_revision"
         }
     )
     return build_evaluation_protocol_v3(
@@ -527,7 +528,7 @@ async def test_multi_turn_limits_and_deadlines_are_applied_per_user_turn(
     assert receipt.totals.known_cost_usd == Decimal("0.40")
     assert all(turn.generation_calls == 6 for turn in receipt.turn_results)
     assert all(turn.known_cost_usd == Decimal("0.20") for turn in receipt.turn_results)
-    assert timeout_entries == [60.0, 60.0, 60.0]
+    assert timeout_entries == [90.0, 90.0, 90.0]
 
 
 @pytest.mark.asyncio
@@ -920,8 +921,8 @@ async def test_resource_limit_violation_is_terminal_and_never_retried(
     assert first.receipts[0].limits.max_generation_calls == 10
     assert first.receipts[0].limits.max_provider_attempts == 16
     assert first.receipts[0].limits.max_retries == 1
-    assert first.receipts[0].limits.attempt_timeout_seconds == 18.0
-    assert first.receipts[0].limits.turn_deadline_seconds == 60.0
+    assert first.receipts[0].limits.attempt_timeout_seconds == 30.0
+    assert first.receipts[0].limits.turn_deadline_seconds == 90.0
     assert first.receipts[0].limits.per_turn_limit_usd == Decimal("0.25")
 
     forbidden = _ForbiddenFactory()
