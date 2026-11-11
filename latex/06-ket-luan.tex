@@ -1,0 +1,28 @@
+\section{Kết luận và Hướng phát triển}
+
+\subsection{Tóm lược các Đóng góp Chính của Đề tài}
+Đề tài \textbf{``Hệ thống trợ lý tư vấn sách ứng dụng nhiều tác tử''} đã hoàn thành toàn diện các mục tiêu nghiên cứu và kỹ thuật đặt ra, mang lại những đóng góp cụ thể sau:
+
+\begin{enumerate}
+    \item \textbf{Xây dựng thành công Hệ thống Trợ lý có Căn cứ Dữ chứng (Evidence Atlas):} Thiết kế và triển khai một hệ thống phần mềm hoàn chỉnh theo mô hình Modular Monolith hướng sản xuất trên nền tảng FastAPI và PostgreSQL bền vững. Hệ thống sở hữu cơ chế bảo vệ phân quyền hai vai trò (\texttt{shopper} và \texttt{merchant}) với $100\%$ tỷ lệ tuân thủ chính sách, cơ chế kiểm soát ngân sách chi phí theo từng lượt gọi đến cấp nano USD, và thuật toán đối soát trích dẫn xâu ký tự chính xác (\textit{exact-span verification}) nhằm triệt tiêu hiện tượng bịa đặt trích dẫn.
+    \item \textbf{Thực hiện Đánh giá Thực nghiệm Quy mô lớn, Nghiêm ngặt và Tái lập được:} Tiến hành hai đợt đánh giá độc lập quy mô lớn trên mô hình thật với $1.440$ lượt quan sát ($720$ lượt trên bộ Held-out P8 và $720$ lượt trên bộ chạy xác nhận Confirmatory Run có đăng ký trước giả thuyết). Toàn bộ dữ liệu thực nghiệm, nhật ký suy luận và bảng chấm điểm đều được đóng băng và kiểm toán toàn vẹn mã băm SHA-256.
+    \item \textbf{Phát hiện Thực nghiệm Phản biện về Kiến trúc Nhiều tác tử (Multi-Agent Systems):} Nghiên cứu đã chứng minh bằng số liệu thống kê tin cậy rằng: Trong bài toán tư vấn thương mại điện tử có dữ liệu thực tế, **kiến trúc nhiều tác tử điều phối thích ứng không vượt trội hơn tác tử đơn về tỷ lệ hoàn thành tác vụ** (SA đạt $45{,}2\%$, MA Adaptive đạt $41{,}4\%$, chênh lệch $\Delta = -3{,}8\%$, CI 95\% $[-8{,}7\%; +1{,}0\%]$, $p > 0{,}05$), trong khi lại làm tăng thời gian chờ gấp $4{,}73$ lần và lượng token tiêu thụ gấp $2{,}78$ lần. Lợi ích thực chất của Multi-Agent nằm ở khả năng phân tách trách nhiệm kiểm toán mã nguồn (\textit{separation of concerns}), không phải ở năng lực suy luận vượt trội.
+    \item \textbf{Khẳng định Vai trò Quyết định của Tạo sinh Tăng cường Truy xuất (RAG):} Phép phân tích triệt tiêu thành phần đã chứng minh RAG kết hợp với cơ chế neo dữ chứng chính là nhân tố quyết định sống còn của hệ thống. Khi tắt RAG, tỷ lệ hoàn thành tác vụ rơi tự do $-36{,}1$ điểm phần trăm và khả năng từ chối hợp lệ khi thiếu dữ liệu sụt giảm nghiêm trọng $74{,}4$ điểm phần trăm.
+    \item \textbf{Tính Trung thực và Chuẩn mực Đạo đức Nghiên cứu:} Nhóm đã tự giác rà soát, phát hiện và kiên quyết loại bỏ toàn bộ các số liệu mô phỏng và nhãn giả lập trong quá khứ khỏi báo cáo, thiết lập một chuẩn mực cao về sự liêm chính học thuật trong nghiên cứu ứng dụng AI tại bậc đại học.
+\end{enumerate}
+
+\subsection{Các Giới hạn Khoa học của Đề tài}
+Bên cạnh các kết quả đạt được, nghiên cứu còn tồn tại một số giới hạn cần được nhìn nhận khách quan:
+\begin{itemize}
+    \item \textbf{Quy mô danh mục sách còn khiêm tốn:} Hệ thống mới được thử nghiệm trên snapshot gồm 200 bản ghi sản phẩm và 20 nguồn kiến thức chuẩn hóa. Trong các hệ thống thương mại điện tử thực tế với hàng triệu đầu sách, các thách thức về độ trễ tìm kiếm và độ phủ của kho tri thức sẽ phức tạp hơn rất nhiều.
+    \item \textbf{Thiếu vắng tập dữ liệu hiệu chuẩn từ chuyên gia con người:} Mặc dù đã chuẩn bị sẵn bộ công cụ chấm mù chuẩn hóa, do hạn chế về thời gian và kinh phí, toàn bộ các đánh giá quy mô lớn trong báo cáo này vẫn dựa trên mô hình trọng tài tự động (\texttt{gpt-6-luna}). Mặc dù kiểm tra chấm lại cho thấy độ đồng thuận nội tại rất cao ($\kappa = 0{,}946$), việc có được nhãn đánh giá từ các chuyên gia sách con người vẫn là tiêu chuẩn vàng chưa đạt được.
+    \item \textbf{Hiện tượng suy giảm hiệu năng trên câu hỏi tự nhiên ngoài khuôn (Floor Effect):} Khi gặp các câu hỏi có cách diễn đạt tự nhiên ngoài mẫu ngữ pháp quen thuộc, bộ lập kế hoạch dùng chung có tỷ lệ từ chối hoặc yêu cầu làm rõ khá cao, làm giảm tỷ lệ hoàn thành tác vụ tuyệt đối của cả hai kiến trúc xuống mức khoảng $20\%$.
+\end{itemize}
+
+\subsection{Hướng phát triển trong Tương lai}
+Từ những kết quả và bài học kinh nghiệm của đề tài, các hướng nghiên cứu và phát triển tiếp theo bao gồm:
+\begin{enumerate}
+    \item \textbf{Mở rộng quy mô danh mục và Tối ưu hóa Truy xuất Hỗn hợp:} Tích hợp các công cụ tìm kiếm toàn văn (\textit{Full-text Search}) chuyên dụng như BM25 kết hợp với Dense Vector Search trên quy mô hàng trăm nghìn cuốn sách, đồng thời mở rộng độ phủ của kho tri thức tác phẩm tiếng Việt.
+    \item \textbf{Thực hiện Đánh giá Mù với Người dùng Thật (Blind Human User Study):} Triển khai ứng dụng thử nghiệm cho một nhóm độc giả thực tế trải nghiệm và đánh giá chất lượng câu trả lời theo rubric chuẩn hóa đã xây dựng, nhằm kiểm chứng chéo độ tin cậy của mô hình trọng tài tự động.
+    \item \textbf{Tối ưu hóa Chi phí và Độ trễ bằng Mô hình Nhỏ (SLM Distillation):} Huấn luyện tinh chỉnh (\textit{fine-tuning}) hoặc chưng cất tri thức sang các mô hình ngôn ngữ nhỏ gọn chuyên biệt cho tiếng Việt để đảm nhận vai trò của các chuyên gia chức năng cục bộ, giúp giảm thiểu độ trễ xuống dưới 1 giây và tiết kiệm chi phí vận hành.
+\end{enumerate}

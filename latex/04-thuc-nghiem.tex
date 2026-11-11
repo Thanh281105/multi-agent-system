@@ -1,0 +1,162 @@
+\section{Thực nghiệm và Đánh giá Chuyên sâu}
+
+\subsection{Thiết kế Thực nghiệm và Các Biến thể Đối chứng}
+Để trả lời câu hỏi cốt lõi: \textit{``Việc phân chia thành nhiều tác tử có thực sự đem lại lợi ích vượt trội so với một tác tử hay không, và đâu là thành phần kiến trúc đóng góp lớn nhất vào chất lượng câu trả lời?''}, đề tài xây dựng một thiết kế thực nghiệm đối chứng nghiêm ngặt \src{4}\src{5}.
+
+Mọi biến thể thực nghiệm đều được chạy trên cùng một môi trường kỹ thuật được kiểm soát tuyệt đối:
+\begin{itemize}
+    \item \textbf{Mô hình nền tảng:} \code{gpt-5.4-mini-2026-03-17} với nhiệt độ $T = 0{,}0$ và chế độ suy luận \code{reasoning_effort=none} nhằm triệt tiêu tính ngẫu nhiên.
+    \item \textbf{Cơ sở dữ liệu:} Snapshot PostgreSQL Tiki Books v4 profile \texttt{eval} (199 cuốn sách hợp lệ, 1.773 nhận xét người mua) \src{2}.
+    \item \textbf{Mô hình trọng tài:} Mô hình \texttt{gpt-6-luna} được cấu hình với bảng tiêu chí chấm chuẩn hóa (\textit{rubric}) nhằm đối chiếu câu trả lời với các sự kiện bắt buộc \src{14}.
+\end{itemize}
+
+Bốn biến thể kiến trúc được đưa lên bàn cân so sánh:
+\begin{enumerate}
+    \item \textbf{Tác tử đơn với công cụ dùng chung (\texttt{SA}):} Một tác tử trung tâm duy nhất được cung cấp toàn bộ các công cụ (tìm kiếm sách, trích xuất đánh giá, phân tích phàn nàn, truy xuất tri thức) trong một câu nhắc phẳng (\textit{flat prompt}).
+    \item \textbf{Nhiều tác tử kế hoạch cố định (\texttt{MA Fixed}):} Supervisor phân chia công việc cho các chuyên gia nhưng không thực hiện vòng lặp thích ứng (\texttt{max\_continuations=0}).
+    \item \textbf{Nhiều tác tử điều phối thích ứng (\texttt{MA Adaptive}):} Kiến trúc đề xuất đầy đủ với khả năng quan sát dữ chứng chặng 1 để sinh thêm truy vấn tiếp nối (\texttt{max\_continuations=1}).
+    \item \textbf{Nhiều tác tử thích ứng không truy xuất (\texttt{MA Adaptive no RAG}):} Kiến trúc nhiều tác tử thích ứng đầy đủ nhưng bị ngắt bỏ hoàn toàn mô-đun truy xuất kho tri thức tác phẩm nhằm đo lường đóng góp cô lập của RAG.
+\end{enumerate}
+
+\subsection{Đánh giá Thăm dò trên Bộ 24 Câu hỏi (v4 Benchmark)}
+Giai đoạn đầu của đề tài sử dụng bộ thử nghiệm gồm 24 câu hỏi đại diện cho bốn mức độ phức tạp trong nghiệp vụ tư vấn sách \src{4}:
+\begin{itemize}
+    \item \textbf{Nhóm 1 (Tra cứu đơn lẻ):} 6 câu hỏi, 14 dữ kiện bắt buộc (chủ yếu thuộc trách nhiệm của chuyên gia thông tin sách).
+    \item \textbf{Nhóm 2 (Kết hợp nhiều nguồn):} 8 câu hỏi, 17 dữ kiện bắt buộc (kết hợp thông tin sách và nhận xét người mua).
+    \item \textbf{Nhóm 3 (Tư vấn nhiều góc nhìn):} 6 câu hỏi, 8 dữ kiện bắt buộc (cân nhắc ưu nhược điểm, so sánh đa tiêu chí).
+    \item \textbf{Nhóm 4 (Yêu cầu không phù hợp):} 4 câu hỏi, 4 dữ kiện bắt buộc (kiểm tra khả năng từ chối khi câu hỏi chứa điều kiện mâu thuẫn hoặc nằm ngoài phạm vi dữ liệu).
+\end{itemize}
+
+Mỗi câu hỏi được chạy lặp lại 3 lần độc lập trên hai cấu hình \texttt{SA} và \texttt{MA}, tạo ra tổng cộng $24 \times 2 \times 3 = 144$ lượt quan sát câu trả lời và $43 \times 3 = 129$ lượt đánh giá dữ kiện cho mỗi bên \src{6}.
+
+\begin{table}[htbp]\small
+\caption{So sánh tổng hợp giữa Đơn tác tử và Nhiều tác tử trên bộ thử nghiệm v4 (24 câu hỏi).}
+\label{tab:v4_results}
+\begin{tabularx}{\linewidth}{Yrrr}\toprule
+Tiêu chí đánh giá & Một tác tử (\texttt{SA}) & Nhiều tác tử (\texttt{MA}) & Chênh lệch ($\Delta$)\\\midrule
+Số câu trả lời được lưu & 72 & 72 & ---\\
+Điểm trung bình theo câu hỏi (\%) & 98,96 & 100,00 & \textbf{+1,04}\\
+Lượt dữ kiện được chấp nhận & 126 / 129 & 129 / 129 & +3 lượt\\
+Tỷ lệ chấp nhận theo dữ kiện (\%) & 97,67 & 100,00 & \textbf{+2,33}\\
+Thời gian trả lời trung bình (giây) & \textbf{1,43} & 6,75 & \textbf{Chậm gấp 4,73 lần}\\
+Lượng token tiêu thụ trung bình & \textbf{1.332} & 3.706 & \textbf{Tốn gấp 2,78 lần}\\\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]\small
+\caption{Điểm và thời gian trung bình theo từng nhóm câu hỏi trên bộ v4.}
+\label{tab:v4_by_group}
+\begin{tabularx}{\linewidth}{Yrrrr}\toprule
+ & \multicolumn{2}{c}{Điểm chấp nhận dữ kiện (\%)} & \multicolumn{2}{c}{Thời gian trung bình (giây)}\\
+Nhóm câu hỏi & Một tác tử & Nhiều tác tử & Một tác tử & Nhiều tác tử\\\midrule
+Nhóm 1. Tra cứu đơn giản & 95,83 & 100,00 & 1,35 & 5,29\\
+Nhóm 2. Kết hợp nhiều nguồn & 100,00 & 100,00 & 1,50 & 8,82\\
+Nhóm 3. Tư vấn nhiều góc nhìn & 100,00 & 100,00 & 1,52 & 8,40\\
+Nhóm 4. Yêu cầu không phù hợp & 100,00 & 100,00 & 1,26 & 2,32\\\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Phân tích Hiện tượng Bão hòa Trần (Ceiling Effect)}
+Nhìn vào Bảng \ref{tab:v4_results} và Bảng \ref{tab:v4_by_group}, nhiều tác tử đạt điểm tuyệt đối $100{,}00\%$, cao hơn tác tử đơn $1{,}04$ điểm phần trăm. Tuy nhiên, khi đi sâu vào bản chất kỹ thuật:
+\begin{itemize}
+    \item Tại Nhóm 2 và Nhóm 3 (những nhóm được thiết kế để kiểm chứng khả năng phối hợp đa chuyên gia), **cả hai bên đều đạt điểm tối đa $100{,}00\%$**. Nghĩa là tác tử đơn hoàn toàn có khả năng tổng hợp thông tin phức tạp mà không cần tách thành nhiều tác tử riêng biệt.
+    \item Toàn bộ sự khác biệt điểm số trên cả 24 câu hỏi nằm ở **duy nhất 01 câu hỏi** liên quan đến tác phẩm \textit{Sapiens}. Trong tập dữ liệu, tiêu đề đầy đủ có chứa hậu tố \textit{``(Tái Bản 2022)''}. Cấu hình nhiều tác tử giữ được hậu tố này nhờ chuyên gia thông tin sách được chỉ dẫn bảo toàn nguyên văn tên ấn bản, trong khi cấu hình tác tử đơn tóm tắt ngắn gọn nên đã lược bỏ hậu tố trong cả 3 lần chạy.
+\end{itemize}
+
+Do đó, ưu thế $+1{,}04\%$ này thực chất bắt nguồn từ kỹ thuật soạn câu nhắc (\textit{prompt engineering}) chứ không phải minh chứng cho năng lực vượt trội của kiến trúc nhiều tác tử. Khoảng tin cậy 95\% của chênh lệch điểm $[-1{,}11\%; +3{,}20\%]$ bao hàm cả giá trị 0 ($p = 0{,}328$), cho thấy sự khác biệt **không có ý nghĩa thống kê**. Bộ câu hỏi 24 câu đã bị bão hòa ở mức trần và không đủ năng lực phân loại hai kiến trúc.
+
+\subsection{Đánh giá Quy mô lớn trên Bộ Held-out P8 (720 Lượt quan sát)}
+Nhận thức được giới hạn của bộ 24 câu, nhóm tiến hành một đợt đánh giá toàn diện trên bộ thử nghiệm P8 Held-out lớn hơn nhiều: gồm 60 kịch bản hội thoại thuộc 27 nhóm tác phẩm, chạy lặp lại 3 lần trên 4 biến thể kiến trúc, tạo ra tổng cộng **720 lượt quan sát độc lập** \src{8}.
+
+Toàn bộ gói dữ liệu kết quả gốc của đợt chạy P8 đã được kiểm toán toàn vẹn mã băm (\textit{evidence integrity audit}) đạt $100\%$ hợp lệ, không có lỗi cấu trúc và không vi phạm bất kỳ chính sách phân quyền nào.
+
+\begin{table}[htbp]\small
+\caption{Kết quả đánh giá 4 biến thể kiến trúc trên bộ Held-out P8 (720 lượt quan sát).}
+\label{tab:p8_results}
+\begin{tabularx}{\linewidth}{P{42mm}>{\raggedleft\arraybackslash}X>{\raggedleft\arraybackslash}X>{\raggedleft\arraybackslash}X>{\raggedleft\arraybackslash}X}\toprule
+Biến thể Kiến trúc & Hoàn thành tác vụ (\%) & Căn cứ ủng hộ (\%) & Từ chối đúng lúc (\%) & Vi phạm quyền\\\midrule
+\texttt{SA} (Một tác tử có RAG) & 45,2 & 74,8 & 88,2 & 0\\
+\texttt{MA Fixed} (Nhiều tác tử cố định) & \textbf{47,2} & \textbf{76,5} & 89,5 & 0\\
+\texttt{MA Adaptive} (Nhiều tác tử thích ứng) & 41,4 & 71,2 & 85,1 & 0\\
+\texttt{MA Adaptive no RAG} (Tắt RAG) & \textbf{5,2} & \textbf{21,4} & \textbf{10,7} & 0\\\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Nghịch lý Điều phối Động: Càng thích nghi càng sinh lỗi}
+So sánh chính đã đăng ký giữa \texttt{SA} và \texttt{MA Adaptive} mang lại một kết quả gây bất ngờ:
+\begin{itemize}
+    \item Tỷ lệ hoàn thành tác vụ trung bình: \texttt{SA} đạt $45{,}2\%$, trong khi \texttt{MA Adaptive} chỉ đạt $41{,}4\%$. 
+    \item Chênh lệch đạt $\Delta = -3{,}8$ điểm phần trăm với khoảng tin cậy 95\% Bootstrap (10.000 mẫu theo nhóm tác phẩm) là $[-8{,}7\%; +1{,}0\%]$. 
+    \item Tỷ số thắng / hòa / thua theo nhóm tác phẩm giữa \texttt{MA Adaptive} và \texttt{SA} là 2 / 18 / 7 (thua 7 nhóm tác phẩm, chỉ thắng 2).
+\end{itemize}
+
+\textbf{Kết luận khoa học:} Không có bằng chứng thực nghiệm nào cho thấy kiến trúc nhiều tác tử thích ứng vượt trội hơn tác tử đơn; trên thực tế, ước lượng điểm số còn nghiêng nhẹ về tác tử đơn! 
+
+Hơn nữa, khi so sánh \texttt{MA Adaptive} với \texttt{MA Fixed}, việc kích hoạt vòng lặp điều phối động (\code{max_continuations=1}) làm tỷ lệ hoàn thành giảm sút $-5{,}8$ điểm phần trăm. Nguyên nhân kỹ thuật là khi Supervisor cố gắng điều phối thêm chặng thứ hai, mô hình ngôn ngữ có xu hướng đưa thêm ngữ cảnh nhiễu từ các chuyên gia phụ, làm trôi dạt trọng tâm câu hỏi ban đầu và dẫn đến việc câu trả lời bị trọng tài LLM đánh trượt.
+
+\subsection{Đợt chạy Xác nhận với Giao thức Khai báo trước (Confirmatory Run)}
+Để có một phép thử hoàn toàn độc lập với quá trình tinh chỉnh mã nguồn, nhóm đã soạn thảo 60 hội thoại mới và đăng ký trước giả thuyết (\textit{preregistration}) vào kho mã \src{10}. Giả thuyết chính là: \textit{``Nhiều tác tử kế hoạch cố định hoàn thành tác vụ tốt hơn một tác tử ở các câu hỏi đa điều kiện''.}
+
+\begin{table}[htbp]\small
+\caption{Chênh lệch tỷ lệ hoàn thành tác vụ trong đợt chạy xác nhận (720 lượt).}
+\label{tab:confirmatory_results}
+\begin{tabularx}{\linewidth}{Yrrr}\toprule
+Phép so sánh đối chứng & Chênh lệch ($\Delta$ pp) & Khoảng tin cậy 95\% & Thắng/Hòa/Thua\\\midrule
+\texttt{MA Fixed} vs \texttt{SA} (Câu đa điều kiện) & $+2{,}78$ & $[0{,}00;\ +8{,}33]$ & 1 / 11 / 0\\
+\texttt{MA Fixed} vs \texttt{SA} (Toàn bộ 60 câu) & $+1{,}07$ & $[0{,}00;\ +2{,}78]$ & 2 / 24 / 0\\
+\texttt{MA Adaptive} vs \texttt{SA} (Toàn bộ 60 câu) & $+1{,}07$ & $[0{,}00;\ +2{,}78]$ & 2 / 24 / 0\\
+\texttt{MA no RAG} vs \texttt{SA} (Toàn bộ 60 câu) & \textbf{-16,24} & $[-23{,}18;\ -9{,}62]$ & \textbf{0 / 13 / 13}\\\bottomrule
+\end{tabularx}
+\end{table}
+
+Trong đợt chạy xác nhận:
+\begin{itemize}
+    \item Cả ba khoảng tin cậy của phép so sánh giữa nhiều tác tử và một tác tử đều chạm mốc 0. Do đó, theo quy tắc thống kê đã khai báo trước, \textbf{không có giả thuyết ưu thế nào của Multi-Agent được ủng hộ}.
+    \item Tỷ lệ hoàn thành tuyệt đối trên bộ mới bị kéo xuống thấp (khoảng $19{,}4\%$ ở \texttt{SA} và $20{,}6\%$ ở \texttt{MA}). Nguyên nhân là do các câu hỏi mới được diễn đạt bằng ngôn ngữ tự nhiên linh hoạt hơn thay vì theo khuôn mẫu cố định. Do bước phân tích ý định và trích xuất ứng viên dùng chung logic cho cả hai bên, cả hai kiến trúc đều gặp khó khăn như nhau ở tầng lập kế hoạch ban đầu (\textit{Shared Planner Floor Effect}).
+\end{itemize}
+
+\subsection{Nghiên cứu Triệt tiêu (Ablation Study) \& Vai trò Quyết định của RAG}
+Điểm nhấn học thuật có giá trị thực tiễn lớn nhất của toàn bộ công trình này là phép \textbf{Phân tích Triệt tiêu Thành phần (Ablation Study)}, nhằm cô lập chính xác đâu là nhân tố tạo ra giá trị cho hệ thống.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=1.4cm, auto, >=stealth, every node/.style={font=\small}]
+    \tikzstyle{base} = [rectangle, draw, fill=blue!10, text width=9.5cm, text centered, rounded corners, minimum height=0.9cm, draw=blue!50, font=\bfseries\small]
+    \tikzstyle{ablation} = [rectangle, draw, fill=red!10, text width=4.5cm, text centered, rounded corners, minimum height=1.3cm, draw=red!50]
+    \tikzstyle{line} = [draw, -latex', line width=0.8pt]
+
+    \node [base] (full) {Full Architecture (\texttt{MA Adaptive RAG}): Task Completion 41,4\%};
+    
+    \node [ablation, below of=full, xshift=-2.6cm, yshift=-0.5cm] (abl1) {\textbf{Tắt Điều phối Động} \\ (\texttt{MA Fixed}) \\ Task Comp: 47,2\% (\textbf{+5,8\%}) \\ \textit{Giảm nhiễu, tăng độ ổn định}};
+    
+    \node [ablation, below of=full, xshift=2.6cm, yshift=-0.5cm] (abl2) {\textbf{Tắt Truy xuất RAG} \\ (\texttt{MA Adaptive no RAG}) \\ Task Comp: 5,2\% (\textbf{-36,1\%}) \\ \textit{Sụp đổ độ chính xác}};
+
+    \path [line] (full) -| (abl1);
+    \path [line] (full) -| (abl2);
+\end{tikzpicture}
+\caption{Sơ đồ phân tích đóng góp biên của các thành phần kiến trúc.}
+\label{fig:ablation_tree}
+\end{figure}
+
+Khi quan sát biến thể \texttt{MA Adaptive no RAG} (tắt mô-đun truy xuất tri thức và chỉ dựa vào thông tin bán hàng thô kết hợp với tri thức nội sinh của mô hình), hệ thống ghi nhận sự sụp đổ nghiêm trọng trên mọi chỉ số:
+\begin{enumerate}
+    \item \textbf{Tỷ lệ hoàn thành tác vụ rơi tự do:} Sụt giảm từ $41{,}4\%$ xuống còn $5{,}2\%$ (giảm \textbf{$-36{,}1$ điểm phần trăm}, khoảng tin cậy 95\% là $[-51{,}2\%; -21{,}6\%]$) trên bộ P8. Trong đợt chạy xác nhận, tắt RAG làm giảm tiếp \textbf{$-16{,}24$ điểm phần trăm}, thua trắng 13/26 nhóm tác phẩm và không thắng được bất kỳ nhóm nào.
+    \item \textbf{Khả năng từ chối đúng lúc bị tê liệt:} Tỷ lệ từ chối hợp lệ khi dữ liệu không đủ sụt giảm nghiêm trọng từ $85{,}1\%$ xuống còn $10{,}7\%$ (giảm \textbf{$-74{,}4$ điểm phần trăm}). Khi không có tài liệu làm căn cứ, mô hình ngôn ngữ quay trở lại bản chất tự nhiên: tự động phóng đại, bịa đặt ấn bản hoặc cố tình đưa ra lời khuyên sai lệch cho người dùng.
+    \item \textbf{Tỷ lệ ủng hộ căn cứ sụp đổ:} Giảm từ $71{,}2\%$ xuống $21{,}4\%$ (giảm $-49{,}8\%$), cho thấy phần lớn các phát biểu được sinh ra không có cơ sở kiểm chứng.
+\end{enumerate}
+
+\subsubsection{Kết luận Kiến trúc Học thuật}
+Kết quả thực nghiệm triệt tiêu mang lại một thông điệp khoa học rõ ràng:
+\begin{quote}
+\textit{Trong bài toán trợ lý mua sắm trực tuyến, \textbf{Tạo sinh Tăng cường Truy xuất (RAG) kết hợp với Kiểm chứng Căn cứ Nghiêm ngặt (Grounded Synthesis) mới là nhân tố quyết định sống còn} của chất lượng câu trả lời. Việc chia tách bài toán thành nhiều tác tử (Multi-Agent Topology) chỉ đóng vai trò là khung phân chia trách nhiệm phần mềm, hoàn toàn không tạo ra sự đột phá thần kỳ về mặt nhận thức hay độ chính xác.}
+\end{quote}
+
+\subsection{Thẩm định Độ tin cậy của Trọng tài Tự động (LLM Judge)}
+Nhằm kiểm tra xem các kết luận trên có phải là hệ quả ngẫu nhiên của mô hình chấm \texttt{gpt-6-luna} hay không, nhóm tiến hành chấm lại độc lập toàn bộ 720 câu trả lời của bộ P8 bằng cùng một cấu hình trọng tài \src{8}.
+
+\begin{itemize}
+    \item Trên 715 câu hỏi có kết quả hợp lệ ở cả hai lần chấm, tỷ lệ đồng thuận đạt mức ấn tượng: \textbf{$97{,}3\%$} với hệ số Cohen $\kappa = 0{,}946$ đối với tiêu chí hoàn thành tác vụ, và \textbf{$96{,}9\%$} ($\kappa = 0{,}937$) đối với tiêu chí ủng hộ căn cứ.
+    \item Chênh lệch hiệu năng giữa \texttt{SA} và \texttt{MA Adaptive} ở lần chấm gốc là $-4{,}99$ điểm \% và ở lần chấm lại là $-6{,}53$ điểm \% (cùng chiều và cùng độ lớn).
+\end{itemize}
+
+Kết quả này khẳng định rằng các phát hiện thực nghiệm của đề tài có tính ổn định rất cao qua các lượt đánh giá. Tuy nhiên, nhóm giữ thái độ nghiêm cẩn khoa học khi lưu ý rằng: sự đồng thuận cao giữa hai lần chấm chỉ chứng minh **tính nhất quán nội tại của mô hình trọng tài**, chứ chưa thể thay thế hoàn toàn việc thẩm định mù của các chuyên gia con người trong tương lai.

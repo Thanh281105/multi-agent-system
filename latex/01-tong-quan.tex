@@ -1,0 +1,72 @@
+\section{Tổng quan và Cơ sở lý thuyết}
+
+\subsection{Bối cảnh và Đặt bài toán}
+Trong lĩnh vực thương mại điện tử, sách là một danh mục hàng hóa đặc thù với độ phức tạp thông tin rất cao. Khi lựa chọn một cuốn sách, người đọc không chỉ quan tâm đến giá niêm yết mà còn phải đối chiếu đồng thời nhiều chiều thông tin: nội dung tư tưởng của tác phẩm, độ chính xác của bản dịch, thông số ấn bản (năm tái bản, nhà xuất bản, số trang), và đặc biệt là nhận xét thực tế từ những người đã mua trước đó.
+
+Các thông tin này thường nằm rải rác ở nhiều nguồn dữ liệu độc lập:
+\begin{itemize}
+    \item \textbf{Dữ liệu danh mục (Catalog Metadata):} Cung cấp tiêu đề, tác giả, giá bán, danh mục phân loại và điểm đánh giá trung bình.
+    \item \textbf{Dữ liệu đánh giá của khách hàng (User Reviews):} Chứa các phản hồi định tính về chất lượng dịch vụ (giao hàng, đóng gói móp méo) lẫn cảm nhận về văn phong và nội dung sách.
+    \item \textbf{Kho kiến thức tác phẩm chuẩn tắc (Knowledge Corpus):} Các nguồn thư viện, thư mục tác giả hoặc nhà xuất bản nhằm phân biệt tác phẩm nguyên bản với các lần tái bản hoặc các bản dịch khác nhau.
+\end{itemize}
+
+Một câu hỏi thông thường như \textit{``Cuốn sách này giá bao nhiêu?''} chỉ đòi hỏi tra cứu một trường dữ liệu đơn giản. Tuy nhiên, một yêu cầu tư vấn mua sắm điển hình như: \textit{``Tìm giúp tôi hai cuốn sách về kinh tế học hành vi dưới 150.000 đồng, so sánh xem cuốn nào được khen về văn phong dễ hiểu và có ít phàn nàn về đóng gói nhất''} đòi hỏi hệ thống phải thực hiện suy luận đa chặng (\textit{multi-hop reasoning}). Trợ lý phải lọc đúng ứng viên, trích xuất đúng tập đánh giá của từng cuốn sách tương ứng, phân tách rạch ròi giữa phản hồi về nội dung tác phẩm với phản hồi về dịch vụ vận chuyển, và đưa ra khuyến nghị kèm trích dẫn nguồn kiểm chứng.
+
+Nếu hệ thống ghép nhầm đánh giá của sách A sang sách B, hoặc mô hình ngôn ngữ lớn (LLM) tự bịa đặt (\textit{hallucination}) một ấn bản không có thật trong kho, người dùng sẽ nhận được một câu trả lời trôi chảy nhưng hoàn toàn sai lệch về mặt sự thật.
+
+\subsection{Các thách thức kỹ thuật cốt lõi}
+Việc ứng dụng mô hình ngôn ngữ lớn vào bài toán trợ lý mua sắm trực tuyến đối mặt với bốn thách thức kỹ thuật lớn:
+
+\begin{enumerate}
+    \item \textbf{Ảo giác thông tin và sai lệch thuộc tính (Factual Hallucination):} Mô hình ngôn ngữ có xu hướng tạo ra các câu trả lời mạch lạc nhưng sai sự thật về số liệu kỹ thuật, giá tiền hoặc trích dẫn các đoạn nhận xét không hề có trong cơ sở dữ liệu \src{15}. Trong thương mại điện tử, việc nhầm lẫn giá hoặc ấn bản gây tổn hại trực tiếp đến độ tin cậy của dịch vụ.
+    \item \textbf{Mâu thuẫn ngữ cảnh và trôi dạt thông tin (Context Confusion \& Drift):} Khi cung cấp đồng thời thông tin sản phẩm và hàng trăm nhận xét của người mua, mô hình đơn lẻ dễ bị quá tải ngữ cảnh, dẫn đến việc lấy thuộc tính của sản phẩm này để gán cho sản phẩm khác.
+    \item \textbf{Sự đánh đổi về tài nguyên, độ trễ và chi phí (Cost \& Latency Trade-offs):} Các phương pháp suy luận tự do nhiều vòng của mô hình ngôn ngữ làm gia tăng thời gian chờ của người dùng và làm bùng nổ số lượng token tiêu thụ, không phù hợp cho các hệ sinh thái dịch vụ có lưu lượng truy cập cao.
+    \item \textbf{An toàn phân quyền và bảo mật dữ liệu (Authorization \& Safety Boundaries):} Trợ lý ảo phục vụ người mua (Shopper) chỉ được cấp quyền đọc dữ liệu công khai; hệ thống phải ngăn chặn tuyệt đối các yêu cầu vượt quyền như thay đổi giá sản phẩm của người bán (Merchant) hoặc đọc giỏ hàng của tài khoản khác.
+\end{enumerate}
+
+\subsection{Mục tiêu và Phạm vi nghiên cứu}
+Đề tài hướng tới việc thiết kế, cài đặt và đánh giá toàn diện hệ thống trợ lý tư vấn sách tiếng Việt mang tên \textbf{Evidence Atlas}. Bốn mục tiêu khoa học và kỹ thuật bao gồm:
+\begin{enumerate}
+    \item Xây dựng trợ lý tư vấn có khả năng giải quyết các câu hỏi so sánh, tra cứu và tổng hợp đánh giá bằng tiếng Việt tự nhiên.
+    \item Thiết lập cơ chế neo dữ chứng nghiêm ngặt (\textit{Grounded Evidence Binding}): Mọi khẳng định trong câu trả lời phải được gắn với mã bằng chứng cụ thể và trải qua quy trình kiểm tra xâu văn bản chính xác (\textit{exact-span matching}) trước khi xuất xưởng.
+    \item Triển khai kiến trúc điều phối đa chuyên gia có kiểm soát (\textit{Bounded Multi-Expert Orchestration}) trên nền tảng phần mềm hướng sản xuất (\textit{production-oriented modular monolith}).
+    \item Tiến hành đo lường thực nghiệm khoa học, thực hiện phân tích triệt tiêu thành phần (\textit{ablation study}) nhằm làm rõ đóng góp thực chất của kiến trúc nhiều tác tử so với một tác tử, và đánh giá tác động quyết định của cơ chế tạo sinh tăng cường truy xuất (RAG).
+\end{enumerate}
+
+\textbf{Ranh giới và phạm vi dữ liệu:} Hệ thống vận hành trên snapshot dữ liệu lịch sử Tiki Books được trích xuất xác định từ bộ dữ liệu công bố trên Kaggle (ngày truy xuất 2026-08-24) \src{2}. Hệ thống không kết nối API trực tiếp theo thời gian thực tới sàn thương mại điện tử và không đưa ra các tuyên bố về tồn kho thực tế, doanh số động hay thị phần hiện hành.
+
+\subsection{Cơ sở lý thuyết và Công trình liên quan}
+
+\subsubsection{Hệ thống Đơn tác tử và giới hạn của Prompt phẳng (Single-Agent with Flat Tools)}
+Cách tiếp cận truyền thống khi xây dựng trợ lý AI là tích hợp toàn bộ các công cụ gọi hàm (\textit{tool calling/function calling}) vào một câu nhắc (\textit{flat prompt}) duy nhất cho một tác tử trung tâm. 
+
+Tuy nhiên, khi số lượng công cụ tăng lên (tra cứu danh mục, trích xuất đánh giá, phân tích phàn nàn, tìm kiếm ngữ nghĩa kho sách), mô hình đơn tác tử thường gặp hiện tượng \textit{tool proliferation}: nhầm lẫn giữa các tham số công cụ, gọi sai thứ tự logic, hoặc bị nhiễu ngữ cảnh khiến chất lượng câu trả lời suy giảm rõ rệt.
+
+\subsubsection{Hệ thống Nhiều tác tử (Multi-Agent Systems - MAS)}
+Nhằm khắc phục nhược điểm của tác tử đơn, các nghiên cứu gần đây như AutoGen \src{12}, MetaGPT \src{13} và CrewAI đề xuất phân chia bài toán thành nhiều tác tử chuyên trách, mỗi tác tử đảm nhận một vai trò cụ thể và giao tiếp với nhau thông qua hội thoại tự nhiên hoặc cấu trúc thông điệp.
+
+Mặc dù hệ thống nhiều tác tử cho thấy khả năng giải quyết các tác vụ phức tạp đòi hỏi nhiều bước tư duy, việc áp dụng nguyên mẫu này vào thương mại điện tử bộc lộ những rủi ro lớn:
+\begin{itemize}
+    \item \textbf{Hiện tượng suy luận vô tận (Infinite Reasoning Loops):} Các tác tử tự do đàm phán có thể rơi vào vòng lặp thảo luận không hồi kết, làm độ trễ tăng vọt không kiểm soát được.
+    \item \textbf{Bùng nổ chi phí token (Denial of Wallet):} Mỗi lượt trao đổi giữa các tác tử làm nhân bản ngữ cảnh, khiến chi phí gọi API mô hình tăng theo hàm số mũ.
+    \item \textbf{Khó khăn trong kiểm toán (Auditability):} Khi các tác tử tự do trao đổi văn bản tự nhiên không có cấu trúc ràng buộc, việc truy vết nguồn gốc của một khẳng định sai lệch trở nên bất khả thi.
+\end{itemize}
+
+\subsubsection{Kiến trúc Đa chuyên gia có chặn trên (Bounded Multi-Expert Orchestration)}
+Để dung hòa giữa khả năng chuyên môn hóa và yêu cầu an toàn phần mềm, đề tài này lựa chọn mô hình \textbf{Điều phối Đa chuyên gia có chặn trên}. 
+
+Trong mô hình này:
+\begin{itemize}
+    \item Các ``tác tử'' không phải là các thực thể tự hành hoàn toàn (\textit{autonomous agents}) có trí nhớ riêng biệt hay tự đàm phán tự do.
+    \item Thay vào đó, chúng là các \textbf{dịch vụ chuyên gia có định kiểu nghiêm ngặt (Typed Expert Services)}: Chuyên gia Thông tin sách (\texttt{product}), Chuyên gia Đánh giá (\texttt{review}), Chuyên gia Độ tin cậy/Phàn nàn (\texttt{trust}), và Chuyên gia Thị trường (\texttt{market}) \src{1}.
+    \item Toàn bộ quy trình lập kế hoạch và thực thi được quản lý bởi một bộ phận điều phối trung tâm (\texttt{Supervisor}). Supervisor vận hành theo các ràng buộc bất biến: số bước tối đa được chặn trên (\textit{bounded steps}), số lượng ứng viên cố định ($\le 5$), và việc phân bổ tài nguyên được kiểm soát chặt chẽ qua hạn mức ngân sách (\textit{budget scope}).
+\end{itemize}
+
+\subsubsection{Tạo sinh tăng cường truy xuất (RAG) và Kiểm chứng Bằng chứng}
+Phương pháp RAG (Lewis et al., 2020) \src{11} kết hợp mô hình truy xuất thông tin (\textit{retrieval}) với mô hình ngôn ngữ sinh văn bản (\textit{generation}) nhằm cung cấp ngữ cảnh chuẩn xác cho câu trả lời. 
+
+Trong hệ thống Evidence Atlas, RAG không chỉ dừng lại ở việc ghép văn bản vào câu nhắc mà được mở rộng thành quy trình **Kiểm chứng Căn cứ Hai lớp (Two-Phase Grounding Verification)**:
+\begin{enumerate}
+    \item \textbf{Lớp 1 - Ràng buộc Mã Bằng chứng (Evidence Binding):} Mô hình chỉ được lựa chọn các mã sự kiện và định danh sách đã được hệ thống máy chủ kiểm tra và phê duyệt.
+    \item \textbf{Lớp 2 - Kiểm tra Xâu Ký tự Chính xác (Exact-Span Verification):} Mọi phát biểu văn bản tự nhiên mang tính trích dẫn kiến thức bắt buộc phải khớp trực tiếp với từng đoạn văn bản trong nguồn tài liệu đã được lập chỉ mục, ngăn chặn triệt để hành vi bịa đặt trích dẫn.
+\end{enumerate}

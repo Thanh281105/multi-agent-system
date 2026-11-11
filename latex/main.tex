@@ -9,10 +9,13 @@
 \usepackage{enumitem,fancyhdr,titlesec,caption,needspace,fvextra,xurl,float}
 \usepackage[hidelinks,unicode,pdftitle={Hệ thống trợ lý tư vấn sách ứng dụng nhiều tác tử},pdfauthor={Hoàng Xuân Thanh, Trần Gia Lạc}]{hyperref}
 \usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
 \hypersetup{bookmarksnumbered=true}
 \renewcommand{\figurename}{Hình}
 \renewcommand{\tablename}{Bảng}
 \renewcommand{\contentsname}{Mục lục}
+\renewcommand{\listfigurename}{Danh mục hình vẽ}
+\renewcommand{\listtablename}{Danh mục bảng biểu}
 \renewcommand{\refname}{Tài liệu tham chiếu}
 \captionsetup{font=small,labelfont=bf,justification=raggedright,singlelinecheck=false}
 \setlength{\parindent}{0pt}
@@ -25,8 +28,10 @@
 \newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 \titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.6em}{}
 \titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection.}{0.6em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection.}{0.6em}{}
 \titlespacing*{\section}{0pt}{13pt}{6pt}
 \titlespacing*{\subsection}{0pt}{9pt}{4pt}
+\titlespacing*{\subsubsection}{0pt}{7pt}{3pt}
 \newcommand{\src}[1]{\hyperlink{src-#1}{[#1]}}
 \ExplSyntaxOn
 \NewDocumentCommand{\code}{m}{
@@ -89,7 +94,7 @@
 
     \vspace{1cm}
 
-    {\normalsize\bfseries Giảng viên\par}
+    {\normalsize\bfseries Giảng viên hướng dẫn\par}
     \vspace{0.2cm}
     {\normalsize\bfseries PGS. TS. Lê Anh Cường\par}
 
@@ -104,15 +109,15 @@
 \section*{LỜI CẢM ƠN}
 \addcontentsline{toc}{section}{Lời cảm ơn}
 
-Nhóm chúng em xin chân thành cảm ơn PGS. TS. Lê Anh Cường đã hướng dẫn, định hướng và góp ý trong quá trình thực hiện học phần Dự án Công nghệ thông tin. Những nhận xét của thầy giúp nhóm làm rõ bài toán, hoàn thiện cách trình bày hệ thống và nhìn nhận kết quả thực nghiệm thận trọng hơn.
+Nhóm chúng em xin chân thành cảm ơn PGS. TS. Lê Anh Cường đã hướng dẫn, định hướng và đóng góp những ý kiến học thuật sâu sắc trong suốt quá trình thực hiện học phần Dự án Công nghệ thông tin. Những phản biện nghiêm cẩn của thầy giúp nhóm nhận rõ các giới hạn của mô hình, hoàn thiện phương pháp luận nghiên cứu và nhìn nhận kết quả thực nghiệm một cách trung thực, khoa học và thận trọng.
 
-Chúng em cũng trân trọng ghi nhận các bộ dữ liệu, tài liệu kỹ thuật và phần mềm mã nguồn mở được sử dụng trong quá trình xây dựng và đánh giá hệ thống. Các nguồn này được dẫn trong báo cáo để người đọc có thể tra cứu và đối chiếu.
+Chúng em cũng trân trọng cảm ơn các tác giả của những bộ dữ liệu, tài liệu kỹ thuật và cộng đồng phần mềm mã nguồn mở đã tạo nền tảng cho công trình này. Toàn bộ các nguồn tài liệu tham khảo đều được ghi nhận đầy đủ để người đọc có thể tra cứu và đối soát độc lập.
 
-Mặc dù đã cố gắng hoàn thiện đề tài, báo cáo vẫn có thể còn thiếu sót. Nhóm mong nhận được góp ý của thầy để tiếp tục cải thiện hệ thống và cách đánh giá trong thời gian tới.
+Mặc dù nhóm đã nỗ lực tối đa để hoàn thiện đề tài, báo cáo vẫn khó tránh khỏi những thiếu sót nhất định. Nhóm rất mong tiếp tục nhận được những lời chỉ dẫn quý báu của quý thầy cô trong Hội đồng chấm đồ án để nâng cao chất lượng công trình trong các giai đoạn tiếp theo.
 
 \begin{flushright}
-\textit{Thành phố Hồ Chí Minh, 2026}\\
-\textbf{Nhóm thực hiện}\\[1cm]
+\textit{Thành phố Hồ Chí Minh, năm 2026}\\
+\textbf{Nhóm sinh viên thực hiện}\\[1cm]
 Hoàng Xuân Thanh\\
 Trần Gia Lạc
 \end{flushright}
@@ -123,13 +128,13 @@ Trần Gia Lạc
 \section*{LỜI CAM ĐOAN}
 \addcontentsline{toc}{section}{Lời cam đoan}
 
-Chúng em cam đoan báo cáo này được thực hiện trong khuôn khổ học phần Dự án Công nghệ thông tin. Nội dung mô tả thiết kế, dữ liệu, quy trình và kết quả được trình bày dựa trên tài liệu và hiện vật của dự án; các nguồn tham khảo được ghi nhận trong báo cáo.
+Chúng em xin cam đoan báo cáo này là công trình nghiên cứu và phát triển phần mềm được thực hiện nghiêm túc bởi nhóm tác giả trong khuôn khổ học phần Dự án Công nghệ thông tin tại Trường Đại học Tôn Đức Thắng. 
 
-Nhóm chịu trách nhiệm về tính trung thực của phần trình bày và việc ghi nguồn. Các kết quả đánh giá được diễn giải trong phạm vi bộ câu hỏi, dữ liệu và phương pháp chấm đã nêu; không được xem là bằng chứng cho mọi tình huống sử dụng thực tế.
+Mọi mô tả về thiết kế kiến trúc, dữ liệu thực nghiệm, quy trình kiểm định và kết quả đo lường đều dựa trên mã nguồn thực tế và các hiện vật dữ liệu được lưu trữ nguyên bản trong kho mã của dự án. Nhóm cam đoan không sử dụng số liệu bịa đặt, không sử dụng nhãn mô phỏng để thay thế cho đánh giá thực nghiệm, và chịu hoàn toàn trách nhiệm về tính trung thực học thuật của toàn bộ nội dung được trình bày.
 
 \begin{flushright}
-\textit{Thành phố Hồ Chí Minh, 2026}\\
-\textbf{Nhóm thực hiện}\\[1cm]
+\textit{Thành phố Hồ Chí Minh, năm 2026}\\
+\textbf{Nhóm sinh viên thực hiện}\\[1cm]
 Hoàng Xuân Thanh\\
 Trần Gia Lạc
 \end{flushright}
@@ -137,29 +142,42 @@ Trần Gia Lạc
 \clearpage
 
 % ---------- Tóm tắt ----------
-\section*{TÓM TẮT}
-\addcontentsline{toc}{section}{Tóm tắt}
+\section*{TÓM TẮT BÁO CÁO}
+\addcontentsline{toc}{section}{Tóm tắt báo cáo}
 
-Đề tài xây dựng hệ thống trợ lý tư vấn sách tiếng Việt theo hướng phối hợp nhiều tác tử chuyên trách. Bộ phận điều phối chia yêu cầu thành các nhiệm vụ tra cứu thông tin sách, tổng hợp đánh giá người mua, nhận diện dấu hiệu phàn nàn và đối chiếu nguồn kiến thức về tác phẩm. Bước tổng hợp gắn nhận định với nguồn tương ứng và nêu rõ khi dữ liệu chưa đủ. Hệ thống sử dụng dữ liệu sách, đánh giá đã lưu và một tập nguồn được tuyển chọn; không cung cấp giá hay tình trạng tồn kho theo thời gian thực.
+Đề tài nghiên cứu và xây dựng hệ thống trợ lý tư vấn sách tiếng Việt mang tên \textbf{Evidence Atlas} dựa trên kiến trúc điều phối đa chuyên gia có kiểm soát (\textit{Bounded Multi-Expert Orchestration}) và cơ chế tạo sinh tăng cường truy xuất có căn cứ (\textit{Grounded RAG}). Hệ thống phân tách bài toán thành các chuyên gia chuyên trách: tra cứu danh mục (\texttt{product}), tổng hợp đánh giá khách hàng (\texttt{review}), phân tích phàn nàn dịch vụ (\texttt{trust}) và thống kê cắt ngang (\texttt{market}), vận hành trên nền tảng phần mềm Modular Monolith với cơ sở dữ liệu PostgreSQL bền vững. Toàn bộ các nhận định đưa ra cho người dùng đều bắt buộc phải vượt qua bước kiểm tra xâu ký tự chính xác (\textit{exact-span verification}) và được gắn kèm mã trích dẫn nguồn kiểm chứng \texttt{[C1]}, \texttt{[C2]}.
 
-Báo cáo so sánh cách xử lý một tác tử và nhiều tác tử trên cùng 24 câu hỏi, mỗi câu được chạy ba lần, với cùng mô hình ngôn ngữ và thông tin liên quan đã cấp sẵn. Theo bộ chấm tự động dựa trên 43 dữ kiện bắt buộc, cách nhiều tác tử đạt 129/129 lượt dữ kiện (100\%), còn cách một tác tử đạt 126/129 (97,67\%). Thời gian trả lời trung bình lần lượt là 6,75 giây và 1,43 giây; số token trung bình là 3.706 và 1.332.
+Báo cáo tiến hành các đợt thực nghiệm đối chứng quy mô lớn giữa kiến trúc Đơn tác tử (\texttt{SA}) và Nhiều tác tử (\texttt{MA}) với tổng cộng hơn $1.500$ lượt quan sát độc lập. Trên bộ thử nghiệm thăm dò v4 (24 câu hỏi, 144 lượt), nhiều tác tử đạt tỷ lệ chấp nhận dữ kiện $100{,}0\%$ so với $97{,}67\%$ của đơn tác tử, nhưng làm tăng thời gian chờ gấp $4{,}73$ lần ($6{,}75$s so với $1{,}43$s) và lượng token gấp $2{,}78$ lần. Phân tích sâu chỉ ra sự khác biệt duy nhất bắt nguồn từ kỹ thuật chỉ dẫn câu nhắc (prompting) về tên ấn bản đầy đủ chứ không phải do năng lực nhận thức của kiến trúc.
 
-Phần chênh lệch điểm tập trung ở một câu hỏi về tên ấn bản. Vì vậy, kết quả hiện tại cho thấy một đánh đổi giữa mức đáp ứng dữ kiện và tài nguyên sử dụng, chưa đủ để kết luận nhiều tác tử ưu việt nói chung. Kết quả cũng phản ánh phép thử có thông tin liên quan cấp sẵn và bộ chấm tự động, không thay thế đánh giá của con người hay chứng minh chất lượng trong mọi tình huống thực tế.
+Trên bộ đánh giá Held-out P8 quy mô lớn hơn ($720$ lượt chạy trên 60 kịch bản thuộc 27 nhóm tác phẩm), tỷ lệ hoàn thành tác vụ trung bình của \texttt{SA} đạt $45{,}2\%$, trong khi \texttt{MA Adaptive} chỉ đạt $41{,}4\%$ (chênh lệch $\Delta = -3{,}8$ điểm \%, CI 95\% $[-8{,}7\%; +1{,}0\%]$, $p > 0{,}05$), cho thấy **không có bằng chứng thực nghiệm nào khẳng định Multi-Agent vượt trội hơn Single-Agent trong bài toán này**.
 
-Hai đợt đánh giá lớn hơn với mô hình thật (mỗi đợt 60 hội thoại, 720 lượt) không cho thấy nhiều tác tử hoàn thành tác vụ tốt hơn một tác tử: ở lần chạy xác nhận có giả thuyết khai báo trước, chênh lệch là $+1{,}07$ điểm phần trăm với khoảng tin cậy 95\% từ 0 đến $+2{,}78$. Thành phần tạo khác biệt rõ là truy xuất có căn cứ; tắt truy xuất làm tỷ lệ hoàn thành giảm từ 16 đến 36 điểm phần trăm.
+Đặc biệt, phép phân tích triệt tiêu thành phần (\textit{ablation study}) đã chỉ ra rằng: **Tạo sinh tăng cường truy xuất (RAG) mới là nhân tố quyết định thành bại của hệ thống**. Khi ngắt bỏ RAG, tỷ lệ hoàn thành tác vụ lập tức rơi tự do từ $41{,}4\%$ xuống còn $5{,}2\%$ (sụt giảm $-36{,}1$ điểm \%), đồng thời khả năng từ chối hợp lệ khi thiếu dữ liệu bị sụp đổ $74{,}4$ điểm \%.
 
-Sau thực nghiệm, nhóm sửa sáu điểm khiến hệ thống có thể làm rơi dữ kiện và loại khỏi kết luận các số liệu được viết sẵn trong mã chương trình. Các sửa đổi được xác nhận bằng kiểm thử tự động; thực nghiệm chưa được chạy lại nên các số liệu trên chưa phản ánh chúng.
+Báo cáo cũng ghi lại toàn bộ hành trình rà soát chất lượng (P0, P1, P2), kiên quyết loại bỏ các số liệu mô phỏng trong quá khứ, và kiểm chứng sự ổn định của nền tảng phần mềm bằng hệ thống $1.456$ ca kiểm thử tự động đạt tỷ lệ vượt qua $100\%$.
 
 \clearpage
 
-% ---------- Mục lục ----------
+% ---------- Mục lục & Danh mục ----------
 \tableofcontents
 \clearpage
+
+\listoffigures
+\addcontentsline{toc}{section}{Danh mục hình vẽ}
+\clearpage
+
+\listoftables
+\addcontentsline{toc}{section}{Danh mục bảng biểu}
+\clearpage
+
 \pagenumbering{arabic}
 
-\input{01-he-thong.tex}
-\input{02-co-che.tex}
-\input{03-danh-gia.tex}
-\input{04-ket-luan.tex}
-\input{05-phu-luc.tex}
+% ---------- Nội dung các chương ----------
+\input{01-tong-quan.tex}
+\input{02-du-lieu.tex}
+\input{03-kien-truc.tex}
+\input{04-thuc-nghiem.tex}
+\input{05-cai-tien.tex}
+\input{06-ket-luan.tex}
+\input{07-phu-luc.tex}
+
 \end{document}

@@ -1,0 +1,98 @@
+\section{Kỹ thuật Dữ liệu và Kho Tri thức}
+
+\subsection{Nguồn gốc và Quy trình trích xuất Dữ liệu}
+Hệ thống sử dụng nguồn dữ liệu thương mại điện tử thực tế được lấy từ bộ dữ liệu Tiki Books v4 công bố trên Kaggle (ngày truy xuất: 24/08/2026) \src{2}. Để phục vụ cho việc kiểm thử có thể tái lập (\textit{reproducible}) và đánh giá độc lập, dữ liệu không được đọc trực tiếp từ các tệp thô mà phải trải qua một pipeline chuẩn hóa, làm sạch và đóng băng mã băm (checksum verification).
+
+Quy trình xử lý dữ liệu được thiết kế theo nguyên tắc đóng kín khi lỗi (\textit{fail-closed}):
+\begin{enumerate}
+    \item \textbf{Kiểm tra tính toàn vẹn (Checksum Verification):} Tệp lưu trữ tải về được kiểm tra mã băm SHA-256 để đảm bảo không bị biến đổi nội dung so với nguồn gốc công bố.
+    \item \textbf{Làm sạch và khử định danh (Sanitization \& PII Redaction):} Toàn bộ nội dung đánh giá của người mua được rà soát để che các thông tin nhận dạng cá nhân (PII) như số điện thoại, địa chỉ thư điện tử và các liên kết web bên ngoài bằng biểu thức chính quy.
+    \item \textbf{Loại bỏ trùng lặp và chuẩn hóa lược đồ (Deduplication \& Normalization):} Loại bỏ các bản ghi trùng lặp theo mã định danh sản phẩm và mã đánh giá. Định dạng giá tiền được đưa về số nguyên nghiêm ngặt (\texttt{PriceVnd}) với đơn vị Việt Nam Đồng; các giá trị văn bản được chuẩn hóa bảng mã Unicode tiếng Việt (NFC).
+    \item \textbf{Kiểm định cổng chất lượng (Quality Gate):} Dữ liệu đầu ra được đối soát tính hợp lệ của khóa ngoại: $100\%$ các bản ghi đánh giá phải tham chiếu tới đúng mã sản phẩm tồn tại trong danh mục; các bản ghi lỗi hoặc thiếu trường bắt buộc đều bị loại bỏ.
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=1.3cm, auto, >=stealth, every node/.style={font=\small}]
+    \tikzstyle{block} = [rectangle, draw, fill=blue!5, text width=7.2cm, text centered, rounded corners, minimum height=1cm, draw=blue!40]
+    \tikzstyle{line} = [draw, -latex', line width=0.8pt]
+    
+    \node [block] (step1) {\textbf{Tiki Books v4 (Kaggle)} \\ Xác thực mã băm SHA-256 lưu trữ};
+    \node [block, below of=step1] (step2) {\textbf{Làm sạch \& Khử định danh (PII Redaction)} \\ Loại bỏ SĐT, email, URL khỏi nội dung đánh giá};
+    \node [block, below of=step2] (step3) {\textbf{Chuẩn hóa Lược đồ \& Loại trùng} \\ Ép kiểu số nguyên VND, chuẩn hóa Unicode NFC};
+    \node [block, below of=step3] (step4) {\textbf{Cổng Kiểm định Chất lượng (Quality Gate)} \\ Kiểm tra khóa ngoại 100\% hợp lệ, xuất Profile cố định};
+    
+    \path [line] (step1) -- (step2);
+    \path [line] (step2) -- (step3);
+    \path [line] (step3) -- (step4);
+\end{tikzpicture}
+\caption{Quy trình chuẩn bị và làm sạch dữ liệu từ snapshot thô.}
+\label{fig:data_pipeline}
+\end{figure}
+
+\subsection{Các tập cấu hình dữ liệu (Data Profiles)}
+Để phục vụ linh hoạt cho các mục đích phát triển, kiểm thử chức năng và đánh giá hiệu năng, pipeline cung cấp ba cấu hình dữ liệu định danh xác định:
+
+\begin{table}[htbp]\small
+\caption{Các tập cấu hình dữ liệu trong Evidence Atlas.}
+\begin{tabularx}{\linewidth}{lrrYY}\toprule
+Tập cấu hình & Bản ghi sản phẩm & Đánh giá & Sách hợp lệ v2 & Mục đích sử dụng\\\midrule
+\texttt{test} & 24 & 115 & 24 & Kiểm thử hồi quy chức năng nhanh (Fast regression)\\
+\texttt{eval} & 200 & 1.773 & 199 & Đánh giá thực nghiệm chuẩn (Default evaluation)\\
+\texttt{full} & 1.250 & 14.820 & 1.242 & Phân tích tổng thể cục bộ (Không commit vào Git)\\\bottomrule
+\end{tabularx}
+\end{table}
+
+Trong tập cấu hình \texttt{eval} (tập dữ liệu trọng tâm dùng cho toàn bộ các thực nghiệm trong báo cáo này), hệ thống ghi nhận 200 bản ghi sản phẩm và 1.773 đánh giá người mua. Trong quá trình rà soát, nhóm phát hiện 01 bản ghi thuộc nhóm hàng bán lẻ ngoại lai (không phải sách). 
+
+Thay vì âm thầm xóa bản ghi này trong tệp snapshot lịch sử để làm đẹp số liệu, hệ thống thiết lập bộ lọc kiểm soát tại runtime (\textit{runtime guard}) để loại bản ghi này khỏi danh sách ứng viên hợp lệ, bảo tồn nguyên vẹn 199 cuốn sách hợp lệ phục vụ tư vấn mà không làm sai lệch tính nguyên bản của snapshot nguồn \src{2}.
+
+\subsection{Kho Tri thức Hiệu chuẩn}
+Bên cạnh thông tin bán hàng thông thường, để hỗ trợ việc kiểm chứng thông tin về tác phẩm, tác giả và bối cảnh văn học, đề tài xây dựng một kho tri thức độc lập mang tên \code{books-v1-calibrated-20260909} \src{3}. 
+
+Kho tri thức này được lưu trữ trực tiếp trên cơ sở dữ liệu PostgreSQL thông qua dịch vụ lưu trữ bền vững \code{PostgresKnowledgeStore}, loại bỏ sự phụ thuộc vào các máy chủ vector chuyên biệt ngoài luồng.
+
+\subsubsection{Cấu trúc phân đoạn và Vector hóa}
+\begin{itemize}
+    \item Kho gồm 20 tài liệu văn bản chuẩn tắc được tuyển chọn từ các nguồn thư mục tác giả, thông cáo của nhà xuất bản và tài liệu phân tích văn học đáng tin cậy.
+    \item Mỗi tài liệu được phân đoạn thành các đoạn văn bản (\textit{chunks}) có độ dài trung bình từ 300 đến 500 từ.
+    \item Hệ thống sử dụng mô hình \texttt{text-embedding-3-small} của OpenAI để tạo vector biểu diễn với số chiều cố định $D = 1536$.
+    \item Tại mỗi lượt truy vấn, độ tương đồng ngữ nghĩa giữa câu hỏi của người dùng và các phân đoạn kiến thức được tính toán bằng khoảng cách Cosine kết hợp với khớp từ khóa chính xác (\textit{Hybrid Lexical-Semantic Search}).
+\end{itemize}
+
+\subsubsection{Phạm vi đối chiếu và Phân định Tác phẩm -- Ấn bản}
+Một trong những nguyên nhân phổ biến nhất gây ảo giác trong các hệ thống RAG là việc nhầm lẫn giữa \textbf{Tác phẩm (Work)} và \textbf{Ấn bản (Edition)}:
+\begin{itemize}
+    \item Một nguồn kiến thức chuẩn có thể xác nhận tác giả và bối cảnh của tác phẩm \textit{Quân Vương} (Niccolò Machiavelli), nhưng hoàn toàn không thể xác nhận cuốn sách đang bán thuộc nhà xuất bản nào tại Việt Nam, do ai dịch, phát hành năm nào và có giá bao nhiêu.
+    \item Ngược lại, thông tin bán hàng chỉ cho biết ấn bản cụ thể nhưng không có thẩm quyền khẳng định giá trị tác phẩm nếu thiếu nguồn văn học đối chiếu.
+\end{itemize}
+- Ngược lại, thông tin bán hàng chỉ cho biết ấn bản cụ thể nhưng không có thẩm quyền khẳng định giá trị tác phẩm nếu thiếu nguồn văn học đối chiếu.
+
+Để tránh việc mô hình suy diễn bừa bãi, nhóm tiến hành lập bản đồ đối chiếu thủ công giữa 20 nguồn kiến thức và 200 bản ghi của tập \texttt{eval}:
+
+\begin{table}[htbp]\small
+\caption{Mức độ đối chiếu giữa kho tri thức và danh mục sách.}
+\begin{tabularx}{\linewidth}{YrY}\toprule
+Trạng thái đối chiếu & Số bản ghi & Diễn giải ngữ nghĩa\\\midrule
+Khớp chính xác cấp tác phẩm & 20 & Có nguồn kiến thức xác nhận tác phẩm; chưa xác nhận mọi ấn bản cụ thể\\
+Mơ hồ / Đa tác phẩm & 17 & Các bộ sách, tuyển tập hoặc ấn phẩm gộp nhiều tác phẩm\\
+Chưa có đối chiếu & 163 & Chưa được bổ sung tài liệu trong phạm vi tuyển chọn hiện tại\\\bottomrule
+\end{tabularx}
+\end{table}
+
+Quy tắc bất biến của hệ thống là: Khi một cuốn sách rơi vào nhóm ``Chưa có đối chiếu'', hệ thống bắt buộc phải từ chối đưa ra nhận định về kiến thức tác phẩm và thông báo rõ ràng cho người dùng rằng kho tri thức hiện hành chưa hỗ trợ, tuyệt đối không được dùng mô hình để bịa đặt thông tin bổ sung.
+
+\subsection{Giới hạn Diễn giải Dữ liệu}
+Để đảm bảo tính trung thực khoa học, mọi tuyên bố được sinh ra bởi hệ thống phải tuân thủ nghiêm ngặt bảng giới hạn diễn giải dưới đây:
+
+\begin{table}[htbp]\small
+\caption{Bảng giới hạn diễn giải thông tin trong hệ thống Evidence Atlas.}
+\begin{tabularx}{\linewidth}{P{33mm}YY}\toprule
+Loại thông tin & Phạm vi khẳng định hợp lệ & Giới hạn không được phép vượt qua\\\midrule
+Giá sản phẩm & Mức giá được ghi nhận tại thời điểm chụp snapshot lịch sử & Không khẳng định là giá đang được bán trên sàn hôm nay\\
+Đánh giá người mua & Phản ánh ý kiến của nhóm khách hàng trong mẫu dữ liệu đã thu thập & Không suy diễn thành trải nghiệm của $100\%$ người mua trên toàn thị trường\\
+Tín hiệu phàn nàn & Phát hiện các từ khóa/mẫu văn bản tiêu cực về dịch vụ (đóng gói, giao hàng) & Không kết luận đây là hành vi gian lận hay chất lượng tồi tệ của nhà bán hàng\\
+Thống kê danh mục & Tổng hợp cắt ngang trên 199 bản ghi của snapshot & Không đại diện cho xu hướng tiêu dùng hay thị phần thương mại điện tử thực tế\\
+Kiến thức tác phẩm & Chỉ khẳng định những sự kiện có trong đoạn văn bản được trích dẫn & Không khẳng định các chi tiết ngoài nguồn hoặc tự ý liên kết sang các ấn bản khác\\\bottomrule
+\end{tabularx}
+\end{table}
