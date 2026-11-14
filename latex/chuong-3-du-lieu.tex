@@ -1,0 +1,221 @@
+\chapter{Dữ liệu và kho tri thức}
+\label{ch:du-lieu}
+
+Một trợ lý tư vấn chỉ đáng tin khi dữ liệu phía sau đáng tin. Chương này mô tả nguồn dữ liệu sách, quy trình làm sạch, các bộ dữ liệu được tạo ra, và kho tri thức dùng cho việc tra cứu. Mọi con số trong chương được lấy từ bản kê và báo cáo chất lượng do chính quy trình xử lý sinh ra \src{15}, \src{16}.
+
+\section{Nguồn dữ liệu}
+
+Dữ liệu gốc là bộ \emph{Tiki Books Dataset} được chia sẻ công khai trên Kaggle \src{13}, phiên bản 4, với giấy phép CC0-1.0 (cho phép sử dụng tự do). Nhóm tải bộ dữ liệu vào ngày 24/8/2026. Bộ dữ liệu gồm hai tệp bảng:
+
+\begin{itemize}
+    \item tệp thông tin sách: 1.796 dòng, mỗi dòng là một đầu sách với tên, tác giả, nhà xuất bản, giá, điểm đánh giá, số trang, thể loại;
+    \item tệp nhận xét: 141.281 dòng, mỗi dòng là một nhận xét của người mua kèm số sao.
+\end{itemize}
+
+Để chắc chắn mọi lần chạy đều dùng đúng một bản dữ liệu, nhóm ghi lại mã băm SHA-256 của tệp nén gốc. Mã băm là một chuỗi ký tự được tính từ nội dung tệp; chỉ cần tệp thay đổi một ký tự thì mã băm cũng khác. Trước mỗi lần xử lý, quy trình tính lại mã băm và so với giá trị đã ghi; nếu không khớp thì dừng ngay.
+
+Cần nhấn mạnh rằng đây là một \textbf{bản chụp trong quá khứ}, không phải dữ liệu trực tiếp từ sàn bán hàng. Giá và điểm đánh giá trong báo cáo là giá trị tại thời điểm bộ dữ liệu được thu thập, không phải giá hiện tại.
+
+\section{Quy trình chuẩn bị dữ liệu}
+
+Dữ liệu gốc không thể dùng ngay: có dòng trùng lặp, có nhận xét rỗng, có nhận xét trỏ tới sách không tồn tại, và có thông tin riêng tư do người mua tự viết vào. Nhóm xây dựng một quy trình gồm tám bước như Hình~\ref{fig:xu-ly-du-lieu}. Toàn bộ quy trình chạy tự động và cho cùng một kết quả mỗi lần chạy, nhờ dùng một hạt giống ngẫu nhiên cố định ở bước chọn mẫu.
+
+\hinh{xu-ly-du-lieu}{Tám bước chuẩn bị dữ liệu, từ tệp gốc đến cơ sở dữ liệu}{fig:xu-ly-du-lieu}
+
+\textbf{Bước 1 và 2: tải và kiểm tra.} Tệp được tải về dưới một tên tạm, chỉ được đổi sang tên chính thức sau khi mã băm khớp. Nhờ vậy không bao giờ có một tệp tải dở bị dùng nhầm. Quy trình cũng kiểm tra tệp nén có đúng hai tệp bảng với đúng các cột mong đợi.
+
+\textbf{Bước 3: làm sạch và bỏ trùng.} Bước này áp dụng cho toàn bộ dữ liệu gốc, trước khi chọn mẫu. Bảng~\ref{tab:lam-sach} cho thấy số bản ghi bị loại và lý do.
+
+\begin{table}[!htbp]
+\caption{Kết quả làm sạch trên toàn bộ dữ liệu gốc}
+\label{tab:lam-sach}
+\cobang
+\begin{tabularx}{\linewidth}{YR{3.2cm}}
+\toprule
+\textbf{Hạng mục} & \textbf{Số bản ghi}\\
+\midrule
+Số đầu sách trong tệp gốc & 1.796\\
+\quad Bị loại vì trùng mã định danh & 19\\
+\textbf{Số đầu sách sau làm sạch} & \textbf{1.777}\\
+\midrule
+Số nhận xét trong tệp gốc & 141.281\\
+\quad Bị loại vì nội dung rỗng & 33.451\\
+\quad Bị loại vì không gắn với đầu sách hợp lệ nào & 15.659\\
+\quad Bị loại vì trùng mã định danh & 15.416\\
+\textbf{Số nhận xét sau làm sạch} & \textbf{76.755}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Như vậy gần một nửa số nhận xét gốc (45,7\%) không dùng được. Nếu bỏ qua bước này, các phép thống kê trên nhận xét và cả câu trả lời của trợ lý đều bị ảnh hưởng.
+
+\textbf{Bước 4: che thông tin riêng tư.} Người mua đôi khi viết số điện thoại, địa chỉ email hoặc đường liên kết vào nhận xét. Quy trình thay các thông tin này bằng nhãn chung. Trên toàn bộ dữ liệu, có 118 số điện thoại, 76 đường liên kết và 21 địa chỉ email đã được che. Mã định danh của người mua cũng bị loại bỏ hoàn toàn, không đưa vào dữ liệu đã xử lý.
+
+\textbf{Bước 5: chọn mẫu theo hồ sơ.} Từ dữ liệu sạch, quy trình tạo ra các bộ dữ liệu có kích thước khác nhau cho các mục đích khác nhau (Mục~\ref{sec:ho-so}). Sách được chọn luân phiên theo thể loại để bộ mẫu trải đều nhiều thể loại. Nhận xét của mỗi cuốn được chọn theo từng mức sao để giữ được cả lời khen lẫn lời chê.
+
+\textbf{Bước 6: ghi kết quả.} Mỗi bộ dữ liệu gồm đúng bốn tệp: tệp sách, tệp nhận xét, bản kê (ghi nguồn gốc, phiên bản, số lượng và mã băm của từng tệp) và báo cáo chất lượng (ghi số bản ghi vào, ra, bị loại, bị che và tỉ lệ có dữ liệu của từng trường).
+
+\textbf{Bước 7: cổng chất lượng.} Trước khi được dùng, bộ dữ liệu phải qua một loạt kiểm tra. Quy trình dừng lại nếu gặp một trong các tình huống sau: mã định danh bị trùng; còn nhận xét không gắn với sách nào; còn sót số điện thoại, email hoặc đường liên kết; có bản ghi thiếu mã định danh bắt buộc; có bản ghi không đến từ đúng sàn nguồn; số lượng hoặc mã băm không khớp với bản kê; thiếu bất kỳ tệp nào trong bốn tệp.
+
+\textbf{Bước 8: nạp vào cơ sở dữ liệu.} Dữ liệu được nạp trong một giao dịch duy nhất: hoặc toàn bộ được ghi, hoặc không có gì được ghi. Sau khi nạp, quy trình đọc lại và so với bản kê một lần nữa. Nạp lại đúng bộ dữ liệu đã có thì không tạo bản ghi trùng; nạp một bộ khác vào cơ sở dữ liệu đang chứa bộ cũ thì bị từ chối.
+
+\section{Các bộ dữ liệu được tạo ra}
+\label{sec:ho-so}
+
+Từ cùng một dữ liệu sạch, quy trình tạo ba bộ dữ liệu như Bảng~\ref{tab:ho-so}.
+
+\begin{table}[!htbp]
+\caption{Ba bộ dữ liệu được tạo từ dữ liệu sạch}
+\label{tab:ho-so}
+\cobang
+\begin{tabularx}{\linewidth}{P{2.6cm}R{1.8cm}R{2.0cm}Y}
+\toprule
+\textbf{Bộ dữ liệu} & \textbf{Số sách} & \textbf{Số nhận xét} & \textbf{Mục đích}\\
+\midrule
+Bộ thử nghiệm & 24 & 115 & Kiểm thử tự động; nhỏ để chạy nhanh. Mỗi sách tối đa 5 nhận xét.\\
+Bộ đánh giá & 200 & 1.773 & Dùng cho toàn bộ thực nghiệm trong báo cáo và cho bản chạy mặc định. Mỗi sách tối đa 10 nhận xét.\\
+Bộ đầy đủ & 1.777 & 76.755 & Toàn bộ dữ liệu sạch, không chọn mẫu. Không lưu sẵn trong kho mã vì kích thước lớn, có thể tạo lại khi cần.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Toàn bộ kết quả thực nghiệm trong báo cáo đều dùng \textbf{bộ đánh giá}. Phần còn lại của mục này mô tả bộ dữ liệu đó.
+
+\subsection{Thông tin của mỗi đầu sách}
+
+Mỗi đầu sách có các trường như Bảng~\ref{tab:truong-sach}. Cột cuối cho biết tỉ lệ sách có dữ liệu ở trường đó; con số này lấy từ báo cáo chất lượng.
+
+\begin{table}[!htbp]
+\caption{Các trường thông tin của một đầu sách trong bộ đánh giá}
+\label{tab:truong-sach}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.6cm}YR{2.6cm}}
+\toprule
+\textbf{Trường} & \textbf{Ý nghĩa} & \textbf{Tỉ lệ có dữ liệu}\\
+\midrule
+Tên sách & Tên đầy đủ như trên trang bán, gồm cả ghi chú tái bản & 100\%\\
+Giá bán, giá gốc & Tính bằng đồng, tại thời điểm thu thập & 100\%\\
+Điểm đánh giá & Điểm trung bình trên thang 5 sao & 100\%\\
+Thể loại & Nhóm sách theo cách phân loại của trang bán & 100\%\\
+Mức phổ biến & Chỉ số phổ biến do nguồn cung cấp & 98,0\%\\
+Số trang & Số trang ghi trên trang bán & 87,0\%\\
+Tác giả & Danh sách tác giả & 86,5\%\\
+Nhà xuất bản & Tên nhà xuất bản & 84,5\%\\
+Người bán & Không có trong dữ liệu gốc & 0\%\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Có hai điểm cần lưu ý. Thứ nhất, \emph{mức phổ biến} trong dữ liệu gốc mang tên giống như ``số lượng đã bán'', nhưng không có cách nào xác minh đó là doanh số thật. Hệ thống vì vậy chỉ coi đây là một chỉ số phổ biến tương đối và không bao giờ gọi là doanh số. Thứ hai, dữ liệu hoàn toàn không có thông tin người bán và thời điểm viết nhận xét, nên hệ thống không thể trả lời các câu hỏi về người bán hay về xu hướng theo thời gian.
+
+\subsection{Một vài con số mô tả}
+
+Bảng~\ref{tab:mo-ta} tóm tắt bộ đánh giá. Các con số do nhóm tính trực tiếp từ hai tệp dữ liệu.
+
+\begin{table}[!htbp]
+\caption{Thống kê mô tả bộ đánh giá}
+\label{tab:mo-ta}
+\cobang
+\begin{tabularx}{\linewidth}{YR{5.4cm}}
+\toprule
+\textbf{Đại lượng} & \textbf{Giá trị}\\
+\midrule
+Số đầu sách & 200\\
+Số thể loại & 74\\
+Giá bán thấp nhất -- cao nhất & 9.600 -- 590.000 đồng\\
+Giá bán ở giữa (trung vị) & khoảng 109.600 đồng\\
+Điểm đánh giá trung bình của các đầu sách & 4,72 trên 5\\
+Số trang (trên 174 sách có dữ liệu), trung vị & 296 trang\\
+\midrule
+Số nhận xét & 1.773\\
+Số nhận xét mỗi sách & từ 1 đến 10\\
+Độ dài nhận xét, trung vị & 65 ký tự\\
+Nhận xét 5 sao & 827 (46,6\%)\\
+Nhận xét 4 sao & 379 (21,4\%)\\
+Nhận xét 3 sao & 224 (12,6\%)\\
+Nhận xét 2 sao & 124 (7,0\%)\\
+Nhận xét 1 sao & 219 (12,4\%)\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Phần lớn nhận xét là 4 và 5 sao, đúng với thực tế chung của các trang bán hàng. Tuy vậy, nhờ chọn nhận xét theo từng mức sao, bộ dữ liệu vẫn giữ được 343 nhận xét 1 và 2 sao (19,3\%). Đây là nguồn thông tin quan trọng cho các câu hỏi kiểu ``người mua phàn nàn điều gì''. Nhận xét nhìn chung ngắn: một nửa số nhận xét không dài quá 65 ký tự.
+
+Trong 200 bản ghi có một bản ghi không phải là sách (một lốc sữa bị xếp nhầm vào danh mục sách ở dữ liệu gốc). Nhóm không xoá bản ghi này khỏi dữ liệu, vì muốn giữ đúng những gì nguồn cung cấp. Thay vào đó, hệ thống có một bước lọc lúc chạy để loại bản ghi này khỏi kết quả tìm kiếm và các phép thống kê.
+
+\section{Kho tri thức}
+\label{sec:kho-tri-thuc}
+
+\subsection{Vì sao cần kho tri thức}
+
+Danh mục và nhận xét trả lời được các câu hỏi về giá, điểm đánh giá và trải nghiệm mua hàng. Nhưng người đọc còn hỏi về bản thân tác phẩm: sách viết về chủ đề gì, tác giả là ai, tên gốc là gì, ai dịch. Phần mô tả trong danh mục thường là lời quảng cáo, không phải nguồn đáng tin cho những câu hỏi này. Nếu để mô hình tự trả lời theo trí nhớ thì không có gì bảo đảm đúng.
+
+Nhóm vì vậy xây dựng một kho tri thức nhỏ: với mỗi tác phẩm, nhóm tìm một nguồn chính thống (trang của nhà xuất bản, trang của tác giả, hoặc thư mục của thư viện), rồi \emph{tự viết lại} một ghi chú ngắn nêu các thông tin kiểm chứng được. Kho không chứa nội dung sách, không chép lại lời quảng cáo của nhà xuất bản, không chứa nhận xét của người mua, và không chứa bất kỳ câu hỏi hay đáp án nào của bộ đánh giá.
+
+\subsection{Mức độ bao phủ}
+
+Mỗi đầu sách trong bộ đánh giá được xếp vào đúng một trong ba nhóm, như Hình~\ref{fig:do-phu}.
+
+\hinh{do-phu-tri-thuc}{Mức độ đối chiếu được giữa 200 đầu sách và kho tri thức}{fig:do-phu}
+
+\begin{itemize}
+    \item \textbf{20 sách có nguồn xác nhận tác phẩm.} Nguồn chính thống xác nhận được đây là tác phẩm nào, của ai. Kho tri thức có đúng 20 ghi chú cho 20 tác phẩm này.
+    \item \textbf{17 bản ghi là bộ gộp nhiều tác phẩm.} Đây là các bộ sách hoặc combo gồm nhiều cuốn bán chung. Gán cả bộ cho một tác phẩm duy nhất sẽ sai, nên nhóm không tạo ghi chú.
+    \item \textbf{163 sách chưa có nguồn đối chiếu.} Trong đợt xây dựng kho đầu tiên, nhóm chưa tìm và kiểm tra nguồn cho các sách này.
+\end{itemize}
+
+Như vậy kho tri thức chỉ bao phủ 10\% số đầu sách. Đây là giới hạn lớn của đề tài và ảnh hưởng trực tiếp tới kết quả: với 180 cuốn còn lại, mọi câu hỏi về nội dung tác phẩm đều phải nhận phản hồi ``không đủ căn cứ''.
+
+\subsection{Phân biệt tác phẩm và ấn bản}
+
+Một chi tiết tinh tế nhưng quan trọng là phân biệt \emph{tác phẩm} với \emph{ấn bản}. Tác phẩm là nội dung do tác giả viết ra. Ấn bản là một lần in cụ thể, có số trang, bìa, năm in và người dịch riêng. Nguồn chính thống thường mô tả một ấn bản tiếng Anh, trong khi sách trong danh mục là ấn bản tiếng Việt.
+
+Nhóm quy ước: ghi chú trong kho tri thức chỉ nêu thông tin ở cấp tác phẩm (tác giả, chủ đề, tên gốc), không nêu thông tin ở cấp ấn bản (số trang, năm in). Bảng~\ref{tab:vi-du-an-ban} cho ba ví dụ về sự khác nhau giữa nguồn và danh mục; nếu không tách hai cấp này, hệ thống sẽ đưa ra các con số mâu thuẫn nhau.
+
+\begin{table}[!htbp]
+\caption{Ví dụ khác biệt giữa nguồn chính thống và danh mục}
+\label{tab:vi-du-an-ban}
+\cobang
+\begin{tabularx}{\linewidth}{P{4.2cm}YY}
+\toprule
+\textbf{Tác phẩm} & \textbf{Nguồn chính thống ghi} & \textbf{Danh mục ghi}\\
+\midrule
+Những Giấc Mơ Ở Hiệu Sách Morisaki & Thư mục của Thư viện Quốc gia Việt Nam: 177 trang & 180 trang\\
+Tiểu sử Steve Jobs & Nhà xuất bản tiếng Anh: 656 trang & 758 trang (ấn bản tiếng Việt)\\
+Quốc Gia Khởi Nghiệp & Hai tác giả: Dan Senor và Saul Singer & Chỉ ghi một tác giả\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Ở ví dụ thứ ba, danh mục ghi thiếu một tác giả. Ghi chú trong kho tri thức giữ đầy đủ cả hai tác giả như nguồn chính thống. Khi người dùng hỏi về tác giả, hệ thống trả lời theo nguồn và nói rõ thông tin lấy từ đâu.
+
+\subsection{Cách lưu trữ và tìm kiếm}
+
+Bảng~\ref{tab:kho-tri-thuc} tóm tắt các thông số của kho tri thức.
+
+\begin{table}[!htbp]
+\caption{Thông số của kho tri thức dùng trong thực nghiệm}
+\label{tab:kho-tri-thuc}
+\cobang
+\begin{tabularx}{\linewidth}{P{5.4cm}Y}
+\toprule
+\textbf{Thông số} & \textbf{Giá trị}\\
+\midrule
+Số nguồn & 20\\
+Số đoạn văn được lập chỉ mục & 20 (mỗi nguồn là một đoạn)\\
+Loại nguồn & Nhà xuất bản, trang tác giả, thư viện quốc gia, thư mục sách công cộng\\
+Mô hình chuyển văn bản thành véc-tơ & text-embedding-3-small, véc-tơ 1.536 chiều\\
+Cách tìm & Tìm kiếm lai: theo từ khoá và theo nghĩa\\
+Nơi lưu & Cùng cơ sở dữ liệu PostgreSQL với danh mục\\
+Ngày kiểm tra nguồn & 9/9/2026\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Mỗi ghi chú được lưu kèm phiên bản, ngày truy cập nguồn và mã băm nội dung. Khi một lượt hỏi bắt đầu, hệ thống ghi lại phiên bản kho tri thức đang dùng và giữ nguyên phiên bản đó cho đến khi trả lời xong. Nhờ vậy, mỗi trích dẫn trong câu trả lời luôn chỉ tới đúng nội dung mà hệ thống đã đọc, kể cả khi kho tri thức được cập nhật sau đó.
+
+Quyền đọc kho tri thức cũng được kiểm soát: chỉ người dùng đã đăng nhập hợp lệ và có quyền đọc dữ liệu mới tra cứu được.
+
+\section{Tóm tắt chương}
+
+Dữ liệu của đề tài đi từ một bộ dữ liệu công khai có giấy phép rõ ràng, qua quy trình tám bước có kiểm tra ở từng bước, tới một bộ đánh giá gồm 200 đầu sách và 1.773 nhận xét. Kho tri thức gồm 20 ghi chú tự viết từ nguồn chính thống, bao phủ 10\% số đầu sách. Hai giới hạn chính của dữ liệu là: không có thông tin người bán và thời gian, và kho tri thức còn nhỏ. Cả hai đều được hệ thống xử lý bằng cách nói rõ khi không đủ căn cứ, thay vì suy đoán.

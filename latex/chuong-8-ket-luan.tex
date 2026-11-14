@@ -1,0 +1,83 @@
+\chapter{Kết luận và hướng phát triển}
+\label{ch:ket-luan}
+
+\section{Những việc đã làm được}
+
+Đối chiếu với các mục tiêu nêu ở Chương~\ref{ch:gioi-thieu}, đề tài đã đạt được các kết quả sau.
+
+\textbf{Về sản phẩm.} Nhóm đã xây dựng Evidence Atlas, một trợ lý tư vấn sách bằng tiếng Việt chạy được từ đầu đến cuối: từ giao diện web, qua máy chủ, tới cơ sở dữ liệu. Hệ thống tìm và so sánh sách, tóm tắt nhận xét của người mua, trả lời về tác phẩm kèm trích dẫn, nhớ ngữ cảnh qua nhiều lượt hỏi, và chuẩn bị các đề xuất thao tác chờ người dùng xác nhận.
+
+\textbf{Về dữ liệu.} Nhóm đã xây dựng một quy trình tám bước biến bộ dữ liệu công khai thành dữ liệu dùng được, có kiểm tra ở từng bước, có che thông tin riêng tư, và cho kết quả giống nhau ở mỗi lần chạy. Nhóm cũng xây dựng một kho tri thức gồm 20 ghi chú tự viết từ nguồn chính thống.
+
+\textbf{Về thiết kế.} Hệ thống phân chia rõ việc của chương trình và việc của mô hình ngôn ngữ. Quyền, hạn mức, số liệu và trích dẫn do chương trình nắm. Mỗi nhận định phải qua hai lần kiểm tra trước khi tới người dùng. Trong 720 lượt chạy của đợt 2, không có lần nào hệ thống thực hiện việc vượt quyền.
+
+\textbf{Về đánh giá.} Nhóm đã thực hiện ba đợt thực nghiệm với tổng cộng 1.584 câu trả lời (1.583 câu được chấm), trong đó đợt thứ ba có đăng ký giả thuyết trước. Mỗi chênh lệch được báo cáo kèm khoảng tin cậy.
+
+\textbf{Về tính trung thực.} Nhóm đã rà soát lại số liệu của chính mình, phát hiện và loại bỏ các bảng không đến từ phép đo thật, và báo cáo cả những kết quả không có lợi cho giả thuyết ban đầu.
+
+\section{Kết luận chính}
+
+Từ ba đợt thực nghiệm, nhóm rút ra bốn kết luận. Phạm vi của chúng là bài toán tư vấn sách, bộ dữ liệu và mô hình đã dùng trong đề tài.
+
+\begin{enumerate}
+    \item \textbf{Chưa có bằng chứng cho thấy nhiều tác tử tốt hơn một tác tử.} Qua ba đợt, chênh lệch về tỉ lệ hoàn thành nhiệm vụ giữa hai cách tổ chức luôn nhỏ hơn 4 \pp{} và khoảng tin cậy luôn chứa hoặc chạm số 0. Ba giả thuyết đăng ký trước về lợi thế của nhiều tác tử đều không được ủng hộ.
+
+    \item \textbf{Tra cứu tài liệu có trích nguồn là thành phần có tác dụng rõ ràng.} Tắt tra cứu làm tỉ lệ hoàn thành nhiệm vụ giảm 36,11 \pp{} ở đợt 2, và kết quả này lặp lại ở đợt 3.
+
+    \item \textbf{Nhiều tác tử không rẻ hơn.} Chi phí và thời gian của nhiều tác tử tương đương hoặc cao hơn một tác tử, cao hơn rõ nhất khi để mô hình tự lập và bổ sung kế hoạch.
+
+    \item \textbf{Hệ thống còn yếu với câu hỏi diễn đạt tự nhiên.} Cùng một loại câu hỏi, tỉ lệ hoàn thành giảm từ 94\% xuống khoảng 6\% khi đổi từ câu hỏi theo mẫu sang câu hỏi tự nhiên. Điểm yếu này nằm ở khâu hiểu câu hỏi và có ở mọi cấu hình.
+\end{enumerate}
+
+Tên đề tài là ``ứng dụng nhiều tác tử'', và kết quả lại cho thấy nhiều tác tử chưa đem lại lợi ích đo được. Nhóm cho rằng đây vẫn là một kết quả có giá trị. Trong bối cảnh nhiều tác tử đang được quảng bá rộng rãi, một phép đo cẩn thận cho thấy ``với bài toán cỡ này thì chưa cần'' là thông tin hữu ích cho người làm sản phẩm: nó giúp tránh xây một hệ thống phức tạp hơn mức cần thiết. Lời khuyên thực tế rút ra là nên bắt đầu bằng một tác tử có tra cứu tốt và kiểm soát chặt, và chỉ chia thành nhiều tác tử khi có số liệu cho thấy một tác tử không còn đáp ứng được.
+
+\section{Hạn chế}
+
+Nhóm tổng hợp các hạn chế đã nêu rải rác trong báo cáo.
+
+\textbf{Hạn chế về dữ liệu.}
+\begin{itemize}
+    \item Dữ liệu là một bản chụp trong quá khứ, không có thông tin người bán và thời gian.
+    \item Kho tri thức chỉ bao phủ 20 trên 200 đầu sách.
+    \item Bộ đánh giá chỉ gồm 200 đầu sách; hệ thống chưa được thử trên toàn bộ dữ liệu.
+\end{itemize}
+
+\textbf{Hạn chế về đánh giá.}
+\begin{itemize}
+    \item Quy mô nhỏ: 60 hội thoại quanh 13 đầu sách ở mỗi đợt. Thực nghiệm không đủ sức phát hiện những chênh lệch nhỏ.
+    \item Giám khảo là mô hình ngôn ngữ, chưa được đối chiếu với người chấm.
+    \item Tập giữ kín của đợt 2 đã được xem nhiều lần trong lúc phát triển.
+    \item Câu hỏi và đáp án của đợt 3 do trợ lý AI soạn, và đợt này gặp hiệu ứng sàn ở bốn trên sáu loại hội thoại.
+    \item Không có cặp cấu hình nào tách riêng được yếu tố ``cách tổ chức''.
+    \item Chỉ thử với một mô hình ngôn ngữ và một lĩnh vực.
+\end{itemize}
+
+\textbf{Hạn chế về hệ thống.}
+\begin{itemize}
+    \item Tỉ lệ hoàn thành nhiệm vụ dưới 50\% ở đợt 2 và khoảng 20\% ở đợt 3.
+    \item Hai loại hội thoại ``So sánh, gợi ý'' và ``Mua bán, quản lý'' gần như chưa làm được.
+    \item Khâu hiểu câu hỏi và tìm sách phù hợp dễ hỏng khi cách diễn đạt thay đổi.
+    \item Bước kiểm chứng tự động có sai số và không bảo đảm loại hết thông tin sai.
+    \item Mọi thao tác mua bán chỉ ở môi trường giả lập.
+    \item Chưa thử với người dùng thật và chưa đo khi có nhiều người dùng cùng lúc.
+\end{itemize}
+
+\section{Hướng phát triển}
+
+Dựa trên các kết quả và hạn chế trên, nhóm đề xuất các hướng tiếp theo, xếp theo mức độ ưu tiên.
+
+\textbf{Ưu tiên 1: cải thiện khâu hiểu câu hỏi.} Đây là điểm yếu lớn nhất mà đợt 3 chỉ ra. Cần làm cho việc nhận ra tên sách và các điều kiện trong câu hỏi bền vững hơn trước các cách diễn đạt khác nhau, và đo lại trên một bộ câu hỏi tự nhiên mới.
+
+\textbf{Ưu tiên 2: có người chấm.} Chấm tay một mẫu câu trả lời theo phiếu mù đã chuẩn bị, rồi so với mô hình giám khảo. Việc này cho biết các con số trong báo cáo đáng tin đến đâu.
+
+\textbf{Ưu tiên 3: xây bộ câu hỏi tốt hơn.} Bộ câu hỏi cần do người viết theo lối nói tự nhiên, bao phủ nhiều đầu sách hơn, có độ khó vừa phải để tránh cả hiệu ứng trần lẫn hiệu ứng sàn, và được giữ kín thật sự.
+
+\textbf{Ưu tiên 4: mở rộng kho tri thức.} Tăng độ bao phủ từ 20 lên toàn bộ các đầu sách có nguồn chính thống, và đo riêng khâu tìm tài liệu.
+
+\textbf{Ưu tiên 5: thử lại câu hỏi về nhiều tác tử trên bài toán lớn hơn.} Lợi ích của nhiều tác tử có thể chỉ xuất hiện khi mỗi yêu cầu cần xử lý lượng thông tin vượt quá khả năng của một tác tử, ví dụ so sánh hàng chục cuốn sách cùng lúc hoặc phân tích hàng nghìn nhận xét. Một thực nghiệm như vậy cần thiết kế để tách riêng được yếu tố cách tổ chức.
+
+\textbf{Ưu tiên 6: thử với mô hình khác và người dùng thật.} Chạy lại thực nghiệm với các mô hình ngôn ngữ khác để biết kết luận có giữ nguyên không, và thu thập phản hồi từ người dùng thật.
+
+\section{Lời kết}
+
+Đề tài bắt đầu với kỳ vọng cho thấy lợi ích của nhiều tác tử, và kết thúc với một kết luận khác: thứ làm nên giá trị của trợ lý không phải số lượng tác tử, mà là việc mỗi câu trả lời có căn cứ kiểm tra được. Quá trình thực hiện cũng cho nhóm một bài học về cách làm thực nghiệm: một kết quả chỉ đáng tin khi nó được đo trên dữ liệu chưa từng thấy, với giả thuyết viết ra từ trước, và được báo cáo đầy đủ kể cả khi không như mong đợi.

@@ -1,0 +1,170 @@
+\chapter{Rà soát và kiểm thử}
+\label{ch:ra-soat}
+
+Sau đợt 2, nhóm dành một giai đoạn riêng để rà soát lại toàn bộ dự án: các bảng số liệu đã viết có thực sự đến từ phép đo không, mã nguồn có lỗi nào làm sai kết quả không, và hệ thống có sẵn sàng cho một lần đo xác nhận không. Chương này ghi lại những gì nhóm tìm thấy và đã sửa \src{22}. Nhóm coi đây là một phần kết quả của đề tài, vì những gì tìm thấy ảnh hưởng trực tiếp đến mức độ tin cậy của các con số ở Chương~\ref{ch:ket-qua}.
+
+\section{Tổng quan bốn vòng rà soát}
+
+Việc rà soát được chia làm bốn vòng theo mức độ ưu tiên, như Bảng~\ref{tab:bon-vong}.
+
+\begin{table}[!htbp]
+\caption{Bốn vòng rà soát}
+\label{tab:bon-vong}
+\cobang
+\begin{tabularx}{\linewidth}{C{1.3cm}P{4.0cm}Y}
+\toprule
+\textbf{Vòng} & \textbf{Trọng tâm} & \textbf{Kết quả chính}\\
+\midrule
+1 & Tính trung thực của số liệu & Phát hiện và loại bỏ các bảng số liệu, nhãn chấm không đến từ phép đo thật.\\
+2 & Tính đúng của công cụ báo cáo và của hệ thống & Báo cáo được tính lại từ dữ liệu gốc; sửa một số lỗi xử lý lượt hỏi.\\
+3 & Thông tin bị rơi mất trong quá trình xử lý & Tìm và sửa sáu lỗi làm mất thông tin giữa các bước.\\
+4 & Chuẩn bị cho lần đo xác nhận & Bổ sung công cụ kiểm tra trước khi chạy; không gọi mô hình.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Vòng 1: số liệu không đến từ phép đo}
+
+Đây là phát hiện nghiêm trọng nhất và nhóm thấy cần trình bày thẳng thắn.
+
+Khi đối chiếu các tài liệu đã viết với các tệp kết quả, nhóm phát hiện một số bảng số liệu trong tài liệu cũ \textbf{không được tính từ kết quả chạy thật}:
+
+\begin{itemize}
+    \item Một báo cáo về đánh đổi giữa chất lượng và chi phí, cùng một báo cáo về tác dụng của từng thành phần, được sinh ra từ các giá trị \emph{viết cứng} hoặc \emph{mô phỏng} trong chương trình, không đọc từ tệp kết quả.
+    \item Bốn mươi nhãn được ghi là ``do người chấm'' dùng để kiểm tra giám khảo thực ra do chương trình sinh ra, không có người nào chấm.
+    \item Chương trình tính tác dụng của từng thành phần có một lỗi: mọi chênh lệch lớn hơn 5 \pp{} đều tự động bị gắn nhãn ``có ý nghĩa thống kê'' mà không cần tính khoảng tin cậy.
+\end{itemize}
+
+Nhóm đã xử lý như sau:
+
+\begin{itemize}
+    \item \textbf{Loại bỏ} toàn bộ các bảng và nhãn nói trên khỏi mọi kết luận. Báo cáo này không dùng bất kỳ con số nào trong số đó.
+    \item \textbf{Viết lại} các công cụ báo cáo để chúng chỉ đọc từ các tệp kết quả đã khoá, và từ chối chạy nếu thiếu tệp hoặc tệp không khớp mã băm.
+    \item \textbf{Không cho ghi đè} lên kết quả cũ: mỗi lần tính lại tạo ra tệp mới.
+    \item \textbf{Sửa lỗi gắn nhãn}: ``có ý nghĩa thống kê'' giờ chỉ được ghi khi khoảng tin cậy không chứa số 0.
+    \item \textbf{Kiểm tra từng tệp} trong gói kết quả bằng mã băm để chắc chắn không tệp nào bị thay đổi sau khi chạy.
+\end{itemize}
+
+Phát hiện này là lý do nhóm chọn chỉ dùng trong báo cáo các con số đối chiếu được với tệp kết quả gốc. Bài học cho nhóm là: cần kiểm tra nguồn gốc của mọi con số trước khi đưa vào tài liệu, vì một bảng trông hợp lý chưa chắc đã được đo.
+
+\section{Vòng 2: công cụ báo cáo và các lỗi xử lý lượt hỏi}
+
+\subsection{Công cụ báo cáo}
+
+\begin{itemize}
+    \item Báo cáo giờ được tính lại từ dữ liệu phân tích mỗi lần mở, và bị từ chối nếu nội dung đã bị sửa tay.
+    \item Bước tổng hợp điểm được tính lại độc lập để đối chiếu với kết quả đã lưu.
+    \item Mười lăm chương trình chạy thử lẻ tẻ viết trong quá trình phát triển đã bị cho ngừng. Khi chạy, chúng chỉ in ra hướng dẫn dùng công cụ chính thức. Nội dung cũ được lưu lại để tra cứu.
+\end{itemize}
+
+\subsection{Lỗi của hệ thống}
+
+Bảng~\ref{tab:loi-vong-2} liệt kê các lỗi xử lý lượt hỏi được sửa ở vòng này.
+
+\begin{table}[!htbp]
+\caption{Các lỗi xử lý lượt hỏi được sửa ở vòng 2}
+\label{tab:loi-vong-2}
+\cobang
+\begin{tabularx}{\linewidth}{C{1.1cm}YY}
+\toprule
+\textbf{STT} & \textbf{Lỗi} & \textbf{Sau khi sửa}\\
+\midrule
+1 & Với câu kiểu ``Giúp mình xem review của\ldots'', hệ thống nhận sai phần nào là tên sách. & Tên sách được tách đúng.\\
+2 & Yêu cầu tra cứu kho tri thức đôi khi bị bỏ rơi giữa các bước. & Yêu cầu được giữ đến khi thực hiện xong.\\
+3 & Mô hình có thể thay đổi danh sách sách trong một đề xuất thao tác so với danh sách đã duyệt. & Đề xuất bị loại nếu danh sách khác với danh sách đã duyệt.\\
+4 & Gửi lại một lượt hỏi đã xong có thể trả về trạng thái không nhất quán. & Luôn trả về đúng kết quả đã lưu.\\
+5 & Một lượt hỏi có thể phát ra hơn một thông báo kết thúc. & Mỗi lượt hỏi có đúng một thông báo kết thúc.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Vòng 3: thông tin bị rơi mất}
+
+Ở vòng này nhóm lần theo đường đi của thông tin, từ câu hỏi đến câu trả lời, để tìm những chỗ thông tin bị mất. Nhóm tìm được sáu lỗi (Bảng~\ref{tab:sau-loi}). Điểm chung của chúng là: thông tin đúng có trong dữ liệu, nhưng không đến được câu trả lời.
+
+\begin{table}[!htbp]
+\caption{Sáu lỗi làm mất thông tin và cách sửa}
+\label{tab:sau-loi}
+\cobang
+\begin{tabularx}{\linewidth}{C{1.1cm}YY}
+\toprule
+\textbf{STT} & \textbf{Lỗi} & \textbf{Cách sửa}\\
+\midrule
+1 & Khi viết lại câu truy vấn để tìm kiếm, mô hình làm mất tên sách hoặc mã sách trong câu gốc. & Luôn giữ câu truy vấn gốc; câu do mô hình viết chỉ được thêm vào, không thay thế.\\
+2 & Nguồn chỉ nhắc tên sách ở tiêu đề (không nhắc trong thân bài) bị bỏ sót khi tìm theo từ khoá. & Tìm trên cả tiêu đề lẫn thân bài.\\
+3 & Cùng một chữ tiếng Việt có dấu có thể được lưu theo hai cách mã hoá khác nhau, làm hai từ giống hệt bị coi là khác. & Đưa về cùng một cách mã hoá trước khi so; không bỏ dấu.\\
+4 & Bước loại trùng xoá nhầm một nguồn khi hai nguồn khác nhau có nội dung giống nhau. & Chỉ coi là trùng khi cùng nguồn, cùng phiên bản và cùng nội dung.\\
+5 & Mỗi đoạn trích đưa cho mô hình bị cắt ở 350 ký tự, làm mất chi tiết nằm ở cuối đoạn. & Giữ tối đa 1.000 ký tự, vẫn nằm trong hạn mức tổng.\\
+6 & Câu trả lời về danh mục được coi là đủ khi chỉ có một dữ kiện có nguồn, dù thiếu tên sách hoặc thiếu các trường đã dùng làm điều kiện lọc. & Bắt buộc nêu tên sách của từng cuốn, cùng giá, điểm đánh giá, số trang nếu các trường này được dùng để lọc.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Khi sửa, nhóm giữ nguyên mọi yếu tố có thể làm đẹp điểm số một cách không chính đáng: không đổi giám khảo, không đổi đáp án, không đổi chỉ số, không đổi mô hình, không nới hạn mức. Nhóm cũng không thêm tác tử hay lượt gọi mô hình mới để xử lý các lỗi này, vì chúng là lỗi xử lý dữ liệu thông thường.
+
+\subsection{Phép thử đối chứng}
+
+Để kiểm tra các lỗi đã thực sự được sửa, nhóm viết tám phép thử, mỗi phép tái hiện một tình huống mất thông tin. Kết quả:
+
+\begin{itemize}
+    \item Trên bản hệ thống trước khi sửa: 6 phép thử thất bại, 2 phép thử đạt.
+    \item Trên bản sau khi sửa: cả 8 phép thử đều đạt.
+\end{itemize}
+
+Cần hiểu đúng ý nghĩa của kết quả này. Tám phép thử do chính nhóm viết ra để nhắm vào sáu lỗi đã biết, và chúng không gọi mô hình thật. Chúng chứng minh sáu cơ chế cụ thể đã được sửa. Chúng \textbf{không phải} một bộ đánh giá, và không cho biết chất lượng câu trả lời tăng bao nhiêu.
+
+Thực tế đã cho thấy sự thận trọng này là đúng: đợt 3 được chạy \emph{sau} các sửa đổi này, và điểm số vẫn thấp trên các câu hỏi diễn đạt tự nhiên. Sáu lỗi trên là có thật và đáng sửa, nhưng chúng không phải điểm yếu lớn nhất của hệ thống. Điểm yếu lớn nhất, khâu hiểu câu hỏi tự nhiên, chỉ lộ ra khi có bộ câu hỏi mới.
+
+\section{Vòng 4: chuẩn bị cho lần đo xác nhận}
+
+Vòng cuối không sửa hệ thống mà bổ sung các công cụ để lần đo tiếp theo đáng tin hơn. Toàn bộ vòng này không gọi mô hình và không tốn chi phí:
+
+\begin{itemize}
+    \item \textbf{Ghi mã băm của mã nguồn} vào kết quả, để biết chính xác mỗi kết quả được tạo bởi phiên bản nào của hệ thống.
+    \item \textbf{Bắt buộc khai báo trần chi phí trước khi chạy}, để một lần đo không thể tiêu quá mức đã định.
+    \item \textbf{Chuẩn bị mẫu phiếu chấm tay} dạng mù, để người chấm có thể chấm một mẫu câu trả lời mà không biết cấu hình. Các phiếu này đã sẵn sàng nhưng \emph{chưa được điền}; nhóm chưa thực hiện việc chấm tay.
+\end{itemize}
+
+Nhờ các công cụ này, đợt 3 được chạy với giả thuyết đăng ký trước, bộ câu hỏi khoá bằng mã băm, và chi phí nằm dưới trần đã đặt.
+
+\section{Kiểm thử tự động}
+
+Hệ thống có một bộ kiểm thử tự động. Bảng~\ref{tab:kiem-thu} cho kết quả lần chạy đầy đủ gần nhất, trên máy phát triển của nhóm ngày 9/11/2026.
+
+\begin{table}[!htbp]
+\caption{Kết quả kiểm thử tự động (ngày 9/11/2026)}
+\label{tab:kiem-thu}
+\cobang
+\begin{tabularx}{\linewidth}{P{4.6cm}YR{3.4cm}}
+\toprule
+\textbf{Loại kiểm tra} & \textbf{Kiểm tra điều gì} & \textbf{Kết quả}\\
+\midrule
+Kiểm thử phía máy chủ & Hành vi của từng thành phần và của cả luồng xử lý, có dùng một cơ sở dữ liệu PostgreSQL tạm & 1.456 đạt, 0 thất bại\\
+Kiểm tra quy cách mã & Mã nguồn tuân thủ quy ước chung & Không có lỗi\\
+Kiểm tra kiểu dữ liệu & Các hàm được gọi với đúng loại dữ liệu & Không có lỗi\\
+Kiểm thử giao diện & Hành vi của các thành phần giao diện & 101 đạt\\
+Kiểm tra quy cách và kiểu của giao diện & Như trên, cho mã giao diện & Không có lỗi\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Các phép kiểm thử bao phủ những hành vi quan trọng đã mô tả ở Chương~\ref{ch:thiet-ke}: từ chối khi thiếu quyền, gửi lại không tạo bản ghi trùng, mỗi lượt hỏi có một thông báo kết thúc, quy trình dữ liệu dừng lại khi gặp dữ liệu lỗi, và công cụ báo cáo từ chối tệp bị sửa.
+
+Giới hạn của kiểm thử tự động cần được nói rõ: các phép thử này không gọi mô hình thật, để chạy nhanh và không tốn chi phí. Kiểm thử đạt 100\% cho thấy phần chương trình làm đúng như thiết kế. Nó không cho biết câu trả lời của mô hình thật tốt đến đâu; điều đó chỉ các đợt thực nghiệm ở Chương~\ref{ch:ket-qua} mới đo được.
+
+\section{Những gì còn chưa kiểm chứng}
+
+Để người đọc đánh giá đúng mức độ tin cậy, nhóm liệt kê những việc chưa làm được:
+
+\begin{itemize}
+    \item \textbf{Chưa có người chấm.} Mọi điểm chất lượng đều do mô hình giám khảo chấm. Phiếu chấm tay đã chuẩn bị nhưng chưa được dùng.
+    \item \textbf{Chưa đo riêng khâu tìm tài liệu.} Không biết bao nhiêu phần lỗi là do tìm sai tài liệu.
+    \item \textbf{Chưa đo tác dụng của sáu sửa đổi ở vòng 3} bằng một thực nghiệm có đối chứng trên mô hình thật.
+    \item \textbf{Chưa kiểm tra giả thuyết về ``học tủ''} trên từng câu hỏi của đợt 3.
+    \item \textbf{Gói kết quả của đợt 2 thiếu một tệp ghi lại bước chuẩn bị}, nên không tái tạo được hoàn toàn bước này từ gói đã lưu.
+    \item \textbf{Chưa thử với người dùng thật}, cũng chưa đo với nhiều người dùng cùng lúc.
+\end{itemize}
+
+\section{Tóm tắt chương}
+
+Quá trình rà soát đã phát hiện một số bảng số liệu cũ không đến từ phép đo thật và loại chúng khỏi mọi kết luận; sửa năm lỗi xử lý lượt hỏi và sáu lỗi làm mất thông tin; và bổ sung công cụ để lần đo xác nhận được thực hiện chặt chẽ hơn. Bộ kiểm thử tự động gồm 1.456 phép thử phía máy chủ và 101 phép thử giao diện đều đạt. Dù vậy, vẫn còn những phần chưa kiểm chứng, quan trọng nhất là chưa có người chấm để đối chiếu với mô hình giám khảo.

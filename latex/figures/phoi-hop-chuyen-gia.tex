@@ -1,0 +1,23 @@
+% Bộ điều phối và bốn chuyên gia
+\begin{tikzpicture}[baocao]
+  \node[hopxam, text width=6.2cm] (sup) at (7.75,0) {\textbf{Bộ điều phối}\\chọn chuyên gia cần gọi và thứ tự các bước};
+  \node[hop, text width=2.95cm, minimum height=24mm] (e1) at (1.75,-3.5) {\textbf{Chuyên gia sản phẩm}\\tìm, lọc, so sánh, xếp hạng sách};
+  \node[hop, text width=2.95cm, minimum height=24mm] (e2) at (5.75,-3.5) {\textbf{Chuyên gia đánh giá}\\tóm tắt, so sánh nhận xét người mua};
+  \node[hop, text width=2.95cm, minimum height=24mm] (e3) at (9.75,-3.5) {\textbf{Chuyên gia độ tin cậy}\\dấu hiệu phàn nàn, chất lượng nhận xét};
+  \node[hop, text width=2.95cm, minimum height=24mm] (e4) at (13.75,-3.5) {\textbf{Chuyên gia thị trường}\\thống kê theo thể loại, tác giả, giá};
+  \node[hopxam, text width=6.2cm] (com) at (7.75,-7.0) {\textbf{Bộ soạn câu trả lời}\\ghép dữ kiện, gắn nguồn, kiểm chứng};
+
+  % giao việc: thanh ngang phía trên các chuyên gia
+  \draw[line width=1pt] (sup.south) -- (7.75,-1.45);
+  \draw[line width=1pt] (1.75,-1.45) -- (13.75,-1.45);
+  \foreach \e in {e1,e2,e3,e4} \draw[mui] (\e.north |- 0,-1.45) -- (\e.north);
+  \node[ghichu, anchor=west, fill=white] at (8.0,-1.05) {giao việc};
+
+  % thu kết quả: thanh ngang phía dưới các chuyên gia
+  \foreach \e in {e1,e2,e3,e4} \draw[line width=1pt] (\e.south) -- (\e.south |- 0,-5.55);
+  \draw[line width=1pt] (1.75,-5.55) -- (13.75,-5.55);
+  \draw[mui] (7.75,-5.55) -- (com.north);
+  \node[ghichu, anchor=west, fill=white] at (8.0,-5.95) {dữ kiện và bằng chứng};
+
+  \node[ghichu, text width=3.6cm, align=left, anchor=west] at (11.4,0) {Mỗi lượt hỏi tối đa 8 bước, chạy lần lượt; bước sau dùng kết quả bước trước.};
+\end{tikzpicture}

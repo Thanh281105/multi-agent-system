@@ -1,0 +1,40 @@
+% Kiến trúc tổng thể theo tầng
+\begin{tikzpicture}[baocao]
+  % Tầng 1: giao diện
+  \node[hop, text width=11.6cm] (ui) at (6,0) {\textbf{Giao diện web} (chạy trên trình duyệt): ô hỏi đáp, bảng theo dõi các bước xử lý, danh sách nguồn};
+  % Tầng 2: cổng tiếp nhận
+  \node[hop, text width=11.6cm] (gw) at (6,-2.0) {\textbf{Cổng tiếp nhận}: kiểm tra khoá truy cập, vai trò và quyền, giới hạn tần suất, cấp mã theo dõi cho từng yêu cầu};
+  \draw[haichieu] (ui) -- (gw);
+
+  % Tầng 3: lõi điều phối
+  \draw[khung] (-0.15,-3.3) rectangle (12.15,-6.15);
+  \node[tenkhung] at (-0.1,-3.32) {Lõi điều phối};
+  \node[hopxam, text width=3.0cm, minimum height=14mm] (pl) at (2.0,-5.05) {Lập kế hoạch trong giới hạn};
+  \node[hopxam, text width=3.0cm, minimum height=14mm] (ex) at (6.0,-5.05) {Thực thi lần lượt các bước};
+  \node[hopxam, text width=3.0cm, minimum height=14mm] (co) at (10.0,-5.05) {Soạn và kiểm chứng câu trả lời};
+  \draw[mui] (pl) -- (ex);
+  \draw[mui] (ex) -- (co);
+  \draw[haichieu] (gw.south) -- (6,-3.3);
+
+  % Tầng 4: chuyên gia
+  \draw[khung] (-0.15,-7.05) rectangle (12.15,-9.45);
+  \node[tenkhung] at (-0.1,-7.07) {Bốn chuyên gia cố định};
+  \node[hop, text width=2.2cm] (e1) at (1.5,-8.6) {Sản phẩm};
+  \node[hop, text width=2.2cm] (e2) at (4.5,-8.6) {Đánh giá};
+  \node[hop, text width=2.2cm] (e3) at (7.5,-8.6) {Độ tin cậy};
+  \node[hop, text width=2.2cm] (e4) at (10.5,-8.6) {Thị trường};
+  \draw[haichieu] (6,-6.15) -- (6,-7.05);
+
+  % Tầng 5: dữ liệu
+  \draw[khung] (-0.15,-10.35) rectangle (12.15,-13.15);
+  \node[tenkhung] at (-0.1,-10.37) {Cơ sở dữ liệu PostgreSQL};
+  \node[hop, text width=3.0cm, minimum height=14mm] (d1) at (2.0,-12.1) {Danh mục sách và đánh giá};
+  \node[hop, text width=3.0cm, minimum height=14mm] (d2) at (6.0,-12.1) {Kho tri thức có trích nguồn};
+  \node[hop, text width=3.0cm, minimum height=14mm] (d3) at (10.0,-12.1) {Hội thoại, lượt hỏi, sổ chi phí};
+  \draw[haichieu] (6,-9.45) -- (6,-10.35);
+  \node[ghichu, anchor=west] at (6.2,-9.9) {chỉ đọc, qua cổng công cụ có kiểm tra quyền};
+
+  % Dịch vụ mô hình bên ngoài
+  \node[hopden, text width=2.3cm, minimum height=20mm] (llm) at (14.2,-5.05) {\textbf{Mô hình ngôn ngữ}\\(dịch vụ bên ngoài)};
+  \draw[haichieu] (12.15,-5.05) -- (llm.west);
+\end{tikzpicture}

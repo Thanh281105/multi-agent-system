@@ -1,0 +1,34 @@
+\chapter*{Danh mục thuật ngữ và từ viết tắt}
+\addcontentsline{toc}{chapter}{Danh mục thuật ngữ và từ viết tắt}
+
+{\cobang
+\begin{longtable}{P{3.6cm}P{11.6cm}}
+\toprule
+\textbf{Thuật ngữ} & \textbf{Ý nghĩa trong báo cáo}\\
+\midrule
+\endhead
+Mô hình ngôn ngữ lớn (LLM) & Mô hình học máy được huấn luyện trên lượng văn bản rất lớn, có thể đọc câu hỏi và viết câu trả lời bằng ngôn ngữ tự nhiên.\\
+Tác tử (agent) & Một thành phần phần mềm dùng mô hình ngôn ngữ để tự quyết định bước tiếp theo, ví dụ gọi công cụ nào, rồi dùng kết quả để trả lời.\\
+SA & Một tác tử (Single-Agent): một tác tử duy nhất dùng toàn bộ công cụ.\\
+MA & Nhiều tác tử (Multi-Agent): một bộ điều phối chia việc cho nhiều chuyên gia.\\
+MA cố định & Cấu hình nhiều tác tử, kế hoạch do quy tắc định sẵn của chương trình lập ra và không chỉnh giữa chừng.\\
+MA thích ứng & Cấu hình nhiều tác tử, kế hoạch do mô hình đề xuất và được phép bổ sung một lần sau khi có kết quả ban đầu.\\
+MA không tra cứu & Như MA thích ứng nhưng tắt việc tra cứu kho tri thức.\\
+Chuyên gia & Một thành phần chỉ lo một loại việc (sản phẩm, đánh giá, độ tin cậy, thị trường).\\
+Bộ điều phối & Thành phần nhận câu hỏi, lập kế hoạch và giao việc cho các chuyên gia.\\
+Tra cứu tài liệu (RAG) & Sinh câu trả lời có tra cứu (Retrieval-Augmented Generation): tìm các đoạn tài liệu liên quan trước, rồi mới để mô hình viết câu trả lời dựa trên các đoạn đó.\\
+Kho tri thức & Tập tài liệu ngắn do nhóm tự viết lại từ nguồn chính thống (nhà xuất bản, thư viện), dùng cho việc tra cứu.\\
+Ảo giác & Hiện tượng mô hình viết ra thông tin nghe hợp lý nhưng không có trong dữ liệu hoặc sai sự thật.\\
+Nhận định & Một câu khẳng định trong câu trả lời, có thể kiểm tra đúng sai.\\
+Trích dẫn & Số thứ tự gắn sau nhận định, chỉ tới nguồn làm căn cứ cho nhận định đó.\\
+Token & Đơn vị văn bản mà mô hình xử lý (xấp xỉ một âm tiết hoặc một phần từ). Chi phí dùng mô hình được tính theo số token.\\
+Hội thoại, lượt hỏi & Một hội thoại gồm một hoặc vài lượt hỏi nối tiếp nhau của cùng một người dùng.\\
+Mô hình giám khảo & Một mô hình ngôn ngữ khác được dùng để chấm câu trả lời theo đáp án chuẩn.\\
+Tập giữ kín & Bộ câu hỏi không dùng trong lúc phát triển, chỉ dùng để đánh giá.\\
+Nhóm tác phẩm & Các hội thoại cùng hỏi về một tác phẩm được gộp thành một nhóm khi tính thống kê.\\
+Khoảng tin cậy 95\% & Khoảng giá trị mà chênh lệch thật nhiều khả năng nằm trong đó. Nếu khoảng này chứa số 0 thì chưa thể nói hai bên khác nhau.\\
+\pp{} & Hiệu của hai tỉ lệ phần trăm. Ví dụ từ 40\% lên 45\% là tăng 5 \pp.\\
+API & Giao diện lập trình: cách để chương trình khác (ví dụ trang web) gửi yêu cầu tới hệ thống.\\
+\bottomrule
+\end{longtable}
+}

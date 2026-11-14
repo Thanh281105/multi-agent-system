@@ -1,189 +1,789 @@
 {
-  "page_count": 21,
+  "page_count": 98,
   "pages": [
     {
       "page": 1,
-      "characters": 285,
+      "characters": 305,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": false,
-      "tail": "ẠC – 523H0154\nHỆTHỐNG TRỢLÝ TƯ VẤN SÁCH\nỨNG DỤNG NHIỀU TÁC TỬ\nBÁO CÁO MÔN HỌC\nDỰÁN CÔNG NGHỆTHÔNG TIN\nGiảng viên\nPGS. TS. Lê Anh Cường\nTHÀNH PHỐHỒCHÍ MINH, 2026"
+      "tail": "NG TRỢ LÝ TƯ VẤN SÁCH\nỨNG DỤNG NHIỀU TÁC TỬ\nBÁO CÁO MÔN HỌC\nDỰ ÁN CÔNG NGHỆ THÔNG TIN\nGiảng viên hướng dẫn\nPGS. TS. Lê Anh Cường\nTHÀNH PHỐ HỒ CHÍ MINH, NĂM 2026"
     },
     {
       "page": 2,
-      "characters": 813,
+      "characters": 832,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": " được góp ý của\nthầy đểtiếp tục cải thiện hệthống và cách đánh giá trong thời gian tới.\nThành phốHồChí Minh, 2026\nNhóm thực hiện\nHoàng Xuân Thanh\nTrần Gia Lạc\ni"
+      "tail": "p ý\ncủa quý thầy cô để hoàn thiện đề tài trong các giai đoạn tiếp theo.\nThành phố Hồ Chí Minh, năm 2026\nNhóm sinh viên thực hiện\nHoàng Xuân Thanh\nTrần Gia Lạc\ni"
     },
     {
       "page": 3,
-      "characters": 624,
+      "characters": 707,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "ương pháp chấm đã nêu; không được xem là bằng chứng\ncho mọi tình huống sửdụng thực tế.\nThành phốHồChí Minh, 2026\nNhóm thực hiện\nHoàng Xuân Thanh\nTrần Gia Lạc\nii"
+      "tail": "nêu rõ. Nhóm chịu trách nhiệm về tính trung thực của toàn bộ nội dung.\nThành phố Hồ Chí Minh, năm 2026\nNhóm sinh viên thực hiện\nHoàng Xuân Thanh\nTrần Gia Lạc\nii"
     },
     {
       "page": 4,
-      "characters": 1956,
+      "characters": 2142,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "\nđược viết sẵn trong mã chương trình. Các sửa đổi được xác nhận bằng kiểm thửtựđộng; thực nghiệm chưa\nđược chạy lại nên các sốliệu trên chưa phản ánh chúng.\niii"
+      "tail": "hần có tác dụng rõ ràng, đo được là việc\ntra cứu tài liệu có trích nguồn. Báo cáo cũng ghi lại quá trình rà soát số liệu và các\ngiới hạn còn lại của đề tài.\niii"
     },
     {
       "page": 5,
-      "characters": 2226,
+      "characters": 1302,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": " . . . . . . . . . . . . . .\n7\n7\nThiết kếthực nghiệm\n7\n7.1\nMục đích so sánh . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n7\niv"
+      "tail": " trả lời có căn cứ và trích dẫn . . . . . . . . . . . . . . . . . . . . . . 10\n2.6 Đánh giá hệ thống hỏi đáp dùng mô hình ngôn ngữ . . . . . . . . . . . . 10\niv"
     },
     {
       "page": 6,
-      "characters": 2645,
+      "characters": 2187,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": ". . . . . . . . . . . . . . . . . . . .\n14\n11.4 Đánh giá nhiều mặt thay vì chỉmột điểm số. . . . . . . . . . . . . . . . . . . . . . . . . .\n14\n12 Kết luận\n15\nv"
+      "tail": " hỏi được xử lý như thế nào . . . . . . . . . . . . . . . . . . . . . 24\n4.5 Bốn chuyên gia . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25\nv"
     },
     {
       "page": 7,
-      "characters": 3075,
+      "characters": 2250,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": " hàng. Các thao tác này diễn ra trong môi trường thửnghiệm, không phải\ngiao dịch thật. Trọng tâm báo cáo là cách tư vấn, phối hợp tác tửvà kết quảthực nghiệm.\n1"
+      "tail": "ợt thực nghiệm . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 38\n5.3.1 Đợt 1: thăm dò . . . . . . . . . . . . . . . . . . . . . . . . . . . . 38\nvi"
     },
     {
       "page": 8,
-      "characters": 2241,
+      "characters": 2225,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "trên 300.000 đồng nhưng dưới 200.000 đồng” không nên được xửlý bằng cách tựbỏmột\ntrong hai điều kiện. Việc hỏi lại đúng lúc là một phần của chất lượng tư vấn.\n2"
+      "tail": ".2.5 Tổng chi phí của đợt 2 . . . . . . . . . . . . . . . . . . . . . . . . 53\n6.2.6 Độ ổn định của giám khảo . . . . . . . . . . . . . . . . . . . . . . 53\nvii"
     },
     {
       "page": 9,
-      "characters": 1675,
+      "characters": 2202,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "huẩn hóa và che những thông tin như sốđiện thoại,\nthư điện tửhoặc liên kết trong nội dung đánh giá. Khi kiểm đếm lại các tập đã lưu, sốbản ghi khớp với mô tả,\n3"
+      "tail": " còn chưa kiểm chứng . . . . . . . . . . . . . . . . . . . . . . . 66\n7.8 Tóm tắt chương . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 67\nviii"
     },
     {
       "page": 10,
-      "characters": 2204,
+      "characters": 730,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "ức phổbiến của dữliệu lịch\nsử\nDoanh sốhiện tại đã được xác minh\nNguồn vềtác phẩm\nKiểm tra nội dung mà nguồn thực sựhỗtrợ\nMọi chi tiết của ấn bản đang được bán\n4"
+      "tail": "A Bộ câu hỏi và kết quả từng câu của đợt 1 75\nB Hội thoại mẫu của đợt 2 và đợt 3 79\nC Số liệu bổ sung của đợt 2 82\nD Danh sách tác phẩm trong kho tri thức 83\nix"
     },
     {
       "page": 11,
-      "characters": 1703,
+      "characters": 1642,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "i dung tác phẩm.\nHình 2: Ví dụphối hợp khi tư vấn lựa chọn sách. Các nhánh thểhiện các phần việc cần kết hợp, không hàm ý chúng\nluôn được thực hiện đồng thời.\n5"
+      "tail": ": tỉ lệ hoàn thành nhiệm vụ theo loại hội thoại . . . . . . . . . . . . 52\n6.5 Tỉ lệ hoàn thành nhiệm vụ theo loại hội thoại ở đợt 2 và đợt 3 . . . . . . . 56\nx"
     },
     {
       "page": 12,
-      "characters": 2758,
+      "characters": 1938,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "ng.\n3. Cùng một chữtiếng Việt có dấu có thểđược mã hóa theo hai cách khác nhau, khiến kết quảtìm kiếm khác\nnhau. Nay văn bản được chuẩn hóa trước khi so khớp.\n6"
+      "tail": "iết lập cố định khi chạy thực nghiệm . . . . . . . . . . . . . . . . . 45\n6.1 Đợt 1: kết quả tổng hợp của hai cách tổ chức . . . . . . . . . . . . . . . . 46\nxi"
     },
     {
       "page": 13,
-      "characters": 2373,
+      "characters": 1896,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "\n6\n14\n2\nKết hợp thông tin của nhiều chuyên gia\n8\n17\n3\nTư vấn lựa chọn theo nhiều góc nhìn\n6\n8\n4\nNhận biết yêu cầu không phù hợp hoặc cần từchối\n4\n4\nTổng\n24\n43\n7"
+      "tail": " 2: tỉ lệ nhận định có căn cứ theo loại hội thoại (%) . . . . . . . . . . 82\nD.1 Hai mươi tác phẩm trong kho tri thức và nguồn xác nhận . . . . . . . . . 83\nxii"
     },
     {
       "page": 14,
-      "characters": 2002,
+      "characters": 1879,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "ịdùng đểbiểu diễn độdài đầu vào và đầu ra của mô hình. Token không\ntương đương chính xác với sốtừ, nhưng có ích đểso sánh mức sửdụng tài nguyên giữa hai cách.\n8"
+      "tail": "m một hoặc vài lượt hỏi nối tiếp nhau của cùng một người\ndùng.\nMô hình giám khảo Một mô hình ngôn ngữ khác được dùng để chấm câu trả lời theo đáp án\nchuẩn.\nxiii"
     },
     {
       "page": 15,
-      "characters": 2268,
+      "characters": 599,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "òa ở23 câu còn lại. Kết quảnày cho thấy\ntầm quan trọng của việc giữđúng thông tin ấn bản, nhưng chưa đủđểkhẳng định nhiều tác tửtốt hơn trên\nmọi dạng câu hỏi.\n9"
+      "tail": "a hai tỉ lệ phần trăm. Ví dụ từ 40% lên 45% là tăng 5 điểm %.\nAPI Giao diện lập trình: cách để chương trình khác (ví dụ trang web) gửi yêu\ncầu tới hệ thống.\nxiv"
     },
     {
       "page": 16,
-      "characters": 3579,
+      "characters": 1868,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "một tác tử) và 20,6% (hai cấu hình nhiều tác tử). Bốn\ntrong sáu loại câu cho 0% ởmọi cấu hình, và loại câu nhiều điều kiện giảm từkhoảng 94% ởđợt trước xuống\n10"
+      "tail": " thay vì để một mô hình làm tất cả, hệ thống có nhiều thành phần\nchuyên trách, mỗi thành phần lo một loại việc, và một bộ điều phối ghép kết quả lại [2],\n[3].\n1"
     },
     {
       "page": 17,
-      "characters": 3412,
+      "characters": 1912,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": " mã chương trình,\nkhông tính từkết quảchạy thật: báo cáo đánh đổi giữa các cấu hình, thí nghiệm bỏbớt thành phần và một\nđợt chấm của người được mô phỏng. [8]\n11"
+      "tail": "ụ về các loại câu hỏi mà hệ thống hướng tới. Các câu này\nđược lấy từ bộ câu hỏi đánh giá thật của đề tài.\n1.3 Mục tiêu của đề tài\nĐề tài có hai nhóm mục tiêu.\n2"
     },
     {
       "page": 18,
-      "characters": 2945,
+      "characters": 1875,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "à nguồn kiến thức mới phủmột phần nhỏ\ndanh mục. Vì vậy, không thểdùng kết quảđểkhẳng định hệthống hiểu toàn bộthịtrường sách hoặc luôn có\nthông tin cập nhật.\n12"
+      "tail": "cách bật và tắt thành phần này\ntrong cùng một cấu hình.\n3. Báo cáo cả chất lượng câu trả lời lẫn thời gian và chi phí, kèm mức độ chắc chắn\ncủa từng kết luận.\n3"
     },
     {
       "page": 19,
-      "characters": 2709,
+      "characters": 1781,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "y nhu cầu xửlý văn bản tăng, nhưng chưa đủđểchuyển trực tiếp thành một tỷlệ\ntiền cụthểnếu chưa xét loại mô hình, đầu vào, đầu ra và các thành phần liên quan.\n13"
+      "tail": "o, chưa được hiệu chỉnh bằng điểm chấm của con người. Số câu hỏi còn nhỏ\n(24 câu ở đợt 1, 60 hội thoại ở mỗi đợt sau) và chỉ xoay quanh một bộ dữ liệu. Vì vậy\n4"
     },
     {
       "page": 20,
-      "characters": 2794,
+      "characters": 1925,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "ó xứng đáng với thời gian chờvà tài nguyên tăng thêm không?\nNhững câu hỏi này phù hợp hơn việc chỉtuyên bố“đạt 100%” mà không nói rõ điểm đó đang đo điều gì.\n14"
+      "tail": "\n• Bốn phụ lục liệt kê toàn bộ 24 câu hỏi của đợt 1, các hội thoại mẫu của đợt 2 và\nđợt 3, số liệu bổ sung của đợt 2 và danh sách tác phẩm trong kho tri thức.\n5"
     },
     {
       "page": 21,
-      "characters": 2638,
+      "characters": 1855,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "kiện đã chuẩn bịcho đợt đánh giá tiếp theo với mô hình thật.\n[10] Kết quảlần chạy xác nhận, giảthuyết khai báo trước và các điểm lệch so với quy trình chuẩn.\n15"
+      "tail": " mỗi lần có giới hạn. Mô hình chỉ đọc được một lượng\ntoken nhất định trong một lần gọi. Không thể đưa cả cơ sở dữ liệu vào lời nhắc;\nphải chọn phần liên quan.\n6"
+    },
+    {
+      "page": 22,
+      "characters": 2114,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "à theo thứ tự nào. Mỗi chuyên\ngia chỉ lo một loại việc với một nhóm công cụ hẹp. Cuối cùng, một bộ tổng hợp ghép\nkết quả của các chuyên gia thành câu trả lời.\n7"
+    },
+    {
+      "page": 23,
+      "characters": 1959,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "hống phức tạp trông có vẻ tốt hơn\nthực tế. Các nghiên cứu này là lý do để đề tài đo cả chất lượng lẫn chi phí và luôn so với\nmột đối chứng một tác tử đủ mạnh.\n8"
+    },
+    {
+      "page": 24,
+      "characters": 1835,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "iả.\n• Tìm theo nghĩa. Mỗi đoạn văn được một mô hình chuyển thành một dãy số (gọi\nlà véc-tơ) sao cho các đoạn có nghĩa gần nhau thì có dãy số gần nhau. Câu hỏi\n9"
+    },
+    {
+      "page": 25,
+      "characters": 2146,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "i chấm, nhưng rất tốn công khi có hàng trăm câu trả lời. Một cách thay thế\nđang được dùng rộng rãi là dùng một mô hình ngôn ngữ khác làm giám khảo: giám khảo\n10"
+    },
+    {
+      "page": 26,
+      "characters": 2335,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " kín. Một bước chặt chẽ hơn nữa là đăng ký trước: viết ra giả thuyết,\nchỉ số chính và cách phân tích trước khi nhìn thấy kết quả, để không thể chọn cách phân\n11"
+    },
+    {
+      "page": 27,
+      "characters": 2057,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "m soát, và đặc biệt là thực hiện một phép so sánh\ncó đối chứng giữa một tác tử và nhiều tác tử trên chính hệ thống đó, báo cáo cả kết quả\nkhông như mong đợi.\n12"
+    },
+    {
+      "page": 28,
+      "characters": 1666,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "nh gồm tám bước như Hình 3.1. Toàn bộ quy trình chạy tự động và cho\ncùng một kết quả mỗi lần chạy, nhờ dùng một hạt giống ngẫu nhiên cố định ở bước chọn\nmẫu.\n13"
+    },
+    {
+      "page": 29,
+      "characters": 1780,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ó 118 số điện thoại, 76 đường liên kết và 21 địa chỉ email\nđã được che. Mã định danh của người mua cũng bị loại bỏ hoàn toàn, không đưa vào dữ\nliệu đã xử lý.\n14"
+    },
+    {
+      "page": 30,
+      "characters": 1987,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "o mã vì kích thước lớn, có thể tạo lại\nkhi cần.\nToàn bộ kết quả thực nghiệm trong báo cáo đều dùng bộ đánh giá. Phần còn lại\ncủa mục này mô tả bộ dữ liệu đó.\n15"
+    },
+    {
+      "page": 31,
+      "characters": 1961,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "iệu, vì muốn giữ\nđúng những gì nguồn cung cấp. Thay vào đó, hệ thống có một bước lọc lúc chạy để loại\nbản ghi này khỏi kết quả tìm kiếm và các phép thống kê.\n16"
+    },
+    {
+      "page": 32,
+      "characters": 1668,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " 3.2.\n• 20 sách có nguồn xác nhận tác phẩm. Nguồn chính thống xác nhận được đây là\ntác phẩm nào, của ai. Kho tri thức có đúng 20 ghi chú cho 20 tác phẩm này.\n17"
+    },
+    {
+      "page": 33,
+      "characters": 1778,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " sử Steve Jobs Nhà xuất bản tiếng Anh: 656\ntrang\n758 trang (ấn bản tiếng Việt)\nQuốc Gia Khởi Nghiệp Hai tác giả: Dan Senor và Saul\nSinger\nChỉ ghi một tác giả\n18"
+    },
+    {
+      "page": 34,
+      "characters": 1734,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "à: không có thông tin người bán và thời gian, và\nkho tri thức còn nhỏ. Cả hai đều được hệ thống xử lý bằng cách nói rõ khi không đủ căn\ncứ, thay vì suy đoán.\n19"
+    },
+    {
+      "page": 35,
+      "characters": 1453,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "• An toàn. Mọi yêu cầu đều phải xác thực. Quyền được kiểm tra ở máy chủ, không\ndựa vào việc ẩn nút trên giao diện. Thông báo lỗi không để lộ nội dung nội bộ.\n20"
+    },
+    {
+      "page": 36,
+      "characters": 1967,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "nêu dấu\nhiệu;\n• không đưa ra nhận định về xu hướng theo thời gian hay tình hình hiện tại, vì dữ\nliệu là một bản chụp trong quá khứ và không có mốc thời gian;\n21"
+    },
+    {
+      "page": 37,
+      "characters": 1867,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "dùng là ai và có quyền gì, giới hạn số yêu cầu của mỗi người dùng trong một\nkhoảng thời gian, và gắn cho mỗi yêu cầu một mã theo dõi để tra cứu khi có sự cố.\n22"
+    },
+    {
+      "page": 38,
+      "characters": 1390,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ngoài. Hệ thống gửi yêu cầu tới mô hình ở\nmột số bước nhất định và luôn yêu cầu mô hình trả lời theo một khuôn mẫu có cấu trúc\nđể chương trình kiểm tra được.\n23"
+    },
+    {
+      "page": 39,
+      "characters": 1526,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " này. Nếu chưa có kho tri thức nào được công bố, hoặc mô\nhình tìm kiếm không khớp với kho, hệ thống từ chối phục vụ thay vì chạy với dữ liệu\nkhông chắc chắn.\n24"
+    },
+    {
+      "page": 40,
+      "characters": 1947,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "n tương ứng.\nViệc tra cứu kho tri thức không thuộc riêng chuyên gia nào. Đó là một năng lực\ndùng chung, được gọi khi câu hỏi liên quan đến bản thân tác phẩm.\n25"
+    },
+    {
+      "page": 41,
+      "characters": 1690,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " Không có thương lượng hay tranh luận giữa các chuyên\ngia.\n• Các chuyên gia không có bộ nhớ riêng. Mọi thông tin cần nhớ nằm ở bộ điều\nphối và cơ sở dữ liệu.\n26"
+    },
+    {
+      "page": 42,
+      "characters": 1652,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "hoạch có giới hạn\n4.6.1 Phân chia việc giữa chương trình và mô hình\nBảng 4.3 tóm tắt ai làm việc gì. Đây là quyết định thiết kế quan trọng nhất của hệ\nthống.\n27"
+    },
+    {
+      "page": 43,
+      "characters": 1591,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "hiệm:\n• Kế hoạch cố định. Chương trình tự lập kế hoạch theo quy tắc định sẵn dựa trên\nloại câu hỏi, không hỏi mô hình. Kế hoạch được giữ nguyên đến khi xong.\n28"
+    },
+    {
+      "page": 44,
+      "characters": 1495,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "him, đúng vị trí. Lần kiểm tra\nnày là so khớp chính xác, không dùng mô hình, nên không thể bị “thuyết phục”.\nNó chặn trường hợp mô hình bịa ra một trích dẫn.\n29"
+    },
+    {
+      "page": 45,
+      "characters": 1773,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " chuyển sang đang chạy, rồi kết thúc ở\nmột trong bốn trạng thái: hoàn tất, thất bại, đã huỷ (người dùng bấm huỷ) hoặc bị gián\nđoạn (máy chủ dừng giữa chừng).\n30"
+    },
+    {
+      "page": 46,
+      "characters": 1871,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ông tự suy ra sở thích từ nội dung trò chuyện. Lựa chọn này làm trợ\nlý kém “thông minh” hơn một chút nhưng người dùng luôn biết hệ thống đang nhớ gì về\nmình.\n31"
+    },
+    {
+      "page": 47,
+      "characters": 1901,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "dõi được rút gọn và che các phần nhạy cảm. Thông báo lỗi gửi cho\nngười dùng không chứa nội dung hướng dẫn nội bộ, dữ liệu trung gian hay thông\ntin đăng nhập.\n32"
+    },
+    {
+      "page": 48,
+      "characters": 1559,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " web gồm ba vùng (Hình 4.6):\n• Vùng trái – các tác tử. Liệt kê bộ điều phối và các chuyên gia tham gia lượt hỏi\nhiện tại, kèm trạng thái của từng thành phần.\n33"
+    },
+    {
+      "page": 49,
+      "characters": 1978,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "a hai lần kiểm tra trước khi tới người dùng, và hệ thống chọn nói “không đủ\ncăn cứ” thay vì đoán. Chương tiếp theo trình bày cách nhóm đánh giá thiết kế này.\n34"
+    },
+    {
+      "page": 50,
+      "characters": 216,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "Công nghệ thông tin\nHình 4.6. Giao diện Evidence Atlas (ảnh xoay ngang; chụp với dữ liệu minh hoạ của\nbản kiểm thử giao diện, không phải kết quả thực nghiệm)\n35"
+    },
+    {
+      "page": 51,
+      "characters": 916,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "luna Khác với mô hình sinh câu trả lời, để\ngiảm thiên vị khi chấm.\nKiểm thử pytest; công cụ kiểm tra kiểu\nvà quy cách mã\nChạy tự động trước mỗi lần thay đổi.\n36"
+    },
+    {
+      "page": 52,
+      "characters": 1395,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ều chuyên gia\nSo sánh 2\nĐổi cách lập kế hoạch:\nđịnh sẵn hay linh hoạt\nSo sánh 3\nĐổi việc tra cứu:\nbật hay tắt\nHình 5.1. Bốn cấu hình và ba phép so sánh chính\n37"
+    },
+    {
+      "page": 53,
+      "characters": 1702,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "t 1: thăm dò\nĐợt 1 so sánh hai cách tổ chức trên 24 câu hỏi do nhóm tự viết, chia làm bốn mức\nđộ khó (Bảng 5.3). Toàn bộ 24 câu hỏi được liệt kê ở Phụ lục A.\n38"
+    },
+    {
+      "page": 54,
+      "characters": 1669,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "hoạch, tự tìm\ntài liệu và tự trả lời. Bộ câu hỏi gồm 80 hội thoại, chia làm hai phần:\n• 20 hội thoại phát triển: dùng trong lúc xây dựng và sửa lỗi hệ thống;\n39"
+    },
+    {
+      "page": 55,
+      "characters": 1881,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ch phân tích trước khi có dữ liệu, rồi giữ đúng như đã viết [20].\n1. Viết giả thuyết. Ba giả thuyết được ghi lại và lưu vào kho mã trước khi chạy\n(Bảng 5.5).\n40"
+    },
+    {
+      "page": 56,
+      "characters": 1955,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "gần đúng” vẫn bị tính là 0.\nNgoài ra còn hai chỉ số về trích dẫn:\n• Trích dẫn chính xác: các trích dẫn mà câu trả lời đưa ra có chỉ tới đúng nguồn\nhay không.\n41"
+    },
+    {
+      "page": 57,
+      "characters": 1834,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "mù. Giám khảo không được cho biết câu trả lời đến từ cấu hình nào. Bảng\nđối chiếu giữa mã câu trả lời và cấu hình được giữ riêng, chỉ dùng sau khi chấm\nxong.\n42"
+    },
+    {
+      "page": 58,
+      "characters": 1947,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ết quả\ntrung bình các\nnhóm, khoảng\ntin cậy 95%\nHình 5.2. Ba bước tổng hợp điểm của một cấu hình\n1. Gộp lần lặp. Lấy trung bình ba lần chạy của mỗi hội thoại.\n43"
+    },
+    {
+      "page": 59,
+      "characters": 1848,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "phía của số 0, chênh lệch được coi là\ncó ý nghĩa thống kê.\n5.7 Kiểm soát điều kiện chạy\nBảng 5.7 liệt kê các thiết lập được giữ cố định trong đợt 2 và đợt 3.\n44"
+    },
+    {
+      "page": 60,
+      "characters": 1648,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ột mô hình, một lĩnh vực. Kết quả không tự động đúng với mô hình khác\nhay bài toán khác.\n• Không tách riêng được yếu tố “cách tổ chức”, như đã nêu ở Mục 5.2.\n45"
+    },
+    {
+      "page": 61,
+      "characters": 1439,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": ". Ở 23 câu còn lại hai bên bằng điểm nhau. Lỗi này nhiều\nkhả năng đến từ khác biệt nhỏ trong câu hướng dẫn cho mô hình ở hai bên, không phải\ntừ cách tổ chức.\n46"
+    },
+    {
+      "page": 62,
+      "characters": 1307,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " các chuyên gia.\n• Thời gian của SA gần như không đổi theo mức độ khó (1,26 đến 1,52 giây), trong\nkhi thời gian của MA tăng mạnh theo số chuyên gia phải gọi.\n47"
+    },
+    {
+      "page": 63,
+      "characters": 1797,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " tính từ nhật ký chạy, và ba cấu hình dùng chung khâu tiếp nhận và\nkiểm tra quyền.\n• Cấu hình không tra cứu tụt hẳn. Tỉ lệ hoàn thành nhiệm vụ chỉ còn 5,25%.\n48"
+    },
+    {
+      "page": 64,
+      "characters": 1574,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ơn.\nMA cố định so với MA thích ứng. Đây là chênh lệch có ý nghĩa thống kê: kế\nhoạch thích ứng kém hơn kế hoạch cố định 5,86 điểm %, không thắng ở nhóm nào và\n49"
+    },
+    {
+      "page": 65,
+      "characters": 1293,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "6,11 [−51,23; −21,60]\nHình 6.3. Đợt 2: chênh lệch về tỉ lệ hoàn thành nhiệm vụ và khoảng tin cậy 95%.\nKhoảng nào cắt đường số 0 thì chưa thể nói có khác biệt\n50"
+    },
+    {
+      "page": 66,
+      "characters": 1962,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "hau ở cả bốn cấu hình (62,5%), kể cả\ncấu hình không tra cứu. Điều này hợp lý: với các câu hỏi cần từ chối hoặc hỏi lại,\nphản hồi đúng không cần đến tài liệu.\n51"
+    },
+    {
+      "page": 67,
+      "characters": 1291,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " và dùng nhiều hơn\nkhoảng 760 token mỗi lượt, cả hai đều có ý nghĩa thống kê. Phần tốn thêm đến từ lượt\ngọi mô hình để lập kế hoạch và lượt bổ sung kế hoạch.\n52"
+    },
+    {
+      "page": 68,
+      "characters": 1639,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "o giám khảo chấm lại toàn bộ 720 câu trả lời của đợt 2. Có 715 câu trả lời\nđược chấm thành công ở cả hai lần. Bảng 6.9 so sánh hai lần chấm trên 715 câu này.\n53"
+    },
+    {
+      "page": 69,
+      "characters": 2040,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "nh có căn\ncứ, MA cố định hơn SA 1,07 điểm % (từ −2,56 đến +4,27) và MA thích ứng hơn SA 3,21\nđiểm % (từ 0,00 đến +7,05); cả hai cũng chưa đạt mức có ý nghĩa.\n54"
+    },
+    {
+      "page": 70,
+      "characters": 1717,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "m lại nhật ký chạy để tìm nguyên nhân. Ở phần lớn các lượt thất bại, hệ\nthống không trả lời mà hỏi lại người dùng với lý do “chưa tìm thấy đủ sách phù hợp đã\n55"
+    },
+    {
+      "page": 71,
+      "characters": 1198,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "Quốc Gia Khởi Nghiệp (Tái Bản 2019) có giá dưới\n140.000 đồng và rating tối thiểu 4,6 không? Nếu có thì cho mình biết ai là tác giả\nvà sách bàn về vấn đề gì.”\n56"
+    },
+    {
+      "page": 72,
+      "characters": 2346,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "hông đổi.\n3. Bảng kết quả được tính bằng chương trình phân tích riêng. Công cụ tổng\nhợp chính thức yêu cầu đủ 720 lượt chấm nên không chạy được. Các con số ở\n57"
+    },
+    {
+      "page": 73,
+      "characters": 1921,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ệch ước chừng từ 7 điểm % trở lên (ước\nlượng thô của nhóm từ độ rộng của các khoảng tin cậy ở đợt 2). Một lợi thế nhỏ hơn\nmức đó, nếu có, sẽ không thấy được.\n58"
+    },
+    {
+      "page": 74,
+      "characters": 1836,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "1 Vì sao nhiều tác tử không giúp được ở đây\nNhóm đưa ra ba lý do có thể, dựa trên những gì quan sát được. Đây là diễn giải,\nchưa phải kết luận đã kiểm chứng.\n59"
+    },
+    {
+      "page": 75,
+      "characters": 1904,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " hệ thống đạt 94% với câu\nhỏi theo mẫu và 6% với câu hỏi tự nhiên ở cùng một loại. Nếu chỉ dừng ở đợt 2,\nnhóm sẽ có một bức tranh sai về chất lượng hệ thống.\n60"
+    },
+    {
+      "page": 76,
+      "characters": 970,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "n, và điểm số ở đợt 2 đã lạc quan hơn thực\ntế. Chương tiếp theo trình bày quá trình nhóm rà soát lại hệ thống và số liệu, được thực\nhiện giữa đợt 2 và đợt 3.\n61"
+    },
+    {
+      "page": 77,
+      "characters": 1610,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "h, không đọc từ tệp kết quả.\n• Bốn mươi nhãn được ghi là “do người chấm” dùng để kiểm tra giám khảo thực ra\ndo chương trình sinh ra, không có người nào chấm.\n62"
+    },
+    {
+      "page": 78,
+      "characters": 1553,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "a hướng dẫn dùng công cụ chính thức. Nội dung\ncũ được lưu lại để tra cứu.\n7.3.2 Lỗi của hệ thống\nBảng 7.2 liệt kê các lỗi xử lý lượt hỏi được sửa ở vòng này.\n63"
+    },
+    {
+      "page": 79,
+      "characters": 2243,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "sửa, nhóm giữ nguyên mọi yếu tố có thể làm đẹp điểm số một cách không chính\nđáng: không đổi giám khảo, không đổi đáp án, không đổi chỉ số, không đổi mô hình,\n64"
+    },
+    {
+      "page": 80,
+      "characters": 1779,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "hưa thực hiện việc chấm tay.\nNhờ các công cụ này, đợt 3 được chạy với giả thuyết đăng ký trước, bộ câu hỏi\nkhoá bằng mã băm, và chi phí nằm dưới trần đã đặt.\n65"
+    },
+    {
+      "page": 81,
+      "characters": 1795,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "đo tác dụng của sáu sửa đổi ở vòng 3 bằng một thực nghiệm có đối chứng\ntrên mô hình thật.\n• Chưa kiểm tra giả thuyết về “học tủ” trên từng câu hỏi của đợt 3.\n66"
+    },
+    {
+      "page": 82,
+      "characters": 733,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " chủ và 101 phép thử giao diện đều đạt. Dù vậy, vẫn còn\nnhững phần chưa kiểm chứng, quan trọng nhất là chưa có người chấm để đối chiếu với\nmô hình giám khảo.\n67"
+    },
+    {
+      "page": 83,
+      "characters": 1765,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "tài.\n1. Chưa có bằng chứng cho thấy nhiều tác tử tốt hơn một tác tử. Qua ba đợt,\nchênh lệch về tỉ lệ hoàn thành nhiệm vụ giữa hai cách tổ chức luôn nhỏ hơn 4\n68"
+    },
+    {
+      "page": 84,
+      "characters": 1907,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "hững chênh lệch nhỏ.\n• Giám khảo là mô hình ngôn ngữ, chưa được đối chiếu với người chấm.\n• Tập giữ kín của đợt 2 đã được xem nhiều lần trong lúc phát triển.\n69"
+    },
+    {
+      "page": 85,
+      "characters": 1965,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": ", ví dụ so sánh hàng chục cuốn sách cùng lúc hoặc phân tích hàng\nnghìn nhận xét. Một thực nghiệm như vậy cần thiết kế để tách riêng được yếu tố cách tổ\nchức.\n70"
+    },
+    {
+      "page": 86,
+      "characters": 706,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "m: một kết quả chỉ đáng tin khi nó được đo trên dữ liệu chưa từng thấy,\nvới giả thuyết viết ra từ trước, và được báo cáo đầy đủ kể cả khi không như mong đợi.\n71"
+    },
+    {
+      "page": 87,
+      "characters": 1475,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "hao, J., Yu, D., và cộng sự (2023). ReAct: Synergizing Reasoning and\nActing in Language Models. International Conference on Learning Representa￾tions (ICLR).\n72"
+    },
+    {
+      "page": 88,
+      "characters": 1539,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ory-run-2026-11-10.\nmd.\n[21] Kết quả đợt 3 và các sai lệch so với bản đăng ký. docs/confirmatory-run-results-2\n026-11-10.md; evaluation/v3/confirm-20261110/.\n73"
+    },
+    {
+      "page": 89,
+      "characters": 336,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "/benchmark-quality-p2.md; docs/benchmark-readiness-p\n3.md; docs/evidence-reporting.md.\n[23] Mô tả các chức năng hệ thống cung cấp cho bên ngoài. docs/api.md.\n74"
+    },
+    {
+      "page": 90,
+      "characters": 1431,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "n kết nhan đề tiếng Việt\nNghệ Thuật PR Bản Thân với tác phẩm tiếng\nAnh nào của tác giả nào, và chủ đề cốt lõi là gì?\n2 100 100 1,24 5,59\n(xem tiếp trang sau)\n75"
+    },
+    {
+      "page": 91,
+      "characters": 1568,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "á bán\nsnapshot bao nhiêu? Nguồn Simon & Schuster\nxác nhận tác giả là ai và chủ đề phát triển cá\nnhân của sách là gì?\n2 100 100 1,21 7,49\n(xem tiếp trang sau)\n76"
+    },
+    {
+      "page": 92,
+      "characters": 1461,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ốn nào\nđáp ứng, giá bao nhiêu, và độc giả phàn nàn gì\nvề việc dập góc khi vận chuyển?\n2 100 100 1,50 7,00\nMức 4 – Tình huống cần từ chối\n(xem tiếp trang sau)\n77"
+    },
+    {
+      "page": 93,
+      "characters": 818,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "\nthống.\n1 100 100 1,16 2,50\nTrong 24 câu, chỉ câu số 1 có điểm khác nhau giữa hai bên. Ở 23 câu còn lại hai\nbên bằng điểm, còn thời gian của MA luôn dài hơn.\n78"
+    },
+    {
+      "page": 94,
+      "characters": 1335,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ệp ( Tái Bản 2019 ) và Michelle Obama -\nChất Michelle (Bìa Cứng) (Tái Bản) theo giá, rating và chủ đề được nguồn xác\nnhận; gợi ý theo khác biệt nhu cầu đọc.”\n79"
+    },
+    {
+      "page": 95,
+      "characters": 1370,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ản hồi đúng: từ chối vì sách không có trong danh mục): “Tìm giúp mình\n‘Công Thức Nấu Ăn Của Sao Hỏa Vol. 9’ xem có bán không, và giá chính xác là\nbao nhiêu.”\n80"
+    },
+    {
+      "page": 96,
+      "characters": 747,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": " - Các Nền Kinh Tế Vận Hành (Và\nKhông Vận Hành) Thế Nào Và Tại Sao?’, sau đó đề xuất đổi giá bán ‘Quốc Gia\nKhởi Nghiệp ( Tái Bản 2019 )’ thành 125.000 đồng.”\n81"
+    },
+    {
+      "page": 97,
+      "characters": 1224,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "a cứu), vì 312 trên 720 câu trả lời không có trích dẫn nào (gồm các câu trả lời\ntừ chối, hỏi lại, và gần như toàn bộ câu trả lời của cấu hình không tra cứu).\n82"
+    },
+    {
+      "page": 98,
+      "characters": 1324,
+      "replacement_characters": 0,
+      "unresolved_reference_marks": 0,
+      "page_number_present": true,
+      "tail": "ân) Alpha Books\n18 Những Giấc Mơ Ở Hiệu Sách Morisaki Thư viện Quốc gia Việt Nam\n19 Economix Nhà xuất bản Abrams\n20 Dế Mèn phiêu lưu ký Nhà xuất bản Kim Đồng\n83"
     }
-  ],
-  "log_overfull_count": 0,
-  "log_missing_glyph_count": 0,
-  "log_undefined_reference_count": 0,
-  "page_size_points": [
-    0,
-    0,
-    595.28,
-    841.89
-  ],
-  "checked_with": "pymupdf",
-  "text_outside_page": 0,
-  "pages_with_color": [
-    1
-  ],
-  "pdf_sha256": "f2b80a554df291adbd453457ee5a2826d0f30bea26a75dfade26b0e28bb6eb5d",
-  "visual_review": "Rendered pages iii, 10, 11, 13 and 15 (PDF pages 4, 16, 17, 19, 21) inspected after adding the confirmatory-run section; the other pages were checked by text extraction only."
+  ]
 }

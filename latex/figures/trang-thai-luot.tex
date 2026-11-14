@@ -1,0 +1,12 @@
+% Các trạng thái của một lượt hỏi
+\begin{tikzpicture}[baocao]
+  \node[hop, text width=2.6cm] (p) at (1.5,0) {\textbf{Chờ xử lý}\\đã ghi nhận};
+  \node[hopxam, text width=2.8cm] (r) at (6.4,0) {\textbf{Đang chạy}\\một tiến trình giữ quyền xử lý};
+  \node[hop, text width=4.4cm] (t1) at (12.7,2.4) {\textbf{Hoàn tất}: có kết quả cuối cùng};
+  \node[hop, text width=4.4cm] (t2) at (12.7,0.8) {\textbf{Thất bại}: lỗi không khắc phục được};
+  \node[hop, text width=4.4cm] (t3) at (12.7,-0.8) {\textbf{Đã huỷ}: người dùng yêu cầu dừng};
+  \node[hop, text width=4.4cm] (t4) at (12.7,-2.4) {\textbf{Bị gián đoạn}: tiến trình dừng giữa chừng};
+  \draw[mui] (p) -- (r);
+  \foreach \t in {t1,t2,t3,t4} \draw[mui] (r.east) -- ++(0.7,0) |- (\t.west);
+  \node[ghichu, text width=7.5cm] at (4.0,-2.4) {Gửi lại cùng một lượt hỏi không tạo lượt mới: hệ thống trả về trạng thái hoặc kết quả đã lưu.};
+\end{tikzpicture}

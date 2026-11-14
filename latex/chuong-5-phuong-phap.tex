@@ -1,0 +1,307 @@
+\chapter{Phương pháp đánh giá}
+\label{ch:phuong-phap}
+
+Chương này trình bày cách nhóm đo để trả lời ba câu hỏi nghiên cứu ở Chương~\ref{ch:gioi-thieu}: so sánh cái gì với cái gì, hỏi những câu nào, chấm bằng cách nào, và tính toán ra sao. Kết quả được trình bày ở Chương~\ref{ch:ket-qua}.
+
+\section{Nguyên tắc so sánh}
+
+So sánh ``một tác tử'' với ``nhiều tác tử'' rất dễ thiếu công bằng. Nếu bên nhiều tác tử được dùng mô hình mạnh hơn, nhiều công cụ hơn hoặc hướng dẫn kỹ hơn, thì phần hơn không nói lên điều gì về cách tổ chức. Nhóm đặt ra năm điều kiện mà mọi cấu hình đem so đều phải giữ giống nhau:
+
+\begin{enumerate}
+    \item \textbf{Cùng mô hình ngôn ngữ}, cùng một bản phát hành, cùng thiết lập.
+    \item \textbf{Cùng dữ liệu}: cùng danh mục, cùng nhận xét, cùng kho tri thức, cùng phiên bản.
+    \item \textbf{Cùng công cụ}: cấu hình một tác tử được dùng toàn bộ công cụ mà các chuyên gia có.
+    \item \textbf{Cùng bước kiểm chứng} trước khi trả lời.
+    \item \textbf{Cùng cách chấm}: cùng mô hình giám khảo, cùng đáp án, giám khảo không biết câu trả lời đến từ cấu hình nào.
+\end{enumerate}
+
+\section{Bốn cấu hình được so sánh}
+\label{sec:bon-cau-hinh}
+
+Hình~\ref{fig:bon-cau-hinh} và Bảng~\ref{tab:bon-cau-hinh} mô tả bốn cấu hình.
+
+\hinh{bon-cau-hinh}{Bốn cấu hình và ba phép so sánh chính}{fig:bon-cau-hinh}
+
+\begin{table}[!htbp]
+\caption{Điểm khác nhau giữa bốn cấu hình}
+\label{tab:bon-cau-hinh}
+\cobang
+\begin{tabularx}{\linewidth}{P{2.7cm}YYC{2.0cm}C{1.6cm}}
+\toprule
+\textbf{Cấu hình} & \textbf{Cách tổ chức} & \textbf{Ai lập kế hoạch} & \textbf{Bổ sung kế hoạch} & \textbf{Tra cứu}\\
+\midrule
+SA & Một tác tử làm mọi việc & Mô hình đề xuất & Không & Có\\
+MA cố định & Bộ điều phối và các chuyên gia; mỗi chuyên gia có lượt suy luận riêng & Chương trình, theo quy tắc định sẵn & Không & Có\\
+MA thích ứng & Như MA cố định & Mô hình đề xuất & Một lần & Có\\
+MA không tra cứu & Như MA thích ứng & Mô hình đề xuất & Một lần & Không\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Từ bốn cấu hình có ba phép so sánh chính:
+
+\begin{itemize}
+    \item \textbf{So sánh 1: SA với hai cấu hình MA.} Trả lời câu hỏi nghiên cứu 1 và 3: cách tổ chức nhiều chuyên gia có giúp gì không, và tốn thêm bao nhiêu.
+    \item \textbf{So sánh 2: MA cố định với MA thích ứng.} Cho biết việc để mô hình lập và bổ sung kế hoạch có lợi hơn kế hoạch định sẵn hay không.
+    \item \textbf{So sánh 3: MA thích ứng với MA không tra cứu.} Trả lời câu hỏi nghiên cứu 2. Hai cấu hình này chỉ khác nhau đúng một điểm là có tra cứu hay không, nên đây là phép so sánh ``sạch'' nhất.
+\end{itemize}
+
+Cần nói rõ một hạn chế của thiết kế. Bảng~\ref{tab:bon-cau-hinh} cho thấy SA và MA cố định khác nhau ở hai điểm cùng lúc (cách tổ chức và người lập kế hoạch); SA và MA thích ứng cũng khác nhau ở hai điểm (cách tổ chức và việc được bổ sung kế hoạch). Vì vậy không có cặp nào tách riêng được đúng một yếu tố ``cách tổ chức''. Nhóm khắc phục một phần bằng cách so SA với \emph{cả hai} cấu hình MA: nếu nhiều tác tử thực sự có lợi thì ít nhất một trong hai phải hơn SA rõ rệt.
+
+\section{Ba đợt thực nghiệm}
+
+Nhóm thực hiện ba đợt đo, mỗi đợt khắc phục điểm yếu của đợt trước. Bảng~\ref{tab:ba-dot} tóm tắt.
+
+\begin{table}[!htbp]
+\caption{Tổng quan ba đợt thực nghiệm}
+\label{tab:ba-dot}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.0cm}YYY}
+\toprule
+ & \textbf{Đợt 1} & \textbf{Đợt 2} & \textbf{Đợt 3}\\
+\midrule
+Tính chất & Thăm dò & Đo chính trên tập giữ kín & Xác nhận, có đăng ký trước\\
+Số câu hỏi & 24 câu hỏi đơn & 60 hội thoại & 60 hội thoại mới\\
+Số cấu hình & 2 (SA, MA) & 4 & 4\\
+Số lần lặp & 3 & 3 & 3\\
+Số câu trả lời & 144 & 720 & 720\\
+Cách viết câu hỏi & Nhóm tự viết & Sinh theo mẫu câu & Viết theo lối nói tự nhiên\\
+Điều được đo & Chỉ khâu tổng hợp câu trả lời & Toàn bộ quá trình & Toàn bộ quá trình\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Đợt 1: thăm dò}
+
+Đợt 1 so sánh hai cách tổ chức trên 24 câu hỏi do nhóm tự viết, chia làm bốn mức độ khó (Bảng~\ref{tab:muc-do}). Toàn bộ 24 câu hỏi được liệt kê ở Phụ lục~\ref{app:dot1}.
+
+\begin{table}[!htbp]
+\caption{Bốn mức độ khó của bộ câu hỏi đợt 1}
+\label{tab:muc-do}
+\cobang
+\begin{tabularx}{\linewidth}{P{1.5cm}P{3.8cm}YC{1.4cm}C{1.6cm}}
+\toprule
+\textbf{Mức} & \textbf{Tên gọi} & \textbf{Đặc điểm} & \textbf{Số câu} & \textbf{Số dữ kiện}\\
+\midrule
+1 & Một nguồn & Chỉ cần tra danh mục, hoặc chỉ cần tra kho tri thức & 6 & 14\\
+2 & Phối hợp nhiều nguồn & Cần ít nhất hai trong ba nguồn: danh mục, nhận xét, kho tri thức & 8 & 17\\
+3 & Tư vấn nhiều góc nhìn & So sánh, cân nhắc giữa giá, nhận xét và nội dung để đưa lời khuyên & 6 & 8\\
+4 & Tình huống cần từ chối & Yêu cầu vượt quyền, điều kiện mâu thuẫn, câu lệnh cài cắm & 4 & 4\\
+\midrule
+ & \textbf{Tổng} & & \textbf{24} & \textbf{43}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+``Dữ kiện'' là một thông tin cụ thể mà câu trả lời đúng phải có, ví dụ giá của cuốn sách. Mỗi câu hỏi có từ 1 đến 4 dữ kiện bắt buộc.
+
+Đợt 1 có hai đặc điểm làm giới hạn ý nghĩa của nó. Thứ nhất, cả hai bên đều được \emph{cấp sẵn} các tài liệu cần thiết thay vì phải tự tìm. Đợt này vì vậy chỉ đo khâu tổng hợp câu trả lời, không đo khâu tìm kiếm. Thứ hai, bộ câu hỏi được viết sau khi nhóm đã thấy các lỗi của hệ thống ở những lần chạy trước, nên có thể thiên lệch. Nhóm coi kết quả đợt 1 là thăm dò.
+
+\subsection{Đợt 2: đo chính}
+
+Đợt 2 đo toàn bộ quá trình: hệ thống phải tự hiểu câu hỏi, tự lập kế hoạch, tự tìm tài liệu và tự trả lời. Bộ câu hỏi gồm 80 hội thoại, chia làm hai phần:
+
+\begin{itemize}
+    \item 20 hội thoại \emph{phát triển}: dùng trong lúc xây dựng và sửa lỗi hệ thống;
+    \item 60 hội thoại \emph{giữ kín}: chỉ dùng để đánh giá. Mọi con số báo cáo đều tính trên 60 hội thoại này.
+\end{itemize}
+
+Sáu mươi hội thoại giữ kín xoay quanh 13 đầu sách, gộp thành 27 nhóm tác phẩm, với tổng cộng 194 dữ kiện bắt buộc. Chúng thuộc sáu loại như Bảng~\ref{tab:sau-loai}. Ví dụ đầy đủ cho từng loại có ở Phụ lục~\ref{app:vi-du}.
+
+\begin{table}[!htbp]
+\caption{Sáu loại hội thoại trong tập giữ kín}
+\label{tab:sau-loai}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.3cm}C{1.2cm}YP{3.0cm}}
+\toprule
+\textbf{Loại} & \textbf{Số lượng} & \textbf{Nội dung} & \textbf{Phản hồi đúng}\\
+\midrule
+Nhiều ràng buộc & 12 & Tìm sách thoả cùng lúc điều kiện về giá, điểm đánh giá, kèm thông tin tác phẩm & Trả lời trực tiếp\\
+Hỏi theo nguồn & 12 & Hỏi về tác giả, chủ đề của tác phẩm theo nguồn chính thống & Trả lời trực tiếp\\
+So sánh, gợi ý & 12 & So sánh hai cuốn theo giá, điểm và nội dung, rồi gợi ý & Trả lời trực tiếp\\
+Nhiều lượt, cần nhớ & 8 & Hội thoại 2--3 lượt; lượt sau nhắc tới sách ở lượt trước & Trả lời trực tiếp\\
+Thiếu hoặc mâu thuẫn & 8 & Hỏi về sách không có, điều kiện mâu thuẫn nhau, hoặc câu lệnh cài cắm & Hỏi lại hoặc từ chối\\
+Mua bán, quản lý & 8 & Yêu cầu thao tác như đổi giá bán, đặt hàng & Đề xuất và chờ xác nhận\\
+\midrule
+\textbf{Tổng} & \textbf{60} & & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Bốn cấu hình, mỗi cấu hình chạy mỗi hội thoại ba lần, cho $60 \times 4 \times 3 = 720$ câu trả lời.
+
+Câu hỏi của đợt 2 được sinh từ các \emph{mẫu câu} cố định, chỉ thay tên sách và con số. Cách này bảo đảm đáp án chính xác, nhưng câu hỏi nghe khá máy móc. Đây là điểm yếu mà đợt 3 nhắm tới.
+
+Có một điều cần nói thẳng về tập giữ kín của đợt 2: trong quá trình phát triển, nhóm đã chạy tập này nhiều lần và đã xem kết quả để định hướng sửa lỗi. Tập này vì vậy không còn ``kín'' theo nghĩa chặt chẽ, và kết quả trên nó có thể lạc quan hơn thực tế.
+
+\subsection{Đợt 3: xác nhận có đăng ký trước}
+\label{sec:dang-ky-truoc}
+
+Để khắc phục điểm yếu trên, nhóm thực hiện đợt 3 theo quy trình \emph{đăng ký trước}: viết ra giả thuyết và cách phân tích \emph{trước khi} có dữ liệu, rồi giữ đúng như đã viết \src{20}.
+
+\begin{enumerate}
+    \item \textbf{Viết giả thuyết.} Ba giả thuyết được ghi lại và lưu vào kho mã trước khi chạy (Bảng~\ref{tab:gia-thuyet}).
+    \item \textbf{Viết bộ câu hỏi mới.} 60 hội thoại mới, cùng 13 đầu sách và sáu loại như đợt 2, nhưng được viết theo lối nói tự nhiên của người dùng thật. Bộ câu hỏi và đáp án này do một trợ lý AI độc lập soạn và không được cung cấp kết quả của đợt 2, để cách đặt câu hỏi không bị ảnh hưởng bởi những gì nhóm đã biết.
+    \item \textbf{Khoá bộ câu hỏi.} Bộ câu hỏi và đáp án được tính mã băm và ghi lại. Mọi thay đổi sau đó đều bị phát hiện.
+    \item \textbf{Chạy một lần.} Không chạy lại để chọn kết quả đẹp hơn.
+    \item \textbf{Báo cáo mọi sai lệch} so với kế hoạch đã đăng ký, kể cả những sai lệch nhỏ.
+\end{enumerate}
+
+\begin{table}[!htbp]
+\caption{Ba giả thuyết đăng ký trước của đợt 3}
+\label{tab:gia-thuyet}
+\cobang
+\begin{tabularx}{\linewidth}{P{1.9cm}YP{4.2cm}}
+\toprule
+\textbf{Giả thuyết} & \textbf{Nội dung} & \textbf{Phạm vi}\\
+\midrule
+H1 (chính) & MA cố định có tỉ lệ hoàn thành nhiệm vụ cao hơn SA & Chỉ loại ``Nhiều ràng buộc''\\
+H2 (phụ) & MA cố định có tỉ lệ hoàn thành nhiệm vụ cao hơn SA & Cả 60 hội thoại\\
+H3 (phụ) & So sánh MA thích ứng với SA & Cả 60 hội thoại\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Giả thuyết H1 được chọn làm giả thuyết chính vì trong đợt 2, loại ``Nhiều ràng buộc'' là nơi MA cố định có vẻ nhỉnh hơn SA nhiều nhất. Nói cách khác, nhóm đã chọn đúng chỗ thuận lợi nhất cho giả thuyết ``nhiều tác tử tốt hơn''. Một giả thuyết được coi là \emph{được ủng hộ} khi khoảng tin cậy 95\% của chênh lệch nằm hoàn toàn trên số 0.
+
+\section{Các chỉ số đánh giá}
+\label{sec:chi-so}
+
+\subsection{Chỉ số chất lượng}
+
+Mỗi câu trả lời được chấm theo các chỉ số ở Bảng~\ref{tab:chi-so}. Mỗi chỉ số chỉ nhận một trong hai giá trị: đạt (1) hoặc không đạt (0). Nhóm chọn cách chấm hai mức thay vì thang điểm 1--5 vì thang nhiều mức khó chấm nhất quán.
+
+\begin{table}[!htbp]
+\caption{Các chỉ số chất lượng và điều kiện để đạt}
+\label{tab:chi-so}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.4cm}Y}
+\toprule
+\textbf{Chỉ số} & \textbf{Câu trả lời đạt khi}\\
+\midrule
+Chọn đúng cách phản hồi & Hệ thống chọn đúng loại phản hồi mà tình huống đòi hỏi: trả lời trực tiếp, hỏi lại, từ chối, hoặc đề xuất và chờ xác nhận.\\
+Nhận định có căn cứ & Câu trả lời nêu đủ mọi dữ kiện bắt buộc; mỗi dữ kiện có trích dẫn tới đúng nguồn; và không chứa nhận định nào bị cấm (ví dụ suy ra thông tin ấn bản từ nguồn cấp tác phẩm).\\
+Tuân thủ phân quyền & Hệ thống chỉ thực hiện các việc mà người dùng trong tình huống đó được phép.\\
+Kế hoạch hợp lệ & Có kế hoạch; mọi việc bắt buộc đều được thực hiện thành công; không có việc bị cấm nào được thực hiện.\\
+Tiếp tục hữu ích & Có kế hoạch và kết cục của lượt hỏi đúng với kết cục mong đợi.\\
+\midrule
+\textbf{Hoàn thành nhiệm vụ} & \textbf{Cả năm chỉ số trên đều đạt.}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Hoàn thành nhiệm vụ} là chỉ số chính của báo cáo. Đây là một chỉ số khắt khe: chỉ cần thiếu một dữ kiện, thiếu một trích dẫn, hoặc chọn sai loại phản hồi là cả câu trả lời bị tính không đạt. Người đọc nên lưu ý điều này khi thấy các tỉ lệ hoàn thành ở Chương~\ref{ch:ket-qua} có vẻ thấp: một câu trả lời ``gần đúng'' vẫn bị tính là 0.
+
+Ngoài ra còn hai chỉ số về trích dẫn:
+
+\begin{itemize}
+    \item \textbf{Trích dẫn chính xác:} các trích dẫn mà câu trả lời đưa ra có chỉ tới đúng nguồn hay không.
+    \item \textbf{Độ phủ trích dẫn:} trong các nhận định của câu trả lời, bao nhiêu phần trăm được chính trích dẫn đi kèm xác nhận. Chỉ số này chỉ tính được trên những câu trả lời có nhận định và có trích dẫn.
+\end{itemize}
+
+\subsection{Chỉ số chi phí}
+
+\begin{itemize}
+    \item \textbf{Thời gian trả lời:} từ lúc gửi câu hỏi tới lúc có câu trả lời đầy đủ.
+    \item \textbf{Số token:} tổng số token gửi đi và nhận về trong mọi lượt gọi mô hình của một lượt hỏi.
+    \item \textbf{Chi phí:} tính bằng đô-la Mỹ theo bảng giá của nhà cung cấp, lấy từ sổ ghi chi phí.
+\end{itemize}
+
+\section{Cách chấm điểm}
+
+\subsection{Mô hình giám khảo}
+
+Với 720 câu trả lời mỗi đợt, chấm tay toàn bộ là không khả thi với nhóm hai người. Nhóm dùng một mô hình ngôn ngữ khác làm giám khảo \src{4}, với các biện pháp sau để giảm sai lệch:
+
+\begin{itemize}
+    \item \textbf{Giám khảo khác mô hình trả lời.} Mô hình giám khảo không phải mô hình sinh ra câu trả lời, để tránh việc một mô hình ``chấm nhẹ tay'' cho chính mình.
+    \item \textbf{Chấm mù.} Giám khảo không được cho biết câu trả lời đến từ cấu hình nào. Bảng đối chiếu giữa mã câu trả lời và cấu hình được giữ riêng, chỉ dùng sau khi chấm xong.
+    \item \textbf{Chấm theo đáp án, không theo cảm nhận.} Giám khảo nhận câu hỏi, câu trả lời, các trích dẫn, và danh sách dữ kiện bắt buộc cùng đoạn nguồn tương ứng. Việc của giám khảo là đối chiếu, không phải nêu ý kiến.
+    \item \textbf{Kết quả có cấu trúc.} Giám khảo phải trả về điểm 0 hoặc 1 cho từng chỉ số theo đúng thứ tự, không viết lời bình tự do.
+\end{itemize}
+
+\subsection{Chỉ số nào do giám khảo chấm, chỉ số nào do máy ghi}
+
+Một điểm đáng lưu ý là không phải chỉ số nào cũng dựa vào phán đoán của giám khảo. Bốn chỉ số \emph{chọn đúng cách phản hồi}, \emph{tuân thủ phân quyền}, \emph{kế hoạch hợp lệ} và \emph{tiếp tục hữu ích} được tính trực tiếp từ nhật ký chạy của hệ thống: hệ thống đã chọn loại phản hồi nào, đã gọi những việc gì, việc nào thành công. Giám khảo chỉ chép lại các giá trị này. Phần cần đến phán đoán của giám khảo là chỉ số \emph{nhận định có căn cứ}.
+
+Cách làm này thu hẹp phạm vi mà mô hình giám khảo có thể sai. Tuy vậy, nhóm chưa có điều kiện để so kết quả của giám khảo với người chấm trên một mẫu đủ lớn. Đây là một giới hạn của đề tài và được nêu lại ở Chương~\ref{ch:ket-luan}.
+
+\subsection{Kiểm tra độ ổn định của giám khảo}
+
+Để biết giám khảo có chấm nhất quán không, nhóm cho chấm lại toàn bộ câu trả lời của đợt 2 một lần nữa, rồi so hai lần chấm \src{19}. Kết quả được trình bày ở Mục~\ref{sec:cham-lai}.
+
+\section{Tổng hợp và thống kê}
+
+\subsection{Từ 720 lượt chấm đến một con số}
+
+Lấy trung bình thẳng trên 720 lượt chấm là không đúng, vì các lượt chấm không độc lập với nhau: ba lần lặp của cùng một hội thoại rất giống nhau, và các hội thoại về cùng một tác phẩm cũng có xu hướng cùng đúng hoặc cùng sai. Nhóm tổng hợp theo ba bước như Hình~\ref{fig:tong-hop}.
+
+\hinh{tong-hop-diem}{Ba bước tổng hợp điểm của một cấu hình}{fig:tong-hop}
+
+\begin{enumerate}
+    \item \textbf{Gộp lần lặp.} Lấy trung bình ba lần chạy của mỗi hội thoại.
+    \item \textbf{Gộp theo tác phẩm.} Lấy trung bình các hội thoại thuộc cùng một nhóm tác phẩm.
+    \item \textbf{Lấy trung bình các nhóm.} Điểm của cấu hình là trung bình trên 27 nhóm tác phẩm (đợt 2) hoặc 26 nhóm (đợt 3).
+\end{enumerate}
+
+Với cách này, mỗi nhóm tác phẩm có trọng số như nhau, dù nhóm đó có nhiều hay ít hội thoại. Hệ quả là con số chính thức có thể khác với trung bình thẳng trên 60 hội thoại; chỗ nào dùng trung bình thẳng, báo cáo sẽ ghi rõ.
+
+\subsection{So sánh hai cấu hình}
+
+Hai cấu hình trả lời cùng một bộ câu hỏi, nên nhóm so sánh theo cặp: với mỗi nhóm tác phẩm, lấy điểm của cấu hình này trừ điểm của cấu hình kia. Chênh lệch trung bình trên các nhóm là con số được báo cáo, ký hiệu $\Delta$ và tính bằng \pp.
+
+Ngoài chênh lệch trung bình, nhóm đếm số nhóm tác phẩm mà cấu hình thứ hai \emph{thắng}, \emph{hoà} và \emph{thua} so với cấu hình thứ nhất. Ba con số này cho biết chênh lệch đến từ nhiều nhóm hay chỉ từ một vài nhóm.
+
+\subsection{Khoảng tin cậy}
+
+Một chênh lệch đo được có thể chỉ do may rủi. Để biết mức độ chắc chắn, nhóm tính khoảng tin cậy 95\% bằng phương pháp lấy mẫu lại (bootstrap) \src{12}:
+
+\begin{enumerate}
+    \item Từ 27 nhóm tác phẩm, rút ngẫu nhiên có hoàn lại 27 nhóm (một nhóm có thể được rút nhiều lần).
+    \item Tính chênh lệch trung bình trên 27 nhóm vừa rút.
+    \item Lặp lại 10.000 lần, thu được 10.000 giá trị chênh lệch.
+    \item Lấy giá trị ở vị trí 2,5\% và 97,5\% làm hai đầu của khoảng tin cậy.
+\end{enumerate}
+
+Đơn vị lấy mẫu lại là \emph{nhóm tác phẩm}, không phải từng câu trả lời, vì đây mới là đơn vị độc lập. Hạt giống ngẫu nhiên được cố định để kết quả tính lại được y nguyên.
+
+Cách đọc kết quả: nếu khoảng tin cậy \textbf{chứa số 0}, chưa thể nói hai cấu hình khác nhau. Nếu khoảng tin cậy nằm hoàn toàn về một phía của số 0, chênh lệch được coi là có ý nghĩa thống kê.
+
+\section{Kiểm soát điều kiện chạy}
+
+Bảng~\ref{tab:dieu-kien} liệt kê các thiết lập được giữ cố định trong đợt 2 và đợt 3.
+
+\begin{table}[!htbp]
+\caption{Các thiết lập cố định khi chạy thực nghiệm}
+\label{tab:dieu-kien}
+\cobang
+\begin{tabularx}{\linewidth}{P{5.2cm}Y}
+\toprule
+\textbf{Thiết lập} & \textbf{Giá trị}\\
+\midrule
+Mô hình sinh câu trả lời & gpt-5.4-mini, bản ngày 17/3/2026, tắt chế độ suy luận mở rộng\\
+Mô hình giám khảo & gpt-6-luna\\
+Mô hình tìm kiếm theo nghĩa & text-embedding-3-small\\
+Dữ liệu & Bộ đánh giá: 200 đầu sách, 1.773 nhận xét\\
+Kho tri thức & 20 nguồn, cùng một phiên bản cho mọi cấu hình\\
+Số lần lặp & 3 lần cho mỗi hội thoại và mỗi cấu hình\\
+Thứ tự chạy & Bốn cấu hình trả lời cùng một bộ hội thoại, trên cùng một cơ sở dữ liệu\\
+Số mẫu lấy lại khi tính khoảng tin cậy & 10.000\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Trong lúc chạy, chương trình thực nghiệm kiểm tra các ràng buộc của từng cấu hình. Ví dụ, nếu cấu hình SA phát sinh một lượt gọi mô hình dành riêng cho chuyên gia, hoặc cấu hình không tra cứu phát sinh một lượt gọi liên quan đến kho tri thức, lần chạy bị dừng và báo lỗi. Nhờ vậy bốn cấu hình thực sự khác nhau đúng như mô tả ở Bảng~\ref{tab:bon-cau-hinh}.
+
+\section{Giới hạn của phương pháp}
+
+Trước khi sang phần kết quả, nhóm tóm tắt các giới hạn mà người đọc cần nhớ:
+
+\begin{itemize}
+    \item \textbf{Quy mô nhỏ.} 60 hội thoại quanh 13 đầu sách là ít. Khoảng tin cậy vì vậy rộng, và những chênh lệch nhỏ sẽ không phát hiện được.
+    \item \textbf{Giám khảo là mô hình.} Chưa được đối chiếu với người chấm trên mẫu lớn.
+    \item \textbf{Tập giữ kín của đợt 2 đã bị xem nhiều lần.} Đợt 3 được thực hiện để bù lại điểm này.
+    \item \textbf{Chưa đo khâu tìm tài liệu riêng.} Nhóm không đo được tỉ lệ tài liệu đúng được tìm thấy, nên không tách được lỗi do tìm sai với lỗi do viết sai.
+    \item \textbf{Chỉ một mô hình, một lĩnh vực.} Kết quả không tự động đúng với mô hình khác hay bài toán khác.
+    \item \textbf{Không tách riêng được yếu tố ``cách tổ chức''}, như đã nêu ở Mục~\ref{sec:bon-cau-hinh}.
+\end{itemize}

@@ -1,0 +1,26 @@
+% Đợt 2: chênh lệch tỉ lệ hoàn thành nhiệm vụ và khoảng tin cậy 95% (1 điểm % = 0,13 cm)
+\begin{tikzpicture}[baocao, x=0.13cm, y=1cm]
+  % trục
+  \draw[line width=0.8pt] (-55,0) -- (13,0);
+  \foreach \v/\nhan in {-50/−50,-40/−40,-30/−30,-20/−20,-10/−10,0/0,10/+10} {
+    \draw[line width=0.6pt] (\v,0) -- (\v,-0.15);
+    \node[font=\sffamily\footnotesize, anchor=north] at (\v,-0.18) {\nhan};
+  }
+  \node[font=\sffamily\footnotesize, anchor=north] at (-21,-0.8) {Chênh lệch tỉ lệ hoàn thành nhiệm vụ (điểm \%)};
+  % đường mốc 0
+  \draw[line width=1pt, dashed] (0,0) -- (0,5.9);
+  \node[ghichu, anchor=south] at (0,5.9) {mốc 0: không khác biệt};
+  % bốn phép so sánh: y / cận dưới / ước lượng / cận trên / tên / số
+  \foreach \y/\lo/\mid/\hi/\ten/\so in {
+      5.1/-3.09/2.06/7.30/{MA cố định so với SA}/{+2,06 [−3,09; +7,30]},
+      3.8/-8.74/-3.81/1.03/{MA thích ứng so với SA}/{−3,81 [−8,74; +1,03]},
+      2.5/-10.19/-5.86/-2.16/{MA thích ứng so với MA cố định}/{−5,86 [−10,19; −2,16]},
+      1.2/-51.23/-36.11/-21.60/{Tắt tra cứu so với có tra cứu}/{−36,11 [−51,23; −21,60]}} {
+    \draw[line width=0.3pt, black!35] (-55,\y) -- (13,\y);
+    \draw[line width=1.5pt] (\lo,\y) -- (\hi,\y);
+    \draw[line width=1.5pt] (\lo,\y-0.17) -- (\lo,\y+0.17);
+    \draw[line width=1.5pt] (\hi,\y-0.17) -- (\hi,\y+0.17);
+    \fill (\mid,\y) circle[radius=1.5mm];
+    \node[font=\sffamily\footnotesize, anchor=east, align=right, text width=5.6cm] at (-57,\y) {\textbf{\ten}\\ \so};
+  }
+\end{tikzpicture}

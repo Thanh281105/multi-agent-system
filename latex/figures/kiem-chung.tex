@@ -1,0 +1,18 @@
+% Kiểm chứng từng nhận định trước khi trả lời
+\begin{tikzpicture}[baocao, node distance=6mm]
+  \tikzset{cot/.style={hop, text width=7.2cm}}
+  \node[cot] (n1) at (4.3,0) {Bản nháp do mô hình viết};
+  \node[cot, below=of n1] (n2) {Tách thành từng nhận định; mỗi nhận định phải chỉ ra đoạn nguồn làm căn cứ};
+  \node[cot, below=of n2] (n3) {\textbf{Kiểm tra 1:} đoạn nguồn có thật, đúng phiên bản và đúng vị trí trong tài liệu};
+  \node[cot, below=of n3] (n4) {\textbf{Kiểm tra 2:} đoạn nguồn có thực sự nói điều mà nhận định nêu ra};
+  \node[hopxam, text width=4.4cm, below=of n4] (d) {\textbf{Đạt cả hai kiểm tra?}};
+  \node[cot, below=10mm of d] (n5) {Giữ nhận định và gắn số trích dẫn vào câu trả lời};
+  \coordinate (cotphai) at (13.0,0);
+  \path (cotphai |- d) node[hop, text width=3.9cm] (fix) {Cho mô hình sửa lại\\(chỉ một lần)};
+  \path (cotphai |- n5) node[hopden, text width=3.9cm] (drop) {Bỏ nhận định, hoặc nói rõ là không đủ căn cứ};
+  \foreach \a/\b in {n1/n2,n2/n3,n3/n4,n4/d} \draw[mui] (\a) -- (\b);
+  \draw[mui] (d) -- node[right, font=\sffamily\footnotesize\bfseries] {Có} (n5);
+  \draw[mui] (d) -- node[above, font=\sffamily\footnotesize\bfseries] {Không} (fix);
+  \draw[mui] (fix.north) |- node[pos=0.25, right, ghichu] {kiểm tra lại} (n3.east);
+  \draw[mui] (fix) -- node[right, ghichu] {vẫn không đạt} (drop);
+\end{tikzpicture}

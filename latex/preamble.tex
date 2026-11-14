@@ -1,0 +1,142 @@
+% Phần khai báo dùng chung cho báo cáo (biên dịch bằng XeLaTeX/Tectonic).
+% Cỡ chữ thân bài 13pt (lớp report chỉ có sẵn 10, 11, 12pt nên phải đặt qua gói này).
+\usepackage[fontsize=13pt]{scrextend}
+\usepackage[left=3cm,right=2cm,top=2.5cm,bottom=2.5cm,headheight=16pt,headsep=7mm,footskip=11mm]{geometry}
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\setsansfont{Arial}
+\usepackage{amsmath,amssymb,graphicx,booktabs,longtable,tabularx,array,multirow}
+\usepackage{enumitem,fancyhdr,titlesec,caption,needspace,xurl,float,setspace,indentfirst}
+\usepackage[hidelinks,unicode,pdftitle={Hệ thống trợ lý tư vấn sách ứng dụng nhiều tác tử},pdfauthor={Hoàng Xuân Thanh, Trần Gia Lạc}]{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,patterns,calc,shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\hypersetup{bookmarksnumbered=true}
+
+% ---------- Tên gọi tiếng Việt ----------
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\renewcommand{\contentsname}{Mục lục}
+\renewcommand{\listfigurename}{Danh mục hình}
+\renewcommand{\listtablename}{Danh mục bảng}
+\renewcommand{\chaptername}{Chương}
+\renewcommand{\appendixname}{Phụ lục}
+
+% ---------- Đoạn văn, danh sách ----------
+\setstretch{1.3}
+\setlength{\parindent}{1cm}
+\setlength{\parskip}{5pt}
+\setlist{leftmargin=1.2cm,itemsep=2pt,topsep=3pt,parsep=1pt}
+\setlength{\emergencystretch}{3em}
+\widowpenalty=10000
+\clubpenalty=10000
+% Không ngắt trang giữa câu dẫn và danh sách đi ngay sau nó
+\makeatletter\@beginparpenalty=10000\makeatother
+\raggedbottom
+
+% ---------- Bảng ----------
+\renewcommand{\arraystretch}{1.25}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\captionsetup{font=normalsize,labelfont=bf,labelsep=period,justification=centering}
+\captionsetup[table]{position=top,skip=6pt}
+\captionsetup[figure]{position=bottom,skip=8pt}
+% Bảng và hình được đặt gần chỗ nhắc tới; nếu không đủ chỗ thì chuyển lên đầu trang sau
+% và phần chữ tiếp tục lấp đầy trang hiện tại (tránh để trống nửa trang).
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.7}
+\renewcommand{\textfraction}{0.08}
+\renewcommand{\floatpagefraction}{0.8}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+\setlength{\textfloatsep}{14pt plus 2pt minus 2pt}
+\setlength{\intextsep}{12pt plus 2pt minus 2pt}
+% Trang chỉ có bảng/hình: xếp từ đầu trang xuống, không dàn đều theo chiều dọc
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{22pt}
+\makeatother
+
+% ---------- Tiêu đề chương, mục ----------
+\titleformat{\chapter}[display]{\normalfont\bfseries\centering\Large}{CHƯƠNG \thechapter}{4pt}{\Large\MakeUppercase}
+\titleformat{name=\chapter,numberless}[block]{\normalfont\bfseries\centering\Large}{}{0pt}{\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{-14pt}{16pt}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries\itshape}{\thesubsubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{12pt}{4pt}
+\titlespacing*{\subsection}{0pt}{9pt}{3pt}
+\titlespacing*{\subsubsection}{0pt}{7pt}{2pt}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+
+% ---------- Đầu trang, chân trang ----------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Hệ thống trợ lý tư vấn sách ứng dụng nhiều tác tử}
+\fancyhead[R]{\small Dự án Công nghệ thông tin}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+% ---------- Lệnh tiện dụng ----------
+\newcommand{\src}[1]{\hyperlink{src-#1}{[#1]}}
+% \hinh{tệp trong figures/}{chú thích}{nhãn}
+\newcommand{\hinh}[3]{\begin{figure}[!htbp]\centering{\cochuhinh\input{figures/#1.tex}}\caption{#2}\label{#3}\end{figure}}
+% Cỡ chữ cố định bên trong hình: không phụ thuộc cỡ chữ thân bài, để kích thước các ô đã căn không bị lệch.
+\newcommand{\cochuhinh}{%
+  \renewcommand{\normalsize}{\fontsize{11}{13.2}\selectfont}%
+  \renewcommand{\small}{\fontsize{10}{12.2}\selectfont}%
+  \renewcommand{\footnotesize}{\fontsize{9}{10.7}\selectfont}%
+  \renewcommand{\scriptsize}{\fontsize{8}{9.1}\selectfont}%
+  \normalsize}
+% Cỡ chữ trong bảng
+\newcommand{\cobang}{\fontsize{11}{13.2}\selectfont}
+\urlstyle{same}
+\newcommand{\pp}{điểm~\%}
+
+% ---------- Kiểu vẽ hình: chỉ đen, trắng, xám; nét đậm để in rõ ----------
+\tikzset{
+  baocao/.style={font=\sffamily\footnotesize, line width=0.9pt, >={Stealth[length=2.8mm,width=2.2mm]}},
+  hop/.style={draw=black, fill=white, rounded corners=2pt, align=center, inner sep=5pt, minimum height=9mm},
+  hopxam/.style={hop, fill=black!14},
+  hopden/.style={hop, fill=black!85, text=white},
+  khung/.style={draw=black, dashed, line width=0.8pt, rounded corners=3pt},
+  tenkhung/.style={font=\sffamily\footnotesize\bfseries, anchor=north west, inner sep=3pt},
+  ghichu/.style={font=\sffamily\footnotesize, align=center, inner sep=2pt},
+  mui/.style={->, line width=1pt},
+  haichieu/.style={<->, line width=1pt},
+  so/.style={circle, draw=black, fill=black, text=white, font=\sffamily\scriptsize\bfseries, inner sep=1.2pt, minimum size=4.6mm},
+}
+
+% ---------- Kiểu biểu đồ cột: phân biệt bằng độ đậm và nét gạch, không cần màu ----------
+\pgfplotsset{
+  bieudo/.style={
+    ybar, ymin=0, ymax=118, ytick={0,20,40,60,80,100},
+    axis lines*=left, axis line style={line width=0.8pt},
+    ymajorgrids, grid style={black!30, line width=0.3pt},
+    tick style={black, line width=0.6pt},
+    tick label style={font=\sffamily\footnotesize, /pgf/number format/assume math mode=true},
+    label style={font=\sffamily\footnotesize},
+    xtick=data, xtick style={draw=none},
+    x tick label style={font=\sffamily\footnotesize, align=center, text width=2.2cm},
+    enlarge x limits=0.11,
+    nodes near coords,
+    every node near coord/.append style={font=\sffamily\scriptsize, inner sep=1.5pt,
+      /pgf/number format/use comma, /pgf/number format/fixed, /pgf/number format/fixed zerofill, /pgf/number format/precision=1, /pgf/number format/assume math mode=true},
+    legend style={font=\sffamily\footnotesize, draw=none, at={(0.5,-0.3)}, anchor=north, legend columns=4,
+      /tikz/every even column/.append style={column sep=4mm}},
+    legend cell align=left,
+    area legend,
+  },
+  % nhãn số viết dọc phía trên cột (dùng khi cột hẹp)
+  nhandoc/.style={every node near coord/.append style={rotate=90, anchor=west}},
+  cotA/.style={fill=white, draw=black, line width=0.7pt},
+  cotB/.style={pattern=north east lines, pattern color=black, draw=black, line width=0.7pt},
+  cotC/.style={fill=black!45, draw=black, line width=0.7pt},
+  cotD/.style={fill=black, draw=black, line width=0.7pt},
+}

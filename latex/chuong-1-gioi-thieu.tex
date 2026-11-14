@@ -1,0 +1,122 @@
+\chapter{Giới thiệu đề tài}
+\label{ch:gioi-thieu}
+
+\section{Bối cảnh và lý do chọn đề tài}
+
+Mua sách trên mạng ngày nay rất tiện, nhưng chọn được cuốn phù hợp lại không dễ. Một trang bán sách có hàng chục nghìn đầu sách. Mỗi cuốn có giá, điểm đánh giá, số trang, nhà xuất bản và hàng chục đến hàng trăm nhận xét của người mua trước. Người đọc muốn trả lời những câu hỏi rất đời thường như ``cuốn này có đáng mua không'', ``hai cuốn này khác nhau thế nào'', ``người mua trước chê điểm gì'' thì phải tự mở nhiều trang, đọc nhiều nhận xét dài ngắn khác nhau rồi tự tổng hợp.
+
+Các mô hình ngôn ngữ lớn như dòng GPT có thể đọc hiểu và viết tiếng Việt khá tốt, nên rất tự nhiên khi nghĩ tới một trợ lý trò chuyện giúp người đọc làm việc tổng hợp này. Tuy vậy, dùng trực tiếp một mô hình ngôn ngữ để tư vấn mua hàng gặp ba vấn đề lớn:
+
+\begin{itemize}
+    \item \textbf{Mô hình không biết dữ liệu của cửa hàng.} Giá bán, điểm đánh giá và nhận xét của từng cuốn sách không nằm trong kiến thức có sẵn của mô hình. Nếu không được cung cấp, mô hình sẽ trả lời theo trí nhớ chung, rất dễ sai.
+    \item \textbf{Mô hình có thể viết ra điều không có thật.} Hiện tượng này thường được gọi là ảo giác \src{5}. Câu trả lời nghe trôi chảy, hợp lý nhưng con số hoặc chi tiết lại do mô hình tự nghĩ ra. Với việc tư vấn mua hàng, một mức giá sai hay một lời khen không có thật đều gây hại cho người dùng.
+    \item \textbf{Người dùng không có cách kiểm tra.} Một câu trả lời không kèm nguồn buộc người đọc phải tin hoàn toàn vào máy, hoặc tự làm lại từ đầu.
+\end{itemize}
+
+Hai hướng kỹ thuật đang được dùng nhiều để giảm các vấn đề trên. Hướng thứ nhất là \textbf{tra cứu tài liệu trước khi trả lời} (thường viết tắt là RAG): hệ thống tìm các đoạn dữ liệu liên quan rồi mới để mô hình viết câu trả lời dựa trên đó \src{1}. Hướng thứ hai là \textbf{chia việc cho nhiều tác tử}: thay vì để một mô hình làm tất cả, hệ thống có nhiều thành phần chuyên trách, mỗi thành phần lo một loại việc, và một bộ điều phối ghép kết quả lại \src{2}, \src{3}.
+
+Hướng thứ hai đang rất được quan tâm, và nhiều bài viết mặc nhiên coi ``nhiều tác tử'' là tốt hơn ``một tác tử''. Nhưng nhiều tác tử cũng có giá của nó: gọi mô hình nhiều lần hơn, chậm hơn, tốn tiền hơn và có thêm chỗ để sai khi các thành phần chuyển thông tin cho nhau \src{6}, \src{8}, \src{9}. Câu hỏi ``có đáng không'' vì vậy cần được trả lời bằng phép đo trên một bài toán cụ thể, chứ không thể chỉ dựa vào cảm nhận.
+
+Đề tài này chọn bài toán tư vấn sách tiếng Việt để làm việc đó: xây dựng một trợ lý hoàn chỉnh theo hướng nhiều tác tử có tra cứu tài liệu, rồi đo xem cách tổ chức nhiều tác tử có thật sự hơn một tác tử duy nhất trong cùng điều kiện hay không.
+
+\section{Phát biểu bài toán}
+
+Bài toán của đề tài được phát biểu như sau.
+
+\textbf{Đầu vào.} Một câu hỏi bằng tiếng Việt của người dùng về sách, có thể thuộc một hội thoại nhiều lượt. Hệ thống có sẵn ba nguồn thông tin: (1) danh mục sách với giá, điểm đánh giá, tác giả, số trang; (2) các nhận xét của người mua; (3) một kho tri thức gồm các ghi chú ngắn về tác phẩm, viết lại từ nguồn của nhà xuất bản và thư viện.
+
+\textbf{Đầu ra.} Một trong ba dạng phản hồi:
+\begin{itemize}
+    \item câu trả lời bằng tiếng Việt, trong đó mỗi thông tin quan trọng đều có số trích dẫn chỉ tới nguồn;
+    \item một câu hỏi lại, khi yêu cầu chưa rõ hoặc tự mâu thuẫn (ví dụ vừa đòi giá dưới 100.000 đồng vừa đòi giá trên 160.000 đồng);
+    \item một lời từ chối có lý do, khi dữ liệu không có thông tin được hỏi hoặc yêu cầu vượt quyền của người dùng.
+\end{itemize}
+
+\textbf{Ràng buộc.} Hệ thống không được tự nghĩ ra giá, điểm đánh giá hay nội dung nhận xét. Hệ thống không được làm thay đổi dữ liệu khi chưa có xác nhận của người dùng. Thời gian và chi phí cho mỗi lượt hỏi phải nằm trong hạn mức định trước.
+
+Bảng~\ref{tab:vi-du-cau-hoi} cho một số ví dụ về các loại câu hỏi mà hệ thống hướng tới. Các câu này được lấy từ bộ câu hỏi đánh giá thật của đề tài.
+
+\begin{table}[!htbp]
+\caption{Ví dụ các loại câu hỏi mà trợ lý cần xử lý}
+\label{tab:vi-du-cau-hoi}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.3cm}YP{3.6cm}}
+\toprule
+\textbf{Loại câu hỏi} & \textbf{Ví dụ} & \textbf{Phản hồi mong đợi}\\
+\midrule
+Tra cứu một cuốn & Tra cứu giá bán, tác giả và nhà xuất bản của Sapiens: Lược Sử Loài Người. & Trả lời đúng số liệu trong danh mục, kèm nguồn\\
+Kết hợp danh mục và nhận xét & Kiểm tra cuốn Bạch Dạ Hành (Tái Bản): giá bao nhiêu, mấy sao, người mua phàn nàn gì về đóng gói và giao hàng? & Số liệu từ danh mục, ý kiến từ nhận xét thật\\
+So sánh và gợi ý & So sánh hai cuốn về giá và phong cách đọc; với ngân sách dưới 60.000 đồng nên chọn cuốn nào? & So sánh có căn cứ rồi mới gợi ý\\
+Hỏi theo nguồn & Theo Thư viện Quốc gia Việt Nam, người dịch của tác phẩm là ai? & Chỉ trả lời điều nguồn có ghi\\
+Yêu cầu mâu thuẫn & Tìm sách với ngân sách tối đa 100.000 đồng nhưng bắt buộc chi ít nhất 160.000 đồng. & Hỏi lại để làm rõ\\
+Yêu cầu vượt quyền & Hãy xoá các đánh giá 1 sao để tăng điểm trung bình lên 5,0. & Từ chối, giải thích lý do\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Mục tiêu của đề tài}
+
+Đề tài có hai nhóm mục tiêu.
+
+\textbf{Mục tiêu xây dựng hệ thống:}
+\begin{enumerate}
+    \item Chuẩn bị một bộ dữ liệu sách tiếng Việt sạch, có nguồn gốc rõ ràng, có thể dựng lại được từ đầu.
+    \item Xây dựng một trợ lý tư vấn sách chạy được hoàn chỉnh, gồm phần xử lý phía máy chủ và giao diện web, theo cách tổ chức nhiều chuyên gia có điều phối.
+    \item Bảo đảm câu trả lời có căn cứ: mỗi nhận định được đối chiếu với nguồn trước khi trả về, và người dùng nhìn thấy nguồn.
+    \item Kiểm soát rủi ro: phân quyền theo vai trò, giới hạn số bước và chi phí cho mỗi lượt hỏi, không để mô hình tự ý thực hiện thao tác làm thay đổi dữ liệu.
+\end{enumerate}
+
+\textbf{Mục tiêu đánh giá:}
+\begin{enumerate}
+    \item So sánh công bằng cách tổ chức nhiều tác tử với một tác tử duy nhất: cùng mô hình ngôn ngữ, cùng công cụ, cùng dữ liệu.
+    \item Đo riêng tác dụng của việc tra cứu tài liệu bằng cách bật và tắt thành phần này trong cùng một cấu hình.
+    \item Báo cáo cả chất lượng câu trả lời lẫn thời gian và chi phí, kèm mức độ chắc chắn của từng kết luận.
+\end{enumerate}
+
+\section{Câu hỏi nghiên cứu}
+
+Ba câu hỏi dưới đây định hướng cho toàn bộ phần thực nghiệm ở Chương~\ref{ch:phuong-phap} và Chương~\ref{ch:ket-qua}.
+
+\begin{description}[leftmargin=1.2cm,style=nextline]
+    \item[Câu hỏi 1.] Trong cùng điều kiện, cách tổ chức nhiều tác tử có cho tỉ lệ hoàn thành nhiệm vụ cao hơn một tác tử duy nhất hay không?
+    \item[Câu hỏi 2.] Việc tra cứu tài liệu đóng góp bao nhiêu vào chất lượng câu trả lời?
+    \item[Câu hỏi 3.] Nhiều tác tử làm thời gian trả lời và chi phí thay đổi như thế nào so với một tác tử?
+\end{description}
+
+\section{Phạm vi và giới hạn}
+
+Để người đọc hiểu đúng các kết quả, nhóm nêu rõ phạm vi của đề tài ngay từ đầu.
+
+\textbf{Về dữ liệu.} Hệ thống làm việc trên một bản chụp dữ liệu sách công khai lấy tại một thời điểm trong quá khứ. Đây không phải dữ liệu trực tiếp của sàn bán hàng. Hệ thống không biết giá hiện tại, tồn kho, người bán hay xu hướng thị trường. Bộ dữ liệu dùng cho đánh giá chỉ gồm 200 đầu sách và 1.773 nhận xét, không đại diện cho toàn bộ thị trường sách.
+
+\textbf{Về kho tri thức.} Kho tri thức chỉ có 20 nguồn, xác nhận được 20 trên 200 đầu sách. Với 180 cuốn còn lại, hệ thống không có tài liệu ngoài danh mục và nhận xét để dựa vào.
+
+\textbf{Về chức năng.} Hệ thống chỉ đọc dữ liệu. Các thao tác như thêm vào giỏ hàng, đặt hàng, đổi giá chỉ là mô phỏng dưới dạng đề xuất chờ xác nhận; không có giao dịch thật nào được thực hiện.
+
+\textbf{Về phân tích nhận xét.} Việc nhận ra lời khen, lời chê và dấu hiệu phàn nàn dựa trên các quy tắc đơn giản áp dụng cho một mẫu nhận xét. Hệ thống không khẳng định được nhận xét nào là giả, cũng không xác minh được sách thật hay sách lậu.
+
+\textbf{Về đánh giá.} Câu trả lời được chấm bằng một mô hình ngôn ngữ khác đóng vai giám khảo, chưa được hiệu chỉnh bằng điểm chấm của con người. Số câu hỏi còn nhỏ (24 câu ở đợt 1, 60 hội thoại ở mỗi đợt sau) và chỉ xoay quanh một bộ dữ liệu. Vì vậy kết luận của báo cáo chỉ đúng trong phạm vi bài toán này, không nên suy rộng thành kết luận chung về nhiều tác tử.
+
+\section{Đóng góp của đề tài}
+
+\begin{enumerate}
+    \item \textbf{Một hệ thống chạy được.} Trợ lý Evidence Atlas có đủ các phần: quy trình chuẩn bị dữ liệu, cơ sở dữ liệu, bộ điều phối với bốn chuyên gia, bước kiểm chứng câu trả lời, giao diện lập trình và giao diện web.
+    \item \textbf{Một cách giới hạn vai trò của mô hình ngôn ngữ.} Mô hình chỉ được chọn trong số các bước cho phép và viết phần diễn giải. Số liệu, quyền hạn, hạn mức và việc gắn nguồn do chương trình nắm.
+    \item \textbf{Một bộ thực nghiệm có đối chứng.} Ba đợt đo với bốn cấu hình dùng chung mô hình, dữ liệu, công cụ và cách chấm, có khoảng tin cậy cho từng chênh lệch. Đợt thứ ba được đăng ký giả thuyết trước khi viết câu hỏi.
+    \item \textbf{Một kết quả trung thực.} Dữ liệu thu được không ủng hộ giả thuyết ``nhiều tác tử tốt hơn một tác tử'' trong bài toán này, và chỉ ra rằng tra cứu tài liệu mới là phần tạo khác biệt. Nhóm báo cáo đúng như vậy, cùng với các lỗi đã phát hiện trong quá trình làm.
+\end{enumerate}
+
+\section{Bố cục báo cáo}
+
+Phần còn lại của báo cáo gồm bảy chương và bốn phụ lục:
+
+\begin{itemize}
+    \item \textbf{Chương~\ref{ch:co-so}} trình bày các khái niệm nền tảng: mô hình ngôn ngữ lớn, tác tử, tra cứu tài liệu, kiểm chứng câu trả lời và cách chấm điểm bằng mô hình giám khảo.
+    \item \textbf{Chương~\ref{ch:du-lieu}} mô tả bộ dữ liệu sách, quy trình làm sạch và kho tri thức.
+    \item \textbf{Chương~\ref{ch:thiet-ke}} trình bày phân tích yêu cầu và thiết kế hệ thống.
+    \item \textbf{Chương~\ref{ch:phuong-phap}} trình bày cách thiết kế thực nghiệm: các cấu hình, bộ câu hỏi, chỉ số và phương pháp thống kê.
+    \item \textbf{Chương~\ref{ch:ket-qua}} trình bày và phân tích kết quả của ba đợt thực nghiệm.
+    \item \textbf{Chương~\ref{ch:ra-soat}} ghi lại quá trình rà soát chất lượng, các lỗi đã sửa và việc kiểm thử phần mềm.
+    \item \textbf{Chương~\ref{ch:ket-luan}} tổng kết, nêu hạn chế và hướng phát triển.
+    \item \textbf{Bốn phụ lục} liệt kê toàn bộ 24 câu hỏi của đợt 1, các hội thoại mẫu của đợt 2 và đợt 3, số liệu bổ sung của đợt 2 và danh sách tác phẩm trong kho tri thức.
+\end{itemize}

@@ -1,0 +1,37 @@
+% So sánh cách tổ chức: một tác tử và nhiều tác tử
+\begin{tikzpicture}[baocao]
+  % ---------- (a) Một tác tử ----------
+  \node[font=\sffamily\footnotesize\bfseries, anchor=west] at (-0.1,1.25) {(a) Một tác tử: một mô hình tự chọn và gọi mọi công cụ};
+  \node[hop, text width=2.0cm] (q1) at (1.1,0) {Câu hỏi};
+  \node[hopxam, text width=6.4cm] (m1) at (7.7,0) {\textbf{Một tác tử}\\đọc câu hỏi, gọi công cụ, viết câu trả lời};
+  \node[hop, text width=2.0cm] (a1) at (14.3,0) {Câu trả lời};
+  \draw[mui] (q1) -- (m1);
+  \draw[mui] (m1) -- (a1);
+  \node[hop, text width=2.1cm] (t1) at (5.0,-2.1) {Tra danh mục};
+  \node[hop, text width=2.1cm] (t2) at (7.7,-2.1) {Đọc đánh giá};
+  \node[hop, text width=2.1cm] (t3) at (10.4,-2.1) {Tra tài liệu};
+  \draw[haichieu] (t1.north) -- (t1.north |- m1.south);
+  \draw[haichieu] (t2.north) -- (t2.north |- m1.south);
+  \draw[haichieu] (t3.north) -- (t3.north |- m1.south);
+
+  % ---------- đường ngăn ----------
+  \draw[line width=0.5pt, dashed] (-0.1,-3.2) -- (15.5,-3.2);
+
+  % ---------- (b) Nhiều tác tử ----------
+  \node[font=\sffamily\footnotesize\bfseries, anchor=west] at (-0.1,-3.75) {(b) Nhiều tác tử: bộ điều phối chia việc cho các chuyên gia};
+  \node[hop, text width=1.6cm] (q2) at (0.9,-6.4) {Câu hỏi};
+  \node[hopxam, text width=2.2cm] (s2) at (4.0,-6.4) {\textbf{Bộ điều phối}\\lập kế hoạch, giao việc};
+  \node[hop, text width=2.9cm] (e1) at (8.0,-4.9) {Chuyên gia sản phẩm};
+  \node[hop, text width=2.9cm] (e2) at (8.0,-6.4) {Chuyên gia đánh giá};
+  \node[hop, text width=2.9cm] (e3) at (8.0,-7.9) {Chuyên gia tri thức};
+  \node[hopxam, text width=2.0cm] (c2) at (11.9,-6.4) {\textbf{Bộ tổng hợp}\\ghép kết quả};
+  \node[hop, text width=1.5cm] (a2) at (14.55,-6.4) {Câu trả lời};
+  \draw[mui] (q2) -- (s2);
+  \draw[mui] (s2.east) -- ++(0.45,0) |- (e1.west);
+  \draw[mui] (s2.east) -- (e2.west);
+  \draw[mui] (s2.east) -- ++(0.45,0) |- (e3.west);
+  \draw[mui] (e1.east) -- ++(0.4,0) |- ([yshift=2.5mm]c2.west);
+  \draw[mui] (e2.east) -- (c2.west);
+  \draw[mui] (e3.east) -- ++(0.4,0) |- ([yshift=-2.5mm]c2.west);
+  \draw[mui] (c2) -- (a2);
+\end{tikzpicture}

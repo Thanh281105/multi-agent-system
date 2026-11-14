@@ -1,0 +1,10 @@
+% Cách gộp điểm từ từng lượt chấm lên con số cuối cùng
+\begin{tikzpicture}[baocao]
+  \node[hop, text width=2.75cm, minimum height=26mm] (a) at (1.75,0) {\textbf{720 lượt chấm}\\60 hội thoại $\times$ 4 cấu hình $\times$ 3 lần lặp};
+  \node[hop, text width=2.75cm, minimum height=26mm] (b) at (5.75,0) {\textbf{Gộp lần lặp}\\lấy trung bình 3 lần của mỗi hội thoại};
+  \node[hop, text width=2.75cm, minimum height=26mm] (c) at (9.75,0) {\textbf{Gộp theo tác phẩm}\\lấy trung bình các hội thoại cùng nhóm};
+  \node[hopxam, text width=2.75cm, minimum height=26mm] (d) at (13.75,0) {\textbf{Kết quả}\\trung bình các nhóm, khoảng tin cậy 95\%};
+  \draw[mui] (a) -- (b);
+  \draw[mui] (b) -- (c);
+  \draw[mui] (c) -- (d);
+\end{tikzpicture}

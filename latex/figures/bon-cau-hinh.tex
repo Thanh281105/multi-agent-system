@@ -1,0 +1,16 @@
+% Bốn cấu hình và ba phép so sánh, mỗi phép chỉ đổi một yếu tố
+\begin{tikzpicture}[baocao]
+  \node[hop, text width=2.5cm, minimum height=22mm] (a) at (1.45,0) {\textbf{SA}\\Một tác tử\\có tra cứu};
+  \node[hop, text width=2.5cm, minimum height=22mm] (b) at (5.65,0) {\textbf{MA cố định}\\Nhiều chuyên gia, kế hoạch định sẵn, có tra cứu};
+  \node[hop, text width=2.5cm, minimum height=22mm] (c) at (9.85,0) {\textbf{MA thích ứng}\\Nhiều chuyên gia, kế hoạch linh hoạt, có tra cứu};
+  \node[hopxam, text width=2.5cm, minimum height=22mm] (d) at (14.05,0) {\textbf{MA không tra cứu}\\Như MA thích ứng nhưng tắt tra cứu};
+  \draw[haichieu] (a) -- (b);
+  \draw[haichieu] (b) -- (c);
+  \draw[haichieu] (c) -- (d);
+  \node[ghichu, text width=3.5cm] (l1) at (3.55,-2.6) {\textbf{So sánh 1}\\Đổi cách tổ chức:\\một tác tử hay nhiều chuyên gia};
+  \node[ghichu, text width=3.5cm] (l2) at (7.75,-2.6) {\textbf{So sánh 2}\\Đổi cách lập kế hoạch:\\định sẵn hay linh hoạt};
+  \node[ghichu, text width=3.5cm] (l3) at (11.95,-2.6) {\textbf{So sánh 3}\\Đổi việc tra cứu:\\bật hay tắt};
+  \draw[line width=0.6pt, densely dotted] (3.55,-0.1) -- (l1.north);
+  \draw[line width=0.6pt, densely dotted] (7.75,-0.1) -- (l2.north);
+  \draw[line width=0.6pt, densely dotted] (11.95,-0.1) -- (l3.north);
+\end{tikzpicture}

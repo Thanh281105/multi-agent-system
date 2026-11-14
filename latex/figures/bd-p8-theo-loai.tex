@@ -1,0 +1,14 @@
+% Đợt 2: tỉ lệ hoàn thành nhiệm vụ theo sáu loại hội thoại (%)
+\begin{tikzpicture}[baocao]
+  \begin{axis}[bieudo, nhandoc, width=15.6cm, height=8.6cm, bar width=3.6mm,
+      ylabel={Hoàn thành nhiệm vụ (\%)},
+      symbolic x coords={l1,l2,l3,l4,l5,l6},
+      xticklabels={{Nhiều\\ràng buộc},{Hỏi theo\\nguồn},{So sánh,\\gợi ý},{Nhiều lượt,\\cần nhớ},{Thiếu hoặc\\mâu thuẫn},{Mua bán,\\quản lý}},
+      enlarge x limits=0.1]
+    \addplot[cotA] coordinates {(l1,94.4) (l2,86.1) (l3,8.3) (l4,75.0) (l5,62.5) (l6,0)};
+    \addplot[cotB] coordinates {(l1,100.0) (l2,94.4) (l3,8.3) (l4,66.7) (l5,62.5) (l6,0)};
+    \addplot[cotC] coordinates {(l1,91.7) (l2,80.6) (l3,2.8) (l4,66.7) (l5,62.5) (l6,0)};
+    \addplot[cotD] coordinates {(l1,0) (l2,0) (l3,0) (l4,0) (l5,62.5) (l6,0)};
+    \legend{SA, MA cố định, MA thích ứng, MA không tra cứu}
+  \end{axis}
+\end{tikzpicture}

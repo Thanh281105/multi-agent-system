@@ -1,15 +1,29 @@
 # Báo cáo hệ thống trợ lý tư vấn sách
 
-- `bao-cao-thanh-v4.pdf`: báo cáo môn học viết để giảng viên hiểu bài toán, mô hình, cách phối hợp, kết quả và các cải tiến sau thực nghiệm; có trang bìa, lời cảm ơn, lời cam đoan và tóm tắt. Sơ đồ chỉ đen trắng, nhãn tiếng Việt.
-- `main.tex`: tệp chính; các phần nội dung nằm trong `01-*.tex` đến `05-*.tex` và `sources.tex`.
-- `images/`: nguồn HTML tự chứa, SVG và PNG của ba sơ đồ được tạo theo skill cathrynlavery/diagram-design.
-- `kiem-chung-so-lieu.json`: số liệu độc lập tính từ các artifact đã commit, không gọi model.
-- `ket-qua-v4-theo-ca.csv`: bảng từng ca, UTF-8 BOM để mở bằng Excel.
-- `tools/audit_report.py`: mã Python chuẩn để tái tính, kiểm hash và completeness.
+Báo cáo môn học Dự án Công nghệ thông tin: bài toán, cơ sở lý thuyết, dữ liệu, thiết kế hệ thống, cách đánh giá, kết quả ba đợt thực nghiệm, quá trình rà soát và kết luận.
+
+## Các tệp
+
+- `bao-cao-thanh-v4.pdf`: bản PDF để đọc và in (98 trang, khổ A4).
+- `main.tex`: tệp chính (bìa, lời cảm ơn, lời cam đoan, tóm tắt, mục lục, rồi gọi các phần bên dưới).
+- `preamble.tex`: định dạng chung (cỡ chữ, lề, kiểu bảng, kiểu hình).
+- `thuat-ngu.tex`: danh mục thuật ngữ và từ viết tắt.
+- `chuong-1-*.tex` đến `chuong-8-*.tex`: tám chương nội dung.
+- `phu-luc.tex`: bốn phụ lục. `sources.tex`: tài liệu tham khảo.
+- `figures/`: 16 hình vẽ bằng TikZ/pgfplots. `images/`: logo trường và ảnh chụp giao diện.
+- `ket-qua-v4-theo-ca.csv`, `kiem-chung-so-lieu.json`, `tools/audit_report.py`: số liệu đợt 1 theo từng câu và công cụ tính lại từ kết quả đã lưu (không gọi mô hình).
+- `kiem-tra-pdf.json`: biên bản kiểm tra tự động bản PDF (số trang, ký tự lỗi, tham chiếu chưa giải quyết, số trang ở chân trang).
+
+## Định dạng
+
+- Chữ thân bài Times New Roman 13pt, giãn dòng 1,3; lề trái 3 cm, phải 2 cm, trên và dưới 2,5 cm.
+- Lớp `report` chỉ có sẵn cỡ 10–12pt, nên cỡ 13pt được đặt bằng gói `scrextend` trong `preamble.tex`.
+- Hình chỉ dùng đen, trắng, xám và nét gạch nên in đen trắng vẫn phân biệt được. Chữ trong hình là Arial 8–9pt, cố định, không phụ thuộc cỡ chữ thân bài.
+- Báo cáo không chứa mã nguồn; tên kỹ thuật trong chương trình được thay bằng tên gọi tiếng Việt (xem danh mục thuật ngữ).
 
 ## Biên dịch
 
-Yêu cầu Tectonic hoặc XeLaTeX, các gói trong preamble, Times New Roman, Arial và Consolas. Ảnh và văn bản đều có sẵn; không cần tải webfont. Lần chạy Tectonic đầu tiên có thể cần tải các gói TeX nếu cache chưa có.
+Cần Tectonic hoặc XeLaTeX, cùng hai phông Times New Roman và Arial. Lần chạy Tectonic đầu tiên có thể phải tải các gói TeX.
 
 Trên PowerShell, nếu `tectonic` nằm trong PATH hoặc có biến `CODEX_TECTONIC_PATH`:
 
@@ -17,20 +31,18 @@ Trên PowerShell, nếu `tectonic` nằm trong PATH hoặc có biến `CODEX_TEC
 ./Build.ps1
 ```
 
-Hoặc chạy `xelatex main.tex` hai lần trong thư mục này. `main.tex` là main document của dự án LaTeX.
+Lệnh này biên dịch vào thư mục `build/` rồi chép kết quả thành `bao-cao-thanh-v4.pdf`. Cũng có thể chạy `xelatex main.tex` ba lần trong thư mục này.
 
-## Tái tính kiểm chứng
+Khi sửa hình: mỗi hình là một tệp riêng trong `figures/`. Sau khi sửa nên mở lại trang chứa hình trong PDF để chắc chắn chữ không tràn khỏi ô và không đè lên nhau.
 
-Trỏ đến checkout đúng commit `0a4930e87664dd91add96025a2230b92a15810e3` và một thư mục kết quả riêng:
+## Nguồn số liệu
+
+Mọi con số trong báo cáo lấy từ các tài liệu và tệp kết quả đã lưu trong kho mã; danh sách đầy đủ nằm ở mục “Tài liệu và kết quả của dự án” trong phần Tài liệu tham khảo (các nguồn [14]–[23]). Báo cáo không chạy thêm thực nghiệm mới.
+
+Số liệu đợt 1 có thể tính lại bằng:
 
 ```powershell
 python tools/audit_report.py --repo 'C:/path/to/multi-agent-system' --out './audit-reproduced'
 ```
 
-Script chỉ đọc checkout, ghi JSON/CSV vào thư mục output được chỉ định; không chạy dịch vụ, không gọi provider và không sửa repository.
-
-Các số liệu được tính lại từ kết quả đã lưu, không phải một đợt chạy thực nghiệm mới. Thực nghiệm và các nguồn [1]–[6] gắn với commit `0a4930e`; phần cải tiến sau thực nghiệm (nguồn [7]–[9]) gắn với commit `0d83c79` trên nhánh `v4-evidence-clean`, nên chỉ mở được sau khi nhánh này được push lên GitHub. Lần chạy xác nhận (mục 8.6, nguồn [10]) gắn với commit `ebb3da8` trên cùng nhánh; số liệu của mục này tái tạo bằng `evaluation/v3/confirm-20261110/results/analyze.py`, không nằm trong `kiem-chung-so-lieu.json`. Bản PDF đã lược các chi tiết triển khai và tập trung giải thích bằng ngôn ngữ dễ hiểu; dữ liệu kiểm chứng vẫn được giữ riêng để có thể kiểm tra lại các phép tính.
-
-## Skill thiết kế
-
-Nguồn: https://github.com/cathrynlavery/diagram-design (MIT). Dùng bản cài sẵn 2.6.119. Người dùng chọn đen trắng; cấu hình cục bộ và các chi tiết lược khỏi hình được ghi trong `thiet-ke-so-do.md`.
+Công cụ chỉ đọc kho mã và ghi kết quả vào thư mục chỉ định; không chạy dịch vụ và không gọi mô hình. Số liệu đợt 3 tính lại bằng `evaluation/v3/confirm-20261110/results/analyze.py`.

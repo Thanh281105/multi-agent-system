@@ -1,0 +1,14 @@
+% Đợt 3 so với đợt 2: tỉ lệ hoàn thành nhiệm vụ theo loại hội thoại (%)
+\begin{tikzpicture}[baocao]
+  \begin{axis}[bieudo, nhandoc, width=15.6cm, height=8.6cm, bar width=4.4mm,
+      ylabel={Hoàn thành nhiệm vụ (\%)},
+      symbolic x coords={l1,l2,l3,l4,l5,l6},
+      xticklabels={{Nhiều\\ràng buộc},{Hỏi theo\\nguồn},{So sánh,\\gợi ý},{Nhiều lượt,\\cần nhớ},{Thiếu hoặc\\mâu thuẫn},{Mua bán,\\quản lý}},
+      enlarge x limits=0.1,
+      legend style={legend columns=3}]
+    \addplot[cotA] coordinates {(l1,94.4) (l2,86.1) (l3,8.3) (l4,75.0) (l5,62.5) (l6,0)};
+    \addplot[cotC] coordinates {(l1,5.6) (l2,91.7) (l3,0) (l4,0) (l5,0) (l6,0)};
+    \addplot[cotD] coordinates {(l1,8.3) (l2,94.4) (l3,0) (l4,0) (l5,0) (l6,0)};
+    \legend{SA ở đợt 2 (câu hỏi theo mẫu), SA ở đợt 3 (câu hỏi tự nhiên), MA cố định ở đợt 3}
+  \end{axis}
+\end{tikzpicture}

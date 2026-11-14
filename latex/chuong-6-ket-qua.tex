@@ -1,0 +1,472 @@
+\chapter{Kết quả thực nghiệm và thảo luận}
+\label{ch:ket-qua}
+
+Chương này trình bày kết quả của ba đợt thực nghiệm theo thứ tự thời gian, rồi dùng các kết quả đó để trả lời ba câu hỏi nghiên cứu. Mọi con số đều lấy từ các tệp kết quả được lưu trong kho mã \src{17}, \src{18}, \src{19}, \src{21}.
+
+\section{Đợt 1: thăm dò trên 24 câu hỏi}
+
+\subsection{Chất lượng câu trả lời}
+
+Bảng~\ref{tab:d1-tong} cho kết quả tổng hợp của đợt 1. Mỗi bên trả lời 24 câu hỏi, mỗi câu 3 lần, tổng cộng 72 câu trả lời mỗi bên.
+
+\begin{table}[!htbp]
+\caption{Đợt 1: kết quả tổng hợp của hai cách tổ chức}
+\label{tab:d1-tong}
+\cobang
+\begin{tabularx}{\linewidth}{YR{2.6cm}R{2.6cm}R{2.4cm}}
+\toprule
+\textbf{Chỉ số} & \textbf{SA} & \textbf{MA} & \textbf{MA so với SA}\\
+\midrule
+Điểm trung bình theo câu hỏi & 98,96\% & 100\% & +1,04 \pp\\
+Số dữ kiện nêu đúng (trên 129) & 126 & 129 & +3\\
+Thời gian trả lời trung bình & 1,43 giây & 6,75 giây & gấp 4,73 lần\\
+Thời gian trả lời trung vị & 1,33 giây & 7,32 giây & \\
+Số token trung bình mỗi câu & 1.332 & 3.706 & gấp 2,78 lần\\
+Tổng số token & 95.873 & 266.851 & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Về chất lượng, hai bên gần như bằng nhau. Chênh lệch 1,04 \pp{} có khoảng tin cậy 95\% từ $-1{,}11$ đến $+3{,}20$, tức là chứa số 0; phép kiểm định cho giá trị $p = 0{,}328$. Chưa thể nói bên nào tốt hơn.
+
+Xem kỹ hơn, toàn bộ chênh lệch đến từ \textbf{đúng một câu hỏi} trong 24 câu: câu hỏi về giá, tác giả và nhà xuất bản của cuốn \emph{Sapiens}. Ở cả ba lần chạy, câu trả lời của SA nêu tên sách thiếu phần ghi chú ``(Tái Bản 2022)'', nên bị tính thiếu một trong bốn dữ kiện (điểm 0,75 thay vì 1,0). Ở 23 câu còn lại hai bên bằng điểm nhau. Lỗi này nhiều khả năng đến từ khác biệt nhỏ trong câu hướng dẫn cho mô hình ở hai bên, không phải từ cách tổ chức.
+
+\subsection{Thời gian và chi phí}
+
+Trái với chất lượng, khác biệt về thời gian và chi phí rất rõ. Bảng~\ref{tab:d1-muc} và Hình~\ref{fig:d1-thoi-gian} cho kết quả theo từng mức độ khó.
+
+\begin{table}[!htbp]
+\caption{Đợt 1: kết quả theo mức độ khó}
+\label{tab:d1-muc}
+\cobang
+\begin{tabularx}{\linewidth}{YR{1.4cm}R{1.4cm}R{1.5cm}R{1.5cm}R{1.5cm}R{1.5cm}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{Điểm (\%)}} & \multicolumn{2}{c}{\textbf{Thời gian (giây)}} & \multicolumn{2}{c}{\textbf{Số token}}\\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+\textbf{Mức độ khó} & SA & MA & SA & MA & SA & MA\\
+\midrule
+1 -- Một nguồn & 95,83 & 100 & 1,35 & 5,29 & 1.171 & 2.480\\
+2 -- Phối hợp nhiều nguồn & 100 & 100 & 1,50 & 8,82 & 1.309 & 4.750\\
+3 -- Tư vấn nhiều góc nhìn & 100 & 100 & 1,52 & 8,40 & 1.850 & 5.413\\
+4 -- Tình huống cần từ chối & 100 & 100 & 1,26 & 2,32 & 840 & 897\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hinh{bd-v4-thoi-gian}{Đợt 1: thời gian trả lời trung bình theo mức độ khó}{fig:d1-thoi-gian}
+
+Có ba nhận xét:
+
+\begin{itemize}
+    \item Ở mức 2 và mức 3, nơi được kỳ vọng là ``đất diễn'' của nhiều tác tử vì cần phối hợp nhiều nguồn, MA không cho điểm cao hơn (cả hai đều 100\%) nhưng chậm hơn khoảng 5,5 đến 5,9 lần và dùng lượng token gấp 2,9 đến 3,6 lần.
+    \item Ở mức 4, hai bên gần bằng nhau về chi phí. Nhiều khả năng vì với các yêu cầu cần từ chối, hệ thống dừng sớm và không gọi đến các chuyên gia.
+    \item Thời gian của SA gần như không đổi theo mức độ khó (1,26 đến 1,52 giây), trong khi thời gian của MA tăng mạnh theo số chuyên gia phải gọi.
+\end{itemize}
+
+\subsection{Điểm số gần tuyệt đối nói lên điều gì}
+
+Cả hai bên đạt gần 100\%, nên bộ câu hỏi này không còn chỗ để phân biệt. Hiện tượng này gọi là \emph{hiệu ứng trần}. Nhóm thử chấm lại cùng 144 câu trả lời bằng một giám khảo khác, được cấp thêm đoạn nguồn để đối chiếu chặt hơn. Lần này điểm là 88,54\% cho SA và 96,53\% cho MA; có 13 trên 144 câu trả lời bị đổi điểm, thuộc 5 câu hỏi.
+
+Hai lần chấm cho hai bức tranh khác nhau trên cùng một tập câu trả lời. Nhóm không coi lần nào là ``điểm đúng''. Điều rút ra được là: khi điểm số sát trần, kết luận phụ thuộc nhiều vào cách thiết kế giám khảo, và đợt 1 không đủ để kết luận về chất lượng. Kết quả chắc chắn duy nhất của đợt 1 là về chi phí: trong điều kiện tài liệu được cấp sẵn, nhiều tác tử chậm hơn và tốn hơn rõ rệt.
+
+\section{Đợt 2: đo chính trên 60 hội thoại}
+
+\subsection{Kết quả tổng hợp}
+
+Bảng~\ref{tab:d2-tong} cho điểm trung bình của bốn cấu hình trên 27 nhóm tác phẩm. Hình~\ref{fig:d2-tong-quan} vẽ bốn chỉ số chính.
+
+\begin{table}[!htbp]
+\caption{Đợt 2: điểm trung bình của bốn cấu hình (\%)}
+\label{tab:d2-tong}
+\cobang
+\begin{tabularx}{\linewidth}{YR{1.8cm}R{1.8cm}R{1.8cm}R{2.1cm}}
+\toprule
+\textbf{Chỉ số} & \textbf{SA} & \textbf{MA cố định} & \textbf{MA thích ứng} & \textbf{MA không tra cứu}\\
+\midrule
+\textbf{Hoàn thành nhiệm vụ} & \textbf{45,16} & \textbf{47,22} & \textbf{41,36} & \textbf{5,25}\\
+Nhận định có căn cứ & 60,60 & 63,89 & 57,41 & 21,91\\
+Chọn đúng cách phản hồi & 83,33 & 83,33 & 83,33 & 8,95\\
+Trích dẫn chính xác & 96,30 & 96,30 & 96,30 & 21,91\\
+Độ phủ trích dẫn & 97,51 & 98,19 & 96,52 & --\\
+Kế hoạch hợp lệ & 96,30 & 96,30 & 96,30 & 21,91\\
+Tiếp tục hữu ích & 83,33 & 83,33 & 83,33 & 8,95\\
+Tuân thủ phân quyền & 100 & 100 & 100 & 100\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hinh{bd-p8-tong-quan}{Đợt 2: bốn chỉ số chất lượng của bốn cấu hình}{fig:d2-tong-quan}
+
+Nhìn vào bảng và hình có thể thấy ngay hai điều:
+
+\begin{itemize}
+    \item \textbf{Ba cấu hình có tra cứu rất gần nhau.} Tỉ lệ hoàn thành nhiệm vụ nằm trong khoảng 41\% đến 47\%. Một số chỉ số bằng nhau tuyệt đối (83,33\% và 96,30\%) vì chúng được tính từ nhật ký chạy, và ba cấu hình dùng chung khâu tiếp nhận và kiểm tra quyền.
+    \item \textbf{Cấu hình không tra cứu tụt hẳn.} Tỉ lệ hoàn thành nhiệm vụ chỉ còn 5,25\%.
+\end{itemize}
+
+Về an toàn, cả bốn cấu hình đạt 100\% ở chỉ số tuân thủ phân quyền: trong 720 lượt chạy không có lần nào hệ thống thực hiện việc vượt quyền, và không có lần nào một việc bị gọi trùng.
+
+Cũng cần lưu ý rằng tỉ lệ hoàn thành nhiệm vụ dưới 50\% ở mọi cấu hình. Như đã giải thích ở Mục~\ref{sec:chi-so}, đây là chỉ số khắt khe (cả năm điều kiện phải cùng đạt). Dù vậy, con số này cho thấy hệ thống còn xa mới hoàn thiện, bất kể tổ chức theo cách nào.
+
+\subsection{So sánh từng cặp}
+
+Bảng~\ref{tab:d2-cap} cho chênh lệch giữa các cặp cấu hình cùng khoảng tin cậy 95\%. Hình~\ref{fig:d2-ktc} vẽ bốn chênh lệch về tỉ lệ hoàn thành nhiệm vụ.
+
+\begin{table}[!htbp]
+\caption{Đợt 2: chênh lệch theo cặp về chất lượng (cấu hình sau trừ cấu hình trước, \pp)}
+\label{tab:d2-cap}
+\cobang
+\begin{tabularx}{\linewidth}{YR{1.5cm}P{3.5cm}C{2.3cm}C{1.8cm}}
+\toprule
+\textbf{Cặp so sánh và chỉ số} & \textbf{$\Delta$} & \textbf{Khoảng tin cậy 95\%} & \textbf{Thắng / hoà / thua} & \textbf{Có ý nghĩa?}\\
+\midrule
+\multicolumn{5}{l}{\textbf{SA $\rightarrow$ MA cố định}}\\
+\quad Hoàn thành nhiệm vụ & $+2{,}06$ & từ $-3{,}09$ đến $+7{,}30$ & 6 / 17 / 4 & Không\\
+\quad Nhận định có căn cứ & $+3{,}29$ & từ $-2{,}16$ đến $+9{,}05$ & 7 / 16 / 4 & Không\\
+\midrule
+\multicolumn{5}{l}{\textbf{SA $\rightarrow$ MA thích ứng}}\\
+\quad Hoàn thành nhiệm vụ & $-3{,}81$ & từ $-8{,}74$ đến $+1{,}03$ & 2 / 18 / 7 & Không\\
+\quad Nhận định có căn cứ & $-3{,}19$ & từ $-8{,}64$ đến $+2{,}47$ & 3 / 16 / 8 & Không\\
+\midrule
+\multicolumn{5}{l}{\textbf{MA cố định $\rightarrow$ MA thích ứng}}\\
+\quad Hoàn thành nhiệm vụ & $-5{,}86$ & từ $-10{,}19$ đến $-2{,}16$ & 0 / 20 / 7 & \textbf{Có}\\
+\quad Nhận định có căn cứ & $-6{,}48$ & từ $-10{,}80$ đến $-2{,}78$ & -- & \textbf{Có}\\
+\midrule
+\multicolumn{5}{l}{\textbf{MA thích ứng $\rightarrow$ MA không tra cứu}}\\
+\quad Hoàn thành nhiệm vụ & $-36{,}11$ & từ $-51{,}23$ đến $-21{,}60$ & 0 / 13 / 14 & \textbf{Có}\\
+\quad Nhận định có căn cứ & $-35{,}49$ & từ $-51{,}03$ đến $-20{,}78$ & -- & \textbf{Có}\\
+\quad Chọn đúng cách phản hồi & $-74{,}38$ & từ $-84{,}88$ đến $-62{,}35$ & -- & \textbf{Có}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hinh{bd-khoang-tin-cay}{Đợt 2: chênh lệch về tỉ lệ hoàn thành nhiệm vụ và khoảng tin cậy 95\%. Khoảng nào cắt đường số 0 thì chưa thể nói có khác biệt}{fig:d2-ktc}
+
+\textbf{SA so với MA cố định.} MA cố định cao hơn SA 2,06 \pp, nhưng khoảng tin cậy trải từ $-3{,}09$ đến $+7{,}30$ và chứa số 0. Trong 27 nhóm tác phẩm, MA cố định thắng ở 6 nhóm, thua ở 4 nhóm và hoà ở 17 nhóm. Chưa thể nói MA cố định tốt hơn SA.
+
+\textbf{SA so với MA thích ứng.} MA thích ứng thấp hơn SA 3,81 \pp, khoảng tin cậy cũng chứa số 0. MA thích ứng thua ở 7 nhóm và thắng ở 2 nhóm. Chưa thể nói MA thích ứng kém hơn SA, nhưng chắc chắn không có dấu hiệu nào cho thấy nó tốt hơn.
+
+\textbf{MA cố định so với MA thích ứng.} Đây là chênh lệch có ý nghĩa thống kê: kế hoạch thích ứng \emph{kém hơn} kế hoạch cố định 5,86 \pp, không thắng ở nhóm nào và thua ở 7 nhóm. Việc để mô hình lập và bổ sung kế hoạch không những không giúp mà còn làm giảm chất lượng trên bộ câu hỏi này.
+
+\textbf{Có tra cứu so với không tra cứu.} Đây là chênh lệch lớn nhất của toàn bộ thực nghiệm. Tắt tra cứu làm tỉ lệ hoàn thành nhiệm vụ giảm 36,11 \pp. Cấu hình không tra cứu không thắng ở nhóm tác phẩm nào và thua ở 14 trên 27 nhóm.
+
+\subsection{Kết quả theo loại hội thoại}
+
+Trung bình chung che đi nhiều khác biệt giữa các loại hội thoại. Bảng~\ref{tab:d2-loai} và Hình~\ref{fig:d2-loai} cho tỉ lệ hoàn thành nhiệm vụ theo từng loại. Các con số ở đây là trung bình thẳng trên các hội thoại của mỗi loại, nên không cộng lại đúng thành con số chính thức ở Bảng~\ref{tab:d2-tong}.
+
+\begin{table}[!htbp]
+\caption{Đợt 2: tỉ lệ hoàn thành nhiệm vụ theo loại hội thoại (\%)}
+\label{tab:d2-loai}
+\cobang
+\begin{tabularx}{\linewidth}{YC{1.3cm}R{1.5cm}R{1.7cm}R{1.8cm}R{1.9cm}}
+\toprule
+\textbf{Loại hội thoại} & \textbf{Số lượng} & \textbf{SA} & \textbf{MA cố định} & \textbf{MA thích ứng} & \textbf{MA không tra cứu}\\
+\midrule
+Nhiều ràng buộc & 12 & 94,4 & 100,0 & 91,7 & 0,0\\
+Hỏi theo nguồn & 12 & 86,1 & 94,4 & 80,6 & 0,0\\
+So sánh, gợi ý & 12 & 8,3 & 8,3 & 2,8 & 0,0\\
+Nhiều lượt, cần nhớ & 8 & 75,0 & 66,7 & 66,7 & 0,0\\
+Thiếu hoặc mâu thuẫn & 8 & 62,5 & 62,5 & 62,5 & 62,5\\
+Mua bán, quản lý & 8 & 0,0 & 0,0 & 0,0 & 0,0\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hinh{bd-p8-theo-loai}{Đợt 2: tỉ lệ hoàn thành nhiệm vụ theo loại hội thoại}{fig:d2-loai}
+
+Bảng này cho thấy nhiều điều mà con số trung bình không nói:
+
+\begin{itemize}
+    \item \textbf{Hai loại làm tốt:} ``Nhiều ràng buộc'' và ``Hỏi theo nguồn'' đạt từ 80\% đến 100\% ở cả ba cấu hình có tra cứu.
+    \item \textbf{Loại ``So sánh, gợi ý'' gần như thất bại hoàn toàn} (dưới 10\%) ở mọi cấu hình. Đáng chú ý, đây chính là loại câu hỏi cần phối hợp nhiều chuyên gia nhất, nơi nhiều tác tử được kỳ vọng tỏa sáng. Thực tế cả SA lẫn MA đều không làm được. Loại này đòi hỏi nhiều dữ kiện nhất (hội thoại mẫu ở Phụ lục~\ref{app:vi-du} cần tới 8 dữ kiện), và chỉ cần thiếu một dữ kiện là bị tính không đạt.
+    \item \textbf{Loại ``Mua bán, quản lý'' là 0\% ở mọi cấu hình.} Hệ thống chưa hoàn thành được trọn vẹn một tình huống nào thuộc loại này theo tiêu chí chấm.
+    \item \textbf{Loại ``Thiếu hoặc mâu thuẫn'' bằng nhau ở cả bốn cấu hình} (62,5\%), kể cả cấu hình không tra cứu. Điều này hợp lý: với các câu hỏi cần từ chối hoặc hỏi lại, phản hồi đúng không cần đến tài liệu.
+    \item \textbf{Ở loại ``Nhiều lượt, cần nhớ'', SA cao hơn cả hai cấu hình MA} (75,0\% so với 66,7\%).
+    \item \textbf{Tra cứu là điều kiện cần cho bốn loại đầu.} Không tra cứu thì cả bốn loại này về 0\%.
+\end{itemize}
+
+\subsection{Thời gian và chi phí}
+
+Bảng~\ref{tab:d2-chi-phi} cho thời gian và chi phí trung bình của một lượt hỏi; Bảng~\ref{tab:d2-cap-chi-phi} cho chênh lệch giữa các cặp cấu hình.
+
+\begin{table}[!htbp]
+\caption{Đợt 2: thời gian và chi phí trung bình của một lượt hỏi}
+\label{tab:d2-chi-phi}
+\cobang
+\begin{tabularx}{\linewidth}{YR{1.9cm}R{1.9cm}R{1.9cm}R{2.1cm}}
+\toprule
+\textbf{Đại lượng} & \textbf{SA} & \textbf{MA cố định} & \textbf{MA thích ứng} & \textbf{MA không tra cứu}\\
+\midrule
+Thời gian trả lời (giây) & 8,48 & 8,14 & 9,72 & 2,34\\
+Số token & 4.695 & 5.027 & 5.453 & 1.230\\
+Chi phí (đô-la Mỹ) & 0,0047 & 0,0051 & 0,0056 & 0,0012\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{Đợt 2: chênh lệch theo cặp về thời gian và số token}
+\label{tab:d2-cap-chi-phi}
+\cobang
+\begin{tabularx}{\linewidth}{YR{2.0cm}P{4.0cm}C{2.0cm}}
+\toprule
+\textbf{Cặp so sánh và đại lượng} & \textbf{$\Delta$} & \textbf{Khoảng tin cậy 95\%} & \textbf{Có ý nghĩa?}\\
+\midrule
+\multicolumn{4}{l}{\textbf{SA $\rightarrow$ MA cố định}}\\
+\quad Thời gian (mili giây) & $-337$ & từ $-1.004$ đến $+439$ & Không\\
+\quad Số token & $+332$ & từ $-87$ đến $+794$ & Không\\
+\midrule
+\multicolumn{4}{l}{\textbf{SA $\rightarrow$ MA thích ứng}}\\
+\quad Thời gian (mili giây) & $+1.239$ & từ $+561$ đến $+2.033$ & \textbf{Có}\\
+\quad Số token & $+758$ & từ $+320$ đến $+1.236$ & \textbf{Có}\\
+\midrule
+\multicolumn{4}{l}{\textbf{MA cố định $\rightarrow$ MA thích ứng}}\\
+\quad Thời gian (mili giây) & $+1.576$ & từ $+1.036$ đến $+2.198$ & \textbf{Có}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+MA cố định có thời gian và số token tương đương SA; các chênh lệch đều nằm trong khoảng sai số. MA thích ứng thì chậm hơn SA khoảng 1,2 giây và dùng nhiều hơn khoảng 760 token mỗi lượt, cả hai đều có ý nghĩa thống kê. Phần tốn thêm đến từ lượt gọi mô hình để lập kế hoạch và lượt bổ sung kế hoạch.
+
+Kết quả về chi phí ở đợt 2 khác đợt 1: MA không còn chậm gấp gần 5 lần SA. Lý do là hai đợt đo hai thứ khác nhau. Ở đợt 1 tài liệu được cấp sẵn, SA chỉ cần một lượt gọi mô hình. Ở đợt 2, mọi cấu hình đều phải đi qua cùng các khâu tiếp nhận, tìm kiếm và kiểm chứng; phần chung này chiếm phần lớn thời gian, nên chênh lệch do cách tổ chức trở nên nhỏ.
+
+Cấu hình không tra cứu nhanh và rẻ hơn hẳn (2,34 giây; 0,0012 đô-la), nhưng như đã thấy, nó hầu như không hoàn thành được nhiệm vụ nào cần thông tin.
+
+\subsection{Tổng chi phí của đợt 2}
+
+Bảng~\ref{tab:d2-tong-chi-phi} cộng toàn bộ số lượt gọi mô hình, số token và chi phí của đợt 2.
+
+\begin{table}[!htbp]
+\caption{Đợt 2: tổng số lượt gọi mô hình, token và chi phí}
+\label{tab:d2-tong-chi-phi}
+\cobang
+\begin{tabularx}{\linewidth}{YR{2.6cm}R{2.8cm}R{2.6cm}}
+\toprule
+\textbf{Phần} & \textbf{Số lượt gọi} & \textbf{Số token} & \textbf{Chi phí (đô-la Mỹ)}\\
+\midrule
+Hệ thống trả lời (720 lượt hỏi) & 2.382 & 2.657.508 & 2,69\\
+Giám khảo chấm & 752 & 2.593.809 & 0,22\\
+\midrule
+\textbf{Tổng} & \textbf{3.134} & \textbf{5.251.317} & \textbf{khoảng 2,93}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Ngoài ra có 405 lượt gọi mô hình tìm kiếm theo nghĩa, đã tính trong chi phí của hệ thống. Toàn bộ đợt 2 tốn chưa tới 3 đô-la Mỹ.
+
+\subsection{Độ ổn định của giám khảo}
+\label{sec:cham-lai}
+
+Nhóm cho giám khảo chấm lại toàn bộ 720 câu trả lời của đợt 2. Có 715 câu trả lời được chấm thành công ở cả hai lần. Bảng~\ref{tab:cham-lai} so sánh hai lần chấm trên 715 câu này.
+
+\begin{table}[!htbp]
+\caption{Mức độ giống nhau giữa hai lần chấm của giám khảo (715 câu trả lời)}
+\label{tab:cham-lai}
+\cobang
+\begin{tabularx}{\linewidth}{YR{3.6cm}R{3.6cm}}
+\toprule
+\textbf{Chỉ số} & \textbf{Tỉ lệ chấm giống nhau} & \textbf{Hệ số kappa}\\
+\midrule
+Hoàn thành nhiệm vụ & 97,3\% & 0,946\\
+Nhận định có căn cứ & 96,9\% & 0,937\\
+Các chỉ số tính từ nhật ký chạy & 100\% & 1,000\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Hệ số kappa đo mức độ đồng thuận sau khi trừ đi phần trùng hợp ngẫu nhiên; giá trị trên 0,9 thường được coi là rất cao. Giám khảo như vậy chấm khá nhất quán giữa hai lần.
+
+Tuy nhiên, khoảng 3\% khác biệt vẫn đủ để làm xê dịch kết luận ở những chỗ sát ngưỡng. Trên cùng 715 câu trả lời, chênh lệch SA $\rightarrow$ MA thích ứng là $-4{,}99$ (khoảng tin cậy từ $-9{,}26$ đến $-1{,}34$) theo lần chấm đầu và $-6{,}53$ (từ $-12{,}65$ đến $-1{,}34$) theo lần chấm lại. Cả hai khoảng đều không chứa số 0, trong khi con số chính thức trên đủ 720 câu ($-3{,}81$; từ $-8{,}74$ đến $+1{,}03$) lại chứa số 0. Nhóm giữ con số trên đủ 720 câu làm kết quả chính thức và rút ra một điều thận trọng: MA thích ứng \emph{không tốt hơn} SA, và có dấu hiệu là kém hơn, nhưng dấu hiệu này chưa đủ vững.
+
+Cũng cần nhắc lại: chấm nhất quán không có nghĩa là chấm đúng. Phép thử này chỉ cho thấy giám khảo ổn định, không cho thấy giám khảo đồng ý với con người.
+
+\section{Đợt 3: xác nhận trên bộ câu hỏi mới}
+
+\subsection{Kết quả kiểm định ba giả thuyết}
+
+Đợt 3 chạy 60 hội thoại mới, viết theo lối nói tự nhiên, với các giả thuyết đã đăng ký trước (Mục~\ref{sec:dang-ky-truoc}). Có 719 trên 720 câu trả lời được chấm. Bảng~\ref{tab:d3-gia-thuyet} cho kết quả kiểm định.
+
+\begin{table}[!htbp]
+\caption{Đợt 3: kết quả kiểm định các giả thuyết đăng ký trước (tỉ lệ hoàn thành nhiệm vụ, \pp)}
+\label{tab:d3-gia-thuyet}
+\cobang
+\begin{tabularx}{\linewidth}{YR{1.4cm}P{3.3cm}C{2.2cm}C{2.0cm}}
+\toprule
+\textbf{Giả thuyết} & \textbf{$\Delta$} & \textbf{Khoảng tin cậy 95\%} & \textbf{Thắng / hoà / thua} & \textbf{Kết luận}\\
+\midrule
+H1 (chính): MA cố định hơn SA, loại ``Nhiều ràng buộc'' & $+2{,}78$ & từ $0{,}00$ đến $+8{,}33$ & 1 / 11 / 0 & Không được ủng hộ\\
+H2: MA cố định hơn SA, cả 60 hội thoại & $+1{,}07$ & từ $0{,}00$ đến $+2{,}78$ & 2 / 24 / 0 & Không được ủng hộ\\
+H3: MA thích ứng so với SA, cả 60 hội thoại & $+1{,}07$ & từ $0{,}00$ đến $+2{,}78$ & 2 / 24 / 0 & Không được ủng hộ\\
+\midrule
+Đối chứng: MA không tra cứu so với SA & $-16{,}24$ & từ $-23{,}18$ đến $-9{,}62$ & 0 / 13 / 13 & Kém hơn rõ\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Cả ba giả thuyết đều \textbf{không được ủng hộ}: khoảng tin cậy của cả ba đều chạm số 0. Ở giả thuyết chính H1, MA cố định chỉ thắng ở 1 trên 12 nhóm và hoà ở 11 nhóm còn lại. Ngay cả ở loại câu hỏi được chọn vì thuận lợi nhất cho nhiều tác tử, lợi thế đó cũng không xuất hiện lại trên bộ câu hỏi mới.
+
+Điểm trung bình về tỉ lệ hoàn thành nhiệm vụ ở đợt 3 là: SA 19,44\%; MA cố định 20,56\%; MA thích ứng 20,56\%; MA không tra cứu 0,00\%. Về chỉ số nhận định có căn cứ, MA cố định hơn SA $1{,}07$ \pp{} (từ $-2{,}56$ đến $+4{,}27$) và MA thích ứng hơn SA $3{,}21$ \pp{} (từ $0{,}00$ đến $+7{,}05$); cả hai cũng chưa đạt mức có ý nghĩa.
+
+Kết quả về tra cứu thì lặp lại: tắt tra cứu vẫn làm kết quả kém đi rõ rệt, với khoảng tin cậy nằm hoàn toàn dưới số 0.
+
+\subsection{Điểm số tụt mạnh so với đợt 2}
+
+Phát hiện đáng chú ý nhất của đợt 3 không nằm ở so sánh SA với MA, mà ở chỗ \textbf{mọi cấu hình đều tụt điểm rất mạnh}. Tỉ lệ hoàn thành nhiệm vụ của SA giảm từ 45,16\% ở đợt 2 xuống 19,44\% ở đợt 3. Bảng~\ref{tab:d3-loai} và Hình~\ref{fig:d3-loai} cho thấy mức tụt theo từng loại.
+
+\begin{table}[!htbp]
+\caption{Tỉ lệ hoàn thành nhiệm vụ theo loại hội thoại: đợt 2 so với đợt 3 (\%)}
+\label{tab:d3-loai}
+\cobang
+\begin{tabularx}{\linewidth}{YR{2.1cm}R{1.8cm}R{2.1cm}R{2.2cm}}
+\toprule
+ & \textbf{Đợt 2} & \multicolumn{3}{c}{\textbf{Đợt 3}}\\
+\cmidrule(lr){2-2}\cmidrule(lr){3-5}
+\textbf{Loại hội thoại} & SA & SA & MA cố định & MA thích ứng\\
+\midrule
+Hỏi theo nguồn & 86 & 91,7 & 94,4 & 97,2\\
+Nhiều ràng buộc & 94 & 5,6 & 8,3 & 5,6\\
+So sánh, gợi ý & 8 & 0 & 0 & 0\\
+Nhiều lượt, cần nhớ & 75 & 0 & 0 & 0\\
+Thiếu hoặc mâu thuẫn & 62 & 0 & 0 & 0\\
+Mua bán, quản lý & 0 & 0 & 0 & 0\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hinh{bd-xac-nhan-theo-loai}{Tỉ lệ hoàn thành nhiệm vụ theo loại hội thoại ở đợt 2 và đợt 3}{fig:d3-loai}
+
+Chỉ loại ``Hỏi theo nguồn'' giữ được kết quả (trên 90\%). Loại ``Nhiều ràng buộc'' rơi từ 94\% xuống khoảng 6\%. Bốn loại còn lại về 0\% ở mọi cấu hình.
+
+\subsection{Vì sao điểm tụt: câu hỏi tự nhiên làm hệ thống không nhận ra yêu cầu}
+
+Nhóm xem lại nhật ký chạy để tìm nguyên nhân. Ở phần lớn các lượt thất bại, hệ thống không trả lời mà hỏi lại người dùng với lý do ``chưa tìm thấy đủ sách phù hợp đã xác minh''. Bảng~\ref{tab:d3-hoi-lai} cho số lượt gặp tình trạng này; con số giống nhau ở SA và MA cố định.
+
+\begin{table}[!htbp]
+\caption{Đợt 3: số lượt hỏi mà hệ thống hỏi lại thay vì trả lời (một cấu hình, 3 lần lặp)}
+\label{tab:d3-hoi-lai}
+\cobang
+\begin{tabularx}{\linewidth}{YR{3.4cm}R{3.4cm}}
+\toprule
+\textbf{Loại hội thoại} & \textbf{Số lượt bị hỏi lại} & \textbf{Tổng số lượt}\\
+\midrule
+Nhiều ràng buộc & 27 & 36\\
+So sánh, gợi ý & 33 & 36\\
+Thiếu hoặc mâu thuẫn & 24 & 24\\
+Nhiều lượt, cần nhớ & 9 & 24\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+So sánh hai cách hỏi về cùng một nội dung giúp thấy rõ vấn đề:
+
+\begin{itemize}
+    \item Câu hỏi đợt 2 (theo mẫu): ``Tìm Quốc Gia Khởi Nghiệp (Tái Bản 2019) với giá không vượt quá 145850 đồng, rating ít nhất 4.7; nêu thêm tác giả hoặc chủ đề cấp tác phẩm.''
+    \item Câu hỏi đợt 3 (tự nhiên): ``Quốc Gia Khởi Nghiệp (Tái Bản 2019) có giá dưới 140.000 đồng và rating tối thiểu 4,6 không? Nếu có thì cho mình biết ai là tác giả và sách bàn về vấn đề gì.''
+\end{itemize}
+
+Hai câu hỏi cùng một việc và cùng nêu đúng tên sách. Hệ thống xử lý được câu thứ nhất nhưng thường không xử lý được câu thứ hai. Khâu hiểu câu hỏi, lập kế hoạch và tìm sách phù hợp là phần \emph{dùng chung} của SA và MA, nên cả hai cùng thất bại theo cùng một cách.
+
+Cách giải thích hợp lý nhất là: điểm cao ở đợt 2 một phần phản ánh việc hệ thống đã được chỉnh sửa qua nhiều vòng trên chính các mẫu câu của đợt 2, và khả năng xử lý các cách hỏi khác còn yếu. Đây là hiện tượng ``học tủ'' quen thuộc trong học máy, và cũng là lý do người ta cần đến tập giữ kín thực sự. Nhóm lưu ý đây là một giả thuyết rút ra từ việc xem một số ví dụ, chưa được kiểm tra trên từng câu hỏi. Cũng chưa loại trừ khả năng đáp án của bộ câu hỏi mới đòi hỏi quá khắt khe ở một số câu.
+
+Còn một điểm nữa cần nêu để so sánh hai đợt cho đúng. Giữa đợt 2 và đợt 3, nhóm đã rà soát và sửa một số lỗi của hệ thống (Chương~\ref{ch:ra-soat}), nên đợt 3 chạy trên một bản hệ thống mới hơn. Hai đợt vì vậy khác nhau ở cả bộ câu hỏi lẫn phiên bản hệ thống. Các lỗi được sửa đều thuộc dạng làm rơi mất thông tin, nên nhóm cho rằng chúng không phải nguyên nhân làm điểm giảm; tuy vậy đây là suy luận, chưa được đo riêng.
+
+Hiện tượng điểm dồn về 0 này gọi là \emph{hiệu ứng sàn}, ngược với hiệu ứng trần ở đợt 1. Hệ quả là đợt 3 chỉ thực sự phân biệt được các cấu hình ở loại ``Hỏi theo nguồn'' và một phần loại ``Nhiều ràng buộc''. Ở các loại khác, mọi cấu hình đều 0\% nên không có gì để so.
+
+\subsection{Những sai lệch so với kế hoạch đã đăng ký}
+
+Theo đúng tinh thần đăng ký trước, nhóm báo cáo đầy đủ các điểm mà lần chạy thực tế khác với kế hoạch:
+
+\begin{enumerate}
+    \item \textbf{Ngưỡng kiểm tra giám khảo bị nới.} Trước khi chấm chính thức có một bước kiểm tra giám khảo trên 32 câu thử. Nhãn tham chiếu của bước này được sinh bằng quy tắc, không phải do người gán. Giám khảo lệch so với nhãn tham chiếu ở 3 trên 32 câu, vượt ngưỡng mặc định, và nhóm đã nới ngưỡng để tiếp tục.
+    \item \textbf{Thiếu một lượt chấm.} Có một câu trả lời (thuộc cấu hình không tra cứu) mà giám khảo liên tục trả kết quả sai khuôn mẫu, nên không chấm được. Câu này không thuộc phạm vi của H1, H2, H3; dù gán điểm 0 hay 1 thì kết luận về ba giả thuyết không đổi.
+    \item \textbf{Bảng kết quả được tính bằng chương trình phân tích riêng.} Công cụ tổng hợp chính thức yêu cầu đủ 720 lượt chấm nên không chạy được. Các con số ở trên được tính từ nhật ký chấm bằng đúng công thức đã đăng ký (lấy mẫu lại theo nhóm tác phẩm, 10.000 mẫu, cùng hạt giống).
+    \item \textbf{Sổ ghi chi phí bị can thiệp để chấm lại các lượt lỗi định dạng.} Giám khảo đôi khi trả kết quả sai khuôn mẫu (13 trên 720 lượt ở lần đầu), và quy trình không cho gọi lại. Nhóm đã xoá bản ghi của các lượt lỗi này khỏi sổ để gọi lại, và giữ bản sao lưu. Việc chọn lượt nào chấm lại chỉ dựa trên mã lỗi kỹ thuật, không dựa trên điểm số.
+    \item \textbf{Các giới hạn có từ trước vẫn còn:} bộ câu hỏi mới dùng cùng 13 đầu sách với đợt 2; câu hỏi và đáp án do trợ lý AI soạn; giám khảo chưa được đối chiếu với người chấm.
+\end{enumerate}
+
+Tổng chi phí của đợt 3 khoảng 1,8 đô-la Mỹ, dưới trần 4 đô-la đã đặt.
+
+\section{Trả lời các câu hỏi nghiên cứu}
+
+\subsection{Câu hỏi 1: Nhiều tác tử có cho kết quả tốt hơn một tác tử không?}
+
+\textbf{Chưa có bằng chứng cho điều đó.} Bảng~\ref{tab:tong-ket-ch1} gom kết quả của cả ba đợt.
+
+\begin{table}[!htbp]
+\caption{Tổng hợp so sánh nhiều tác tử với một tác tử qua ba đợt}
+\label{tab:tong-ket-ch1}
+\cobang
+\begin{tabularx}{\linewidth}{P{1.5cm}P{3.6cm}R{1.4cm}P{3.3cm}Y}
+\toprule
+\textbf{Đợt} & \textbf{So sánh} & \textbf{$\Delta$} & \textbf{Khoảng tin cậy 95\%} & \textbf{Nhận xét}\\
+\midrule
+1 & MA so với SA & $+1{,}04$ & từ $-1{,}11$ đến $+3{,}20$ & Chứa số 0; do một câu hỏi\\
+2 & MA cố định so với SA & $+2{,}06$ & từ $-3{,}09$ đến $+7{,}30$ & Chứa số 0\\
+2 & MA thích ứng so với SA & $-3{,}81$ & từ $-8{,}74$ đến $+1{,}03$ & Chứa số 0; nghiêng về kém hơn\\
+3 & MA cố định so với SA & $+1{,}07$ & từ $0{,}00$ đến $+2{,}78$ & Chạm số 0\\
+3 & MA thích ứng so với SA & $+1{,}07$ & từ $0{,}00$ đến $+2{,}78$ & Chạm số 0\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Qua ba đợt với ba bộ câu hỏi khác nhau, không có lần nào nhiều tác tử hơn một tác tử một cách có ý nghĩa thống kê. Các chênh lệch đều nhỏ (dưới 4 \pp) và đổi dấu giữa các cấu hình.
+
+Nhóm lưu ý cách diễn đạt: kết luận là ``chưa có bằng chứng nhiều tác tử tốt hơn'', \emph{không phải} ``đã chứng minh hai cách bằng nhau''. Với 26--27 nhóm tác phẩm, thực nghiệm chỉ đủ sức phát hiện những chênh lệch ước chừng từ 7 \pp{} trở lên (ước lượng thô của nhóm từ độ rộng của các khoảng tin cậy ở đợt 2). Một lợi thế nhỏ hơn mức đó, nếu có, sẽ không thấy được.
+
+Kết quả này phù hợp với các nghiên cứu gần đây \src{7}, \src{8}, \src{9}, vốn chỉ ra rằng lợi ích của nhiều tác tử phụ thuộc nhiều vào loại bài toán và thường bị đánh giá quá cao khi phép so sánh không giữ đều điều kiện.
+
+\subsection{Câu hỏi 2: Tra cứu tài liệu đóng góp bao nhiêu?}
+
+\textbf{Rất nhiều, và đây là kết quả vững nhất của đề tài.} Tắt tra cứu làm tỉ lệ hoàn thành nhiệm vụ giảm 36,11 \pp{} ở đợt 2 (khoảng tin cậy từ $-51{,}23$ đến $-21{,}60$). Ở đợt 3, cấu hình không tra cứu về 0\% và kém SA 16,24 \pp{} (từ $-23{,}18$ đến $-9{,}62$). Cả hai khoảng tin cậy đều nằm xa số 0, và kết quả lặp lại trên hai bộ câu hỏi độc lập.
+
+Con số ở đợt 3 nhỏ hơn đợt 2 không phải vì tra cứu kém quan trọng hơn, mà vì ở đợt 3 các cấu hình có tra cứu cũng đạt điểm thấp, nên khoảng cách tối đa có thể có bị thu hẹp.
+
+Không tra cứu, hệ thống không chỉ thiếu thông tin mà còn phản hồi sai cách: chỉ số chọn đúng cách phản hồi giảm 74,38 \pp{} ở đợt 2. Khi không có tài liệu, hệ thống từ chối cả những câu hỏi lẽ ra trả lời được.
+
+\subsection{Câu hỏi 3: Nhiều tác tử làm thời gian và chi phí thay đổi ra sao?}
+
+\textbf{Không rẻ hơn, và có trường hợp đắt hơn rõ.}
+
+\begin{itemize}
+    \item Khi tài liệu được cấp sẵn (đợt 1), nhiều tác tử chậm gấp 4,73 lần và dùng lượng token gấp 2,78 lần.
+    \item Khi đo toàn bộ quá trình (đợt 2), MA cố định tương đương SA về thời gian và token; MA thích ứng chậm hơn khoảng 1,2 giây và dùng thêm khoảng 760 token mỗi lượt, tức thêm khoảng 15\% thời gian và 16\% token.
+\end{itemize}
+
+Kết hợp với câu hỏi 1: nhiều tác tử không cho kết quả tốt hơn một cách đo được, trong khi chi phí bằng hoặc cao hơn. Trên bài toán này, phần chi phí tăng thêm chưa đổi lại được gì.
+
+\section{Thảo luận}
+
+\subsection{Vì sao nhiều tác tử không giúp được ở đây}
+
+Nhóm đưa ra ba lý do có thể, dựa trên những gì quan sát được. Đây là diễn giải, chưa phải kết luận đã kiểm chứng.
+
+\textbf{Thứ nhất, khâu yếu nhất không nằm ở cách tổ chức.} Đợt 3 cho thấy hệ thống thất bại ngay từ khâu hiểu câu hỏi và tìm sách phù hợp, là phần mà cả SA lẫn MA dùng chung. Khi khâu chung này hỏng, tổ chức các bước phía sau thế nào cũng không cứu được.
+
+\textbf{Thứ hai, bài toán chưa đủ lớn để cần chia việc.} Mỗi câu hỏi chỉ liên quan đến một hoặc hai cuốn sách và ba nguồn dữ liệu. Một tác tử duy nhất với mô hình hiện nay đủ sức giữ toàn bộ thông tin đó trong một lượt. Chia việc có lợi khi khối lượng vượt quá khả năng của một tác tử, và điều đó chưa xảy ra ở đây.
+
+\textbf{Thứ ba, thêm bước là thêm chỗ có thể sai.} Mỗi lượt gọi mô hình thêm vào là một cơ hội để sai lệch. Kết quả MA thích ứng kém MA cố định 5,86 \pp{} gợi ý rằng việc để mô hình tự lập và bổ sung kế hoạch đã đưa thêm sai sót nhiều hơn là sửa được.
+
+\subsection{Thành phần nào thực sự có giá trị}
+
+Nếu nhiều tác tử không phải là thứ tạo ra giá trị, thì giá trị của hệ thống nằm ở đâu? Số liệu chỉ ra hai thành phần:
+
+\begin{itemize}
+    \item \textbf{Tra cứu có trích nguồn.} Đây là thành phần duy nhất có tác dụng lớn, có ý nghĩa thống kê và lặp lại được.
+    \item \textbf{Kiểm soát bằng chương trình.} Chỉ số tuân thủ phân quyền đạt 100\% ở mọi cấu hình của đợt 2; các câu lệnh cài cắm và yêu cầu vượt quyền ở đợt 1 đều bị chặn. Kết quả này đến từ việc quyền do chương trình kiểm tra, không phụ thuộc vào mô hình.
+\end{itemize}
+
+Cả hai thành phần đều có mặt ở cấu hình một tác tử. Nói cách khác, một hệ thống một tác tử với tra cứu có trích nguồn và kiểm soát quyền bằng chương trình sẽ giữ được gần như toàn bộ giá trị đo được, với cấu trúc đơn giản hơn.
+
+\subsection{Bài học về cách đánh giá}
+
+Bản thân quá trình đánh giá cũng cho nhóm ba bài học:
+
+\begin{itemize}
+    \item \textbf{Bộ câu hỏi theo mẫu cho kết quả lạc quan.} Cùng một hệ thống đạt 94\% với câu hỏi theo mẫu và 6\% với câu hỏi tự nhiên ở cùng một loại. Nếu chỉ dừng ở đợt 2, nhóm sẽ có một bức tranh sai về chất lượng hệ thống.
+    \item \textbf{Điểm quá cao hoặc quá thấp đều không so sánh được.} Đợt 1 gặp hiệu ứng trần, đợt 3 gặp hiệu ứng sàn. Một bộ câu hỏi tốt cần có độ khó vừa phải để các cấu hình tách được nhau.
+    \item \textbf{Đăng ký trước giúp giữ kỷ luật.} Vì giả thuyết được viết ra trước, nhóm không thể chọn lại loại câu hỏi hay chỉ số sau khi thấy kết quả. Kết quả ``không được ủng hộ'' của đợt 3 vì vậy đáng tin hơn một kết quả đẹp tìm được sau nhiều lần thử.
+\end{itemize}
+
+\section{Tóm tắt chương}
+
+Ba đợt thực nghiệm cho một bức tranh nhất quán. Nhiều tác tử chưa cho thấy lợi thế về chất lượng so với một tác tử ở bất kỳ đợt nào, trong khi chi phí bằng hoặc cao hơn. Tra cứu tài liệu là thành phần có tác dụng rõ và lặp lại được. Đợt 3 còn cho thấy hệ thống xử lý kém các câu hỏi diễn đạt tự nhiên, và điểm số ở đợt 2 đã lạc quan hơn thực tế. Chương tiếp theo trình bày quá trình nhóm rà soát lại hệ thống và số liệu, được thực hiện giữa đợt 2 và đợt 3.

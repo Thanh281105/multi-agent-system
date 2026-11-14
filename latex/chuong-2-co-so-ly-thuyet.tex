@@ -1,0 +1,134 @@
+\chapter{Cơ sở lý thuyết và các nghiên cứu liên quan}
+\label{ch:co-so}
+
+Chương này giải thích các khái niệm được dùng trong báo cáo, theo thứ tự từ nền tảng đến cụ thể: mô hình ngôn ngữ lớn, tác tử, cách tổ chức một tác tử và nhiều tác tử, tra cứu tài liệu, kiểm chứng câu trả lời, và cách đánh giá một hệ thống hỏi đáp. Cuối chương là phần điểm qua các nghiên cứu liên quan và vị trí của đề tài.
+
+\section{Mô hình ngôn ngữ lớn}
+
+Mô hình ngôn ngữ lớn là mô hình học máy được huấn luyện trên một lượng văn bản rất lớn để dự đoán phần văn bản tiếp theo. Nhờ quá trình huấn luyện này, mô hình có thể đọc một yêu cầu viết bằng ngôn ngữ tự nhiên (gọi là lời nhắc) và viết ra câu trả lời. Mô hình không xử lý trực tiếp từng chữ cái mà xử lý các đơn vị nhỏ gọi là token; một token xấp xỉ một âm tiết hoặc một phần của từ. Số token đưa vào và sinh ra quyết định cả thời gian lẫn chi phí của mỗi lần gọi mô hình, vì vậy trong báo cáo này số token được dùng làm thước đo chi phí.
+
+Khi dùng mô hình ngôn ngữ trong một ứng dụng thực tế, có bốn đặc điểm cần lưu ý:
+
+\begin{itemize}
+    \item \textbf{Kiến thức bị đóng băng.} Mô hình chỉ biết những gì có trong dữ liệu huấn luyện. Nó không biết giá sách hôm nay hay nhận xét của một cuốn sách cụ thể trên một trang bán hàng.
+    \item \textbf{Có thể viết sai mà vẫn trôi chảy.} Mô hình được huấn luyện để viết ra văn bản hợp lý, không phải để chỉ nói điều đúng. Khi thiếu thông tin, nó vẫn có thể điền vào bằng nội dung tự tạo. Khảo sát của Ji và cộng sự \src{5} gọi chung hiện tượng này là ảo giác và coi đây là rủi ro chính khi dùng mô hình sinh văn bản.
+    \item \textbf{Kết quả không lặp lại hoàn toàn.} Cùng một câu hỏi, hai lần gọi có thể cho hai câu trả lời khác nhau. Vì vậy khi đánh giá, mỗi câu hỏi cần được chạy nhiều lần.
+    \item \textbf{Lượng văn bản đọc được mỗi lần có giới hạn.} Mô hình chỉ đọc được một lượng token nhất định trong một lần gọi. Không thể đưa cả cơ sở dữ liệu vào lời nhắc; phải chọn phần liên quan.
+\end{itemize}
+
+Bốn đặc điểm này giải thích vì sao hệ thống của đề tài phải có bước tra cứu dữ liệu, bước kiểm chứng câu trả lời và các hạn mức về số bước xử lý.
+
+\section{Tác tử dùng mô hình ngôn ngữ}
+
+Một mô hình ngôn ngữ đơn thuần chỉ nhận văn bản và trả văn bản. Để làm được việc hữu ích hơn, người ta cho mô hình khả năng \textbf{gọi công cụ}: mô hình được mô tả trước danh sách các công cụ (ví dụ ``tìm sách theo tên'', ``lấy nhận xét của một cuốn sách''), và thay vì trả lời ngay, mô hình có thể yêu cầu chương trình chạy một công cụ với tham số cụ thể. Chương trình chạy công cụ, đưa kết quả lại cho mô hình, và mô hình quyết định bước tiếp theo.
+
+Một thành phần phần mềm hoạt động theo vòng lặp ``suy nghĩ, gọi công cụ, xem kết quả, lặp lại'' như vậy được gọi là \textbf{tác tử}. Cách làm này được mô tả có hệ thống trong nghiên cứu ReAct của Yao và cộng sự \src{10}. Điểm cần nhấn mạnh là trong một tác tử, \emph{mô hình} là bên quyết định trình tự công việc, chứ không phải lập trình viên viết sẵn từng bước.
+
+Điều đó mang lại sự linh hoạt, nhưng cũng tạo rủi ro: mô hình có thể gọi sai công cụ, gọi lặp vô ích, hoặc bị nội dung trong dữ liệu đánh lừa để làm việc ngoài ý muốn. Hướng dẫn thực hành của Anthropic \src{6} khuyên nên bắt đầu bằng cách làm đơn giản nhất, và chỉ trao thêm quyền tự quyết cho mô hình khi có nhu cầu đo được. Thiết kế của đề tài đi theo tinh thần này: mô hình chỉ được chọn trong một tập bước cho phép, còn việc kiểm tra quyền và hạn mức do chương trình thực hiện (xem Chương~\ref{ch:thiet-ke}).
+
+\section{Một tác tử và nhiều tác tử}
+
+Có hai cách chính để tổ chức một hệ thống dùng tác tử, minh hoạ ở Hình~\ref{fig:sa-va-ma}.
+
+\hinh{sa-va-ma}{Hai cách tổ chức: (a) một tác tử dùng mọi công cụ; (b) nhiều tác tử với bộ điều phối và các chuyên gia}{fig:sa-va-ma}
+
+\textbf{Một tác tử.} Chỉ có một tác tử, được trao toàn bộ công cụ. Tác tử tự đọc câu hỏi, tự quyết định gọi công cụ nào, và tự viết câu trả lời. Cách này đơn giản, ít lần gọi mô hình, dễ theo dõi.
+
+\textbf{Nhiều tác tử.} Công việc được chia cho nhiều thành phần chuyên trách. Một bộ điều phối đọc câu hỏi, quyết định cần chuyên gia nào và theo thứ tự nào. Mỗi chuyên gia chỉ lo một loại việc với một nhóm công cụ hẹp. Cuối cùng, một bộ tổng hợp ghép kết quả của các chuyên gia thành câu trả lời.
+
+Các hệ thống nhiều tác tử nổi tiếng khác nhau ở cách các tác tử phối hợp. AutoGen \src{2} để các tác tử trao đổi với nhau qua tin nhắn như một cuộc hội thoại. MetaGPT \src{3} gán cho mỗi tác tử một vai trò như trong một nhóm làm phần mềm và quy định sẵn sản phẩm mà mỗi vai trò phải bàn giao. Đề tài này chọn kiểu \emph{giám sát}: chỉ có bộ điều phối giao việc, các chuyên gia không tự trao đổi với nhau. Kiểu này dễ kiểm soát nhất và phù hợp với yêu cầu mọi bước đều phải kiểm tra được.
+
+Bảng~\ref{tab:sa-ma-ly-thuyet} tóm tắt những gì người ta thường kỳ vọng ở mỗi cách. Cần lưu ý đây là các \emph{kỳ vọng} về mặt lý thuyết; phần thực nghiệm của đề tài sẽ kiểm tra chúng có đúng trong bài toán tư vấn sách hay không.
+
+\begin{table}[!htbp]
+\caption{Kỳ vọng thường gặp về hai cách tổ chức}
+\label{tab:sa-ma-ly-thuyet}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.2cm}YY}
+\toprule
+\textbf{Khía cạnh} & \textbf{Một tác tử} & \textbf{Nhiều tác tử}\\
+\midrule
+Độ phức tạp & Thấp: một lời nhắc, một vòng lặp & Cao: nhiều lời nhắc, có thêm bước điều phối và tổng hợp\\
+Số lần gọi mô hình & Ít & Nhiều hơn, vì mỗi chuyên gia và mỗi bước ghép đều có thể gọi mô hình\\
+Thời gian, chi phí & Thấp hơn & Cao hơn\\
+Mức tập trung & Một lời nhắc phải bao quát mọi loại việc & Mỗi chuyên gia có hướng dẫn riêng, ngắn và rõ\\
+Kiểm soát quyền & Tác tử thấy mọi công cụ & Có thể giới hạn công cụ theo từng chuyên gia\\
+Điểm dễ hỏng & Mô hình chọn sai công cụ & Thêm lỗi do chia việc sai và mất thông tin khi chuyển giao\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Một số nghiên cứu gần đây đã xem xét kỹ hơn giả định ``nhiều tác tử thì tốt hơn''. Cemri và cộng sự \src{8} phân tích các lần chạy thất bại của nhiều hệ thống nhiều tác tử và xếp nguyên nhân vào ba nhóm: thiết kế hệ thống chưa tốt, các tác tử hiểu sai hoặc làm mất thông tin của nhau, và thiếu bước kiểm tra kết quả. Kim và cộng sự \src{9} cho thấy lợi ích của việc phối hợp phụ thuộc mạnh vào loại nhiệm vụ: có loại được lợi, có loại bị chậm đi mà không tốt hơn. Kapoor và cộng sự \src{7} lưu ý rằng nhiều kết quả công bố chỉ báo điểm chất lượng mà bỏ qua chi phí, khiến các hệ thống phức tạp trông có vẻ tốt hơn thực tế. Các nghiên cứu này là lý do để đề tài đo cả chất lượng lẫn chi phí và luôn so với một đối chứng một tác tử đủ mạnh.
+
+\section{Sinh câu trả lời có tra cứu tài liệu}
+
+Tra cứu tài liệu trước khi trả lời, do Lewis và cộng sự đề xuất \src{1}, là cách phổ biến nhất để đưa dữ liệu riêng vào câu trả lời của mô hình. Ý tưởng gồm ba bước như Hình~\ref{fig:rag}: tìm các đoạn tài liệu liên quan tới câu hỏi; đưa các đoạn đó vào lời nhắc; yêu cầu mô hình trả lời dựa trên các đoạn đã cho.
+
+\hinh{rag}{Ba bước của việc sinh câu trả lời có tra cứu tài liệu}{fig:rag}
+
+Chất lượng của cả quy trình phụ thuộc nhiều vào bước đầu tiên: nếu không tìm đúng đoạn tài liệu thì mô hình không có gì để dựa vào. Có hai cách tìm chính:
+
+\begin{itemize}
+    \item \textbf{Tìm theo từ khoá.} Hệ thống so các từ trong câu hỏi với các từ trong tài liệu và chấm điểm theo mức trùng khớp, có tính đến độ hiếm của từ. Phương pháp chấm điểm thông dụng là BM25 \src{11}. Cách này mạnh khi câu hỏi chứa tên riêng, ví dụ tên sách hoặc tên tác giả.
+    \item \textbf{Tìm theo nghĩa.} Mỗi đoạn văn được một mô hình chuyển thành một dãy số (gọi là véc-tơ) sao cho các đoạn có nghĩa gần nhau thì có dãy số gần nhau. Câu hỏi cũng được chuyển thành dãy số, và hệ thống tìm các đoạn gần nhất. Cách này tìm được cả khi câu hỏi dùng từ khác với tài liệu.
+\end{itemize}
+
+Hai cách có điểm mạnh bù cho nhau, nên nhiều hệ thống dùng cả hai rồi gộp kết quả; cách làm này gọi là tìm kiếm lai. Hệ thống của đề tài cũng dùng tìm kiếm lai (Mục~\ref{sec:kho-tri-thuc}).
+
+Một việc nữa cần làm trước khi tìm là chia tài liệu thành các đoạn vừa phải. Đoạn quá dài thì tốn chỗ trong lời nhắc và làm loãng thông tin; đoạn quá ngắn thì mất ngữ cảnh. Trong đề tài, mỗi nguồn tri thức là một ghi chú ngắn nên mỗi nguồn được giữ nguyên thành một đoạn.
+
+\section{Câu trả lời có căn cứ và trích dẫn}
+
+Tra cứu tài liệu giúp mô hình có thông tin đúng trong tay, nhưng không bảo đảm mô hình dùng đúng thông tin đó. Mô hình vẫn có thể thêm chi tiết ngoài tài liệu, hoặc hiểu sai tài liệu. Vì vậy cần thêm một lớp bảo vệ sau khi mô hình viết xong: kiểm tra từng nhận định trong câu trả lời xem có được nguồn nào đỡ hay không.
+
+Trong báo cáo này, một câu trả lời được gọi là \textbf{có căn cứ} khi mỗi nhận định quan trọng của nó chỉ ra được một đoạn nguồn cụ thể, và đoạn nguồn đó thật sự nói điều mà nhận định nêu. Việc gắn số trích dẫn sau mỗi nhận định có hai tác dụng: người dùng có thể mở nguồn ra kiểm tra, và chương trình có thể kiểm tra tự động trước khi gửi câu trả lời đi.
+
+Một phần quan trọng không kém của ``có căn cứ'' là biết \textbf{không trả lời}. Khi dữ liệu không có thông tin được hỏi, phản hồi đúng là nói rõ điều đó. Khi yêu cầu chưa rõ hoặc tự mâu thuẫn, phản hồi đúng là hỏi lại. Một hệ thống luôn cố trả lời sẽ có vẻ hữu ích hơn nhưng thực ra nguy hiểm hơn. Vì vậy bộ chỉ số đánh giá của đề tài có một chỉ số riêng cho việc này (Mục~\ref{sec:chi-so}).
+
+\section{Đánh giá hệ thống hỏi đáp dùng mô hình ngôn ngữ}
+
+\subsection{Chấm điểm bằng mô hình giám khảo}
+
+Câu trả lời bằng ngôn ngữ tự nhiên không thể chấm bằng cách so khớp từng chữ với đáp án, vì cùng một ý có thể được diễn đạt theo nhiều cách. Cách làm chính xác nhất là nhờ người chấm, nhưng rất tốn công khi có hàng trăm câu trả lời. Một cách thay thế đang được dùng rộng rãi là dùng một mô hình ngôn ngữ khác làm giám khảo: giám khảo được cho câu hỏi, câu trả lời và danh sách các ý bắt buộc phải có, rồi quyết định từng ý có được nêu đúng hay không.
+
+Zheng và cộng sự \src{4} cho thấy mô hình giám khảo có thể đạt mức đồng thuận cao với người chấm, nhưng cũng có những thiên lệch riêng, ví dụ ưu ái câu trả lời dài hoặc chịu ảnh hưởng bởi thứ tự trình bày. Vì vậy khi dùng mô hình giám khảo, cần ít nhất ba biện pháp: giám khảo dùng mô hình khác với mô hình tạo câu trả lời; giám khảo không được biết câu trả lời đến từ cấu hình nào; và nếu có thể, nên đối chiếu một phần kết quả với điểm chấm của người. Đề tài thực hiện được hai biện pháp đầu, biện pháp thứ ba chưa làm được và được ghi nhận là một hạn chế.
+
+\subsection{So sánh có đối chứng}
+
+Để biết một thay đổi có tác dụng hay không, cần so hai cấu hình chỉ khác nhau đúng ở thay đổi đó. Nếu hai cấu hình khác nhau cùng lúc ở nhiều điểm, không thể biết khác biệt về kết quả đến từ điểm nào. Thực nghiệm kiểu ``bật, tắt một thành phần rồi đo lại'' thường được gọi là thực nghiệm loại bỏ thành phần. Đề tài dùng cách này để tách riêng tác dụng của việc chia nhiều tác tử và tác dụng của việc tra cứu tài liệu.
+
+\subsection{Khoảng tin cậy bằng phương pháp lấy mẫu lại}
+
+Vì số câu hỏi có hạn và câu trả lời của mô hình có dao động, một chênh lệch vài điểm phần trăm giữa hai cấu hình có thể chỉ là ngẫu nhiên. Để biết chênh lệch có đáng tin hay không, báo cáo dùng khoảng tin cậy 95\%, tính bằng phương pháp lấy mẫu lại (bootstrap) \src{12}. Cách làm như sau: từ tập kết quả ban đầu, rút ngẫu nhiên có hoàn lại để tạo ra một tập mới cùng kích thước rồi tính lại chênh lệch; lặp lại việc này hàng nghìn lần; khoảng chứa 95\% các giá trị thu được chính là khoảng tin cậy. Nếu khoảng này nằm hẳn về một phía của số 0, có thể nói hai cấu hình khác nhau. Nếu khoảng này chứa số 0, dữ liệu chưa đủ để kết luận.
+
+\subsection{Tập giữ kín và đăng ký trước}
+
+Khi một bộ câu hỏi được dùng nhiều lần trong lúc phát triển, hệ thống dần dần được chỉnh cho khớp với chính bộ câu hỏi đó, và điểm số không còn phản ánh khả năng xử lý câu hỏi mới. Cách khắc phục là để riêng một tập câu hỏi không dùng trong lúc phát triển, gọi là tập giữ kín. Một bước chặt chẽ hơn nữa là \textbf{đăng ký trước}: viết ra giả thuyết, chỉ số chính và cách phân tích trước khi nhìn thấy kết quả, để không thể chọn cách phân tích có lợi sau khi đã biết số liệu. Kapoor và cộng sự \src{7} coi đây là điều kiện để kết quả đánh giá tác tử đáng tin. Đợt thực nghiệm thứ ba của đề tài được làm theo cách này.
+
+\section{Các nghiên cứu liên quan và vị trí của đề tài}
+
+Bảng~\ref{tab:lien-quan} tóm tắt các công trình mà đề tài tham khảo trực tiếp và điều đề tài rút ra từ mỗi công trình.
+
+\begin{table}[!htbp]
+\caption{Các công trình liên quan trực tiếp tới đề tài}
+\label{tab:lien-quan}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.6cm}YY}
+\toprule
+\textbf{Công trình} & \textbf{Nội dung chính} & \textbf{Điều đề tài áp dụng}\\
+\midrule
+Lewis và cộng sự, 2020 \src{1} & Kết hợp tra cứu tài liệu với mô hình sinh văn bản & Tra cứu kho tri thức trước khi viết câu trả lời\\
+Yao và cộng sự, 2023 \src{10} & Tác tử xen kẽ suy luận và gọi công cụ & Cơ sở cho cấu hình một tác tử dùng công cụ\\
+Wu và cộng sự, 2023 \src{2} & Khung nhiều tác tử trao đổi qua hội thoại & Tham khảo cách chia vai; không dùng trao đổi tự do\\
+Hong và cộng sự, 2023 \src{3} & Nhiều tác tử theo vai trò, có sản phẩm bàn giao quy định sẵn & Mỗi chuyên gia trả kết quả theo khuôn dạng cố định\\
+Zheng và cộng sự, 2023 \src{4} & Dùng mô hình làm giám khảo và các thiên lệch của cách này & Giám khảo khác mô hình, chấm giấu tên cấu hình\\
+Ji và cộng sự, 2023 \src{5} & Khảo sát hiện tượng ảo giác & Lý do cần bước kiểm chứng và trích dẫn\\
+Anthropic, 2024 \src{6} & Kinh nghiệm xây dựng tác tử: ưu tiên đơn giản & Giới hạn quyền tự quyết của mô hình\\
+Kapoor và cộng sự, 2024 \src{7} & Đánh giá tác tử phải tính cả chi phí và có tập giữ kín & Báo cáo cả thời gian, token; đăng ký trước đợt 3\\
+Cemri và cộng sự, 2025 \src{8} & Phân loại nguyên nhân thất bại của hệ nhiều tác tử & Rà soát các chỗ mất thông tin khi chuyển giao\\
+Kim và cộng sự, 2025 \src{9} & Lợi ích của phối hợp phụ thuộc loại nhiệm vụ & Không mặc định nhiều tác tử tốt hơn; phải đo\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+So với các công trình trên, đề tài không đề xuất một thuật toán mới. Đóng góp của đề tài nằm ở việc áp dụng các kỹ thuật đã có vào một bài toán tiếng Việt cụ thể, xây dựng thành một hệ thống hoàn chỉnh có kiểm soát, và đặc biệt là thực hiện một phép so sánh có đối chứng giữa một tác tử và nhiều tác tử trên chính hệ thống đó, báo cáo cả kết quả không như mong đợi.

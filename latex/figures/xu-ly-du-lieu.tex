@@ -1,0 +1,19 @@
+% Tám bước chuẩn bị dữ liệu, đọc theo số thứ tự
+\begin{tikzpicture}[baocao]
+  \def\rong{2.75cm}
+  % hàng trên: bước 1 -> 4 (trái sang phải)
+  \node[hop, text width=\rong, minimum height=19mm] (b1) at (1.75,0) {Tải bộ dữ liệu gốc từ Kaggle};
+  \node[hop, text width=\rong, minimum height=19mm] (b2) at (5.75,0) {Kiểm tra mã băm và cấu trúc tệp};
+  \node[hop, text width=\rong, minimum height=19mm] (b3) at (9.75,0) {Làm sạch, bỏ bản ghi trùng};
+  \node[hop, text width=\rong, minimum height=19mm] (b4) at (13.75,0) {Che liên kết, email, số điện thoại};
+  % hàng dưới: bước 5 -> 8 (phải sang trái)
+  \node[hop, text width=\rong, minimum height=19mm] (b5) at (13.75,-3.4) {Chọn mẫu theo hồ sơ dữ liệu};
+  \node[hop, text width=\rong, minimum height=19mm] (b6) at (9.75,-3.4) {Ghi bốn tệp kết quả kèm bản kê};
+  \node[hopxam, text width=\rong, minimum height=19mm] (b7) at (5.75,-3.4) {Cổng chất lượng: số lượng, mã băm, lược đồ};
+  \node[hopxam, text width=\rong, minimum height=19mm] (b8) at (1.75,-3.4) {Nạp vào cơ sở dữ liệu trong một giao dịch};
+  \foreach \a/\b in {b1/b2,b2/b3,b3/b4,b5/b6,b6/b7,b7/b8} \draw[mui] (\a) -- (\b);
+  \draw[mui] (b4) -- (b5);
+  \foreach \n/\i in {b1/1,b2/2,b3/3,b4/4,b5/5,b6/6,b7/7,b8/8}
+    \node[so] at ([xshift=1mm,yshift=-1mm]\n.north west) {\i};
+  \node[ghichu, text width=14.5cm] at (7.75,-5.25) {Bất kỳ bước kiểm tra nào không đạt thì quy trình dừng lại và báo lỗi, không ghi dữ liệu dở dang.};
+\end{tikzpicture}

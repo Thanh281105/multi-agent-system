@@ -1,0 +1,22 @@
+% Chín bước xử lý một lượt hỏi
+\begin{tikzpicture}[baocao, node distance=4.5mm]
+  \tikzset{buoc/.style={hop, text width=11.6cm, minimum height=9mm, align=left},
+           buocmh/.style={hopxam, text width=11.6cm, minimum height=9mm, align=left}}
+  \node[buoc] (s1) {\textbf{Tiếp nhận:} xác thực, kiểm tra quyền, ghi lượt hỏi vào cơ sở dữ liệu};
+  \node[buoc, below=of s1] (s2) {\textbf{Ghim phiên bản:} cố định bản danh mục và kho tri thức sẽ dùng};
+  \node[buoc, below=of s2] (s3) {\textbf{Hiểu câu hỏi:} nhận ra tên sách, mức giá, điểm đánh giá được nhắc tới};
+  \node[buocmh, below=of s3] (s4) {\textbf{Lập kế hoạch:} mô hình đề xuất các bước cần làm trong khuôn khổ cho phép};
+  \node[buoc, below=of s4] (s5) {\textbf{Duyệt kế hoạch:} kiểm tra quyền, thứ tự phụ thuộc và hạn mức};
+  \node[buoc, below=of s5] (s6) {\textbf{Thực thi:} gọi lần lượt các chuyên gia, thu về dữ kiện và bằng chứng};
+  \node[buocmh, below=of s6] (s7) {\textbf{Soạn câu trả lời:} mô hình chọn dữ kiện và viết phần diễn giải};
+  \node[buocmh, below=of s7] (s8) {\textbf{Kiểm chứng:} đối chiếu từng nhận định với nguồn, cho sửa tối đa một lần};
+  \node[buoc, below=of s8] (s9) {\textbf{Trả kết quả:} câu trả lời kèm nguồn, hoặc hỏi lại, hoặc từ chối có lý do};
+  \foreach \a/\b in {s1/s2,s2/s3,s3/s4,s4/s5,s5/s6,s6/s7,s7/s8,s8/s9} \draw[mui] (\a) -- (\b);
+  \foreach \n/\i in {s1/1,s2/2,s3/3,s4/4,s5/5,s6/6,s7/7,s8/8,s9/9}
+    \node[so] at ([xshift=-6mm]\n.west) {\i};
+  % chú giải
+  \node[hop, minimum height=5mm, minimum width=9mm, inner sep=0pt, below=7mm of s9.south west, anchor=north west] (l1) {};
+  \node[anchor=west, font=\sffamily\footnotesize] (l1t) at (l1.east) {Bước do chương trình quyết định};
+  \node[hopxam, minimum height=5mm, minimum width=9mm, inner sep=0pt, right=8mm of l1t] (l2) {};
+  \node[anchor=west, font=\sffamily\footnotesize] at (l2.east) {Bước có mô hình ngôn ngữ tham gia};
+\end{tikzpicture}

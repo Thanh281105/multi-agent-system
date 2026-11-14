@@ -1,119 +1,72 @@
 % !TeX program = xelatex
-\documentclass[11pt,a4paper]{article}
-\usepackage[margin=22mm,headheight=14pt,headsep=8mm,footskip=10mm]{geometry}
-\usepackage{fontspec}
-\setmainfont{Times New Roman}
-\setsansfont{Arial}
-\setmonofont{Consolas}[Scale=0.88]
-\usepackage{amsmath,amssymb,graphicx,booktabs,longtable,tabularx,array}
-\usepackage{enumitem,fancyhdr,titlesec,caption,needspace,fvextra,xurl,float}
-\usepackage[hidelinks,unicode,pdftitle={Hệ thống trợ lý tư vấn sách ứng dụng nhiều tác tử},pdfauthor={Hoàng Xuân Thanh, Trần Gia Lạc}]{hyperref}
-\usepackage{tikz}
-\usetikzlibrary{shapes,arrows,positioning}
-\hypersetup{bookmarksnumbered=true}
-\renewcommand{\figurename}{Hình}
-\renewcommand{\tablename}{Bảng}
-\renewcommand{\contentsname}{Mục lục}
-\renewcommand{\listfigurename}{Danh mục hình vẽ}
-\renewcommand{\listtablename}{Danh mục bảng biểu}
-\renewcommand{\refname}{Tài liệu tham chiếu}
-\captionsetup{font=small,labelfont=bf,justification=raggedright,singlelinecheck=false}
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{5.5pt}
-\linespread{1.09}
-\setlist{nosep,leftmargin=5mm,itemsep=3pt,topsep=4pt}
-\setlength{\emergencystretch}{2.5em}
-\renewcommand{\arraystretch}{1.16}
-\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
-\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
-\titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.6em}{}
-\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection.}{0.6em}{}
-\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection.}{0.6em}{}
-\titlespacing*{\section}{0pt}{13pt}{6pt}
-\titlespacing*{\subsection}{0pt}{9pt}{4pt}
-\titlespacing*{\subsubsection}{0pt}{7pt}{3pt}
-\newcommand{\src}[1]{\hyperlink{src-#1}{[#1]}}
-\ExplSyntaxOn
-\NewDocumentCommand{\code}{m}{
-  \tl_if_in:nnTF {#1} {~}
-    {\texttt{\detokenize{#1}}}
-    {\nolinkurl{#1}}
-}
-\ExplSyntaxOff
-\newcommand{\file}[1]{\nolinkurl{#1}}
-\newcommand{\fig}[3]{\begin{figure}[H]\centering\includegraphics[width=\linewidth]{images/#1.png}\caption{#2}\label{#3}\end{figure}}
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\small Hệ thống trợ lý tư vấn sách}
-\fancyhead[R]{\small Dự án Công nghệ thông tin}
-\fancyfoot[C]{\small\thepage}
-\renewcommand{\headrulewidth}{0.3pt}
-\widowpenalty=10000
-\clubpenalty=10000
+\documentclass[12pt,a4paper,oneside]{report}
+\input{preamble.tex}
 \begin{document}
+
 % ---------- Trang bìa ----------
 \begin{titlepage}
     \thispagestyle{empty}
     \centering
 
     \begin{tikzpicture}[remember picture,overlay]
-        \draw[line width=0.6pt]
-        ([xshift=1cm,yshift=-1cm]current page.north west)
+        \draw[line width=1.2pt]
+        ([xshift=2.2cm,yshift=-1.6cm]current page.north west)
         rectangle
-        ([xshift=-1cm,yshift=1cm]current page.south east);
+        ([xshift=-1.3cm,yshift=1.6cm]current page.south east);
     \end{tikzpicture}
 
     \vspace*{0.2cm}
 
     {\large\bfseries TỔNG LIÊN ĐOÀN LAO ĐỘNG VIỆT NAM\par}
-    \vspace{0.2cm}
+    \vspace{0.15cm}
     {\large\bfseries TRƯỜNG ĐẠI HỌC TÔN ĐỨC THẮNG\par}
-    \vspace{0.2cm}
+    \vspace{0.15cm}
     {\large\bfseries KHOA CÔNG NGHỆ THÔNG TIN\par}
 
-    \vspace{0.8cm}
+    \vspace{0.9cm}
     \includegraphics[width=4cm]{images/tdtu.jpg}\par
-
-    \vspace{1cm}
-
-    {\normalsize\bfseries HOÀNG XUÂN THANH -- 523H0178\par}
-    \vspace{0.2cm}
-    {\normalsize\bfseries TRẦN GIA LẠC -- 523H0154\par}
-
-    \vspace{1.2cm}
-
-    {\Large\bfseries
-    HỆ THỐNG TRỢ LÝ TƯ VẤN SÁCH\\
-    ỨNG DỤNG NHIỀU TÁC TỬ\par}
 
     \vspace{1.1cm}
 
+    {\normalsize\bfseries HOÀNG XUÂN THANH -- 523H0178\par}
+    \vspace{0.15cm}
+    {\normalsize\bfseries TRẦN GIA LẠC -- 523H0154\par}
+
+    \vspace{1.3cm}
+
+    {\LARGE\bfseries
+    HỆ THỐNG TRỢ LÝ TƯ VẤN SÁCH\\[4pt]
+    ỨNG DỤNG NHIỀU TÁC TỬ\par}
+
+    \vspace{1.3cm}
+
     {\Large\bfseries BÁO CÁO MÔN HỌC\par}
-    \vspace{0.25cm}
+    \vspace{0.2cm}
     {\Large\bfseries DỰ ÁN CÔNG NGHỆ THÔNG TIN\par}
 
-    \vspace{1cm}
+    \vspace{1.2cm}
 
     {\normalsize\bfseries Giảng viên hướng dẫn\par}
-    \vspace{0.2cm}
+    \vspace{0.15cm}
     {\normalsize\bfseries PGS. TS. Lê Anh Cường\par}
 
     \vfill
 
-    {\large\bfseries THÀNH PHỐ HỒ CHÍ MINH, 2026\par}
+    {\large\bfseries THÀNH PHỐ HỒ CHÍ MINH, NĂM 2026\par}
     \vspace*{0.2cm}
 \end{titlepage}
 
-% ---------- Lời cảm ơn ----------
 \pagenumbering{roman}
-\section*{LỜI CẢM ƠN}
-\addcontentsline{toc}{section}{Lời cảm ơn}
 
-Nhóm chúng em xin chân thành cảm ơn PGS. TS. Lê Anh Cường đã hướng dẫn, định hướng và đóng góp những ý kiến học thuật sâu sắc trong suốt quá trình thực hiện học phần Dự án Công nghệ thông tin. Những phản biện nghiêm cẩn của thầy giúp nhóm nhận rõ các giới hạn của mô hình, hoàn thiện phương pháp luận nghiên cứu và nhìn nhận kết quả thực nghiệm một cách trung thực, khoa học và thận trọng.
+% ---------- Lời cảm ơn ----------
+\chapter*{Lời cảm ơn}
+\addcontentsline{toc}{chapter}{Lời cảm ơn}
 
-Chúng em cũng trân trọng cảm ơn các tác giả của những bộ dữ liệu, tài liệu kỹ thuật và cộng đồng phần mềm mã nguồn mở đã tạo nền tảng cho công trình này. Toàn bộ các nguồn tài liệu tham khảo đều được ghi nhận đầy đủ để người đọc có thể tra cứu và đối soát độc lập.
+Nhóm chúng em xin chân thành cảm ơn PGS. TS. Lê Anh Cường đã hướng dẫn, định hướng và góp ý cho nhóm trong suốt quá trình thực hiện học phần Dự án Công nghệ thông tin. Những câu hỏi phản biện của thầy giúp nhóm nhìn rõ hơn giới hạn của mô hình, điều chỉnh cách làm thực nghiệm và trình bày kết quả một cách thận trọng, đúng với những gì đo được.
 
-Mặc dù nhóm đã nỗ lực tối đa để hoàn thiện đề tài, báo cáo vẫn khó tránh khỏi những thiếu sót nhất định. Nhóm rất mong tiếp tục nhận được những lời chỉ dẫn quý báu của quý thầy cô trong Hội đồng chấm đồ án để nâng cao chất lượng công trình trong các giai đoạn tiếp theo.
+Chúng em cũng cảm ơn các tác giả của bộ dữ liệu công khai, các tài liệu kỹ thuật và cộng đồng phần mềm mã nguồn mở đã tạo nền tảng cho đề tài. Mọi nguồn tham khảo đều được ghi lại ở cuối báo cáo để người đọc có thể tra cứu và kiểm tra lại.
+
+Dù đã cố gắng, báo cáo khó tránh khỏi thiếu sót. Nhóm rất mong nhận được góp ý của quý thầy cô để hoàn thiện đề tài trong các giai đoạn tiếp theo.
 
 \begin{flushright}
 \textit{Thành phố Hồ Chí Minh, năm 2026}\\
@@ -121,16 +74,14 @@ Mặc dù nhóm đã nỗ lực tối đa để hoàn thiện đề tài, báo c
 Hoàng Xuân Thanh\\
 Trần Gia Lạc
 \end{flushright}
-
-\clearpage
 
 % ---------- Lời cam đoan ----------
-\section*{LỜI CAM ĐOAN}
-\addcontentsline{toc}{section}{Lời cam đoan}
+\chapter*{Lời cam đoan}
+\addcontentsline{toc}{chapter}{Lời cam đoan}
 
-Chúng em xin cam đoan báo cáo này là công trình nghiên cứu và phát triển phần mềm được thực hiện nghiêm túc bởi nhóm tác giả trong khuôn khổ học phần Dự án Công nghệ thông tin tại Trường Đại học Tôn Đức Thắng. 
+Chúng em xin cam đoan báo cáo này là kết quả làm việc của nhóm trong khuôn khổ học phần Dự án Công nghệ thông tin tại Trường Đại học Tôn Đức Thắng, dưới sự hướng dẫn của PGS. TS. Lê Anh Cường.
 
-Mọi mô tả về thiết kế kiến trúc, dữ liệu thực nghiệm, quy trình kiểm định và kết quả đo lường đều dựa trên mã nguồn thực tế và các hiện vật dữ liệu được lưu trữ nguyên bản trong kho mã của dự án. Nhóm cam đoan không sử dụng số liệu bịa đặt, không sử dụng nhãn mô phỏng để thay thế cho đánh giá thực nghiệm, và chịu hoàn toàn trách nhiệm về tính trung thực học thuật của toàn bộ nội dung được trình bày.
+Các mô tả về thiết kế, dữ liệu, cách đánh giá và các con số kết quả trong báo cáo đều dựa trên mã nguồn và các tệp kết quả đang được lưu trong kho mã của dự án. Nhóm không dùng số liệu tự đặt ra, không dùng nhãn mô phỏng để thay cho việc chấm điểm thật. Những kết quả không có lợi cho giả thuyết ban đầu và những phần chưa làm được đều được nêu rõ. Nhóm chịu trách nhiệm về tính trung thực của toàn bộ nội dung.
 
 \begin{flushright}
 \textit{Thành phố Hồ Chí Minh, năm 2026}\\
@@ -139,45 +90,56 @@ Hoàng Xuân Thanh\\
 Trần Gia Lạc
 \end{flushright}
 
-\clearpage
-
 % ---------- Tóm tắt ----------
-\section*{TÓM TẮT BÁO CÁO}
-\addcontentsline{toc}{section}{Tóm tắt báo cáo}
+\chapter*{Tóm tắt}
+\addcontentsline{toc}{chapter}{Tóm tắt}
 
-Đề tài nghiên cứu và xây dựng hệ thống trợ lý tư vấn sách tiếng Việt mang tên \textbf{Evidence Atlas} dựa trên kiến trúc điều phối đa chuyên gia có kiểm soát (\textit{Bounded Multi-Expert Orchestration}) và cơ chế tạo sinh tăng cường truy xuất có căn cứ (\textit{Grounded RAG}). Hệ thống phân tách bài toán thành các chuyên gia chuyên trách: tra cứu danh mục (\texttt{product}), tổng hợp đánh giá khách hàng (\texttt{review}), phân tích phàn nàn dịch vụ (\texttt{trust}) và thống kê cắt ngang (\texttt{market}), vận hành trên nền tảng phần mềm Modular Monolith với cơ sở dữ liệu PostgreSQL bền vững. Toàn bộ các nhận định đưa ra cho người dùng đều bắt buộc phải vượt qua bước kiểm tra xâu ký tự chính xác (\textit{exact-span verification}) và được gắn kèm mã trích dẫn nguồn kiểm chứng \texttt{[C1]}, \texttt{[C2]}.
+Đề tài xây dựng \textbf{Evidence Atlas}, một trợ lý tư vấn sách bằng tiếng Việt. Người dùng hỏi bằng lời tự nhiên; hệ thống tìm sách, so sánh, tóm tắt nhận xét của người mua và trả lời kèm nguồn để người đọc tự kiểm tra. Hệ thống làm việc trên một bản dữ liệu sách công khai đã được làm sạch (200 đầu sách, 1.773 đánh giá) và một kho tri thức nhỏ gồm 20 nguồn chính thống.
 
-Báo cáo tiến hành các đợt thực nghiệm đối chứng quy mô lớn giữa kiến trúc Đơn tác tử (\texttt{SA}) và Nhiều tác tử (\texttt{MA}) với tổng cộng hơn $1.500$ lượt quan sát độc lập. Trên bộ thử nghiệm thăm dò v4 (24 câu hỏi, 144 lượt), nhiều tác tử đạt tỷ lệ chấp nhận dữ kiện $100{,}0\%$ so với $97{,}67\%$ của đơn tác tử, nhưng làm tăng thời gian chờ gấp $4{,}73$ lần ($6{,}75$s so với $1{,}43$s) và lượng token gấp $2{,}78$ lần. Phân tích sâu chỉ ra sự khác biệt duy nhất bắt nguồn từ kỹ thuật chỉ dẫn câu nhắc (prompting) về tên ấn bản đầy đủ chứ không phải do năng lực nhận thức của kiến trúc.
+Về thiết kế, hệ thống chia công việc cho bốn chuyên gia cố định: sản phẩm, đánh giá, độ tin cậy và thị trường, do một bộ điều phối giao việc. Mô hình ngôn ngữ chỉ được đề xuất kế hoạch và viết phần diễn giải trong khuôn khổ cho phép; quyền truy cập, giới hạn số bước, số liệu trong danh mục và việc gắn nguồn đều do chương trình kiểm soát. Mỗi nhận định trước khi đến tay người dùng phải qua bước đối chiếu với đoạn nguồn; không đủ căn cứ thì hệ thống nói rõ hoặc hỏi lại thay vì đoán.
 
-Trên bộ đánh giá Held-out P8 quy mô lớn hơn ($720$ lượt chạy trên 60 kịch bản thuộc 27 nhóm tác phẩm), tỷ lệ hoàn thành tác vụ trung bình của \texttt{SA} đạt $45{,}2\%$, trong khi \texttt{MA Adaptive} chỉ đạt $41{,}4\%$ (chênh lệch $\Delta = -3{,}8$ điểm \%, CI 95\% $[-8{,}7\%; +1{,}0\%]$, $p > 0{,}05$), cho thấy **không có bằng chứng thực nghiệm nào khẳng định Multi-Agent vượt trội hơn Single-Agent trong bài toán này**.
+Câu hỏi nghiên cứu chính là: chia việc cho nhiều tác tử có cho câu trả lời tốt hơn một tác tử duy nhất dùng chung công cụ và dữ liệu hay không. Nhóm đã thực hiện ba đợt thực nghiệm:
 
-Đặc biệt, phép phân tích triệt tiêu thành phần (\textit{ablation study}) đã chỉ ra rằng: **Tạo sinh tăng cường truy xuất (RAG) mới là nhân tố quyết định thành bại của hệ thống**. Khi ngắt bỏ RAG, tỷ lệ hoàn thành tác vụ lập tức rơi tự do từ $41{,}4\%$ xuống còn $5{,}2\%$ (sụt giảm $-36{,}1$ điểm \%), đồng thời khả năng từ chối hợp lệ khi thiếu dữ liệu bị sụp đổ $74{,}4$ điểm \%.
+\begin{itemize}
+    \item \textbf{Đợt 1 (thăm dò, 24 câu hỏi, 144 câu trả lời):} hai cách đạt điểm gần như nhau (98,96\% và 100\%), nhưng nhiều tác tử chậm hơn 4,73 lần và dùng token gấp 2,78 lần.
+    \item \textbf{Đợt 2 (60 hội thoại, 720 lượt chấm):} tỉ lệ hoàn thành nhiệm vụ của một tác tử là 45,16\%, của nhiều tác tử là 47,22\% (kế hoạch cố định) và 41,36\% (kế hoạch thích ứng). Các chênh lệch so với một tác tử đều nằm trong khoảng sai số. Ngược lại, khi tắt việc tra cứu tài liệu, tỉ lệ này giảm 36,11 \pp{} (khoảng tin cậy 95\% từ $-51{,}23$ đến $-21{,}60$).
+    \item \textbf{Đợt 3 (xác nhận, đăng ký giả thuyết trước, 60 hội thoại mới):} cả ba giả thuyết về lợi thế của nhiều tác tử đều không được ủng hộ. Đợt này còn cho thấy hệ thống xử lý kém các câu hỏi diễn đạt tự nhiên, ở cả hai cách tổ chức.
+\end{itemize}
 
-Báo cáo cũng ghi lại toàn bộ hành trình rà soát chất lượng (P0, P1, P2), kiên quyết loại bỏ các số liệu mô phỏng trong quá khứ, và kiểm chứng sự ổn định của nền tảng phần mềm bằng hệ thống $1.456$ ca kiểm thử tự động đạt tỷ lệ vượt qua $100\%$.
+Kết luận của nhóm: với bài toán và dữ liệu này, \textbf{chưa có bằng chứng cho thấy nhiều tác tử tốt hơn một tác tử}; chi phí và thời gian của nhiều tác tử thì cao hơn rõ ở đợt 1 và không thấp hơn ở các đợt sau. Thành phần có tác dụng rõ ràng, đo được là \textbf{việc tra cứu tài liệu có trích nguồn}. Báo cáo cũng ghi lại quá trình rà soát số liệu và các giới hạn còn lại của đề tài.
 
-\clearpage
-
-% ---------- Mục lục & Danh mục ----------
+% ---------- Mục lục và danh mục ----------
 \tableofcontents
-\clearpage
 
 \listoffigures
-\addcontentsline{toc}{section}{Danh mục hình vẽ}
-\clearpage
+\addcontentsline{toc}{chapter}{Danh mục hình}
 
 \listoftables
-\addcontentsline{toc}{section}{Danh mục bảng biểu}
-\clearpage
+\addcontentsline{toc}{chapter}{Danh mục bảng}
 
+\input{thuat-ngu.tex}
+
+\clearpage
 \pagenumbering{arabic}
 
-% ---------- Nội dung các chương ----------
-\input{01-tong-quan.tex}
-\input{02-du-lieu.tex}
-\input{03-kien-truc.tex}
-\input{04-thuc-nghiem.tex}
-\input{05-cai-tien.tex}
-\input{06-ket-luan.tex}
-\input{07-phu-luc.tex}
+% ---------- Nội dung ----------
+\input{chuong-1-gioi-thieu.tex}
+\input{chuong-2-co-so-ly-thuyet.tex}
+\input{chuong-3-du-lieu.tex}
+\input{chuong-4-thiet-ke.tex}
+\input{chuong-5-phuong-phap.tex}
+\input{chuong-6-ket-qua.tex}
+\input{chuong-7-ra-soat.tex}
+\input{chuong-8-ket-luan.tex}
+
+% ---------- Tài liệu tham khảo ----------
+\chapter*{Tài liệu tham khảo}
+\addcontentsline{toc}{chapter}{Tài liệu tham khảo}
+\input{sources.tex}
+
+% ---------- Phụ lục ----------
+\appendix
+\titleformat{\chapter}[display]{\normalfont\bfseries\centering\Large}{PHỤ LỤC \thechapter}{4pt}{\Large\MakeUppercase}
+\input{phu-luc.tex}
 
 \end{document}

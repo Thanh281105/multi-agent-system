@@ -1,0 +1,15 @@
+% Đợt 1: thời gian trả lời trung bình theo nhóm câu hỏi (giây)
+\begin{tikzpicture}[baocao]
+  \begin{axis}[bieudo, width=14.5cm, height=7.4cm, bar width=11mm,
+      ymax=11, ytick={0,2,4,6,8,10}, ylabel={Thời gian trả lời (giây)},
+      symbolic x coords={n1,n2,n3,n4},
+      xticklabels={{Nhóm 1\\một nguồn},{Nhóm 2\\hai nguồn},{Nhóm 3\\so sánh, gợi ý},{Nhóm 4\\cần từ chối}},
+      x tick label style={font=\sffamily\footnotesize, align=center, text width=3.0cm},
+      enlarge x limits=0.18,
+      every node near coord/.append style={font=\sffamily\footnotesize, /pgf/number format/precision=2},
+      legend style={at={(0.5,-0.27)}}]
+    \addplot[cotA] coordinates {(n1,1.35) (n2,1.50) (n3,1.52) (n4,1.26)};
+    \addplot[cotD] coordinates {(n1,5.29) (n2,8.82) (n3,8.40) (n4,2.32)};
+    \legend{Một tác tử (SA), Nhiều tác tử (MA)}
+  \end{axis}
+\end{tikzpicture}
