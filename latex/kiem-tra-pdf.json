@@ -19,11 +19,11 @@
     },
     {
       "page": 3,
-      "characters": 707,
+      "characters": 809,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "nêu rõ. Nhóm chịu trách nhiệm về tính trung thực của toàn bộ nội dung.\nThành phố Hồ Chí Minh, năm 2026\nNhóm sinh viên thực hiện\nHoàng Xuân Thanh\nTrần Gia Lạc\nii"
+      "tail": "nêu rõ. Nhóm chịu trách nhiệm về tính trung thực của toàn bộ\nnội dung.\nThành phố Hồ Chí Minh, năm 2026\nNhóm sinh viên thực hiện\nHoàng Xuân Thanh\nTrần Gia Lạc\nii"
     },
     {
       "page": 4,
@@ -83,7 +83,7 @@
     },
     {
       "page": 11,
-      "characters": 1642,
+      "characters": 1500,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
@@ -131,15 +131,15 @@
     },
     {
       "page": 17,
-      "characters": 1912,
+      "characters": 1859,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "ụ về các loại câu hỏi mà hệ thống hướng tới. Các câu này\nđược lấy từ bộ câu hỏi đánh giá thật của đề tài.\n1.3 Mục tiêu của đề tài\nĐề tài có hai nhóm mục tiêu.\n2"
+      "tail": "ằm trong hạn mức định trước.\nBảng 1.1 cho một số ví dụ về các loại câu hỏi mà hệ thống hướng tới. Các câu này\nđược lấy từ bộ câu hỏi đánh giá thật của đề tài.\n2"
     },
     {
       "page": 18,
-      "characters": 1875,
+      "characters": 1928,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
@@ -155,7 +155,7 @@
     },
     {
       "page": 20,
-      "characters": 1925,
+      "characters": 1887,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
@@ -251,27 +251,27 @@
     },
     {
       "page": 32,
-      "characters": 1668,
+      "characters": 1516,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": " 3.2.\n• 20 sách có nguồn xác nhận tác phẩm. Nguồn chính thống xác nhận được đây là\ntác phẩm nào, của ai. Kho tri thức có đúng 20 ghi chú cho 20 tác phẩm này.\n17"
+      "tail": "ng chứa bất kỳ câu hỏi hay đáp án nào của bộ đánh giá.\n3.4.2 Mức độ bao phủ\nMỗi đầu sách trong bộ đánh giá được xếp vào đúng một trong ba nhóm, như\nHình 3.2.\n17"
     },
     {
       "page": 33,
-      "characters": 1778,
+      "characters": 1813,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": " sử Steve Jobs Nhà xuất bản tiếng Anh: 656\ntrang\n758 trang (ấn bản tiếng Việt)\nQuốc Gia Khởi Nghiệp Hai tác giả: Dan Senor và Saul\nSinger\nChỉ ghi một tác giả\n18"
+      "tail": "rong kho tri thức giữ đầy\nđủ cả hai tác giả như nguồn chính thống. Khi người dùng hỏi về tác giả, hệ thống trả lời\ntheo nguồn và nói rõ thông tin lấy từ đâu.\n18"
     },
     {
       "page": 34,
-      "characters": 1734,
+      "characters": 1835,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "à: không có thông tin người bán và thời gian, và\nkho tri thức còn nhỏ. Cả hai đều được hệ thống xử lý bằng cách nói rõ khi không đủ căn\ncứ, thay vì suy đoán.\n19"
+      "tail": " số đầu\nsách. Hai giới hạn chính là thiếu thông tin người bán, thời gian và kho tri thức còn nhỏ;\nhệ thống xử lý cả hai bằng cách nói rõ khi không đủ căn cứ.\n19"
     },
     {
       "page": 35,
@@ -379,35 +379,35 @@
     },
     {
       "page": 48,
-      "characters": 1559,
+      "characters": 1443,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": " web gồm ba vùng (Hình 4.6):\n• Vùng trái – các tác tử. Liệt kê bộ điều phối và các chuyên gia tham gia lượt hỏi\nhiện tại, kèm trạng thái của từng thành phần.\n33"
+      "tail": "ã này là người vận hành tìm được toàn bộ quá trình xử lý tương ứng.\n4.13 Công nghệ sử dụng\nBảng 4.6 liệt kê các công nghệ chính và lý do chọn từng công nghệ.\n33"
     },
     {
       "page": 49,
-      "characters": 1978,
+      "characters": 1954,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "a hai lần kiểm tra trước khi tới người dùng, và hệ thống chọn nói “không đủ\ncăn cứ” thay vì đoán. Chương tiếp theo trình bày cách nhóm đánh giá thiết kế này.\n34"
+      "tail": "g phải kết quả thực\nnghiệm):\n• Vùng trái – các tác tử. Liệt kê bộ điều phối và các chuyên gia tham gia lượt hỏi\nhiện tại, kèm trạng thái của từng thành phần.\n34"
     },
     {
       "page": 50,
-      "characters": 216,
+      "characters": 1175,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "Công nghệ thông tin\nHình 4.6. Giao diện Evidence Atlas (ảnh xoay ngang; chụp với dữ liệu minh hoạ của\nbản kiểm thử giao diện, không phải kết quả thực nghiệm)\n35"
+      "tail": "a hai lần kiểm tra trước khi tới người dùng, và hệ thống chọn nói “không đủ\ncăn cứ” thay vì đoán. Chương tiếp theo trình bày cách nhóm đánh giá thiết kế này.\n35"
     },
     {
       "page": 51,
-      "characters": 916,
+      "characters": 145,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "luna Khác với mô hình sinh câu trả lời, để\ngiảm thiên vị khi chấm.\nKiểm thử pytest; công cụ kiểm tra kiểu\nvà quy cách mã\nChạy tự động trước mỗi lần thay đổi.\n36"
+      "tail": "Hệ thống trợ lý tư vấn sách ứng dụng nhiều tác tử Dự án Công nghệ thông tin\nHình 4.6. Giao diện Evidence Atlas (ảnh chụp với dữ liệu minh hoạ)\n36"
     },
     {
       "page": 52,
@@ -467,15 +467,15 @@
     },
     {
       "page": 59,
-      "characters": 1848,
+      "characters": 1749,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "phía của số 0, chênh lệch được coi là\ncó ý nghĩa thống kê.\n5.7 Kiểm soát điều kiện chạy\nBảng 5.7 liệt kê các thiết lập được giữ cố định trong đợt 2 và đợt 3.\n44"
+      "tail": "ng tin cậy chứa số 0, chưa thể nói hai cấu hình khác\nnhau. Nếu khoảng tin cậy nằm hoàn toàn về một phía của số 0, chênh lệch được coi là\ncó ý nghĩa thống kê.\n44"
     },
     {
       "page": 60,
-      "characters": 1648,
+      "characters": 1747,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
@@ -483,7 +483,7 @@
     },
     {
       "page": 61,
-      "characters": 1439,
+      "characters": 1442,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
@@ -491,7 +491,7 @@
     },
     {
       "page": 62,
-      "characters": 1307,
+      "characters": 1328,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
@@ -499,7 +499,7 @@
     },
     {
       "page": 63,
-      "characters": 1797,
+      "characters": 1809,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
@@ -507,7 +507,7 @@
     },
     {
       "page": 64,
-      "characters": 1574,
+      "characters": 1649,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
@@ -515,15 +515,15 @@
     },
     {
       "page": 65,
-      "characters": 1293,
+      "characters": 1236,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
-      "tail": "6,11 [−51,23; −21,60]\nHình 6.3. Đợt 2: chênh lệch về tỉ lệ hoàn thành nhiệm vụ và khoảng tin cậy 95%.\nKhoảng nào cắt đường số 0 thì chưa thể nói có khác biệt\n50"
+      "tail": "nh\n−5,86 [−10,19; −2,16]\nTắt tra cứu so với có tra cứu\n−36,11 [−51,23; −21,60]\nHình 6.3. Đợt 2: chênh lệch về tỉ lệ hoàn thành nhiệm vụ và khoảng tin cậy 95%\n50"
     },
     {
       "page": 66,
-      "characters": 1962,
+      "characters": 2027,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,
@@ -547,7 +547,7 @@
     },
     {
       "page": 69,
-      "characters": 2040,
+      "characters": 2042,
       "replacement_characters": 0,
       "unresolved_reference_marks": 0,
       "page_number_present": true,

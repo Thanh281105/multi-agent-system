@@ -71,6 +71,10 @@
 \titlespacing*{\section}{0pt}{12pt}{4pt}
 \titlespacing*{\subsection}{0pt}{9pt}{3pt}
 \titlespacing*{\subsubsection}{0pt}{7pt}{2pt}
+% Không để tiêu đề mục rơi xuống cuối trang mà gần như không có nội dung đi kèm
+\usepackage{etoolbox}
+\pretocmd{\section}{\Needspace{6\baselineskip}}{}{}
+\pretocmd{\subsection}{\Needspace{4\baselineskip}}{}{}
 \setcounter{secnumdepth}{3}
 \setcounter{tocdepth}{2}
 

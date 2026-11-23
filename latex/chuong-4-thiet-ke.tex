@@ -348,25 +348,6 @@ Vận hành & Kiểm tra hệ thống còn sống và đã sẵn sàng chưa; xe
 
 Mỗi phản hồi đều kèm mã theo dõi của yêu cầu. Khi người dùng báo lỗi, chỉ cần mã này là người vận hành tìm được toàn bộ quá trình xử lý tương ứng.
 
-\section{Giao diện người dùng}
-
-Giao diện là một trang web gồm ba vùng (Hình~\ref{fig:giao-dien}):
-
-\begin{itemize}
-    \item \textbf{Vùng trái -- các tác tử.} Liệt kê bộ điều phối và các chuyên gia tham gia lượt hỏi hiện tại, kèm trạng thái của từng thành phần.
-    \item \textbf{Vùng giữa -- hội thoại.} Nơi người dùng chọn vai trò, nhập câu hỏi và đọc câu trả lời. Mỗi nhận định có số trích dẫn đặt ngay bên cạnh. Các đề xuất thao tác hiện thành thẻ riêng với nút xem và xác nhận.
-    \item \textbf{Vùng phải -- chi tiết thực thi.} Hiển thị kế hoạch đã chạy, mức sử dụng, danh sách nguồn bằng chứng tương ứng với các số trích dẫn, và các mã theo dõi.
-\end{itemize}
-
-Cách bố trí này phục vụ nguyên tắc ``bằng chứng trước'': người dùng không chỉ thấy câu trả lời mà còn thấy câu trả lời đến từ đâu và hệ thống đã làm những bước nào. Giao diện tự xếp lại thành một cột trên điện thoại.
-
-\begin{figure}[p]
-    \centering
-    \includegraphics[angle=90,width=0.93\linewidth]{images/giao-dien.png}
-    \caption{Giao diện Evidence Atlas (ảnh xoay ngang; chụp với dữ liệu minh hoạ của bản kiểm thử giao diện, không phải kết quả thực nghiệm)}
-    \label{fig:giao-dien}
-\end{figure}
-
 \section{Công nghệ sử dụng}
 
 Bảng~\ref{tab:cong-nghe} liệt kê các công nghệ chính và lý do chọn từng công nghệ.
@@ -390,6 +371,25 @@ Kiểm thử & pytest; công cụ kiểm tra kiểu và quy cách mã & Chạy t
 \bottomrule
 \end{tabularx}
 \end{table}
+
+\section{Giao diện người dùng}
+
+Giao diện là một trang web gồm ba vùng (Hình~\ref{fig:giao-dien}; ảnh được xoay ngang cho vừa trang và dùng dữ liệu minh hoạ của bản kiểm thử giao diện, không phải kết quả thực nghiệm):
+
+\begin{itemize}
+    \item \textbf{Vùng trái -- các tác tử.} Liệt kê bộ điều phối và các chuyên gia tham gia lượt hỏi hiện tại, kèm trạng thái của từng thành phần.
+    \item \textbf{Vùng giữa -- hội thoại.} Nơi người dùng chọn vai trò, nhập câu hỏi và đọc câu trả lời. Mỗi nhận định có số trích dẫn đặt ngay bên cạnh. Các đề xuất thao tác hiện thành thẻ riêng với nút xem và xác nhận.
+    \item \textbf{Vùng phải -- chi tiết thực thi.} Hiển thị kế hoạch đã chạy, mức sử dụng, danh sách nguồn bằng chứng tương ứng với các số trích dẫn, và các mã theo dõi.
+\end{itemize}
+
+Cách bố trí này phục vụ nguyên tắc ``bằng chứng trước'': người dùng không chỉ thấy câu trả lời mà còn thấy câu trả lời đến từ đâu và hệ thống đã làm những bước nào. Giao diện tự xếp lại thành một cột trên điện thoại.
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[angle=90,width=0.93\linewidth]{images/giao-dien.png}
+    \caption{Giao diện Evidence Atlas (ảnh chụp với dữ liệu minh hoạ)}
+    \label{fig:giao-dien}
+\end{figure}
 
 \section{Tóm tắt chương}
 
