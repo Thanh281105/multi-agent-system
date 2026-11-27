@@ -1,0 +1,40 @@
+% Overall layered architecture
+\begin{tikzpicture}[baocao]
+  % Layer 1: interface
+  \node[hop, text width=11.6cm] (ui) at (6,0) {\textbf{Web interface} (runs in the browser): chat box, processing-step tracker, source list};
+  % Layer 2: gateway
+  \node[hop, text width=11.6cm] (gw) at (6,-2.0) {\textbf{Gateway}: checks access keys, roles and permissions, rate limits, assigns a tracking ID to each request};
+  \draw[haichieu] (ui) -- (gw);
+
+  % Layer 3: orchestration core
+  \draw[khung] (-0.15,-3.3) rectangle (12.15,-6.15);
+  \node[tenkhung] at (-0.1,-3.32) {Orchestration core};
+  \node[hopxam, text width=3.0cm, minimum height=14mm] (pl) at (2.0,-5.05) {Bounded planning};
+  \node[hopxam, text width=3.0cm, minimum height=14mm] (ex) at (6.0,-5.05) {Execute steps in sequence};
+  \node[hopxam, text width=3.0cm, minimum height=14mm] (co) at (10.0,-5.05) {Compose and verify the answer};
+  \draw[mui] (pl) -- (ex);
+  \draw[mui] (ex) -- (co);
+  \draw[haichieu] (gw.south) -- (6,-3.3);
+
+  % Layer 4: specialists
+  \draw[khung] (-0.15,-7.05) rectangle (12.15,-9.45);
+  \node[tenkhung] at (-0.1,-7.07) {Four fixed specialists};
+  \node[hop, text width=2.2cm] (e1) at (1.5,-8.6) {Product};
+  \node[hop, text width=2.2cm] (e2) at (4.5,-8.6) {Review};
+  \node[hop, text width=2.2cm] (e3) at (7.5,-8.6) {Trust};
+  \node[hop, text width=2.2cm] (e4) at (10.5,-8.6) {Market};
+  \draw[haichieu] (6,-6.15) -- (6,-7.05);
+
+  % Layer 5: data
+  \draw[khung] (-0.15,-10.35) rectangle (12.15,-13.15);
+  \node[tenkhung] at (-0.1,-10.37) {PostgreSQL database};
+  \node[hop, text width=3.0cm, minimum height=14mm] (d1) at (2.0,-12.1) {Book catalogue and reviews};
+  \node[hop, text width=3.0cm, minimum height=14mm] (d2) at (6.0,-12.1) {Knowledge base with cited sources};
+  \node[hop, text width=3.0cm, minimum height=14mm] (d3) at (10.0,-12.1) {Conversations, turns, cost ledger};
+  \draw[haichieu] (6,-9.45) -- (6,-10.35);
+  \node[ghichu, anchor=west] at (6.2,-9.9) {read-only, via a permission-checked tool gateway};
+
+  % External model service
+  \node[hopden, text width=2.3cm, minimum height=20mm] (llm) at (14.2,-5.05) {\textbf{Language model}\\(external service)};
+  \draw[haichieu] (12.15,-5.05) -- (llm.west);
+\end{tikzpicture}

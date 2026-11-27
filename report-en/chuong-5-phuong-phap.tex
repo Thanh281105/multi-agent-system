@@ -1,0 +1,307 @@
+\chapter{Evaluation Methodology}
+\label{ch:phuong-phap}
+
+This chapter explains how the team measured the answers to the three research questions in Chapter~\ref{ch:gioi-thieu}: what is compared with what, which questions are asked, how answers are graded, and how the figures are computed. The results are presented in Chapter~\ref{ch:ket-qua}.
+
+\section{Comparison Principles}
+
+Comparing ``a single agent'' with ``multiple agents'' can easily be unfair. If the multi-agent side is given a stronger model, more tools or more detailed instructions, any advantage says nothing about the way the work is organised. The team set five conditions that every compared configuration must hold constant:
+
+\begin{enumerate}
+    \item \textbf{Same language model}, same release, same settings.
+    \item \textbf{Same data}: same catalogue, same reviews, same knowledge base, same version.
+    \item \textbf{Same tools}: the single-agent configuration has access to all the tools the specialists have.
+    \item \textbf{Same verification step} before answering.
+    \item \textbf{Same grading}: same judge model, same answer key, and the judge does not know which configuration an answer came from.
+\end{enumerate}
+
+\section{The Four Compared Configurations}
+\label{sec:bon-cau-hinh}
+
+Figure~\ref{fig:bon-cau-hinh} and Table~\ref{tab:bon-cau-hinh} describe the four configurations.
+
+\hinh{bon-cau-hinh}{The four configurations and the three main comparisons}{fig:bon-cau-hinh}
+
+\begin{table}[!htbp]
+\caption{Differences between the four configurations}
+\label{tab:bon-cau-hinh}
+\cobang
+\begin{tabularx}{\linewidth}{P{2.7cm}YYC{2.0cm}C{1.6cm}}
+\toprule
+\textbf{Configuration} & \textbf{Organisation} & \textbf{Who plans} & \textbf{Plan revision} & \textbf{Retrieval}\\
+\midrule
+SA & One agent does everything & Model proposes & No & Yes\\
+Fixed MA & Orchestrator and specialists; each specialist has its own reasoning call & Program, by predefined rules & No & Yes\\
+Adaptive MA & As fixed MA & Model proposes & Once & Yes\\
+MA without retrieval & As adaptive MA & Model proposes & Once & No\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The four configurations yield three main comparisons:
+
+\begin{itemize}
+    \item \textbf{Comparison 1: SA versus the two MA configurations.} Answers research questions 1 and 3: whether organising multiple specialists helps, and how much extra it costs.
+    \item \textbf{Comparison 2: fixed MA versus adaptive MA.} Shows whether letting the model draw up and revise the plan is better than a predefined plan.
+    \item \textbf{Comparison 3: adaptive MA versus MA without retrieval.} Answers research question 2. These two configurations differ in exactly one respect, whether retrieval is used, making this the ``cleanest'' comparison.
+\end{itemize}
+
+One limitation of the design must be stated clearly. Table~\ref{tab:bon-cau-hinh} shows that SA and fixed MA differ in two respects at once (organisation and who plans); SA and adaptive MA also differ in two respects (organisation and plan revision). Hence no pair isolates the single factor of ``organisation''. The team partly mitigates this by comparing SA with \emph{both} MA configurations: if multiple agents are truly beneficial, at least one of the two should clearly outperform SA.
+
+\section{Three Experimental Rounds}
+
+The team conducted three rounds of measurement, each addressing weaknesses of the previous one. Table~\ref{tab:ba-dot} gives a summary.
+
+\begin{table}[!htbp]
+\caption{Overview of the three experimental rounds}
+\label{tab:ba-dot}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.0cm}YYY}
+\toprule
+ & \textbf{Round 1} & \textbf{Round 2} & \textbf{Round 3}\\
+\midrule
+Nature & Exploratory & Main measurement on held-out set & Confirmatory, pre-registered\\
+Questions & 24 single questions & 60 conversations & 60 new conversations\\
+Configurations & 2 (SA, MA) & 4 & 4\\
+Repetitions & 3 & 3 & 3\\
+Answers & 144 & 720 & 720\\
+Question writing & Written by the team & Generated from templates & Written in natural phrasing\\
+What is measured & Answer synthesis only & Entire pipeline & Entire pipeline\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Round 1: Exploratory}
+
+Round 1 compares the two forms of organisation on 24 questions written by the team, divided into four difficulty levels (Table~\ref{tab:muc-do}). All 24 questions are listed in Appendix~\ref{app:dot1}.
+
+\begin{table}[!htbp]
+\caption{The four difficulty levels of the round 1 question set}
+\label{tab:muc-do}
+\cobang
+\begin{tabularx}{\linewidth}{P{1.5cm}P{3.8cm}YC{1.9cm}C{1.6cm}}
+\toprule
+\textbf{Level} & \textbf{Name} & \textbf{Characteristics} & \textbf{Questions} & \textbf{Facts}\\
+\midrule
+1 & Single source & Requires only the catalogue, or only the knowledge base & 6 & 14\\
+2 & Multi-source & Requires at least two of three sources: catalogue, reviews, knowledge base & 8 & 17\\
+3 & Multi-perspective advice & Compare and weigh price, reviews and content to give advice & 6 & 8\\
+4 & Refusal scenarios & Requests beyond permission, conflicting conditions, injected instructions & 4 & 4\\
+\midrule
+ & \textbf{Total} & & \textbf{24} & \textbf{43}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+A ``fact'' is a specific piece of information that a correct answer must contain, for example the price of a book. Each question has between 1 and 4 required facts.
+
+Two features of round 1 limit its significance. First, both sides are \emph{given} the necessary documents rather than having to find them. This round therefore measures only answer synthesis, not retrieval. Second, the question set was written after the team had seen the system's errors in earlier runs, so it may be biased. The team regards round 1 results as exploratory.
+
+\subsection{Round 2: Main Measurement}
+
+Round 2 measures the entire pipeline: the system must understand the question, plan, find documents and answer on its own. The question set comprises 80 conversations, split into two parts:
+
+\begin{itemize}
+    \item 20 \emph{development} conversations: used while building and debugging the system;
+    \item 60 \emph{held-out} conversations: used only for evaluation. All reported figures are computed on these 60 conversations.
+\end{itemize}
+
+The sixty held-out conversations revolve around 13 book titles, grouped into 27 work groups, with a total of 194 required facts. They fall into six types, as shown in Table~\ref{tab:sau-loai}. Full examples of each type are given in Appendix~\ref{app:vi-du}.
+
+\begin{table}[!htbp]
+\caption{The six conversation types in the held-out set}
+\label{tab:sau-loai}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.3cm}C{1.2cm}YP{3.0cm}}
+\toprule
+\textbf{Type} & \textbf{Count} & \textbf{Content} & \textbf{Correct response}\\
+\midrule
+Multi-constraint & 12 & Find books that simultaneously satisfy price and rating conditions, with information about the work & Direct answer\\
+Source-based & 12 & Ask about the author or subject of the work according to authoritative sources & Direct answer\\
+Comparison, recommendation & 12 & Compare two books by price, rating and content, then recommend & Direct answer\\
+Multi-turn, memory & 8 & 2--3-turn conversations; later turns refer to books from earlier turns & Direct answer\\
+Missing or conflicting & 8 & Ask about non-existent books, mutually conflicting conditions, or injected instructions & Clarify or refuse\\
+Sales, management & 8 & Requests for actions such as changing the sale price or placing an order & Propose and await confirmation\\
+\midrule
+\textbf{Total} & \textbf{60} & & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Four configurations, each running every conversation three times, give $60 \times 4 \times 3 = 720$ answers.
+
+Round 2 questions are generated from fixed \emph{templates}, substituting only book titles and numbers. This guarantees accurate answer keys, but the questions sound rather mechanical. This is the weakness that round 3 targets.
+
+One thing must be said plainly about the round 2 held-out set: during development, the team ran this set many times and looked at the results to guide bug fixing. The set is therefore no longer ``held out'' in the strict sense, and results on it may be more optimistic than reality.
+
+\subsection{Round 3: Pre-registered Confirmation}
+\label{sec:dang-ky-truoc}
+
+To address the above weakness, the team carried out round 3 following a \emph{pre-registration} procedure: writing down the hypotheses and analysis plan \emph{before} any data exist, and then adhering to them exactly as written \src{20}.
+
+\begin{enumerate}
+    \item \textbf{Write hypotheses.} Three hypotheses were recorded and committed to the code repository before running (Table~\ref{tab:gia-thuyet}).
+    \item \textbf{Write a new question set.} 60 new conversations, covering the same 13 book titles and six types as round 2, but written in the natural phrasing of real users. This question set and answer key were composed by an independent AI assistant that was not given the round 2 results, so that the phrasing of questions would not be influenced by what the team already knew.
+    \item \textbf{Lock the question set.} The question set and answer key were hashed and the hash recorded. Any subsequent change would be detected.
+    \item \textbf{Run once.} No reruns to pick nicer results.
+    \item \textbf{Report all deviations} from the registered plan, including minor ones.
+\end{enumerate}
+
+\begin{table}[!htbp]
+\caption{The three pre-registered hypotheses of round 3}
+\label{tab:gia-thuyet}
+\cobang
+\begin{tabularx}{\linewidth}{P{1.9cm}YP{4.2cm}}
+\toprule
+\textbf{Hypothesis} & \textbf{Statement} & \textbf{Scope}\\
+\midrule
+H1 (primary) & Fixed MA has a higher task completion rate than SA & ``Multi-constraint'' type only\\
+H2 (secondary) & Fixed MA has a higher task completion rate than SA & All 60 conversations\\
+H3 (secondary) & Comparison of adaptive MA with SA & All 60 conversations\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+H1 was chosen as the primary hypothesis because in round 2 the ``Multi-constraint'' type was where fixed MA appeared to edge out SA the most. In other words, the team deliberately chose the most favourable ground for the hypothesis that ``multiple agents are better''. A hypothesis is considered \emph{supported} when the 95\% confidence interval of the difference lies entirely above zero.
+
+\section{Evaluation Metrics}
+\label{sec:chi-so}
+
+\subsection{Quality Metrics}
+
+Each answer is graded on the metrics in Table~\ref{tab:chi-so}. Each metric takes only one of two values: pass (1) or fail (0). The team chose binary grading instead of a 1--5 scale because multi-level scales are hard to grade consistently.
+
+\begin{table}[!htbp]
+\caption{Quality metrics and their pass conditions}
+\label{tab:chi-so}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.4cm}Y}
+\toprule
+\textbf{Metric} & \textbf{An answer passes when}\\
+\midrule
+Correct response mode & The system chooses the response type the situation requires: direct answer, clarification, refusal, or propose and await confirmation.\\
+Grounded claims & The answer states every required fact; each fact has a citation to the correct source; and it contains no forbidden claim (e.g.\ inferring edition information from a work-level source).\\
+Permission compliance & The system performs only actions the user in that situation is permitted to perform.\\
+Valid plan & A plan exists; every required action is performed successfully; no forbidden action is performed.\\
+Useful continuation & A plan exists and the outcome of the turn matches the expected outcome.\\
+\midrule
+\textbf{Task completion} & \textbf{All five metrics above pass.}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Task completion} is the primary metric of this report. It is a strict metric: missing a single fact, a single citation, or choosing the wrong response type makes the whole answer fail. Readers should keep this in mind when the completion rates in Chapter~\ref{ch:ket-qua} seem low: a ``nearly correct'' answer still counts as 0.
+
+There are also two citation metrics:
+
+\begin{itemize}
+    \item \textbf{Citation precision:} whether the citations given in an answer point to the correct source.
+    \item \textbf{Citation coverage:} the percentage of the answer's claims that are confirmed by their accompanying citations. This metric can only be computed on answers that contain claims and citations.
+\end{itemize}
+
+\subsection{Cost Metrics}
+
+\begin{itemize}
+    \item \textbf{Response time:} from sending the question to receiving the complete answer.
+    \item \textbf{Token count:} total tokens sent and received across all model calls in a turn.
+    \item \textbf{Cost:} in US dollars according to the provider's price list, taken from the cost log.
+\end{itemize}
+
+\section{Grading Procedure}
+
+\subsection{Judge Model}
+
+With 720 answers per round, grading everything by hand is not feasible for a two-person team. The team used a different language model as the judge \src{4}, with the following measures to reduce bias:
+
+\begin{itemize}
+    \item \textbf{Judge differs from the answering model.} The judge model is not the model that generated the answers, to avoid a model ``going easy'' on itself.
+    \item \textbf{Blind grading.} The judge is not told which configuration an answer came from. The mapping between answer IDs and configurations is kept separately and used only after grading is complete.
+    \item \textbf{Grading against the answer key, not impressions.} The judge receives the question, the answer, the citations, and the list of required facts with the corresponding source passages. The judge's job is to cross-check, not to give opinions.
+    \item \textbf{Structured output.} The judge must return a score of 0 or 1 for each metric in a fixed order, without free-form commentary.
+\end{itemize}
+
+\subsection{Which Metrics Are Judged and Which Are Logged}
+
+Notably, not every metric relies on the judge's judgement. The four metrics \emph{correct response mode}, \emph{permission compliance}, \emph{valid plan} and \emph{useful continuation} are computed directly from the system's run logs: which response type the system chose, which actions it invoked, and which succeeded. The judge merely copies these values. The part requiring the judge's judgement is the \emph{grounded claims} metric.
+
+This approach narrows the scope in which the judge model can err. However, the team has not yet been able to compare the judge's results with human graders on a sufficiently large sample. This is a limitation of the project and is revisited in Chapter~\ref{ch:ket-luan}.
+
+\subsection{Checking Judge Stability}
+
+To find out whether the judge grades consistently, the team had all round 2 answers graded a second time and compared the two gradings \src{19}. The results are presented in Section~\ref{sec:cham-lai}.
+
+\section{Aggregation and Statistics}
+
+\subsection{From 720 Gradings to a Single Number}
+
+Taking a straight average over the 720 gradings is incorrect, because the gradings are not independent: the three repetitions of the same conversation are very similar, and conversations about the same work also tend to be right or wrong together. The team aggregates in three steps, as shown in Figure~\ref{fig:tong-hop}.
+
+\hinh{tong-hop-diem}{The three steps for aggregating a configuration's score}{fig:tong-hop}
+
+\begin{enumerate}
+    \item \textbf{Pool repetitions.} Average the three runs of each conversation.
+    \item \textbf{Pool by work.} Average the conversations belonging to the same work group.
+    \item \textbf{Average the groups.} A configuration's score is the mean over 27 work groups (round 2) or 26 groups (round 3).
+\end{enumerate}
+
+In this way, every work group has equal weight, regardless of how many conversations it contains. Consequently, the official figure may differ from the straight average over the 60 conversations; wherever a straight average is used, the report says so explicitly.
+
+\subsection{Comparing Two Configurations}
+
+Since the two configurations answer the same question set, the team compares them pairwise: for each work group, subtract one configuration's score from the other's. The mean difference across groups is the reported figure, denoted $\Delta$ and expressed in \pp.
+
+In addition to the mean difference, the team counts the number of work groups in which the second configuration \emph{wins}, \emph{ties} and \emph{loses} against the first. These three counts show whether the difference comes from many groups or only a few.
+
+\subsection{Confidence Intervals}
+
+A measured difference may be due to chance alone. To gauge certainty, the team computes 95\% confidence intervals using resampling (bootstrap) \src{12}:
+
+\begin{enumerate}
+    \item From the 27 work groups, randomly draw 27 groups with replacement (a group may be drawn multiple times).
+    \item Compute the mean difference over the 27 drawn groups.
+    \item Repeat 10,000 times, obtaining 10,000 difference values.
+    \item Take the values at the 2.5\% and 97.5\% positions as the two ends of the confidence interval.
+\end{enumerate}
+
+The resampling unit is the \emph{work group}, not individual answers, because it is the independent unit. The random seed is fixed so that the results can be reproduced exactly.
+
+How to read the results: if the confidence interval \textbf{contains zero}, one cannot yet say that the two configurations differ. If the confidence interval lies entirely on one side of zero, the difference is considered statistically significant.
+
+\section{Controlling Run Conditions}
+
+Table~\ref{tab:dieu-kien} lists the settings held fixed in rounds 2 and 3.
+
+\begin{table}[!htbp]
+\caption{Fixed settings for the experimental runs}
+\label{tab:dieu-kien}
+\cobang
+\begin{tabularx}{\linewidth}{P{5.2cm}Y}
+\toprule
+\textbf{Setting} & \textbf{Value}\\
+\midrule
+Answer generation model & gpt-5.4-mini, 17 March 2026 snapshot, extended reasoning disabled\\
+Judge model & gpt-6-luna\\
+Semantic search model & text-embedding-3-small\\
+Data & Evaluation set: 200 book titles, 1,773 reviews\\
+Knowledge base & 20 sources, same version for all configurations\\
+Repetitions & 3 per conversation and per configuration\\
+Run order & The four configurations answer the same conversation set on the same database\\
+Bootstrap resamples for confidence intervals & 10,000\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+During runs, the experiment program checks each configuration's constraints. For example, if the SA configuration issues a model call reserved for a specialist, or the no-retrieval configuration issues a call involving the knowledge base, the run is stopped and an error is reported. This ensures that the four configurations really differ exactly as described in Table~\ref{tab:bon-cau-hinh}.
+
+\section{Limitations of the Methodology}
+
+Before turning to the results, the team summarises the limitations readers should keep in mind:
+
+\begin{itemize}
+    \item \textbf{Small scale.} 60 conversations around 13 book titles is few. The confidence intervals are therefore wide, and small differences cannot be detected.
+    \item \textbf{The judge is a model.} It has not been compared with human graders on a large sample.
+    \item \textbf{The round 2 held-out set was viewed many times.} Round 3 was carried out to compensate for this.
+    \item \textbf{Retrieval was not measured separately.} The team could not measure the rate at which correct documents were found, so errors from wrong retrieval cannot be separated from errors in writing.
+    \item \textbf{Only one model, one domain.} The results do not automatically carry over to other models or other problems.
+    \item \textbf{The factor of ``organisation'' cannot be isolated}, as noted in Section~\ref{sec:bon-cau-hinh}.
+\end{itemize}

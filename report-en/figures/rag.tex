@@ -1,0 +1,14 @@
+% Retrieval-augmented answer generation pipeline
+\begin{tikzpicture}[baocao]
+  \node[hop, text width=2.0cm] (q) at (1.2,0) {User question};
+  \node[hopxam, text width=2.3cm] (r) at (4.5,0) {\textbf{Step 1}\\Find relevant document passages};
+  \node[hopxam, text width=2.3cm] (g) at (7.9,0) {\textbf{Step 2}\\Insert the passages into the prompt};
+  \node[hopxam, text width=2.3cm] (l) at (11.3,0) {\textbf{Step 3}\\Model writes the answer};
+  \node[hop, text width=1.9cm] (a) at (14.4,0) {Answer with sources};
+  \node[hop, text width=2.3cm] (k) at (4.5,-2.9) {Indexed document store};
+  \draw[mui] (q) -- (r);
+  \draw[mui] (r) -- (g);
+  \draw[mui] (g) -- (l);
+  \draw[mui] (l) -- (a);
+  \draw[haichieu] (k) -- (r);
+\end{tikzpicture}

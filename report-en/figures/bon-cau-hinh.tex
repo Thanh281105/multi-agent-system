@@ -1,0 +1,16 @@
+% Four configurations and three comparisons, each changing only one factor
+\begin{tikzpicture}[baocao]
+  \node[hop, text width=2.5cm, minimum height=22mm] (a) at (1.45,0) {\textbf{SA}\\Single agent\\with retrieval};
+  \node[hop, text width=2.5cm, minimum height=22mm] (b) at (5.65,0) {\textbf{Fixed MA}\\Specialists, preset plan, with retrieval};
+  \node[hop, text width=2.5cm, minimum height=22mm] (c) at (9.85,0) {\textbf{Adaptive MA}\\Specialists, flexible plan, with retrieval};
+  \node[hopxam, text width=2.5cm, minimum height=22mm] (d) at (14.05,0) {\textbf{MA no-RAG}\\Like adaptive MA but retrieval off};
+  \draw[haichieu] (a) -- (b);
+  \draw[haichieu] (b) -- (c);
+  \draw[haichieu] (c) -- (d);
+  \node[ghichu, text width=3.5cm] (l1) at (3.55,-2.6) {\textbf{Comparison 1}\\Change organisation:\\one agent or specialists};
+  \node[ghichu, text width=3.5cm] (l2) at (7.75,-2.6) {\textbf{Comparison 2}\\Change planning:\\preset or flexible};
+  \node[ghichu, text width=3.5cm] (l3) at (11.95,-2.6) {\textbf{Comparison 3}\\Change retrieval:\\on or off};
+  \draw[line width=0.6pt, densely dotted] (3.55,-0.1) -- (l1.north);
+  \draw[line width=0.6pt, densely dotted] (7.75,-0.1) -- (l2.north);
+  \draw[line width=0.6pt, densely dotted] (11.95,-0.1) -- (l3.north);
+\end{tikzpicture}

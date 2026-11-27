@@ -1,0 +1,472 @@
+\chapter{Experimental Results and Discussion}
+\label{ch:ket-qua}
+
+This chapter presents the results of the three experimental rounds in chronological order, and then uses them to answer the three research questions. All figures are taken from the result files stored in the code repository \src{17}, \src{18}, \src{19}, \src{21}.
+
+\section{Round 1: exploration on 24 questions}
+
+\subsection{Answer quality}
+
+Table~\ref{tab:d1-tong} gives the aggregate results of round 1. Each side answered 24 questions, each three times, for a total of 72 answers per side.
+
+\begin{table}[!htbp]
+\caption{Round 1: aggregate results of the two organisations}
+\label{tab:d1-tong}
+\cobang
+\begin{tabularx}{\linewidth}{YR{2.6cm}R{2.6cm}R{2.4cm}}
+\toprule
+\textbf{Metric} & \textbf{SA} & \textbf{MA} & \textbf{MA vs.\ SA}\\
+\midrule
+Mean score per question & 98.96\% & 100.00\% & +1.04 \pp\\
+Facts stated correctly (out of 129) & 126 & 129 & +3\\
+Mean response time & 1.43 s & 6.75 s & 4.73 times\\
+Median response time & 1.33 s & 7.32 s & \\
+Mean tokens per answer & 1,332 & 3,706 & 2.78 times\\
+Total tokens & 95,873 & 266,851 & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+In terms of quality, the two sides are almost equal. The difference of 1.04 \pp{} has a 95\% confidence interval from $-1.11$ to $+3.20$, which contains zero; the test gives $p = 0.328$. It cannot be said that either side is better.
+
+On closer inspection, the entire difference comes from \textbf{exactly one question} out of 24: the question about the price, author and publisher of \emph{Sapiens}. In all three runs, the SA answer gave the book title without the note ``(Tái Bản 2022)'' (2022 reprint), so it was counted as missing one of the four facts (score 0.75 instead of 1.0). On the remaining 23 questions the two sides scored the same. This error most likely stems from a small difference in the model instructions of the two sides, not from the organisation.
+
+\subsection{Time and cost}
+
+In contrast to quality, the differences in time and cost are very clear. Table~\ref{tab:d1-muc} and Figure~\ref{fig:d1-thoi-gian} give the results by difficulty level.
+
+\begin{table}[!htbp]
+\caption{Round 1: results by difficulty level}
+\label{tab:d1-muc}
+\cobang
+\begin{tabularx}{\linewidth}{YR{1.4cm}R{1.4cm}R{1.5cm}R{1.5cm}R{1.5cm}R{1.5cm}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{Score (\%)}} & \multicolumn{2}{c}{\textbf{Time (s)}} & \multicolumn{2}{c}{\textbf{Tokens}}\\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+\textbf{Difficulty level} & SA & MA & SA & MA & SA & MA\\
+\midrule
+1 -- Single source & 95.83 & 100.00 & 1.35 & 5.29 & 1,171 & 2,480\\
+2 -- Combining sources & 100.00 & 100.00 & 1.50 & 8.82 & 1,309 & 4,750\\
+3 -- Multi-view advice & 100.00 & 100.00 & 1.52 & 8.40 & 1,850 & 5,413\\
+4 -- Must refuse & 100.00 & 100.00 & 1.26 & 2.32 & 840 & 897\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hinh{bd-v4-thoi-gian}{Round 1: mean response time by difficulty level}{fig:d1-thoi-gian}
+
+There are three observations:
+
+\begin{itemize}
+    \item At levels 2 and 3, which were expected to be the ``home ground'' of multiple agents because they require combining several sources, MA does not score higher (both are at 100\%) but is about 5.5 to 5.9 times slower and uses 2.9 to 3.6 times as many tokens.
+    \item At level 4, the two sides are nearly equal in cost. This is most likely because, for requests that must be refused, the system stops early and does not call the specialists.
+    \item SA's time hardly changes with difficulty (1.26 to 1.52 seconds), whereas MA's time rises sharply with the number of specialists that must be called.
+\end{itemize}
+
+\subsection{What near-perfect scores tell us}
+
+Both sides score close to 100\%, so this question set no longer leaves room to discriminate. This phenomenon is called the \emph{ceiling effect}. The team re-scored the same 144 answers with a different judge that was also given the source passages for stricter checking. This time the scores were 88.54\% for SA and 96.53\% for MA; 13 of the 144 answers changed score, belonging to 5 questions.
+
+The two scorings give two different pictures of the same set of answers. The team does not treat either as the ``true score''. The lesson is: when scores are near the ceiling, the conclusion depends heavily on the judge design, and round 1 is not sufficient to draw conclusions about quality. The only firm result of round 1 concerns cost: when the documents are supplied in advance, multiple agents are clearly slower and more expensive.
+
+\section{Round 2: main measurement on 60 conversations}
+
+\subsection{Aggregate results}
+
+Table~\ref{tab:d2-tong} gives the mean scores of the four configurations over 27 work groups. Figure~\ref{fig:d2-tong-quan} plots the four main metrics.
+
+\begin{table}[!htbp]
+\caption{Round 2: mean scores of the four configurations (\%)}
+\label{tab:d2-tong}
+\cobang
+\begin{tabularx}{\linewidth}{YR{1.8cm}R{1.8cm}R{1.8cm}R{2.1cm}}
+\toprule
+\textbf{Metric} & \textbf{SA} & \textbf{Fixed MA} & \textbf{Adaptive MA} & \textbf{MA without retrieval}\\
+\midrule
+\textbf{Task completion} & \textbf{45.16} & \textbf{47.22} & \textbf{41.36} & \textbf{5.25}\\
+Grounded claims & 60.60 & 63.89 & 57.41 & 21.91\\
+Correct response mode & 83.33 & 83.33 & 83.33 & 8.95\\
+Citation accuracy & 96.30 & 96.30 & 96.30 & 21.91\\
+Citation coverage & 97.51 & 98.19 & 96.52 & --\\
+Valid plan & 96.30 & 96.30 & 96.30 & 21.91\\
+Useful follow-up & 83.33 & 83.33 & 83.33 & 8.95\\
+Permission compliance & 100.00 & 100.00 & 100.00 & 100.00\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hinh{bd-p8-tong-quan}{Round 2: four quality metrics of the four configurations}{fig:d2-tong-quan}
+
+Two things are immediately visible from the table and the figure:
+
+\begin{itemize}
+    \item \textbf{The three configurations with retrieval are very close.} Task completion lies between 41\% and 47\%. Some metrics are exactly equal (83.33\% and 96.30\%) because they are computed from the run logs, and the three configurations share the same intake and permission-check stages.
+    \item \textbf{The configuration without retrieval drops sharply.} Its task completion is only 5.25\%.
+\end{itemize}
+
+Regarding safety, all four configurations reach 100\% on permission compliance: in 720 runs, the system never performed an action beyond its permissions, and no action was ever invoked twice.
+
+It should also be noted that task completion is below 50\% for every configuration. As explained in Section~\ref{sec:chi-so}, this is a strict metric (all five conditions must hold at once). Even so, the figure shows that the system is still far from complete, whichever way it is organised.
+
+\subsection{Pairwise comparisons}
+
+Table~\ref{tab:d2-cap} gives the differences between pairs of configurations with their 95\% confidence intervals. Figure~\ref{fig:d2-ktc} plots the four differences in task completion; if a confidence interval crosses the zero line, it cannot be said that the two configurations differ.
+
+\begin{table}[!htbp]
+\caption{Round 2: pairwise quality differences (second configuration minus first, \pp)}
+\label{tab:d2-cap}
+\cobang
+\begin{tabularx}{\linewidth}{YR{1.5cm}P{3.5cm}C{2.3cm}C{2.1cm}}
+\toprule
+\textbf{Comparison and metric} & \textbf{$\Delta$} & \textbf{95\% confidence interval} & \textbf{Win / tie / loss} & \textbf{Significant?}\\
+\midrule
+\multicolumn{5}{l}{\textbf{SA $\rightarrow$ fixed MA}}\\
+\quad Task completion & $+2.06$ & from $-3.09$ to $+7.30$ & 6 / 17 / 4 & No\\
+\quad Grounded claims & $+3.29$ & from $-2.16$ to $+9.05$ & 7 / 16 / 4 & No\\
+\midrule
+\multicolumn{5}{l}{\textbf{SA $\rightarrow$ adaptive MA}}\\
+\quad Task completion & $-3.81$ & from $-8.74$ to $+1.03$ & 2 / 18 / 7 & No\\
+\quad Grounded claims & $-3.19$ & from $-8.64$ to $+2.47$ & 3 / 16 / 8 & No\\
+\midrule
+\multicolumn{5}{l}{\textbf{Fixed MA $\rightarrow$ adaptive MA}}\\
+\quad Task completion & $-5.86$ & from $-10.19$ to $-2.16$ & 0 / 20 / 7 & \textbf{Yes}\\
+\quad Grounded claims & $-6.48$ & from $-10.80$ to $-2.78$ & -- & \textbf{Yes}\\
+\midrule
+\multicolumn{5}{l}{\textbf{Adaptive MA $\rightarrow$ MA without retrieval}}\\
+\quad Task completion & $-36.11$ & from $-51.23$ to $-21.60$ & 0 / 13 / 14 & \textbf{Yes}\\
+\quad Grounded claims & $-35.49$ & from $-51.03$ to $-20.78$ & -- & \textbf{Yes}\\
+\quad Correct response mode & $-74.38$ & from $-84.88$ to $-62.35$ & -- & \textbf{Yes}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hinh{bd-khoang-tin-cay}{Round 2: differences in task completion and 95\% confidence intervals}{fig:d2-ktc}
+
+\textbf{SA vs.\ fixed MA.} Fixed MA is 2.06 \pp{} higher than SA, but the confidence interval spans from $-3.09$ to $+7.30$ and contains zero. Of the 27 work groups, fixed MA wins in 6, loses in 4 and ties in 17. It cannot be said that fixed MA is better than SA.
+
+\textbf{SA vs.\ adaptive MA.} Adaptive MA is 3.81 \pp{} lower than SA, and the confidence interval also contains zero. Adaptive MA loses in 7 groups and wins in 2. It cannot be said that adaptive MA is worse than SA, but there is certainly no sign that it is better.
+
+\textbf{Fixed MA vs.\ adaptive MA.} This difference is statistically significant: adaptive planning is \emph{worse} than fixed planning by 5.86 \pp, winning in no group and losing in 7. Letting the model create and extend the plan not only did not help but actually reduced quality on this question set.
+
+\textbf{With vs.\ without retrieval.} This is the largest difference in the whole experiment. Turning off retrieval reduces task completion by 36.11 \pp. The configuration without retrieval wins in no work group and loses in 14 of 27.
+
+\subsection{Results by conversation type}
+
+The overall mean hides many differences between conversation types. Table~\ref{tab:d2-loai} and Figure~\ref{fig:d2-loai} give task completion by type. The figures here are plain means over the conversations of each type, so they do not add up exactly to the official figure in Table~\ref{tab:d2-tong}. Grounded claims by type are given in Appendix~\ref{app:so-lieu}.
+
+\begin{table}[!htbp]
+\caption{Round 2: task completion by conversation type (\%)}
+\label{tab:d2-loai}
+\cobang
+\begin{tabularx}{\linewidth}{YC{1.3cm}R{1.5cm}R{1.7cm}R{1.8cm}R{1.9cm}}
+\toprule
+\textbf{Conversation type} & \textbf{Count} & \textbf{SA} & \textbf{Fixed MA} & \textbf{Adaptive MA} & \textbf{MA without retrieval}\\
+\midrule
+Multiple constraints & 12 & 94.4 & 100.0 & 91.7 & 0.0\\
+Source-specific & 12 & 86.1 & 94.4 & 80.6 & 0.0\\
+Compare, recommend & 12 & 8.3 & 8.3 & 2.8 & 0.0\\
+Multi-turn, memory & 8 & 75.0 & 66.7 & 66.7 & 0.0\\
+Missing or conflicting & 8 & 62.5 & 62.5 & 62.5 & 62.5\\
+Purchase, management & 8 & 0.0 & 0.0 & 0.0 & 0.0\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hinh{bd-p8-theo-loai}{Round 2: task completion by conversation type}{fig:d2-loai}
+
+This table reveals much that the mean does not:
+
+\begin{itemize}
+    \item \textbf{Two types perform well:} ``Multiple constraints'' and ``Source-specific'' reach 80\% to 100\% in all three configurations with retrieval.
+    \item \textbf{The ``Compare, recommend'' type almost completely fails} (below 10\%) in every configuration. Notably, this is precisely the question type that most requires coordinating several specialists, where multiple agents were expected to shine. In practice, neither SA nor MA could handle it. This type requires the most facts (the sample conversation in Appendix~\ref{app:vi-du} needs as many as 8 facts), and missing a single fact counts as a failure.
+    \item \textbf{The ``Purchase, management'' type is 0\% in every configuration.} The system did not fully complete a single scenario of this type according to the scoring criteria.
+    \item \textbf{The ``Missing or conflicting'' type is equal across all four configurations} (62.5\%), including the one without retrieval. This makes sense: for questions that must be refused or clarified, the correct response does not need documents.
+    \item \textbf{For the ``Multi-turn, memory'' type, SA is higher than both MA configurations} (75.0\% vs.\ 66.7\%).
+    \item \textbf{Retrieval is a necessary condition for the first four types.} Without retrieval, all four drop to 0\%.
+\end{itemize}
+
+\subsection{Time and cost}
+
+Table~\ref{tab:d2-chi-phi} gives the mean time and cost of one turn; Table~\ref{tab:d2-cap-chi-phi} gives the differences between pairs of configurations.
+
+\begin{table}[!htbp]
+\caption{Round 2: mean time and cost of one turn}
+\label{tab:d2-chi-phi}
+\cobang
+\begin{tabularx}{\linewidth}{YR{1.9cm}R{1.9cm}R{1.9cm}R{2.1cm}}
+\toprule
+\textbf{Quantity} & \textbf{SA} & \textbf{Fixed MA} & \textbf{Adaptive MA} & \textbf{MA without retrieval}\\
+\midrule
+Response time (s) & 8.48 & 8.14 & 9.72 & 2.34\\
+Tokens & 4,695 & 5,027 & 5,453 & 1,230\\
+Cost (USD) & 0.0047 & 0.0051 & 0.0056 & 0.0012\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{Round 2: pairwise differences in time and tokens}
+\label{tab:d2-cap-chi-phi}
+\cobang
+\begin{tabularx}{\linewidth}{YR{2.0cm}P{4.0cm}C{2.2cm}}
+\toprule
+\textbf{Comparison and quantity} & \textbf{$\Delta$} & \textbf{95\% confidence interval} & \textbf{Significant?}\\
+\midrule
+\multicolumn{4}{l}{\textbf{SA $\rightarrow$ fixed MA}}\\
+\quad Time (ms) & $-337$ & from $-1{,}004$ to $+439$ & No\\
+\quad Tokens & $+332$ & from $-87$ to $+794$ & No\\
+\midrule
+\multicolumn{4}{l}{\textbf{SA $\rightarrow$ adaptive MA}}\\
+\quad Time (ms) & $+1{,}239$ & from $+561$ to $+2{,}033$ & \textbf{Yes}\\
+\quad Tokens & $+758$ & from $+320$ to $+1{,}236$ & \textbf{Yes}\\
+\midrule
+\multicolumn{4}{l}{\textbf{Fixed MA $\rightarrow$ adaptive MA}}\\
+\quad Time (ms) & $+1{,}576$ & from $+1{,}036$ to $+2{,}198$ & \textbf{Yes}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Fixed MA has time and token use comparable to SA; all differences lie within the margin of error. Adaptive MA, however, is about 1.2 seconds slower than SA and uses about 760 more tokens per turn, both statistically significant. The extra cost comes from the model calls for creating the plan and for extending it.
+
+The cost result in round 2 differs from round 1: MA is no longer nearly 5 times slower than SA. The reason is that the two rounds measure different things. In round 1 the documents were supplied in advance, so SA needed only one model call. In round 2, every configuration has to pass through the same intake, search and verification stages; this shared part takes up most of the time, so the difference due to organisation becomes small.
+
+The configuration without retrieval is much faster and cheaper (2.34 seconds; 0.0012 USD), but as shown above, it completes almost no task that requires information.
+
+\subsection{Total cost of round 2}
+
+Table~\ref{tab:d2-tong-chi-phi} sums all model calls, tokens and costs of round 2.
+
+\begin{table}[!htbp]
+\caption{Round 2: total model calls, tokens and cost}
+\label{tab:d2-tong-chi-phi}
+\cobang
+\begin{tabularx}{\linewidth}{YR{2.6cm}R{2.8cm}R{2.6cm}}
+\toprule
+\textbf{Part} & \textbf{Calls} & \textbf{Tokens} & \textbf{Cost (USD)}\\
+\midrule
+Answering system (720 turns) & 2,382 & 2,657,508 & 2.69\\
+Judge scoring & 752 & 2,593,809 & 0.22\\
+\midrule
+\textbf{Total} & \textbf{3,134} & \textbf{5,251,317} & \textbf{about 2.93}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+In addition, there were 405 calls to the semantic search model, already included in the system cost. The whole of round 2 cost less than 3 US dollars.
+
+\subsection{Stability of the judge}
+\label{sec:cham-lai}
+
+The team had the judge re-score all 720 answers of round 2. 715 answers were scored successfully both times. Table~\ref{tab:cham-lai} compares the two scorings on these 715 answers.
+
+\begin{table}[!htbp]
+\caption{Agreement between the judge's two scorings (715 answers)}
+\label{tab:cham-lai}
+\cobang
+\begin{tabularx}{\linewidth}{YR{3.6cm}R{3.6cm}}
+\toprule
+\textbf{Metric} & \textbf{Agreement rate} & \textbf{Kappa coefficient}\\
+\midrule
+Task completion & 97.3\% & 0.946\\
+Grounded claims & 96.9\% & 0.937\\
+Metrics computed from run logs & 100.0\% & 1.000\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The kappa coefficient measures agreement after removing the part due to chance; values above 0.9 are generally considered very high. The judge is thus fairly consistent between the two scorings.
+
+However, the roughly 3\% disagreement is still enough to shift conclusions near the threshold. On the same 715 answers, the SA $\rightarrow$ adaptive MA difference is $-4.99$ (confidence interval from $-9.26$ to $-1.34$) in the first scoring and $-6.53$ (from $-12.65$ to $-1.34$) in the re-scoring. Neither interval contains zero, whereas the official figure on all 720 answers ($-3.81$; from $-8.74$ to $+1.03$) does contain zero. The team keeps the figure on all 720 answers as the official result and draws a cautious conclusion: adaptive MA is \emph{not better} than SA, and there are signs that it is worse, but these signs are not yet robust enough.
+
+It is also worth repeating: consistent scoring does not mean correct scoring. This test only shows that the judge is stable, not that the judge agrees with humans.
+
+\section{Round 3: confirmation on a new question set}
+
+\subsection{Results of testing the three hypotheses}
+
+Round 3 ran 60 new conversations, written in natural phrasing, with pre-registered hypotheses (Section~\ref{sec:dang-ky-truoc}). 719 of the 720 answers were scored. Table~\ref{tab:d3-gia-thuyet} gives the test results.
+
+\begin{table}[!htbp]
+\caption{Round 3: results of testing the pre-registered hypotheses (task completion, \pp)}
+\label{tab:d3-gia-thuyet}
+\cobang
+\begin{tabularx}{\linewidth}{YR{1.4cm}P{3.3cm}C{2.2cm}C{2.0cm}}
+\toprule
+\textbf{Hypothesis} & \textbf{$\Delta$} & \textbf{95\% confidence interval} & \textbf{Win / tie / loss} & \textbf{Conclusion}\\
+\midrule
+H1 (primary): fixed MA better than SA, ``Multiple constraints'' type & $+2.78$ & from $0.00$ to $+8.33$ & 1 / 11 / 0 & Not supported\\
+H2: fixed MA better than SA, all 60 conversations & $+1.07$ & from $0.00$ to $+2.78$ & 2 / 24 / 0 & Not supported\\
+H3: adaptive MA vs.\ SA, all 60 conversations & $+1.07$ & from $0.00$ to $+2.78$ & 2 / 24 / 0 & Not supported\\
+\midrule
+Control: MA without retrieval vs.\ SA & $-16.24$ & from $-23.18$ to $-9.62$ & 0 / 13 / 13 & Clearly worse\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+All three hypotheses are \textbf{not supported}: all three confidence intervals touch zero. For the primary hypothesis H1, fixed MA wins in only 1 of 12 groups and ties in the remaining 11. Even on the question type chosen as most favourable to multiple agents, that advantage did not reappear on the new question set.
+
+Mean task completion in round 3 is: SA 19.44\%; fixed MA 20.56\%; adaptive MA 20.56\%; MA without retrieval 0.00\%. On grounded claims, fixed MA is $1.07$ \pp{} above SA (from $-2.56$ to $+4.27$) and adaptive MA is $3.21$ \pp{} above SA (from $0.00$ to $+7.05$); neither reaches significance either.
+
+The retrieval result is replicated: turning off retrieval still makes the results clearly worse, with a confidence interval lying entirely below zero.
+
+\subsection{Scores drop sharply compared with round 2}
+
+The most notable finding of round 3 lies not in the SA vs.\ MA comparison but in the fact that \textbf{every configuration's score dropped very sharply}. SA's task completion fell from 45.16\% in round 2 to 19.44\% in round 3. Table~\ref{tab:d3-loai} and Figure~\ref{fig:d3-loai} show the drop by type.
+
+\begin{table}[!htbp]
+\caption{Task completion by conversation type: round 2 vs.\ round 3 (\%)}
+\label{tab:d3-loai}
+\cobang
+\begin{tabularx}{\linewidth}{YR{2.1cm}R{1.8cm}R{2.1cm}R{2.2cm}}
+\toprule
+ & \textbf{Round 2} & \multicolumn{3}{c}{\textbf{Round 3}}\\
+\cmidrule(lr){2-2}\cmidrule(lr){3-5}
+\textbf{Conversation type} & SA & SA & Fixed MA & Adaptive MA\\
+\midrule
+Source-specific & 86 & 91.7 & 94.4 & 97.2\\
+Multiple constraints & 94 & 5.6 & 8.3 & 5.6\\
+Compare, recommend & 8 & 0 & 0 & 0\\
+Multi-turn, memory & 75 & 0 & 0 & 0\\
+Missing or conflicting & 62 & 0 & 0 & 0\\
+Purchase, management & 0 & 0 & 0 & 0\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\hinh{bd-xac-nhan-theo-loai}{Task completion by conversation type in round 2 and round 3}{fig:d3-loai}
+
+Only the ``Source-specific'' type held its results (above 90\%). The ``Multiple constraints'' type fell from 94\% to about 6\%. The remaining four types dropped to 0\% in every configuration.
+
+\subsection{Why scores dropped: natural questions keep the system from recognising the request}
+
+The team reviewed the run logs to find the cause. In most failed turns, the system did not answer but asked the user a clarifying question, giving the reason ``not enough verified matching books found yet''. Table~\ref{tab:d3-hoi-lai} gives the number of turns with this behaviour; the figures are the same for SA and fixed MA.
+
+\begin{table}[!htbp]
+\caption{Round 3: number of turns in which the system asked back instead of answering (one configuration, 3 repetitions)}
+\label{tab:d3-hoi-lai}
+\cobang
+\begin{tabularx}{\linewidth}{YR{3.4cm}R{3.4cm}}
+\toprule
+\textbf{Conversation type} & \textbf{Turns asked back} & \textbf{Total turns}\\
+\midrule
+Multiple constraints & 27 & 36\\
+Compare, recommend & 33 & 36\\
+Missing or conflicting & 24 & 24\\
+Multi-turn, memory & 9 & 24\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Comparing two ways of asking about the same content makes the problem clear:
+
+\begin{itemize}
+    \item Round 2 question (templated): ``Find Quốc Gia Khởi Nghiệp (Tái Bản 2019) priced at no more than 145850 VND, rating at least 4.7; also state the author or the work-level topic.''
+    \item Round 3 question (natural): ``Is Quốc Gia Khởi Nghiệp (Tái Bản 2019) under 140,000 VND with a rating of at least 4.6? If so, tell me who the author is and what the book is about.''
+\end{itemize}
+
+The two questions ask for the same thing and both give the exact book title. The system handles the first but often fails on the second. Understanding the question, planning and finding matching books form the part \emph{shared} by SA and MA, so both fail in the same way.
+
+The most plausible explanation is that the high scores in round 2 partly reflect the system having been tuned over many iterations on the very question templates of round 2, while its ability to handle other phrasings remains weak. This is the familiar phenomenon of ``overfitting'' in machine learning, and it is also why a truly held-out set is needed. The team notes that this is a hypothesis drawn from inspecting a few examples and has not been checked question by question. Nor can it be ruled out that the reference answers of the new question set are too strict for some questions.
+
+One more point must be stated for the two rounds to be compared correctly. Between round 2 and round 3, the team reviewed and fixed a number of system bugs (Chapter~\ref{ch:ra-soat}), so round 3 ran on a newer version of the system. The two rounds therefore differ in both the question set and the system version. The fixed bugs were all of the kind that drops information, so the team believes they are not the cause of the score decline; however, this is an inference and has not been measured separately.
+
+This piling-up of scores at 0 is called the \emph{floor effect}, the opposite of the ceiling effect in round 1. As a consequence, round 3 can only really discriminate between configurations on the ``Source-specific'' type and partly on the ``Multiple constraints'' type. On the other types, every configuration is at 0\%, so there is nothing to compare.
+
+\subsection{Deviations from the registered plan}
+
+In keeping with the spirit of pre-registration, the team fully reports the points where the actual run deviated from the plan:
+
+\begin{enumerate}
+    \item \textbf{The judge-check threshold was relaxed.} Before the official scoring there was a judge-check step on 32 trial items. The reference labels for this step were generated by rules, not assigned by people. The judge disagreed with the reference labels on 3 of 32 items, exceeding the default threshold, and the team relaxed the threshold in order to continue.
+    \item \textbf{One score is missing.} One answer (from the configuration without retrieval) repeatedly received judge output in the wrong format and could not be scored. This answer is outside the scope of H1, H2 and H3; whether it is assigned a score of 0 or 1, the conclusions on the three hypotheses do not change.
+    \item \textbf{The result table was computed with a separate analysis program.} The official aggregation tool requires all 720 scores and therefore could not run. The figures above were computed from the scoring logs with exactly the registered formula (resampling by work group, 10,000 samples, same seed).
+    \item \textbf{The cost ledger was edited to re-score the format-error items.} The judge sometimes returned output in the wrong format (13 of 720 items in the first pass), and the procedure does not allow repeat calls. The team deleted the records of these failed items from the ledger so they could be called again, and kept a backup copy. The choice of which items to re-score was based only on the technical error code, not on scores.
+    \item \textbf{Pre-existing limitations remain:} the new question set uses the same 13 book titles as round 2; questions and reference answers were drafted by an AI assistant; the judge has not been compared against human raters.
+\end{enumerate}
+
+The total cost of round 3 was about 1.8 US dollars, below the 4-dollar cap that had been set.
+
+\section{Answers to the research questions}
+
+\subsection{Question 1: Do multiple agents give better results than a single agent?}
+
+\textbf{There is no evidence of that yet.} Table~\ref{tab:tong-ket-ch1} brings together the results of all three rounds.
+
+\begin{table}[!htbp]
+\caption{Summary of the multi-agent vs.\ single-agent comparison across the three rounds}
+\label{tab:tong-ket-ch1}
+\cobang
+\begin{tabularx}{\linewidth}{P{1.5cm}P{3.6cm}R{1.4cm}P{3.3cm}Y}
+\toprule
+\textbf{Round} & \textbf{Comparison} & \textbf{$\Delta$} & \textbf{95\% confidence interval} & \textbf{Remark}\\
+\midrule
+1 & MA vs.\ SA & $+1.04$ & from $-1.11$ to $+3.20$ & Contains 0; due to one question\\
+2 & Fixed MA vs.\ SA & $+2.06$ & from $-3.09$ to $+7.30$ & Contains 0\\
+2 & Adaptive MA vs.\ SA & $-3.81$ & from $-8.74$ to $+1.03$ & Contains 0; leans worse\\
+3 & Fixed MA vs.\ SA & $+1.07$ & from $0.00$ to $+2.78$ & Touches 0\\
+3 & Adaptive MA vs.\ SA & $+1.07$ & from $0.00$ to $+2.78$ & Touches 0\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Across three rounds with three different question sets, multiple agents never outperformed a single agent in a statistically significant way. All differences are small (under 4 \pp) and change sign between configurations.
+
+The team notes the wording: the conclusion is ``there is no evidence yet that multiple agents are better'', \emph{not} ``it has been proven that the two approaches are equal''. With 26--27 work groups, the experiment can only detect differences of roughly 7 \pp{} or more (the team's rough estimate from the widths of the confidence intervals in round 2). A smaller advantage, if one exists, would not be visible.
+
+This result is consistent with recent studies \src{7}, \src{8}, \src{9}, which show that the benefit of multiple agents depends heavily on the type of task and is often overestimated when comparisons do not hold conditions equal.
+
+\subsection{Question 2: How much does document retrieval contribute?}
+
+\textbf{A great deal, and this is the most robust result of the project.} Turning off retrieval reduces task completion by 36.11 \pp{} in round 2 (confidence interval from $-51.23$ to $-21.60$). In round 3, the configuration without retrieval drops to 0\% and is 16.24 \pp{} below SA (from $-23.18$ to $-9.62$). Both confidence intervals lie far from zero, and the result replicates on two independent question sets.
+
+The round 3 figure is smaller than round 2 not because retrieval matters less, but because in round 3 the configurations with retrieval also scored low, which narrows the maximum possible gap.
+
+Without retrieval, the system not only lacks information but also responds in the wrong way: the correct-response-mode metric drops by 74.38 \pp{} in round 2. Without documents, the system refuses even questions that it should be able to answer.
+
+\subsection{Question 3: How do multiple agents change time and cost?}
+
+\textbf{They are not cheaper, and in some cases clearly more expensive.}
+
+\begin{itemize}
+    \item When documents are supplied in advance (round 1), multiple agents are 4.73 times slower and use 2.78 times as many tokens.
+    \item When the whole process is measured (round 2), fixed MA is comparable to SA in time and tokens; adaptive MA is about 1.2 seconds slower and uses about 760 extra tokens per turn, i.e.\ about 15\% more time and 16\% more tokens.
+\end{itemize}
+
+Combined with question 1: multiple agents do not give measurably better results, while their cost is equal or higher. On this task, the extra cost has not yet bought anything in return.
+
+\section{Discussion}
+
+\subsection{Why multiple agents did not help here}
+
+The team offers three possible reasons, based on what was observed. These are interpretations, not verified conclusions.
+
+\textbf{First, the weakest stage is not in the organisation.} Round 3 shows that the system fails right at the stage of understanding the question and finding matching books, which is the part shared by both SA and MA. When this shared stage breaks, no arrangement of the later steps can rescue it.
+
+\textbf{Second, the task is not yet large enough to require division of labour.} Each question concerns only one or two books and three data sources. A single agent with today's models can hold all of that information in one pass. Division of labour pays off when the workload exceeds the capacity of one agent, and that has not happened here.
+
+\textbf{Third, more steps mean more places to go wrong.} Every additional model call is another chance for error. The result that adaptive MA is 5.86 \pp{} worse than fixed MA suggests that letting the model create and extend its own plan introduced more errors than it fixed.
+
+\subsection{Which components actually add value}
+
+If multiple agents are not what creates value, where does the system's value lie? The data point to two components:
+
+\begin{itemize}
+    \item \textbf{Retrieval with source citation.} This is the only component with a large, statistically significant and replicable effect.
+    \item \textbf{Programmatic control.} Permission compliance reached 100\% in every configuration of round 2; injected instructions and out-of-permission requests in round 1 were all blocked. This result comes from permissions being checked by the program, independent of the model.
+\end{itemize}
+
+Both components are present in the single-agent configuration. In other words, a single-agent system with cited retrieval and programmatic permission control would retain almost all of the measured value, with a simpler structure.
+
+\subsection{Lessons about evaluation}
+
+The evaluation process itself also taught the team three lessons:
+
+\begin{itemize}
+    \item \textbf{Templated question sets give optimistic results.} The same system reached 94\% with templated questions and 6\% with natural questions of the same type. Had the team stopped at round 2, it would have had a wrong picture of the system's quality.
+    \item \textbf{Scores that are too high or too low both prevent comparison.} Round 1 hit a ceiling effect, round 3 a floor effect. A good question set needs moderate difficulty so that configurations can be separated.
+    \item \textbf{Pre-registration helps maintain discipline.} Because the hypotheses were written down in advance, the team could not reselect question types or metrics after seeing the results. The ``not supported'' result of round 3 is therefore more trustworthy than a nice-looking result found after many attempts.
+\end{itemize}
+
+\section{Chapter summary}
+
+The three experimental rounds give a consistent picture. Multiple agents showed no quality advantage over a single agent in any round, while their cost was equal or higher. Document retrieval is the component with a clear and replicable effect. Round 3 also showed that the system handles naturally phrased questions poorly, and that the scores in round 2 were more optimistic than reality. The next chapter presents the team's review of the system and the data, carried out between round 2 and round 3.

@@ -1,0 +1,83 @@
+\chapter{Conclusion and Future Work}
+\label{ch:ket-luan}
+
+\section{What has been achieved}
+
+Measured against the objectives stated in Chapter~\ref{ch:gioi-thieu}, the project has achieved the following results.
+
+\textbf{Product.} The team built Evidence Atlas, a Vietnamese-language book advisory assistant that works end to end: from the web interface, through the server, to the database. The system finds and compares books, summarises buyer reviews, answers questions about works with citations, remembers context across multiple turns, and prepares action proposals that await user confirmation.
+
+\textbf{Data.} The team built an eight-step pipeline that turns a public dataset into usable data, with checks at every step, masking of private information, and identical output on every run. The team also built a knowledge base of 20 self-written notes drawn from authoritative sources.
+
+\textbf{Design.} The system clearly separates the work of the program from the work of the language model. Permissions, budgets, figures and citations are controlled by the program. Every claim must pass two checks before reaching the user. In the 720 runs of Round 2, the system never performed an action beyond its permissions.
+
+\textbf{Evaluation.} The team carried out three experimental rounds with a total of 1,584 answers (1,583 graded), the third of which had pre-registered hypotheses. Every difference is reported with a confidence interval.
+
+\textbf{Honesty.} The team reviewed its own figures, found and removed tables that did not come from real measurements, and reported results that did not favour the initial hypothesis as well.
+
+\section{Main conclusions}
+
+From the three experimental rounds, the team draws four conclusions. Their scope is the book advisory task, and the dataset and model used in this project.
+
+\begin{enumerate}
+    \item \textbf{There is no evidence yet that multiple agents are better than a single agent.} Across the three rounds, the difference in task completion rate between the two organisations was always smaller than 4 \pp{}, and the confidence interval always contained or touched 0. All three pre-registered hypotheses about a multi-agent advantage were not supported.
+
+    \item \textbf{Retrieval with cited sources is the component with a clear effect.} Turning retrieval off lowered the task completion rate by 36.11 \pp{} in Round 2, and this result was replicated in Round 3.
+
+    \item \textbf{Multi-agent is not cheaper.} The cost and latency of multi-agent setups were equal to or higher than those of a single agent, most clearly higher when the model was left to draft and extend the plan itself.
+
+    \item \textbf{The system is still weak on naturally phrased questions.} For the same question type, the completion rate fell from 94\% to about 6\% when switching from templated to natural questions. This weakness lies in question understanding and is present in every configuration.
+\end{enumerate}
+
+The project title is ``applying multiple agents'', yet the results show that multiple agents have not yet brought a measurable benefit. The team believes this is still a valuable result. At a time when multi-agent systems are widely promoted, a careful measurement showing that ``for a problem of this size it is not yet needed'' is useful information for product builders: it helps avoid building a system more complex than necessary. The practical advice is to start with a single agent with good retrieval and tight control, and only split into multiple agents when data show that a single agent no longer suffices.
+
+\section{Limitations}
+
+The team gathers here the limitations mentioned throughout the report.
+
+\textbf{Data limitations.}
+\begin{itemize}
+    \item The data are a past snapshot, with no seller or time information.
+    \item The knowledge base covers only 20 of the 200 titles.
+    \item The evaluation set covers only 200 titles; the system has not been tested on the full dataset.
+\end{itemize}
+
+\textbf{Evaluation limitations.}
+\begin{itemize}
+    \item Small scale: 60 conversations around 13 titles per round. The experiments lack the power to detect small differences.
+    \item The judge is a language model and has not been cross-checked against human graders.
+    \item The Round 2 held-out set was viewed many times during development.
+    \item The Round 3 questions and answer keys were written by an AI assistant, and this round hit a floor effect in four of the six conversation types.
+    \item No configuration pair isolates the ``organisation'' factor on its own.
+    \item Only one language model and one domain were tested.
+\end{itemize}
+
+\textbf{System limitations.}
+\begin{itemize}
+    \item The task completion rate was below 50\% in Round 2 and about 20\% in Round 3.
+    \item The two conversation types ``Comparison and recommendation'' and ``Purchasing and management'' are almost not handled at all.
+    \item Question understanding and finding suitable books break easily when phrasing changes.
+    \item The automated verification step has errors and does not guarantee that all false information is removed.
+    \item All purchasing actions exist only in a simulated environment.
+    \item No testing with real users yet, and no measurement under many concurrent users.
+\end{itemize}
+
+\section{Future work}
+
+Based on the results and limitations above, the team proposes the following next steps, ordered by priority.
+
+\textbf{Priority 1: improve question understanding.} This is the biggest weakness revealed by Round 3. Recognising book titles and conditions in a question needs to become more robust to different phrasings, and should be re-measured on a new set of natural questions.
+
+\textbf{Priority 2: human grading.} Manually grade a sample of answers using the prepared blind forms, then compare with the judge model. This will show how far the numbers in the report can be trusted.
+
+\textbf{Priority 3: build a better question set.} The question set should be written by people in natural language, cover more titles, have moderate difficulty to avoid both ceiling and floor effects, and be truly held out.
+
+\textbf{Priority 4: expand the knowledge base.} Increase coverage from 20 to all titles with authoritative sources, and measure retrieval separately.
+
+\textbf{Priority 5: revisit the multi-agent question on a larger problem.} The benefit of multiple agents may only appear when each request requires processing more information than a single agent can handle, for example comparing dozens of books at once or analysing thousands of reviews. Such an experiment must be designed to isolate the organisation factor.
+
+\textbf{Priority 6: test with other models and real users.} Rerun the experiments with other language models to see whether the conclusions hold, and collect feedback from real users.
+
+\section{Closing remarks}
+
+The project began with the expectation of showing the benefits of multiple agents, and ended with a different conclusion: what gives the assistant its value is not the number of agents, but the fact that every answer has verifiable grounds. The work also taught the team a lesson about experimentation: a result is trustworthy only when it is measured on unseen data, with hypotheses written down in advance, and reported in full even when it is not as hoped.

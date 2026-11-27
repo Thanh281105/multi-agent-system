@@ -1,0 +1,23 @@
+% The orchestrator and the four specialists
+\begin{tikzpicture}[baocao]
+  \node[hopxam, text width=6.2cm] (sup) at (7.75,0) {\textbf{Orchestrator}\\chooses which specialists to call and the step order};
+  \node[hop, text width=2.95cm, minimum height=24mm] (e1) at (1.75,-3.5) {\textbf{Product specialist}\\find, filter, compare, rank books};
+  \node[hop, text width=2.95cm, minimum height=24mm] (e2) at (5.75,-3.5) {\textbf{Review specialist}\\summarise, compare buyer reviews};
+  \node[hop, text width=2.95cm, minimum height=24mm] (e3) at (9.75,-3.5) {\textbf{Trust specialist}\\complaint signals, review quality};
+  \node[hop, text width=2.95cm, minimum height=24mm] (e4) at (13.75,-3.5) {\textbf{Market specialist}\\statistics by genre, author, price};
+  \node[hopxam, text width=6.2cm] (com) at (7.75,-7.0) {\textbf{Answer composer}\\combine facts, attach sources, verify};
+
+  % dispatch: horizontal bar above the specialists
+  \draw[line width=1pt] (sup.south) -- (7.75,-1.45);
+  \draw[line width=1pt] (1.75,-1.45) -- (13.75,-1.45);
+  \foreach \e in {e1,e2,e3,e4} \draw[mui] (\e.north |- 0,-1.45) -- (\e.north);
+  \node[ghichu, anchor=west, fill=white] at (8.0,-1.05) {assign tasks};
+
+  % collect results: horizontal bar below the specialists
+  \foreach \e in {e1,e2,e3,e4} \draw[line width=1pt] (\e.south) -- (\e.south |- 0,-5.55);
+  \draw[line width=1pt] (1.75,-5.55) -- (13.75,-5.55);
+  \draw[mui] (7.75,-5.55) -- (com.north);
+  \node[ghichu, anchor=west, fill=white] at (8.0,-5.95) {facts and evidence};
+
+  \node[ghichu, text width=3.6cm, align=left, anchor=west] at (11.4,0) {At most 8 steps per turn, run in sequence; each step uses the previous step's result.};
+\end{tikzpicture}

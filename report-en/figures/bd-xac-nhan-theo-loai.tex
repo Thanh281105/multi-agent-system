@@ -1,0 +1,14 @@
+% Round 3 vs. Round 2: task completion rate by conversation type (%)
+\begin{tikzpicture}[baocao]
+  \begin{axis}[bieudo, nhandoc, width=15.6cm, height=8.6cm, bar width=4.4mm,
+      ylabel={Task completion (\%)},
+      symbolic x coords={l1,l2,l3,l4,l5,l6},
+      xticklabels={{Multiple\\constraints},{Source-\\based},{Comparison,\\recommend.},{Multi-turn,\\memory},{Missing or\\contradictory},{Purchasing,\\management}},
+      enlarge x limits=0.1,
+      legend style={legend columns=3}]
+    \addplot[cotA] coordinates {(l1,94.4) (l2,86.1) (l3,8.3) (l4,75.0) (l5,62.5) (l6,0)};
+    \addplot[cotC] coordinates {(l1,5.6) (l2,91.7) (l3,0) (l4,0) (l5,0) (l6,0)};
+    \addplot[cotD] coordinates {(l1,8.3) (l2,94.4) (l3,0) (l4,0) (l5,0) (l6,0)};
+    \legend{SA in Round 2 (templated), SA in Round 3 (natural), Fixed MA in Round 3}
+  \end{axis}
+\end{tikzpicture}

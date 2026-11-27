@@ -1,0 +1,15 @@
+% 200 titles split by how far they can be matched to knowledge sources (1 book = 0.075 cm)
+\begin{tikzpicture}[baocao]
+  \draw[fill=black] (0,0) rectangle (1.5,1.1);
+  \draw[pattern=north east lines, pattern color=black] (1.5,0) rectangle (2.775,1.1);
+  \draw[fill=white] (2.775,0) rectangle (15,1.1);
+  \node[font=\sffamily\footnotesize\bfseries] at (8.9,0.55) {163 books with no matching source (81.5\%)};
+  % legend
+  \draw[fill=black] (0,-1.15) rectangle (0.55,-0.75);
+  \node[anchor=west, font=\sffamily\footnotesize] at (0.7,-0.95) {20 books with a confirmed source (10\%)};
+  \draw[pattern=north east lines, pattern color=black] (7.9,-1.15) rectangle (8.45,-0.75);
+  \node[anchor=west, font=\sffamily\footnotesize] at (8.6,-0.95) {17 multi-work box sets (8.5\%)};
+  % ruler
+  \draw[line width=0.6pt] (0,1.25) -- (0,1.45) -- (15,1.45) -- (15,1.25);
+  \node[font=\sffamily\scriptsize, fill=white, inner sep=2pt] at (7.5,1.45) {200 titles in the evaluation dataset};
+\end{tikzpicture}

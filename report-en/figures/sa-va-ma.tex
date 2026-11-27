@@ -1,0 +1,37 @@
+% Comparing organisations: single agent and multi-agent
+\begin{tikzpicture}[baocao]
+  % ---------- (a) Single agent ----------
+  \node[font=\sffamily\footnotesize\bfseries, anchor=west] at (-0.1,1.25) {(a) Single agent: one model chooses and calls every tool itself};
+  \node[hop, text width=2.0cm] (q1) at (1.1,0) {Question};
+  \node[hopxam, text width=6.4cm] (m1) at (7.7,0) {\textbf{Single agent}\\reads the question, calls tools, writes the answer};
+  \node[hop, text width=2.0cm] (a1) at (14.3,0) {Answer};
+  \draw[mui] (q1) -- (m1);
+  \draw[mui] (m1) -- (a1);
+  \node[hop, text width=2.1cm] (t1) at (5.0,-2.1) {Catalogue lookup};
+  \node[hop, text width=2.1cm] (t2) at (7.7,-2.1) {Read reviews};
+  \node[hop, text width=2.1cm] (t3) at (10.4,-2.1) {Document lookup};
+  \draw[haichieu] (t1.north) -- (t1.north |- m1.south);
+  \draw[haichieu] (t2.north) -- (t2.north |- m1.south);
+  \draw[haichieu] (t3.north) -- (t3.north |- m1.south);
+
+  % ---------- divider ----------
+  \draw[line width=0.5pt, dashed] (-0.1,-3.2) -- (15.5,-3.2);
+
+  % ---------- (b) Multi-agent ----------
+  \node[font=\sffamily\footnotesize\bfseries, anchor=west] at (-0.1,-3.75) {(b) Multi-agent: an orchestrator divides work among specialists};
+  \node[hop, text width=1.6cm] (q2) at (0.9,-6.4) {Question};
+  \node[hopxam, text width=2.2cm] (s2) at (4.0,-6.4) {\textbf{Orchestrator}\\plans, assigns tasks};
+  \node[hop, text width=2.9cm] (e1) at (8.0,-4.9) {Product specialist};
+  \node[hop, text width=2.9cm] (e2) at (8.0,-6.4) {Review specialist};
+  \node[hop, text width=2.9cm] (e3) at (8.0,-7.9) {Knowledge specialist};
+  \node[hopxam, text width=2.0cm] (c2) at (11.9,-6.4) {\textbf{Aggregator}\\combines results};
+  \node[hop, text width=1.5cm] (a2) at (14.55,-6.4) {Answer};
+  \draw[mui] (q2) -- (s2);
+  \draw[mui] (s2.east) -- ++(0.45,0) |- (e1.west);
+  \draw[mui] (s2.east) -- (e2.west);
+  \draw[mui] (s2.east) -- ++(0.45,0) |- (e3.west);
+  \draw[mui] (e1.east) -- ++(0.4,0) |- ([yshift=2.5mm]c2.west);
+  \draw[mui] (e2.east) -- (c2.west);
+  \draw[mui] (e3.east) -- ++(0.4,0) |- ([yshift=-2.5mm]c2.west);
+  \draw[mui] (c2) -- (a2);
+\end{tikzpicture}

@@ -1,0 +1,22 @@
+% The nine steps of processing a turn
+\begin{tikzpicture}[baocao, node distance=4.5mm]
+  \tikzset{buoc/.style={hop, text width=11.6cm, minimum height=9mm, align=left},
+           buocmh/.style={hopxam, text width=11.6cm, minimum height=9mm, align=left}}
+  \node[buoc] (s1) {\textbf{Intake:} authenticate, check permissions, record the turn in the database};
+  \node[buoc, below=of s1] (s2) {\textbf{Version pinning:} fix the catalogue and knowledge base versions to be used};
+  \node[buoc, below=of s2] (s3) {\textbf{Question understanding:} recognise the book titles, prices and ratings mentioned};
+  \node[buocmh, below=of s3] (s4) {\textbf{Planning:} the model proposes the steps needed within the allowed bounds};
+  \node[buoc, below=of s4] (s5) {\textbf{Plan approval:} check permissions, dependency order and budgets};
+  \node[buoc, below=of s5] (s6) {\textbf{Execution:} call the specialists in turn, collecting facts and evidence};
+  \node[buocmh, below=of s6] (s7) {\textbf{Answer composition:} the model selects facts and writes the explanation};
+  \node[buocmh, below=of s7] (s8) {\textbf{Verification:} check each claim against sources, allow at most one revision};
+  \node[buoc, below=of s8] (s9) {\textbf{Return result:} an answer with sources, a clarification request, or a reasoned refusal};
+  \foreach \a/\b in {s1/s2,s2/s3,s3/s4,s4/s5,s5/s6,s6/s7,s7/s8,s8/s9} \draw[mui] (\a) -- (\b);
+  \foreach \n/\i in {s1/1,s2/2,s3/3,s4/4,s5/5,s6/6,s7/7,s8/8,s9/9}
+    \node[so] at ([xshift=-6mm]\n.west) {\i};
+  % legend
+  \node[hop, minimum height=5mm, minimum width=9mm, inner sep=0pt, below=7mm of s9.south west, anchor=north west] (l1) {};
+  \node[anchor=west, font=\sffamily\footnotesize] (l1t) at (l1.east) {Step decided by the program};
+  \node[hopxam, minimum height=5mm, minimum width=9mm, inner sep=0pt, right=8mm of l1t] (l2) {};
+  \node[anchor=west, font=\sffamily\footnotesize] at (l2.east) {Step involving the language model};
+\end{tikzpicture}

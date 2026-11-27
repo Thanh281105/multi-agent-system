@@ -1,0 +1,134 @@
+\chapter{Theoretical Background and Related Work}
+\label{ch:co-so}
+
+This chapter explains the concepts used in the report, moving from the fundamental to the specific: large language models, agents, single-agent and multi-agent organisation, retrieval-augmented generation, answer verification, and how to evaluate a question-answering system. The chapter ends with a review of related work and the position of this project.
+
+\section{Large Language Models}
+
+A large language model (LLM) is a machine learning model trained on a very large amount of text to predict the next part of a text. Through this training, the model can read a request written in natural language (called a prompt) and write an answer. The model does not process individual characters directly but small units called tokens; a token roughly corresponds to a syllable or part of a word. The number of input and output tokens determines both the time and the cost of each model call, so this report uses token counts as the measure of cost.
+
+When using an LLM in a real application, four characteristics must be kept in mind:
+
+\begin{itemize}
+    \item \textbf{Frozen knowledge.} The model only knows what is in its training data. It does not know today's book prices or the reviews of a particular book on a retail website.
+    \item \textbf{It can be wrong yet fluent.} The model is trained to produce plausible text, not to state only what is true. When information is missing, it may fill the gap with invented content. The survey by Ji et al.\ \src{5} collectively calls this phenomenon hallucination and regards it as the main risk of using text generation models.
+    \item \textbf{Results are not fully reproducible.} For the same question, two calls may yield two different answers. Each question therefore needs to be run several times during evaluation.
+    \item \textbf{The amount of text read per call is limited.} The model can only read a certain number of tokens in one call. The whole database cannot be put into the prompt; the relevant part must be selected.
+\end{itemize}
+
+These four characteristics explain why the project's system needs a retrieval step, an answer verification step and limits on the number of processing steps.
+
+\section{LLM-Based Agents}
+
+A plain LLM only takes text in and returns text. To do more useful work, the model is given the ability to \textbf{call tools}: it is given a description of available tools in advance (for example ``find a book by title'', ``get the reviews of a book''), and instead of answering immediately, it can ask the program to run a tool with specific parameters. The program runs the tool, returns the result to the model, and the model decides the next step.
+
+A software component that operates in such a ``think, call a tool, observe the result, repeat'' loop is called an \textbf{agent}. This approach was described systematically in the ReAct work of Yao et al.\ \src{10}. The key point is that in an agent, the \emph{model} decides the sequence of work, rather than a programmer scripting every step in advance.
+
+This brings flexibility but also risk: the model may call the wrong tool, loop uselessly, or be misled by content in the data into doing something unintended. Anthropic's practical guide \src{6} recommends starting with the simplest approach and granting the model more autonomy only when there is a measurable need. The project's design follows this spirit: the model may only choose within a set of permitted steps, while permission and limit checks are performed by the program (see Chapter~\ref{ch:thiet-ke}).
+
+\section{Single Agent and Multi-Agent}
+
+There are two main ways to organise an agent-based system, illustrated in Figure~\ref{fig:sa-va-ma}.
+
+\hinh{sa-va-ma}{Two organisations: (a) a single agent using all tools; (b) multiple agents with an orchestrator and specialists}{fig:sa-va-ma}
+
+\textbf{Single agent.} There is only one agent, given all the tools. The agent reads the question itself, decides which tools to call and writes the answer. This approach is simple, needs few model calls and is easy to trace.
+
+\textbf{Multi-agent.} The work is divided among several dedicated components. An orchestrator reads the question and decides which specialists are needed and in what order. Each specialist handles only one type of task with a narrow set of tools. Finally, a synthesiser combines the specialists' results into an answer.
+
+Well-known multi-agent systems differ in how their agents coordinate. AutoGen \src{2} lets agents exchange messages with one another as in a conversation. MetaGPT \src{3} assigns each agent a role as in a software team and prescribes the deliverables each role must hand over. This project chooses the \emph{supervisor} style: only the orchestrator assigns work, and the specialists do not communicate with each other. This style is the easiest to control and suits the requirement that every step must be verifiable.
+
+Table~\ref{tab:sa-ma-ly-thuyet} summarises what is commonly expected of each approach. Note that these are theoretical \emph{expectations}; the project's experiments will test whether they hold for the book advisory task.
+
+\begin{table}[!htbp]
+\caption{Common expectations of the two organisations}
+\label{tab:sa-ma-ly-thuyet}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.2cm}YY}
+\toprule
+\textbf{Aspect} & \textbf{Single agent} & \textbf{Multi-agent}\\
+\midrule
+Complexity & Low: one prompt, one loop & High: many prompts, plus orchestration and synthesis steps\\
+Number of model calls & Few & More, since each specialist and each merging step may call the model\\
+Time, cost & Lower & Higher\\
+Focus & One prompt must cover every type of task & Each specialist has its own short, clear instructions\\
+Permission control & The agent sees every tool & Tools can be restricted per specialist\\
+Typical failure point & The model chooses the wrong tool & Additional errors from wrong task division and information loss during handover\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Several recent studies have examined the assumption that ``more agents are better'' more closely. Cemri et al.\ \src{8} analyse failed runs of many multi-agent systems and group the causes into three categories: poor system design, agents misunderstanding or losing each other's information, and missing result verification. Kim et al.\ \src{9} show that the benefit of coordination depends strongly on the type of task: some tasks benefit, while others become slower without improving. Kapoor et al.\ \src{7} note that many published results report only quality scores and ignore cost, making complex systems appear better than they really are. These studies are the reason this project measures both quality and cost and always compares against a sufficiently strong single-agent baseline.
+
+\section{Retrieval-Augmented Generation}
+
+Retrieving documents before answering, proposed by Lewis et al.\ \src{1}, is the most common way to bring private data into a model's answers. The idea consists of three steps, as shown in Figure~\ref{fig:rag}: find document passages relevant to the question; put those passages into the prompt; ask the model to answer based on the given passages.
+
+\hinh{rag}{The three steps of retrieval-augmented generation}{fig:rag}
+
+The quality of the whole pipeline depends heavily on the first step: if the right passages are not found, the model has nothing to rely on. There are two main retrieval methods:
+
+\begin{itemize}
+    \item \textbf{Keyword search.} The system compares the words in the question with the words in the documents and scores them by degree of overlap, taking word rarity into account. A common scoring method is BM25 \src{11}. This method is strong when the question contains proper names, such as book titles or author names.
+    \item \textbf{Semantic search.} Each passage is converted by a model into a sequence of numbers (called a vector) such that passages with similar meanings have nearby vectors. The question is also converted into a vector, and the system finds the nearest passages. This method works even when the question uses different words from the documents.
+\end{itemize}
+
+The two methods have complementary strengths, so many systems use both and merge the results; this is called hybrid search. The project's system also uses hybrid search (Section~\ref{sec:kho-tri-thuc}).
+
+Another task before searching is to split documents into passages of suitable size. Passages that are too long take up space in the prompt and dilute the information; passages that are too short lose context. In this project, each knowledge source is a short note, so each source is kept intact as a single passage.
+
+\section{Grounded Answers and Citations}
+
+Retrieval gives the model correct information to work with, but does not guarantee that the model uses it correctly. The model may still add details beyond the documents or misread them. An additional layer of protection is therefore needed after the model has finished writing: checking each claim in the answer to see whether it is supported by any source.
+
+In this report, an answer is called \textbf{grounded} when each of its important claims points to a specific source passage, and that passage actually states what the claim says. Attaching a citation number after each claim serves two purposes: the user can open the source to check, and the program can verify automatically before sending the answer.
+
+An equally important part of being ``grounded'' is knowing when \textbf{not to answer}. When the data does not contain the requested information, the correct response is to say so clearly. When a request is unclear or self-contradictory, the correct response is to ask for clarification. A system that always tries to answer may seem more helpful but is actually more dangerous. The project's set of evaluation metrics therefore includes a dedicated metric for this (Section~\ref{sec:chi-so}).
+
+\section{Evaluating LLM-Based Question-Answering Systems}
+
+\subsection{Scoring with a Judge Model}
+
+Natural language answers cannot be scored by matching them word for word against a reference answer, because the same idea can be expressed in many ways. The most accurate approach is human scoring, but it is very labour-intensive when there are hundreds of answers. A widely used alternative is to use another LLM as a judge: the judge is given the question, the answer and a list of required points, and decides whether each point is stated correctly.
+
+Zheng et al.\ \src{4} show that judge models can reach high agreement with human raters, but also have their own biases, such as favouring longer answers or being influenced by presentation order. Therefore, when using a judge model, at least three measures are needed: the judge uses a different model from the one generating the answers; the judge must not know which configuration an answer comes from; and, where possible, part of the results should be cross-checked against human scores. The project implements the first two measures; the third was not carried out and is acknowledged as a limitation.
+
+\subsection{Controlled Comparison}
+
+To know whether a change has an effect, one must compare two configurations that differ only in that change. If two configurations differ in several aspects at once, it is impossible to tell which aspect caused the difference in results. Experiments of the ``switch a component on or off and measure again'' kind are commonly called ablation studies. The project uses this approach to isolate the effect of splitting work among multiple agents and the effect of retrieval.
+
+\subsection{Confidence Intervals by Resampling}
+
+Because the number of questions is limited and model answers fluctuate, a difference of a few percentage points between two configurations may be due to chance alone. To judge whether a difference is reliable, the report uses 95\% confidence intervals computed by resampling (bootstrap) \src{12}. The procedure is as follows: from the original set of results, draw randomly with replacement to create a new set of the same size and recompute the difference; repeat this thousands of times; the range containing 95\% of the obtained values is the confidence interval. If this interval lies entirely on one side of zero, the two configurations can be said to differ. If the interval contains zero, the data are insufficient to draw a conclusion.
+
+\subsection{Held-Out Sets and Pre-Registration}
+
+When a question set is used repeatedly during development, the system is gradually tuned to fit that very set, and the scores no longer reflect its ability to handle new questions. The remedy is to set aside a group of questions not used during development, called a held-out set. An even stricter step is \textbf{pre-registration}: writing down the hypotheses, primary metric and analysis method before seeing the results, so that a favourable analysis cannot be chosen after the numbers are known. Kapoor et al.\ \src{7} regard this as a condition for trustworthy agent evaluation results. The project's third experimental round was conducted in this way.
+
+\section{Related Work and Position of This Project}
+
+Table~\ref{tab:lien-quan} summarises the works the project draws on directly and what the project takes from each.
+
+\begin{table}[!htbp]
+\caption{Works directly related to the project}
+\label{tab:lien-quan}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.6cm}YY}
+\toprule
+\textbf{Work} & \textbf{Main content} & \textbf{What the project applies}\\
+\midrule
+Lewis et al., 2020 \src{1} & Combining retrieval with a text generation model & Retrieve from the knowledge base before writing the answer\\
+Yao et al., 2023 \src{10} & Agents interleaving reasoning and tool calls & Basis for the single-agent tool-using configuration\\
+Wu et al., 2023 \src{2} & Multi-agent framework communicating through conversation & Reference for role division; free-form exchange not used\\
+Hong et al., 2023 \src{3} & Role-based multi-agent system with prescribed deliverables & Each specialist returns results in a fixed format\\
+Zheng et al., 2023 \src{4} & Using models as judges and the biases of this approach & Judge uses a different model, scores with configuration names hidden\\
+Ji et al., 2023 \src{5} & Survey of hallucination & Reason for the verification and citation step\\
+Anthropic, 2024 \src{6} & Experience in building agents: favour simplicity & Limit the model's autonomy\\
+Kapoor et al., 2024 \src{7} & Agent evaluation must account for cost and use a held-out set & Report both time and tokens; pre-register round 3\\
+Cemri et al., 2025 \src{8} & Taxonomy of failure causes in multi-agent systems & Review points of information loss during handover\\
+Kim et al., 2025 \src{9} & Benefit of coordination depends on task type & Do not assume multi-agent is better; measure it\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Compared with the works above, this project does not propose a new algorithm. Its contribution lies in applying existing techniques to a specific Vietnamese task, building them into a complete, controlled system, and in particular conducting a controlled comparison between a single agent and multiple agents on that very system, reporting the unexpected results as well.

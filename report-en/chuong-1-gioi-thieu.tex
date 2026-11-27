@@ -1,0 +1,122 @@
+\chapter{Introduction}
+\label{ch:gioi-thieu}
+
+\section{Background and Motivation}
+
+Buying books online is very convenient today, but choosing the right one is not easy. A bookstore website lists tens of thousands of titles. Each book has a price, a rating, a page count, a publisher and dozens to hundreds of reviews from previous buyers. A reader who wants to answer everyday questions such as ``is this book worth buying'', ``how do these two books differ'' or ``what did previous buyers complain about'' has to open many pages, read many reviews of varying length and synthesise the information alone.
+
+Large language models (LLMs) such as the GPT family can read and write Vietnamese fairly well, so it is natural to think of a conversational assistant that does this synthesis for the reader. However, using an LLM directly for purchase advice raises three major problems:
+
+\begin{itemize}
+    \item \textbf{The model does not know the store's data.} The price, rating and reviews of each book are not part of the model's built-in knowledge. If they are not supplied, the model answers from general memory and is very likely to be wrong.
+    \item \textbf{The model may write things that are not true.} This phenomenon is commonly called hallucination \src{5}. The answer sounds fluent and plausible, but the figures or details are invented by the model. In purchase advice, a wrong price or a fabricated compliment harms the user.
+    \item \textbf{The user has no way to check.} An answer without sources forces the reader either to trust the machine completely or to redo the work from scratch.
+\end{itemize}
+
+Two technical directions are widely used to mitigate these problems. The first is \textbf{retrieving documents before answering} (usually abbreviated as RAG): the system finds relevant pieces of data and only then lets the model write an answer grounded in them \src{1}. The second is \textbf{dividing the work among multiple agents}: instead of letting one model do everything, the system has several dedicated components, each handling one type of task, and an orchestrator combines their results \src{2}, \src{3}.
+
+The second direction attracts considerable attention, and many articles implicitly assume that ``multiple agents'' are better than ``a single agent''. Yet multiple agents come at a cost: more model calls, higher latency, higher expense and more places for errors when components pass information to one another \src{6}, \src{8}, \src{9}. The question ``is it worth it'' therefore has to be answered by measurement on a concrete task, not by intuition alone.
+
+This project uses Vietnamese book advice as the task for doing exactly that: building a complete multi-agent assistant with retrieval-augmented generation, and then measuring whether the multi-agent organisation actually outperforms a single agent under the same conditions.
+
+\section{Problem Statement}
+
+The problem addressed by this project is stated as follows.
+
+\textbf{Input.} A user question in Vietnamese about books, possibly part of a multi-turn conversation. The system has three information sources: (1) a book catalogue with price, rating, author and page count; (2) buyer reviews; (3) a knowledge base of short notes about works, rewritten from publisher and library sources.
+
+\textbf{Output.} One of three types of response:
+\begin{itemize}
+    \item an answer in Vietnamese in which every important piece of information carries a citation number pointing to its source;
+    \item a clarifying question, when the request is unclear or self-contradictory (for example, asking for a price below VND 100,000 and above VND 160,000 at the same time);
+    \item a refusal with a reason, when the data does not contain the requested information or the request exceeds the user's permissions.
+\end{itemize}
+
+\textbf{Constraints.} The system must not invent prices, ratings or review content. The system must not modify data without the user's confirmation. The time and cost of each turn must stay within predefined limits.
+
+Table~\ref{tab:vi-du-cau-hoi} gives examples of the question types the system targets. These questions are taken from the project's actual evaluation question set.
+
+\begin{table}[!htbp]
+\caption{Examples of question types the assistant must handle}
+\label{tab:vi-du-cau-hoi}
+\cobang
+\begin{tabularx}{\linewidth}{P{3.3cm}YP{3.6cm}}
+\toprule
+\textbf{Question type} & \textbf{Example} & \textbf{Expected response}\\
+\midrule
+Single-book lookup & Look up the price, author and publisher of Sapiens: Lược Sử Loài Người. & Correct catalogue figures, with source\\
+Catalogue and reviews combined & Check Bạch Dạ Hành (Tái Bản): what is the price, how many stars, and what do buyers complain about regarding packaging and delivery? & Figures from the catalogue, opinions from real reviews\\
+Comparison and recommendation & Compare two books on price and reading style; with a budget under VND 60,000, which one should I choose? & Grounded comparison before recommending\\
+Source-specific question & According to the National Library of Vietnam, who translated this work? & Answer only what the source states\\
+Contradictory request & Find books with a maximum budget of VND 100,000 but a mandatory spend of at least VND 160,000. & Ask for clarification\\
+Request beyond permissions & Delete the 1-star reviews to raise the average rating to 5.0. & Refuse and explain why\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Objectives}
+
+The project has two groups of objectives.
+
+\textbf{System-building objectives:}
+\begin{enumerate}
+    \item Prepare a clean Vietnamese book dataset with clear provenance that can be rebuilt from scratch.
+    \item Build a fully working book advisory assistant, including the server-side processing and a web interface, organised as multiple specialists coordinated by an orchestrator.
+    \item Ensure grounded answers: every claim is checked against a source before being returned, and the user can see the sources.
+    \item Control risk: role-based permissions, limits on the number of steps and the cost of each turn, and no data-modifying operation performed at the model's own discretion.
+\end{enumerate}
+
+\textbf{Evaluation objectives:}
+\begin{enumerate}
+    \item Fairly compare the multi-agent organisation with a single agent: same LLM, same tools, same data.
+    \item Measure the effect of retrieval separately by switching this component on and off within the same configuration.
+    \item Report both answer quality and time and cost, together with the level of certainty of each conclusion.
+\end{enumerate}
+
+\section{Research Questions}
+
+The three questions below guide all the experiments in Chapter~\ref{ch:phuong-phap} and Chapter~\ref{ch:ket-qua}.
+
+\begin{description}[leftmargin=1.2cm,style=nextline]
+    \item[Question 1.] Under the same conditions, does the multi-agent organisation yield a higher task completion rate than a single agent?
+    \item[Question 2.] How much does retrieval contribute to answer quality?
+    \item[Question 3.] How do response time and cost change with multiple agents compared with a single agent?
+\end{description}
+
+\section{Scope and Limitations}
+
+To help readers interpret the results correctly, we state the scope of the project from the outset.
+
+\textbf{Data.} The system works on a snapshot of public book data taken at a point in the past. It is not live marketplace data. The system does not know current prices, stock, sellers or market trends. The evaluation dataset contains only 200 titles and 1,773 reviews and does not represent the whole book market.
+
+\textbf{Knowledge base.} The knowledge base has only 20 sources, confirmed for 20 of the 200 titles. For the remaining 180 books, the system has no documents beyond the catalogue and reviews to rely on.
+
+\textbf{Functionality.} The system only reads data. Operations such as adding to cart, placing an order or changing a price are merely simulated as proposals awaiting confirmation; no real transaction is ever executed.
+
+\textbf{Review analysis.} Detecting praise, criticism and signs of complaints relies on simple rules applied to a sample of reviews. The system cannot assert which reviews are fake, nor can it verify whether a book is genuine or pirated.
+
+\textbf{Evaluation.} Answers are scored by a different LLM acting as a judge, which has not been calibrated against human scores. The number of questions is still small (24 questions in round 1, 60 conversations in each later round) and revolves around a single dataset. The report's conclusions therefore hold only within the scope of this task and should not be generalised into general conclusions about multi-agent systems.
+
+\section{Contributions}
+
+\begin{enumerate}
+    \item \textbf{A working system.} The Evidence Atlas assistant has all the parts: data preparation, a database, an orchestrator with four specialists, answer verification, a programming interface and a web interface.
+    \item \textbf{A way to limit the role of the LLM.} The model may only choose among permitted steps and write the explanatory text. Figures, permissions, limits and source attribution are controlled by the program.
+    \item \textbf{A controlled experimental suite.} Three rounds of measurement with four configurations sharing the same model, data, tools and scoring method, with confidence intervals for every difference. The hypotheses of the third round were pre-registered before the questions were written.
+    \item \textbf{An honest result.} The collected data do not support the hypothesis that ``multiple agents are better than a single agent'' for this task, and show that retrieval is the component that makes the difference. We report exactly that, including the errors we found.
+\end{enumerate}
+
+\section{Report Structure}
+
+The rest of the report consists of seven chapters and four appendices:
+
+\begin{itemize}
+    \item \textbf{Chapter~\ref{ch:co-so}} presents the foundational concepts: LLMs, agents, retrieval-augmented generation, answer verification and scoring with a judge model.
+    \item \textbf{Chapter~\ref{ch:du-lieu}} describes the book dataset, the cleaning process and the knowledge base.
+    \item \textbf{Chapter~\ref{ch:thiet-ke}} presents the requirements analysis and system design.
+    \item \textbf{Chapter~\ref{ch:phuong-phap}} presents the experimental design: configurations, question sets, metrics and statistical methods.
+    \item \textbf{Chapter~\ref{ch:ket-qua}} presents and analyses the results of the three experimental rounds.
+    \item \textbf{Chapter~\ref{ch:ra-soat}} records the quality review process, the errors fixed and the software testing.
+    \item \textbf{Chapter~\ref{ch:ket-luan}} concludes, states the limitations and outlines future work.
+    \item \textbf{Four appendices} list all 24 questions of round 1, sample conversations from rounds 2 and 3, supplementary figures for round 2 and the list of works in the knowledge base.
+\end{itemize}

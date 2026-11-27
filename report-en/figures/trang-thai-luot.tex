@@ -1,0 +1,12 @@
+% The states of a turn
+\begin{tikzpicture}[baocao]
+  \node[hop, text width=2.6cm] (p) at (1.5,0) {\textbf{Pending}\\recorded};
+  \node[hopxam, text width=2.8cm] (r) at (6.4,0) {\textbf{Running}\\one worker holds the processing lock};
+  \node[hop, text width=4.4cm] (t1) at (12.7,2.4) {\textbf{Completed}: final result available};
+  \node[hop, text width=4.4cm] (t2) at (12.7,0.8) {\textbf{Failed}: unrecoverable error};
+  \node[hop, text width=4.4cm] (t3) at (12.7,-0.8) {\textbf{Cancelled}: user asked to stop};
+  \node[hop, text width=4.4cm] (t4) at (12.7,-2.4) {\textbf{Interrupted}: worker stopped midway};
+  \draw[mui] (p) -- (r);
+  \foreach \t in {t1,t2,t3,t4} \draw[mui] (r.east) -- ++(0.7,0) |- (\t.west);
+  \node[ghichu, text width=7.5cm] at (4.0,-2.4) {Resubmitting the same turn does not create a new turn: the system returns the stored state or result.};
+\end{tikzpicture}

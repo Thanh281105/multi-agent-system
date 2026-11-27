@@ -1,0 +1,15 @@
+% Round 2: four quality metrics of the four configurations (%)
+\begin{tikzpicture}[baocao]
+  \begin{axis}[bieudo, nhandoc, width=15.4cm, height=8.2cm, bar width=5.2mm,
+      ylabel={Rate (\%)},
+      symbolic x coords={c1,c2,c3,c4},
+      xticklabels={{Task\\completion},{Grounded\\claims},{Correct\\response type},{Citation\\accuracy}},
+      x tick label style={font=\sffamily\footnotesize, align=center, text width=3.2cm},
+      enlarge x limits=0.16]
+    \addplot[cotA] coordinates {(c1,45.2) (c2,60.6) (c3,83.3) (c4,96.3)};
+    \addplot[cotB] coordinates {(c1,47.2) (c2,63.9) (c3,83.3) (c4,96.3)};
+    \addplot[cotC] coordinates {(c1,41.4) (c2,57.4) (c3,83.3) (c4,96.3)};
+    \addplot[cotD] coordinates {(c1,5.2) (c2,21.9) (c3,9.0) (c4,21.9)};
+    \legend{SA, Fixed MA, Adaptive MA, MA no-RAG}
+  \end{axis}
+\end{tikzpicture}

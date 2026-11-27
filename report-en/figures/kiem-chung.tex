@@ -1,0 +1,18 @@
+% Verifying each claim before answering
+\begin{tikzpicture}[baocao, node distance=6mm]
+  \tikzset{cot/.style={hop, text width=7.2cm}}
+  \node[cot] (n1) at (4.3,0) {Draft written by the model};
+  \node[cot, below=of n1] (n2) {Split into individual claims; each claim must point to a supporting source passage};
+  \node[cot, below=of n2] (n3) {\textbf{Check 1:} the passage exists, with the right version and the right location in the document};
+  \node[cot, below=of n3] (n4) {\textbf{Check 2:} the passage actually states what the claim says};
+  \node[hopxam, text width=4.4cm, below=of n4] (d) {\textbf{Both checks passed?}};
+  \node[cot, below=10mm of d] (n5) {Keep the claim and attach the citation number in the answer};
+  \coordinate (cotphai) at (13.0,0);
+  \path (cotphai |- d) node[hop, text width=3.9cm] (fix) {Let the model revise\\(once only)};
+  \path (cotphai |- n5) node[hopden, text width=3.9cm] (drop) {Drop the claim, or state that grounds are insufficient};
+  \foreach \a/\b in {n1/n2,n2/n3,n3/n4,n4/d} \draw[mui] (\a) -- (\b);
+  \draw[mui] (d) -- node[right, font=\sffamily\footnotesize\bfseries] {Yes} (n5);
+  \draw[mui] (d) -- node[above, font=\sffamily\footnotesize\bfseries] {No} (fix);
+  \draw[mui] (fix.north) |- node[pos=0.25, right, ghichu] {re-check} (n3.east);
+  \draw[mui] (fix) -- node[right, ghichu] {still fails} (drop);
+\end{tikzpicture}

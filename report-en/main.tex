@@ -1,0 +1,133 @@
+% !TeX program = xelatex
+\documentclass[12pt,a4paper,oneside]{report}
+\input{preamble.tex}
+\begin{document}
+
+% ---------- Two cover pages (following the Faculty template) ----------
+% \bia{title size}{subject line size}{major line size}{show advisor: 1/0}
+\newcommand{\bia}[4]{%
+\clearpage\thispagestyle{empty}
+    \begingroup\centering
+    \fontsize{14}{20}\selectfont
+    VIETNAM GENERAL CONFEDERATION OF LABOUR\par
+    {\bfseries TON DUC THANG UNIVERSITY\par}
+    {\bfseries FACULTY OF INFORMATION TECHNOLOGY\par}
+    \vspace{0.8cm}
+    \includegraphics[width=4.13cm]{images/tdtu-logo.png}\par
+    \vspace{1.6cm}
+    {\bfseries HOÀNG XUÂN THÀNH - 523H0178\par}
+    {\bfseries TRẦN GIA LẠC - 523H0154\par}
+    \vspace{2cm}
+    {\bfseries\fontsize{#1}{1.3\dimexpr#1pt\relax}\selectfont
+    A BOOK ADVISORY ASSISTANT\\BASED ON MULTIPLE AGENTS\par}
+    \vspace{1.4cm}
+    {\bfseries\fontsize{#2}{1.3\dimexpr#2pt\relax}\selectfont INFORMATION TECHNOLOGY PROJECT\par}
+    \vspace{0.3cm}
+    {\bfseries\fontsize{#3}{1.3\dimexpr#3pt\relax}\selectfont COMPUTER SCIENCE\par}
+    \ifnum#4=1
+    \vspace{1.4cm}
+    Advisor\par
+    {\bfseries\fontsize{13}{18}\selectfont Assoc. Prof. Dr. Lê Anh Cường\par}
+    \fi
+    \vfill
+    {\bfseries HO CHI MINH CITY, 2026\par}
+\endgroup\clearpage}
+
+% Main cover and inner cover: font sizes as in the template.
+\pagenumbering{alph}
+\bia{24}{22}{13}{0}
+\bia{22}{20}{20}{1}
+
+\pagenumbering{roman}
+
+% Signature block at the end of the Acknowledgements and Declaration pages
+\newcommand{\kyten}{%
+\par\vspace{0.6cm}
+\noindent\hfill\begin{minipage}{9cm}\centering
+\textbf{Ho Chi Minh City, \dots\ \dots\ 2026}\\
+Authors\\
+(Signature and full name)\\[2.2cm]
+Hoàng Xuân Thành \qquad\qquad Trần Gia Lạc
+\end{minipage}\par}
+
+% Line break inside unnumbered titles (titles are upper-cased automatically, so a robust command is needed)
+\DeclareRobustCommand{\xuongdong}{\\}
+\DeclareRobustCommand{\canhtieude}{\\[10pt]}
+
+% ---------- Acknowledgements ----------
+\chapter*{Acknowledgements}
+
+We would like to express our sincere gratitude to Assoc. Prof. Dr. Lê Anh Cường for his guidance, direction and feedback throughout the Information Technology Project course. His critical questions helped us see the limits of our model more clearly, adjust our experimental approach and present the results carefully, in line with what was actually measured.
+
+We also thank the authors of the public dataset, the technical documentation and the open-source software community that laid the foundation for this project. All references are listed at the end of the report so that readers can look them up and verify them.
+
+Despite our efforts, this report inevitably has shortcomings. We would greatly appreciate comments from the lecturers to improve the project in its next stages.
+
+\kyten
+
+% ---------- Declaration ----------
+\chapter*{This work was completed\xuongdong{}at Ton Duc Thang University}
+
+We hereby declare that this is our own research work, carried out under the scientific guidance of Assoc. Prof. Dr. Lê Anh Cường. The research content and results in this project are truthful and have not been published in any form before. The data in the tables used for analysis, comments and evaluation were collected by the authors from various sources, which are clearly stated in the references.
+
+The descriptions of the design, data, evaluation method and all result figures in this report are based on the source code and result files stored in the project repository. We did not use invented figures, nor simulated labels in place of real grading. Results that do not favour the initial hypothesis and the parts that were not completed are stated clearly.
+
+\textbf{In addition, the Project uses some comments, evaluations and data from other authors and organisations, all of which are cited with their sources.}
+
+\textbf{If any fraud is found, we take full responsibility for the content of our Project. Ton Duc Thang University is not involved in any copyright violations caused by us during the project (if any).}
+
+\kyten
+
+% ---------- Abstract ----------
+\chapter*{A book advisory assistant\xuongdong{}based on multiple agents\canhtieude{}Abstract}
+
+This project builds \textbf{Evidence Atlas}, a Vietnamese-language book advisory assistant. Users ask questions in natural language; the system finds books, compares them, summarises buyer reviews and answers with cited sources so that readers can verify every claim. It works on a cleaned public book dataset (200 titles, 1,773 reviews) and a small knowledge base of 20 authoritative sources.
+
+The system splits the work among four fixed specialists (product, review, trust and market) coordinated by an orchestrator. The language model may only propose a plan and write explanations within an allowed scope; access rights, step limits, catalogue figures and source attribution are enforced by the program. Every claim is checked against its source passage before it reaches the user; when the evidence is insufficient, the system says so or asks back instead of guessing.
+
+The main research question is whether splitting the work among multiple agents yields better answers than a single agent that shares the same tools and data. Three rounds of experiments were carried out:
+
+\begin{itemize}
+    \item \textbf{Round 1 (exploratory, 24 questions, 144 answers):} both approaches scored almost the same (98.96\% and 100\%), but the multi-agent system was 4.73 times slower and used 2.78 times more tokens.
+    \item \textbf{Round 2 (60 conversations, 720 judged turns):} the task completion rate was 45.16\% for the single agent, 47.22\% for multi-agent with a fixed plan and 41.36\% with an adaptive plan. All differences from the single agent lie within the margin of error. In contrast, disabling document retrieval reduced the rate by 36.11 percentage points (95\% confidence interval from $-51.23$ to $-21.60$).
+    \item \textbf{Round 3 (confirmatory, pre-registered hypotheses, 60 new conversations):} none of the three hypotheses about a multi-agent advantage was supported. This round also showed that the system handles naturally phrased questions poorly under both designs.
+\end{itemize}
+
+Conclusion: for this task and dataset, \textbf{there is no evidence that multiple agents outperform a single agent}, while the multi-agent system was clearly more expensive and slower in round 1 and no cheaper in later rounds. The component with a clear, measurable effect is \textbf{document retrieval with cited sources}. The report also documents the data review process and the remaining limitations of the project.
+
+% ---------- Contents and lists ----------
+\tableofcontents
+
+\listoffigures
+\addcontentsline{toc}{chapter}{List of figures}
+
+\listoftables
+\addcontentsline{toc}{chapter}{List of tables}
+
+\input{thuat-ngu.tex}
+
+\clearpage
+\pagenumbering{arabic}
+
+% ---------- Main content ----------
+\input{chuong-1-gioi-thieu.tex}
+\input{chuong-2-co-so-ly-thuyet.tex}
+\input{chuong-3-du-lieu.tex}
+\input{chuong-4-thiet-ke.tex}
+\input{chuong-5-phuong-phap.tex}
+\input{chuong-6-ket-qua.tex}
+\input{chuong-7-ra-soat.tex}
+\input{chuong-8-ket-luan.tex}
+
+% ---------- References ----------
+\chapter*{References}
+\addcontentsline{toc}{chapter}{References}
+\input{sources.tex}
+
+% ---------- Appendices ----------
+\appendix
+\renewcommand{\tienochuong}{APPENDIX}
+\addtocontents{toc}{\protect\renewcommand{\protect\tienomucluc}{APPENDIX}}
+\input{phu-luc.tex}
+
+\end{document}

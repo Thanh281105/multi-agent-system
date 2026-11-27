@@ -1,0 +1,58 @@
+% List of references. Numbers match the \src{n} commands in the chapters.
+\newcommand{\nguon}[2]{\par\noindent\hangindent=1.1cm\hangafter=1\hypertarget{src-#1}{}\makebox[1.1cm][l]{[#1]}#2\par\vspace{5pt}}
+
+\section*{Scientific and technical literature}
+
+\nguon{1}{Lewis, P., Perez, E., Piktus, A., et al. (2020). Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. \textit{Advances in Neural Information Processing Systems (NeurIPS)}, 33, 9459--9474.}
+
+\nguon{2}{Wu, Q., Bansal, G., Zhang, J., et al. (2023). AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation. \textit{arXiv:2308.08155}.}
+
+\nguon{3}{Hong, S., Zhuge, M., Chen, J., et al. (2023). MetaGPT: Meta Programming for A Multi-Agent Collaborative Framework. \textit{arXiv:2308.00352}.}
+
+\nguon{4}{Zheng, L., Chiang, W.-L., Sheng, Y., et al. (2023). Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena. \textit{Advances in Neural Information Processing Systems (NeurIPS)}, 36.}
+
+\nguon{5}{Ji, Z., Lee, N., Frieske, R., et al. (2023). Survey of Hallucination in Natural Language Generation. \textit{ACM Computing Surveys}, 55(12), 1--38.}
+
+\nguon{6}{Anthropic (2024). Building Effective Agents. \url{https://www.anthropic.com/research/building-effective-agents}.}
+
+\nguon{7}{Kapoor, S., Stroebl, B., Siegel, Z. S., Nadgir, N., Narayanan, A. (2024). AI Agents That Matter. \textit{arXiv:2407.01502}.}
+
+\nguon{8}{Cemri, M., Pan, M. Z., Yang, S., et al. (2025). Why Do Multi-Agent LLM Systems Fail? \textit{arXiv:2503.13657}.}
+
+\nguon{9}{Kim, Y., et al. (2025). Towards a Science of Scaling Agent Systems. \textit{arXiv:2512.08296}.}
+
+\nguon{10}{Yao, S., Zhao, J., Yu, D., et al. (2023). ReAct: Synergizing Reasoning and Acting in Language Models. \textit{International Conference on Learning Representations (ICLR)}.}
+
+\nguon{11}{Robertson, S., Zaragoza, H. (2009). The Probabilistic Relevance Framework: BM25 and Beyond. \textit{Foundations and Trends in Information Retrieval}, 3(4), 333--389.}
+
+\nguon{12}{Efron, B., Tibshirani, R. J. (1993). \textit{An Introduction to the Bootstrap}. Chapman \& Hall.}
+
+\section*{Data}
+
+\nguon{13}{Tiki Books Dataset, version 4, licence CC0-1.0. Kaggle. \url{https://www.kaggle.com/datasets/biminhc/tiki-books-dataset}. Accessed 24 August 2026.}
+
+\section*{Project documents and results}
+
+The documents below are in the project's code repository; the path given after each entry is the file's location in the repository. Repository address:
+
+\url{https://github.com/Thanh281105/multi-agent-system}
+
+\nguon{14}{Evidence Atlas system architecture. \url{docs/architecture.md}.}
+
+\nguon{15}{Data preparation pipeline and quality report of the evaluation set. \url{docs/data.md}; \url{data/snapshots/tiki-books-v4-eval/}.}
+
+\nguon{16}{Coverage and source list of the knowledge base. \url{data/knowledge/books-v1/coverage.md}.}
+
+\nguon{17}{Round 1 question set and results. \url{evaluation/v4_fair_benchmark_cases.json}; \url{latex/ket-qua-v4-theo-ca.csv}.}
+
+\nguon{18}{Round 2 results report and accompanying result bundle. \url{docs/p8_official_publication_benchmark_report.md}; \url{evaluation/p8-publication-v1/}.}
+
+\nguon{19}{Round 2 re-grading results for checking judge stability. \url{docs/rejudge_llm_judge_results.md}.}
+
+\nguon{20}{Round 3 pre-registration. \url{docs/preregistration-confirmatory-run-2026-11-10.md}.}
+
+\nguon{21}{Round 3 results and deviations from the pre-registration. \url{docs/confirmatory-run-results-2026-11-10.md}; \url{evaluation/v3/confirm-20261110/}.}
+
+\nguon{22}{Records of the four review passes. \url{docs/p0-remediation-20261106.md}; \url{docs/p1-remediation-20261106.md}; \url{docs/benchmark-quality-p2.md}; \url{docs/benchmark-readiness-p3.md}; \url{docs/evidence-reporting.md}.}
+
+\nguon{23}{Description of the functions the system exposes externally. \url{docs/api.md}.}

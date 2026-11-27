@@ -1,0 +1,10 @@
+% How scores are aggregated from individual gradings to the final number
+\begin{tikzpicture}[baocao]
+  \node[hop, text width=2.75cm, minimum height=26mm] (a) at (1.75,0) {\textbf{720 gradings}\\60 conversations $\times$ 4 configurations $\times$ 3 repeats};
+  \node[hop, text width=2.75cm, minimum height=26mm] (b) at (5.75,0) {\textbf{Pool repeats}\\average the 3 runs of each conversation};
+  \node[hop, text width=2.75cm, minimum height=26mm] (c) at (9.75,0) {\textbf{Pool by work}\\average conversations in the same group};
+  \node[hopxam, text width=2.75cm, minimum height=26mm] (d) at (13.75,0) {\textbf{Result}\\mean over groups, 95\% confidence interval};
+  \draw[mui] (a) -- (b);
+  \draw[mui] (b) -- (c);
+  \draw[mui] (c) -- (d);
+\end{tikzpicture}

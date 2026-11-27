@@ -1,0 +1,47 @@
+% Following the template: a borderless two-column table (abbreviation -- full form).
+\chapter*{List of abbreviations}
+\addcontentsline{toc}{chapter}{List of abbreviations}
+
+\noindent\begin{tabular}{@{}p{4.6cm}p{10.4cm}@{}}
+API & Application Programming Interface\\
+LLM & Large Language Model\\
+MA & Multi-Agent\\
+pp & Percentage point(s)\\
+RAG & Retrieval-Augmented Generation\\
+SA & Single-Agent\\
+\end{tabular}
+
+\chapter*{Glossary}
+\addcontentsline{toc}{chapter}{Glossary}
+
+{\cobang
+\begin{longtable}{P{3.4cm}P{11.2cm}}
+\toprule
+\textbf{Term} & \textbf{Meaning in this report}\\
+\midrule
+\endhead
+Large language model (LLM) & A machine learning model trained on a very large amount of text that can read a question and write an answer in natural language.\\
+Agent & A software component that uses a language model to decide its next step, for example which tool to call, and then uses the result to answer.\\
+SA & Single agent: one agent that uses all the tools.\\
+MA & Multi-agent: an orchestrator divides the work among several specialists.\\
+Fixed MA & A multi-agent configuration whose plan is built by the program's predefined rules and is not adjusted midway.\\
+Adaptive MA & A multi-agent configuration whose plan is proposed by the model and may be extended once after the initial results arrive.\\
+MA without retrieval & Same as adaptive MA but with knowledge-base retrieval switched off.\\
+Specialist & A component responsible for only one kind of work (product, review, trust, market).\\
+Orchestrator & The component that receives the question, makes a plan and assigns work to the specialists.\\
+Retrieval (RAG) & Retrieval-Augmented Generation: relevant document passages are found first, and only then does the model write an answer based on them.\\
+Knowledge base & A set of short documents rewritten by the team from authoritative sources (publishers, libraries), used for retrieval.\\
+Hallucination & When the model writes information that sounds plausible but is not in the data or is false.\\
+Claim & A statement in an answer that can be checked as true or false.\\
+Citation & A number attached after a claim that points to the source supporting that claim.\\
+Token & The unit of text a model processes (roughly a syllable or part of a word). The cost of using a model is charged per token.\\
+Conversation, turn & A conversation consists of one or several consecutive turns (questions) from the same user.\\
+Judge model & A different language model used to grade answers against a reference answer.\\
+Held-out set & A set of questions not used during development, only for evaluation.\\
+Work group & Conversations that ask about the same literary work are grouped together when computing statistics.\\
+95\% confidence interval & The range in which the true difference most likely lies. If the range contains 0, we cannot say the two sides differ.\\
+Percentage point (\pp) & The difference between two percentages. For example, going from 40\% to 45\% is an increase of 5 \pp.\\
+API & Application programming interface: the way other programs (for example a web page) send requests to the system.\\
+\bottomrule
+\end{longtable}
+}
